@@ -1,15 +1,15 @@
 name: "CI/CD Master Pipeline"
 
 on:
-#  push:
-#    branches:
-#      - '**'
-#    tags:
-#      - 'v*'
-#  pull_request:
-#    branches:
-#      - main
-#      - dev
+ push:
+   branches:
+     - '**'
+   tags:
+     - 'v*'
+ pull_request:
+   branches:
+     - main
+     - dev
   workflow_dispatch:
     inputs:
       deploy_to_production:
