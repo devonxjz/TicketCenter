@@ -25,8 +25,9 @@
                         </div>
                         <button type="submit" class="btn btn-primary w-100">Đăng nhập</button>
                     </form>
-                    <div class="mt-3 text-center">
-                        <a href="${pageContext.request.contextPath}/WEB-INF/views/auth/register.jsp" class="small text-decoration-none">Chưa có tài khoản? Đăng ký ngay</a>
+                    <div class="mt-3 d-flex justify-content-between">
+                        <a href="${pageContext.request.contextPath}/auth/forgot-password" class="small text-decoration-none">Quên mật khẩu?</a>
+                        <a href="${pageContext.request.contextPath}/auth/register" class="small text-decoration-none">Đăng ký tài khoản</a>
                     </div>
                 </div>
             </div>

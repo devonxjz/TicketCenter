@@ -4,13 +4,8 @@ import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import vn.ticketscenter.config.persistence.PersistenceListener;
-import vn.ticketscenter.config.persistence.PersistenceRegistry;
-import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.config.web.HttpResponses;
-import vn.ticketscenter.identity.repository.UserRepository;
 import vn.ticketscenter.identity.service.AuthService;
-import vn.ticketscenter.identity.service.PasswordHasher;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -32,28 +27,14 @@ public final class SessionValidationFilter implements Filter {
 
     @Override
     public void init(FilterConfig filterConfig) {
-        ServletContext context = filterConfig.getServletContext();
-        resolveAuthService(context);
-    }
-
-    private synchronized AuthService getAuthService(ServletContext context) {
-        if (authService != null) return authService;
-        resolveAuthService(context);
-        return authService;
-    }
-
-    private void resolveAuthService(ServletContext context) {
-        if (authService == null && context != null) {
-            Object regObj = context.getAttribute(PersistenceListener.REGISTRY_ATTRIBUTE);
-            if (regObj instanceof PersistenceRegistry registry && registry.isReady()) {
-                this.authService = new AuthService(
-                        registry.transactionManager(),
-                        new UserRepository(),
-                        new PasswordHasher(),
-                        RedisClientProvider.getInstance()
-                );
-            }
+        if (this.authService == null && filterConfig != null) {
+            this.authService = AuthSecurityListener.resolveAuthService(filterConfig.getServletContext());
         }
+    }
+
+    private AuthService getAuthService(ServletContext context) {
+        if (authService != null) return authService;
+        return AuthSecurityListener.resolveAuthService(context);
     }
 
     @Override

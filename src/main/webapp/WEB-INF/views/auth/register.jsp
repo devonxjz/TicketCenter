@@ -34,7 +34,7 @@
                         <button type="submit" class="btn btn-primary w-100">Đăng ký</button>
                     </form>
                     <div class="mt-3 text-center">
-                        <a href="${pageContext.request.contextPath}/WEB-INF/views/auth/login.jsp" class="small text-decoration-none">Đã có tài khoản? Đăng nhập</a>
+                        <a href="${pageContext.request.contextPath}/auth/login" class="small text-decoration-none">Đã có tài khoản? Đăng nhập</a>
                     </div>
                 </div>
             </div>

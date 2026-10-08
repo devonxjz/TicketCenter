@@ -6,16 +6,12 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import vn.ticketscenter.config.persistence.PersistenceListener;
-import vn.ticketscenter.config.persistence.PersistenceRegistry;
-import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.identity.dto.CurrentUserDto;
-import vn.ticketscenter.identity.repository.UserRepository;
+import vn.ticketscenter.identity.security.AuthSecurityListener;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.identity.service.AuthService;
-import vn.ticketscenter.identity.service.PasswordHasher;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -33,27 +29,14 @@ public class MeServlet extends HttpServlet {
 
     @Override
     public void init(ServletConfig config) {
-        resolveAuthService(config.getServletContext());
-    }
-
-    private synchronized AuthService getAuthService(ServletContext context) {
-        if (authService != null) return authService;
-        resolveAuthService(context);
-        return authService;
-    }
-
-    private void resolveAuthService(ServletContext context) {
-        if (authService == null && context != null) {
-            Object regObj = context.getAttribute(PersistenceListener.REGISTRY_ATTRIBUTE);
-            if (regObj instanceof PersistenceRegistry registry && registry.isReady()) {
-                this.authService = new AuthService(
-                        registry.transactionManager(),
-                        new UserRepository(),
-                        new PasswordHasher(),
-                        RedisClientProvider.getInstance()
-                );
-            }
+        if (this.authService == null && config != null) {
+            this.authService = AuthSecurityListener.resolveAuthService(config.getServletContext());
         }
+    }
+
+    private AuthService getAuthService(ServletContext context) {
+        if (authService != null) return authService;
+        return AuthSecurityListener.resolveAuthService(context);
     }
 
     @Override
