@@ -10,7 +10,6 @@
         <class>vn.ticketscenter.identity.model.Organization</class>
         <class>vn.ticketscenter.identity.model.OrganizationMembership</class>
         <class>vn.ticketscenter.identity.model.OrganizationRequest</class>
-        <class>vn.ticketscenter.event.model.EventCategory</class>
         <class>vn.ticketscenter.event.model.Event</class>
         <class>vn.ticketscenter.event.model.Zone</class>
         <class>vn.ticketscenter.event.model.Seat</class>
@@ -21,13 +20,17 @@
         <class>vn.ticketscenter.order.model.Payment</class>
         <class>vn.ticketscenter.order.model.Coupon</class>
         <class>vn.ticketscenter.fulfillment.model.Ticket</class>
-        <class>vn.ticketscenter.fulfillment.model.CheckIn</class>
         <class>vn.ticketscenter.fulfillment.model.RefundRequest</class>
         <class>vn.ticketscenter.fulfillment.model.Refund</class>
         <class>vn.ticketscenter.settlement.model.CommissionRule</class>
         <class>vn.ticketscenter.settlement.model.Settlement</class>
         <class>vn.ticketscenter.settlement.model.SettlementItem</class>
         <class>vn.ticketscenter.settlement.model.Payout</class>
+        <class>vn.ticketscenter.persistence.model.RefundTicket</class>
+        <class>vn.ticketscenter.persistence.model.RefundTransferLog</class>
+        <class>vn.ticketscenter.persistence.model.SettlementTransferLog</class>
+        <class>vn.ticketscenter.persistence.model.TicketCheckInLog</class>
+        <class>vn.ticketscenter.persistence.model.CouponRedemption</class>
         <class>vn.ticketscenter.audit.model.AuditLog</class>
         <exclude-unlisted-classes>true</exclude-unlisted-classes>
         <properties>

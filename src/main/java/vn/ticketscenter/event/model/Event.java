@@ -1,0 +1,112 @@
+package vn.ticketscenter.event.model;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+import vn.ticketscenter.identity.model.Organization;
+import vn.ticketscenter.persistence.model.BaseEntity;
+import vn.ticketscenter.settlement.model.CommissionRule;
+import vn.ticketscenter.settlement.model.Settlement;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+
+@Entity
+@Table(name = "tc_events", schema = "dbo")
+public class Event extends BaseEntity {
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "organization_id", nullable = false)
+    private Organization organization;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "commission_rule_id")
+    private CommissionRule commissionRule;
+
+    @Column(nullable = false, length = 300)
+    private String title;
+
+    @Column(nullable = false, length = 5000)
+    private String description;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private EventCategory category;
+
+    @Column(name = "venue_name", nullable = false, length = 300)
+    private String venueName;
+
+    @Column(name = "venue_address", nullable = false, length = 1000)
+    private String venueAddress;
+
+    @Column(name = "cover_image_url", length = 1000)
+    private String coverImageUrl;
+
+    @Column(name = "sale_start", nullable = false)
+    private Instant saleStart;
+
+    @Column(name = "sale_end", nullable = false)
+    private Instant saleEnd;
+
+    @Column(name = "start_time", nullable = false)
+    private Instant startTime;
+
+    @Column(name = "end_time", nullable = false)
+    private Instant endTime;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private EventStatus status = EventStatus.DRAFT;
+
+    @Column(name = "rejection_reason", length = 2000)
+    private String rejectionReason;
+
+    @OneToMany(mappedBy = "event")
+    private List<Zone> zones = new ArrayList<>();
+
+    @OneToOne(mappedBy = "event", fetch = FetchType.LAZY)
+    private Settlement settlement;
+
+    protected Event() { }
+
+    public Event(Organization organization, String title, String description, EventCategory category,
+                 String venueName, String venueAddress) {
+        this.organization = organization;
+        this.title = title;
+        this.description = description;
+        this.category = category;
+        this.venueName = venueName;
+        this.venueAddress = venueAddress;
+    }
+
+    public Organization getOrganization() { return organization; }
+    public CommissionRule getCommissionRule() { return commissionRule; }
+    public String getTitle() { return title; }
+    public String getDescription() { return description; }
+    public EventCategory getCategory() { return category; }
+    public String getVenueName() { return venueName; }
+    public String getVenueAddress() { return venueAddress; }
+    public String getCoverImageUrl() { return coverImageUrl; }
+    public Instant getSaleStart() { return saleStart; }
+    public Instant getSaleEnd() { return saleEnd; }
+    public Instant getStartTime() { return startTime; }
+    public Instant getEndTime() { return endTime; }
+    public EventStatus getStatus() { return status; }
+    public String getRejectionReason() { return rejectionReason; }
+    public List<Zone> getZones() { return List.copyOf(zones); }
+
+    public boolean isSaleActive(Instant now) {
+        return status == EventStatus.PUBLISHED && !now.isBefore(saleStart) && now.isBefore(saleEnd);
+    }
+
+    public boolean isCheckInOpen(Instant now) {
+        return status == EventStatus.PUBLISHED && !now.isBefore(startTime.minusSeconds(3600)) && now.isBefore(endTime);
+    }
+}
