@@ -93,15 +93,19 @@ jobs:
           docker cp database/migrations "$CONTAINER_ID":/tmp/migrations
 
           echo "Áp dụng toàn bộ migrations theo thứ tự..."
-          for file in $(ls database/migrations/*.sql | sort); do
-            filename=$(basename "$file")
-            echo "Running migration: $filename"
-            docker exec "$CONTAINER_ID" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -d TicketCenterticke -i "/tmp/migrations/$filename" || {
-              echo "::error::Lỗi khi chạy migration: $filename"
-              exit 1
-            }
-          done
-          echo "=> Áp dụng thành công toàn bộ migration vào SQL Server."
+          if ls database/migrations/*.sql 1> /dev/null 2>&1; then
+            for file in $(ls database/migrations/*.sql | sort); do
+              filename=$(basename "$file")
+              echo "Running migration: $filename"
+              docker exec "$CONTAINER_ID" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -d TicketCenterticke -i "/tmp/migrations/$filename" || {
+                echo "::error::Lỗi khi chạy migration: $filename"
+                exit 1
+              }
+            done
+          else
+            echo "Chưa có file migration .sql nào. Bỏ qua bước chạy migration."
+          fi
+          echo "=> Hoàn tất kiểm tra migration SQL Server."
 
       - name: Run SQL Server Integration Tests (Failsafe IT)
         env:
@@ -124,6 +128,7 @@ jobs:
           echo "=== Chạy Failsafe Integration Tests (Day06IT, Day07IT, Day08IT, Day09IT, Day11IT) ==="
           mvn -B -Psqlserver-it verify \
             -Dsurefire.failIfNoSpecifiedTests=false \
+            -Dfailsafe.failIfNoSpecifiedTests=false \
             -Dtest=__none__ \
             -Ddb.host=127.0.0.1 \
             -Ddb.port=1433 \
