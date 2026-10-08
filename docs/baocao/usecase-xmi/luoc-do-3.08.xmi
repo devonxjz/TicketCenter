@@ -1,0 +1,273 @@
+<?xml version='1.0' encoding='utf-8'?>
+<xmi:XMI xmlns:uml="http://schema.omg.org/spec/UML/2.1" xmlns:xmi="http://schema.omg.org/spec/XMI/2.1" xmi:version="2.1">
+  <xmi:Documentation exporter="Enterprise Architect" exporterVersion="6.5" exporterID="1721" />
+  <uml:Model xmi:type="uml:Model" xmi:id="EAID_C982BD6F_42AA_5A6F_A7D9_46699967F2D0" name="EA_Model" visibility="public">
+    <packagedElement xmi:type="uml:Package" xmi:id="EAPK_D596F530_0AFE_5F29_8303_ED2913232DB7" name="Luoc do 3.08 - Use case quan ly ve va kiem soat vao cua" visibility="public">
+      <ownedComment xmi:type="uml:Comment" xmi:id="EAID_506D6AAA_14B0_5E28_A853_59904EA8A073">
+        <body>Nguon: BAOCAO.md muc3.1-3.4; SPEC.md muc6.8. Day la goi doc lap de nhap vao Sparx Enterprise Architect.</body>
+      </ownedComment>
+      <packagedElement xmi:type="uml:Actor" xmi:id="EAID_8FB36C5B_BED4_52F1_A41E_32776E0AC112" name="Nguoi mua da xac minh email" visibility="public">
+        <ownedComment xmi:type="uml:Comment" xmi:id="EAID_1E91F587_5626_55E8_99CE_0C7F06C44705">
+          <body>Nguon: BAOCAO.md muc3.1; SPEC.md muc4.</body>
+        </ownedComment>
+      </packagedElement>
+      <packagedElement xmi:type="uml:Actor" xmi:id="EAID_633E64C8_9426_5581_8D68_9BBDD906D91F" name="Quan ly to chuc" visibility="public">
+        <ownedComment xmi:type="uml:Comment" xmi:id="EAID_8A7ED916_FE3A_5426_961B_B162EF7D61D7">
+          <body>Nguon: BAOCAO.md muc3.1; SPEC.md muc4.</body>
+        </ownedComment>
+      </packagedElement>
+      <packagedElement xmi:type="uml:Actor" xmi:id="EAID_3553BF37_8CD2_5FB6_ABF4_9CF16A702C16" name="Nhan vien kiem soat ve" visibility="public">
+        <ownedComment xmi:type="uml:Comment" xmi:id="EAID_1D42A1C1_7D45_50F1_996C_367D0882BB9D">
+          <body>Nguon: BAOCAO.md muc3.1; SPEC.md muc4.</body>
+        </ownedComment>
+      </packagedElement>
+      <packagedElement xmi:type="uml:UseCase" xmi:id="EAID_7D3C62A7_8AA9_5C08_9916_B0F1CF8CCE7E" name="Xem don mua ve va ve dien tu" visibility="public">
+        <ownedComment xmi:type="uml:Comment" xmi:id="EAID_A1C064E3_1D86_5BEC_B0CF_6FE17F41C273">
+          <body>BAOCAO.md muc3.4.13: Cho phep nguoi mua xem cac don thuoc tai khoan minh va cac ve dien tu da duoc phat hanh.
+Doi chieu: SPEC.md muc6.8.</body>
+        </ownedComment>
+      </packagedElement>
+      <packagedElement xmi:type="uml:UseCase" xmi:id="EAID_35B3399C_A4CF_58E9_98C1_6ABC9E478EB8" name="Chia se ma QR cua ve" visibility="public">
+        <ownedComment xmi:type="uml:Comment" xmi:id="EAID_CADD8E0F_4BFD_59BD_88FC_83EF3F78F93F">
+          <body>BAOCAO.md muc3.4.14: Cho phep nguoi mua cung cap ma QR cua mot ve cho nguoi di cung ma khong chuyen quyen so huu don.
+Doi chieu: SPEC.md muc6.8.</body>
+        </ownedComment>
+      </packagedElement>
+      <packagedElement xmi:type="uml:UseCase" xmi:id="EAID_4797E3DD_4C1A_530B_A1CF_6F6CFED89F52" name="Kiem tra ve vao cua bang QR hoac ma nhap tay" visibility="public">
+        <ownedComment xmi:type="uml:Comment" xmi:id="EAID_AF609A6D_343E_55BA_9F7D_4BE6F726C42C">
+          <body>BAOCAO.md muc3.4.26: Cho phep nhan su cua to chuc kiem tra ve tai cua bang camera hoac nhap ma thu cong theo cung mot quy trinh nghiep vu.
+Doi chieu: SPEC.md muc6.8.</body>
+        </ownedComment>
+      </packagedElement>
+      <packagedElement xmi:type="uml:UseCase" xmi:id="EAID_8C20E6A1_E2C2_5AB4_9600_A3A796644F5A" name="Xem lich su kiem tra ve" visibility="public">
+        <ownedComment xmi:type="uml:Comment" xmi:id="EAID_527D3966_3B8B_5AD1_AA9D_63C455F6D949">
+          <body>BAOCAO.md muc3.4.27: Cho phep nhan su duoc phan quyen xem cac lan kiem tra ve va ket qua trong pham vi to chuc.
+Doi chieu: SPEC.md muc6.8.</body>
+        </ownedComment>
+      </packagedElement>
+      <packagedElement xmi:type="uml:Association" xmi:id="EAID_C46D775D_642C_55B3_90D2_D651C747E4B1" visibility="public">
+        <memberEnd xmi:idref="EAID_37C065AD_CE68_5974_A6BE_EAA7751AC4BF" />
+        <ownedEnd xmi:type="uml:Property" xmi:id="EAID_37C065AD_CE68_5974_A6BE_EAA7751AC4BF" association="EAID_C46D775D_642C_55B3_90D2_D651C747E4B1" visibility="public">
+          <type xmi:idref="EAID_8FB36C5B_BED4_52F1_A41E_32776E0AC112" />
+        </ownedEnd>
+        <memberEnd xmi:idref="EAID_FDE453C9_802A_5376_9A41_6C601FF2D750" />
+        <ownedEnd xmi:type="uml:Property" xmi:id="EAID_FDE453C9_802A_5376_9A41_6C601FF2D750" association="EAID_C46D775D_642C_55B3_90D2_D651C747E4B1" visibility="public">
+          <type xmi:idref="EAID_7D3C62A7_8AA9_5C08_9916_B0F1CF8CCE7E" />
+        </ownedEnd>
+      </packagedElement>
+      <packagedElement xmi:type="uml:Association" xmi:id="EAID_A9514C76_F02E_50F2_BCE9_AEBE3199FDE9" visibility="public">
+        <memberEnd xmi:idref="EAID_53630C11_6423_57C3_BC8D_E51F6E702D74" />
+        <ownedEnd xmi:type="uml:Property" xmi:id="EAID_53630C11_6423_57C3_BC8D_E51F6E702D74" association="EAID_A9514C76_F02E_50F2_BCE9_AEBE3199FDE9" visibility="public">
+          <type xmi:idref="EAID_8FB36C5B_BED4_52F1_A41E_32776E0AC112" />
+        </ownedEnd>
+        <memberEnd xmi:idref="EAID_2069595B_3C82_5797_B126_5E68314B9262" />
+        <ownedEnd xmi:type="uml:Property" xmi:id="EAID_2069595B_3C82_5797_B126_5E68314B9262" association="EAID_A9514C76_F02E_50F2_BCE9_AEBE3199FDE9" visibility="public">
+          <type xmi:idref="EAID_35B3399C_A4CF_58E9_98C1_6ABC9E478EB8" />
+        </ownedEnd>
+      </packagedElement>
+      <packagedElement xmi:type="uml:Association" xmi:id="EAID_9C599F6A_FE97_5F36_9673_571DC1A49632" visibility="public">
+        <memberEnd xmi:idref="EAID_E52379D9_0DE0_50DE_AA38_53E3C1192D16" />
+        <ownedEnd xmi:type="uml:Property" xmi:id="EAID_E52379D9_0DE0_50DE_AA38_53E3C1192D16" association="EAID_9C599F6A_FE97_5F36_9673_571DC1A49632" visibility="public">
+          <type xmi:idref="EAID_633E64C8_9426_5581_8D68_9BBDD906D91F" />
+        </ownedEnd>
+        <memberEnd xmi:idref="EAID_3EB1C8A8_48AD_5CA7_91F5_A0264AD49463" />
+        <ownedEnd xmi:type="uml:Property" xmi:id="EAID_3EB1C8A8_48AD_5CA7_91F5_A0264AD49463" association="EAID_9C599F6A_FE97_5F36_9673_571DC1A49632" visibility="public">
+          <type xmi:idref="EAID_4797E3DD_4C1A_530B_A1CF_6F6CFED89F52" />
+        </ownedEnd>
+      </packagedElement>
+      <packagedElement xmi:type="uml:Association" xmi:id="EAID_8F0161D6_B6C3_5128_ABE1_948B0ADF06F7" visibility="public">
+        <memberEnd xmi:idref="EAID_DAF68941_96AF_5C8F_9F47_0B65C46F0C9C" />
+        <ownedEnd xmi:type="uml:Property" xmi:id="EAID_DAF68941_96AF_5C8F_9F47_0B65C46F0C9C" association="EAID_8F0161D6_B6C3_5128_ABE1_948B0ADF06F7" visibility="public">
+          <type xmi:idref="EAID_633E64C8_9426_5581_8D68_9BBDD906D91F" />
+        </ownedEnd>
+        <memberEnd xmi:idref="EAID_1BE60432_7183_5F21_8EC1_8C89966656D6" />
+        <ownedEnd xmi:type="uml:Property" xmi:id="EAID_1BE60432_7183_5F21_8EC1_8C89966656D6" association="EAID_8F0161D6_B6C3_5128_ABE1_948B0ADF06F7" visibility="public">
+          <type xmi:idref="EAID_8C20E6A1_E2C2_5AB4_9600_A3A796644F5A" />
+        </ownedEnd>
+      </packagedElement>
+      <packagedElement xmi:type="uml:Association" xmi:id="EAID_41A1A09C_3786_51DB_955D_BB7231BC7C79" visibility="public">
+        <memberEnd xmi:idref="EAID_442DEE1E_C693_5726_9D3E_F5C23CB11642" />
+        <ownedEnd xmi:type="uml:Property" xmi:id="EAID_442DEE1E_C693_5726_9D3E_F5C23CB11642" association="EAID_41A1A09C_3786_51DB_955D_BB7231BC7C79" visibility="public">
+          <type xmi:idref="EAID_3553BF37_8CD2_5FB6_ABF4_9CF16A702C16" />
+        </ownedEnd>
+        <memberEnd xmi:idref="EAID_6945788E_5854_53A1_926E_B6BF8BA56C76" />
+        <ownedEnd xmi:type="uml:Property" xmi:id="EAID_6945788E_5854_53A1_926E_B6BF8BA56C76" association="EAID_41A1A09C_3786_51DB_955D_BB7231BC7C79" visibility="public">
+          <type xmi:idref="EAID_4797E3DD_4C1A_530B_A1CF_6F6CFED89F52" />
+        </ownedEnd>
+      </packagedElement>
+      <packagedElement xmi:type="uml:Association" xmi:id="EAID_56C1A08F_6827_514B_8CFF_7D91C547EAB9" visibility="public">
+        <memberEnd xmi:idref="EAID_BDAE71D8_9AB4_5563_B83C_B7048040DA72" />
+        <ownedEnd xmi:type="uml:Property" xmi:id="EAID_BDAE71D8_9AB4_5563_B83C_B7048040DA72" association="EAID_56C1A08F_6827_514B_8CFF_7D91C547EAB9" visibility="public">
+          <type xmi:idref="EAID_3553BF37_8CD2_5FB6_ABF4_9CF16A702C16" />
+        </ownedEnd>
+        <memberEnd xmi:idref="EAID_CA20578C_8F13_5801_A4AC_09FC6A6E8447" />
+        <ownedEnd xmi:type="uml:Property" xmi:id="EAID_CA20578C_8F13_5801_A4AC_09FC6A6E8447" association="EAID_56C1A08F_6827_514B_8CFF_7D91C547EAB9" visibility="public">
+          <type xmi:idref="EAID_8C20E6A1_E2C2_5AB4_9600_A3A796644F5A" />
+        </ownedEnd>
+      </packagedElement>
+    </packagedElement>
+  </uml:Model>
+  <xmi:Extension extender="Enterprise Architect" extenderID="6.5">
+    <elements>
+      <element xmi:idref="EAPK_D596F530_0AFE_5F29_8303_ED2913232DB7" xmi:type="uml:Package" name="Luoc do 3.08 - Use case quan ly ve va kiem soat vao cua" scope="public">
+        <properties isSpecification="false" sType="Package" nType="0" scope="public" />
+        <packageproperties version="1.0" />
+      </element>
+      <element xmi:idref="EAID_8FB36C5B_BED4_52F1_A41E_32776E0AC112" xmi:type="uml:Actor" name="Nguoi mua da xac minh email" scope="public">
+        <model package="EAPK_D596F530_0AFE_5F29_8303_ED2913232DB7" tpos="1" ea_localid="1" ea_eleType="element" />
+        <properties isSpecification="false" sType="Actor" nType="0" scope="public" />
+        <style appearance="BackColor=-1;BorderColor=-1;FontColor=0;" />
+        <links>
+          <Association xmi:id="EAID_C46D775D_642C_55B3_90D2_D651C747E4B1" start="EAID_8FB36C5B_BED4_52F1_A41E_32776E0AC112" end="EAID_7D3C62A7_8AA9_5C08_9916_B0F1CF8CCE7E" />
+          <Association xmi:id="EAID_A9514C76_F02E_50F2_BCE9_AEBE3199FDE9" start="EAID_8FB36C5B_BED4_52F1_A41E_32776E0AC112" end="EAID_35B3399C_A4CF_58E9_98C1_6ABC9E478EB8" />
+        </links>
+      </element>
+      <element xmi:idref="EAID_633E64C8_9426_5581_8D68_9BBDD906D91F" xmi:type="uml:Actor" name="Quan ly to chuc" scope="public">
+        <model package="EAPK_D596F530_0AFE_5F29_8303_ED2913232DB7" tpos="2" ea_localid="2" ea_eleType="element" />
+        <properties isSpecification="false" sType="Actor" nType="0" scope="public" />
+        <style appearance="BackColor=-1;BorderColor=-1;FontColor=0;" />
+        <links>
+          <Association xmi:id="EAID_9C599F6A_FE97_5F36_9673_571DC1A49632" start="EAID_633E64C8_9426_5581_8D68_9BBDD906D91F" end="EAID_4797E3DD_4C1A_530B_A1CF_6F6CFED89F52" />
+          <Association xmi:id="EAID_8F0161D6_B6C3_5128_ABE1_948B0ADF06F7" start="EAID_633E64C8_9426_5581_8D68_9BBDD906D91F" end="EAID_8C20E6A1_E2C2_5AB4_9600_A3A796644F5A" />
+        </links>
+      </element>
+      <element xmi:idref="EAID_3553BF37_8CD2_5FB6_ABF4_9CF16A702C16" xmi:type="uml:Actor" name="Nhan vien kiem soat ve" scope="public">
+        <model package="EAPK_D596F530_0AFE_5F29_8303_ED2913232DB7" tpos="3" ea_localid="3" ea_eleType="element" />
+        <properties isSpecification="false" sType="Actor" nType="0" scope="public" />
+        <style appearance="BackColor=-1;BorderColor=-1;FontColor=0;" />
+        <links>
+          <Association xmi:id="EAID_41A1A09C_3786_51DB_955D_BB7231BC7C79" start="EAID_3553BF37_8CD2_5FB6_ABF4_9CF16A702C16" end="EAID_4797E3DD_4C1A_530B_A1CF_6F6CFED89F52" />
+          <Association xmi:id="EAID_56C1A08F_6827_514B_8CFF_7D91C547EAB9" start="EAID_3553BF37_8CD2_5FB6_ABF4_9CF16A702C16" end="EAID_8C20E6A1_E2C2_5AB4_9600_A3A796644F5A" />
+        </links>
+      </element>
+      <element xmi:idref="EAID_7D3C62A7_8AA9_5C08_9916_B0F1CF8CCE7E" xmi:type="uml:UseCase" name="Xem don mua ve va ve dien tu" scope="public">
+        <model package="EAPK_D596F530_0AFE_5F29_8303_ED2913232DB7" tpos="4" ea_localid="4" ea_eleType="element" />
+        <properties isSpecification="false" sType="UseCase" nType="0" scope="public" />
+        <style appearance="BackColor=-1;BorderColor=-1;FontColor=0;" />
+        <links>
+          <Association xmi:id="EAID_C46D775D_642C_55B3_90D2_D651C747E4B1" start="EAID_8FB36C5B_BED4_52F1_A41E_32776E0AC112" end="EAID_7D3C62A7_8AA9_5C08_9916_B0F1CF8CCE7E" />
+        </links>
+      </element>
+      <element xmi:idref="EAID_35B3399C_A4CF_58E9_98C1_6ABC9E478EB8" xmi:type="uml:UseCase" name="Chia se ma QR cua ve" scope="public">
+        <model package="EAPK_D596F530_0AFE_5F29_8303_ED2913232DB7" tpos="5" ea_localid="5" ea_eleType="element" />
+        <properties isSpecification="false" sType="UseCase" nType="0" scope="public" />
+        <style appearance="BackColor=-1;BorderColor=-1;FontColor=0;" />
+        <links>
+          <Association xmi:id="EAID_A9514C76_F02E_50F2_BCE9_AEBE3199FDE9" start="EAID_8FB36C5B_BED4_52F1_A41E_32776E0AC112" end="EAID_35B3399C_A4CF_58E9_98C1_6ABC9E478EB8" />
+        </links>
+      </element>
+      <element xmi:idref="EAID_4797E3DD_4C1A_530B_A1CF_6F6CFED89F52" xmi:type="uml:UseCase" name="Kiem tra ve vao cua bang QR hoac ma nhap tay" scope="public">
+        <model package="EAPK_D596F530_0AFE_5F29_8303_ED2913232DB7" tpos="6" ea_localid="6" ea_eleType="element" />
+        <properties isSpecification="false" sType="UseCase" nType="0" scope="public" />
+        <style appearance="BackColor=-1;BorderColor=-1;FontColor=0;" />
+        <links>
+          <Association xmi:id="EAID_9C599F6A_FE97_5F36_9673_571DC1A49632" start="EAID_633E64C8_9426_5581_8D68_9BBDD906D91F" end="EAID_4797E3DD_4C1A_530B_A1CF_6F6CFED89F52" />
+          <Association xmi:id="EAID_41A1A09C_3786_51DB_955D_BB7231BC7C79" start="EAID_3553BF37_8CD2_5FB6_ABF4_9CF16A702C16" end="EAID_4797E3DD_4C1A_530B_A1CF_6F6CFED89F52" />
+        </links>
+      </element>
+      <element xmi:idref="EAID_8C20E6A1_E2C2_5AB4_9600_A3A796644F5A" xmi:type="uml:UseCase" name="Xem lich su kiem tra ve" scope="public">
+        <model package="EAPK_D596F530_0AFE_5F29_8303_ED2913232DB7" tpos="7" ea_localid="7" ea_eleType="element" />
+        <properties isSpecification="false" sType="UseCase" nType="0" scope="public" />
+        <style appearance="BackColor=-1;BorderColor=-1;FontColor=0;" />
+        <links>
+          <Association xmi:id="EAID_8F0161D6_B6C3_5128_ABE1_948B0ADF06F7" start="EAID_633E64C8_9426_5581_8D68_9BBDD906D91F" end="EAID_8C20E6A1_E2C2_5AB4_9600_A3A796644F5A" />
+          <Association xmi:id="EAID_56C1A08F_6827_514B_8CFF_7D91C547EAB9" start="EAID_3553BF37_8CD2_5FB6_ABF4_9CF16A702C16" end="EAID_8C20E6A1_E2C2_5AB4_9600_A3A796644F5A" />
+        </links>
+      </element>
+    </elements>
+    <connectors>
+      <connector xmi:idref="EAID_C46D775D_642C_55B3_90D2_D651C747E4B1">
+        <source xmi:idref="EAID_8FB36C5B_BED4_52F1_A41E_32776E0AC112">
+          <model type="Actor" name="Nguoi mua da xac minh email" />
+        </source>
+        <target xmi:idref="EAID_7D3C62A7_8AA9_5C08_9916_B0F1CF8CCE7E">
+          <model type="UseCase" name="Xem don mua ve va ve dien tu" />
+        </target>
+        <properties ea_type="Association" direction="Unspecified" />
+        <appearance linemode="1" linecolor="0" linewidth="1" headStyle="0" lineStyle="0" />
+      </connector>
+      <connector xmi:idref="EAID_A9514C76_F02E_50F2_BCE9_AEBE3199FDE9">
+        <source xmi:idref="EAID_8FB36C5B_BED4_52F1_A41E_32776E0AC112">
+          <model type="Actor" name="Nguoi mua da xac minh email" />
+        </source>
+        <target xmi:idref="EAID_35B3399C_A4CF_58E9_98C1_6ABC9E478EB8">
+          <model type="UseCase" name="Chia se ma QR cua ve" />
+        </target>
+        <properties ea_type="Association" direction="Unspecified" />
+        <appearance linemode="1" linecolor="0" linewidth="1" headStyle="0" lineStyle="0" />
+      </connector>
+      <connector xmi:idref="EAID_9C599F6A_FE97_5F36_9673_571DC1A49632">
+        <source xmi:idref="EAID_633E64C8_9426_5581_8D68_9BBDD906D91F">
+          <model type="Actor" name="Quan ly to chuc" />
+        </source>
+        <target xmi:idref="EAID_4797E3DD_4C1A_530B_A1CF_6F6CFED89F52">
+          <model type="UseCase" name="Kiem tra ve vao cua bang QR hoac ma nhap tay" />
+        </target>
+        <properties ea_type="Association" direction="Unspecified" />
+        <appearance linemode="1" linecolor="0" linewidth="1" headStyle="0" lineStyle="0" />
+      </connector>
+      <connector xmi:idref="EAID_8F0161D6_B6C3_5128_ABE1_948B0ADF06F7">
+        <source xmi:idref="EAID_633E64C8_9426_5581_8D68_9BBDD906D91F">
+          <model type="Actor" name="Quan ly to chuc" />
+        </source>
+        <target xmi:idref="EAID_8C20E6A1_E2C2_5AB4_9600_A3A796644F5A">
+          <model type="UseCase" name="Xem lich su kiem tra ve" />
+        </target>
+        <properties ea_type="Association" direction="Unspecified" />
+        <appearance linemode="1" linecolor="0" linewidth="1" headStyle="0" lineStyle="0" />
+      </connector>
+      <connector xmi:idref="EAID_41A1A09C_3786_51DB_955D_BB7231BC7C79">
+        <source xmi:idref="EAID_3553BF37_8CD2_5FB6_ABF4_9CF16A702C16">
+          <model type="Actor" name="Nhan vien kiem soat ve" />
+        </source>
+        <target xmi:idref="EAID_4797E3DD_4C1A_530B_A1CF_6F6CFED89F52">
+          <model type="UseCase" name="Kiem tra ve vao cua bang QR hoac ma nhap tay" />
+        </target>
+        <properties ea_type="Association" direction="Unspecified" />
+        <appearance linemode="1" linecolor="0" linewidth="1" headStyle="0" lineStyle="0" />
+      </connector>
+      <connector xmi:idref="EAID_56C1A08F_6827_514B_8CFF_7D91C547EAB9">
+        <source xmi:idref="EAID_3553BF37_8CD2_5FB6_ABF4_9CF16A702C16">
+          <model type="Actor" name="Nhan vien kiem soat ve" />
+        </source>
+        <target xmi:idref="EAID_8C20E6A1_E2C2_5AB4_9600_A3A796644F5A">
+          <model type="UseCase" name="Xem lich su kiem tra ve" />
+        </target>
+        <properties ea_type="Association" direction="Unspecified" />
+        <appearance linemode="1" linecolor="0" linewidth="1" headStyle="0" lineStyle="0" />
+      </connector>
+    </connectors>
+    <primitivetypes>
+      <packagedElement xmi:type="uml:Package" xmi:id="EAPrimitiveTypesPackage" name="EA_PrimitiveTypes_Package" visibility="public" />
+    </primitivetypes>
+    <profiles />
+    <diagrams>
+      <diagram xmi:id="EAID_E41350DC_94CC_5E64_830F_C8F0795D7280">
+        <model package="EAPK_D596F530_0AFE_5F29_8303_ED2913232DB7" localID="1" owner="EAPK_D596F530_0AFE_5F29_8303_ED2913232DB7" />
+        <properties name="Luoc do 3.08 - Use case quan ly ve va kiem soat vao cua" type="Use Case" />
+        <project author="Le Vuong" version="1.0" created="2026-09-24 21:55:02" modified="2026-09-24 21:55:02" />
+        <style1 value="ShowPrivate=1;ShowProtected=1;ShowPublic=1;HideRelationships=0;Locked=0;Border=1;HighlightForeign=1;PackageContents=1;SequenceNotes=0;ScalePrintImage=0;PPgs.cx=0;PPgs.cy=0;DocSize.cx=827;DocSize.cy=1169;ShowDetails=0;Orientation=P;Zoom=100;ShowTags=0;OpParams=1;VisibleAttributeDetail=0;ShowOpRetType=1;ShowIcons=1;CollabNums=0;HideProps=0;ShowReqs=0;ShowCons=0;PaperSize=9;HideParents=0;UseAlias=0;HideAtts=0;HideOps=0;HideStereo=0;HideElemStereo=0;ShowTests=0;ShowMaint=0;ConnectorNotation=UML 2.1;ExplicitNavigability=0;ShowShape=1;AllDockable=0;AdvancedElementProps=1;AdvancedFeatureProps=1;AdvancedConnectorProps=1;m_bElementClassifier=1;SPT=1;ShowNotes=0;SuppressBrackets=0;SuppConnectorLabels=0;PrintPageHeadFoot=0;ShowAsList=0;" />
+        <style2 />
+        <swimlanes value="locked=false;orientation=0;width=0;inbar=false;names=false;color=-1;bold=false;fcol=0;tcol=-1;ofCol=-1;ufCol=-1;hl=1;ufh=0;hh=0;cls=0;bw=0;hli=0;bro=0;SwimlaneFont=lfh:-13,lfw:0,lfi:0,lfu:0,lfs:0,lfface:Calibri,lfe:0,lfo:0,lfchar:1,lfop:0,lfcp:0,lfq:0,lfpf=0,lfWidth=0;" />
+        <matrixitems value="locked=false;matrixactive=false;swimlanesactive=true;kanbanactive=false;width=1;clrLine=0;" />
+        <extendedProperties />
+        <xrefs />
+        <elements>
+          <element geometry="Left=35;Top=128;Right=200;Bottom=210;" subject="EAID_8FB36C5B_BED4_52F1_A41E_32776E0AC112" seqno="1" style="DUID=FA12DA2C;" />
+          <element geometry="Left=35;Top=360;Right=200;Bottom=442;" subject="EAID_633E64C8_9426_5581_8D68_9BBDD906D91F" seqno="2" style="DUID=5F86AD94;" />
+          <element geometry="Left=35;Top=472;Right=200;Bottom=554;" subject="EAID_3553BF37_8CD2_5FB6_ABF4_9CF16A702C16" seqno="3" style="DUID=DABE06D1;" />
+          <element geometry="Left=330;Top=70;Right=800;Bottom=152;" subject="EAID_7D3C62A7_8AA9_5C08_9916_B0F1CF8CCE7E" seqno="4" style="DUID=1AB80104;" />
+          <element geometry="Left=330;Top=186;Right=800;Bottom=268;" subject="EAID_35B3399C_A4CF_58E9_98C1_6ABC9E478EB8" seqno="5" style="DUID=86563D64;" />
+          <element geometry="Left=330;Top=302;Right=800;Bottom=384;" subject="EAID_4797E3DD_4C1A_530B_A1CF_6F6CFED89F52" seqno="6" style="DUID=74C900ED;" />
+          <element geometry="Left=330;Top=418;Right=800;Bottom=500;" subject="EAID_8C20E6A1_E2C2_5AB4_9600_A3A796644F5A" seqno="7" style="DUID=BE0A8E14;" />
+          <element geometry="SX=0;SY=0;EX=0;EY=0;Path=;" subject="EAID_C46D775D_642C_55B3_90D2_D651C747E4B1" style="Hidden=0;" />
+          <element geometry="SX=0;SY=0;EX=0;EY=0;Path=;" subject="EAID_A9514C76_F02E_50F2_BCE9_AEBE3199FDE9" style="Hidden=0;" />
+          <element geometry="SX=0;SY=0;EX=0;EY=0;Path=;" subject="EAID_9C599F6A_FE97_5F36_9673_571DC1A49632" style="Hidden=0;" />
+          <element geometry="SX=0;SY=0;EX=0;EY=0;Path=;" subject="EAID_8F0161D6_B6C3_5128_ABE1_948B0ADF06F7" style="Hidden=0;" />
+          <element geometry="SX=0;SY=0;EX=0;EY=0;Path=;" subject="EAID_41A1A09C_3786_51DB_955D_BB7231BC7C79" style="Hidden=0;" />
+          <element geometry="SX=0;SY=0;EX=0;EY=0;Path=;" subject="EAID_56C1A08F_6827_514B_8CFF_7D91C547EAB9" style="Hidden=0;" />
+        </elements>
+      </diagram>
+    </diagrams>
+  </xmi:Extension>
+</xmi:XMI>

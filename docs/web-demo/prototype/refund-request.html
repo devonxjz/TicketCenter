@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yêu Cầu Hoàn Vé — TicketsCenter</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-light min-h-screen d-flex flex-column justify-content-between">
+    <div class="small text-center py-2 bg-light text-muted" role="note">Prototype tĩnh • Dữ liệu và thao tác mô phỏng • Chưa kết nối backend, email hoặc cổng thanh toán.</div>
+
+    <!-- Header & Navbar -->
+    <nav class="navbar navbar-custom sticky-top">
+        <div class="container d-flex align-items-center justify-content-between">
+            <a class="navbar-brand-custom" href="index.html">
+                TicketsCenter
+            </a>
+            <a href="my-orders.html" class="small fw-semibold text-muted text-decoration-none">
+                 Quay lại đơn hàng
+            </a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container my-5">
+        
+        <div class="panel-box mx-auto bg-white" style="max-width: 720px;">
+            <div class="panel-header">
+                <div>
+                    <h1 class="h4 fw-bold mb-1 text-dark">Yêu Cầu Hoàn Tiền Vé</h1>
+                    <span class="small text-muted">Đơn hàng #TC-20261020-8841</span>
+                </div>
+                <span class="status-pill status-dark">Theo dõi Refund</span>
+            </div>
+
+            <!-- Policy Notice -->
+            <div class="p-3 bg-light border small text-muted mb-4">
+                <strong class="text-dark d-block mb-1"><i class="fa-solid fa-circle-exclamation text-danger me-1"></i> Điều kiện hoàn vé hợp lệ:</strong>
+                • Chỉ chủ đơn gửi trước startTime; vé ACTIVE cùng một Order, chưa có yêu cầu mở và chưa dùng.<br>
+                • Số tiền hoàn trả được tính căn cứ theo <strong>số tiền thực tế quý khách đã thanh toán</strong> sau khi trừ các khuyến mãi đã áp dụng.
+            </div>
+
+            <!-- Ticket Selection Checkboxes -->
+            <h6 class="fw-bold mb-3 text-dark">1. Chọn vé cần hoàn trả trong đơn:</h6>
+            
+            <div class="d-flex flex-column gap-3 mb-4">
+                <label class="d-flex align-items-center justify-content-between p-3 border bg-white cursor-pointer">
+                    <div class="d-flex align-items-center gap-3">
+                        <input type="checkbox" class="form-check-input mt-0 ticket-check" checked data-amount="96000" onchange="calculateRefund()">
+                        <div>
+                            <strong class="d-block text-dark">Ghế A5 (VIP) — #TC-A5-9921</strong>
+                            <span class="small text-muted">Bảo tàng Phụ nữ VN • Số tiền đã trả: 96.000 đ</span>
+                        </div>
+                    </div>
+                    <span class="status-pill status-dark">Chưa sử dụng</span>
+                </label>
+
+                <label class="d-flex align-items-center justify-content-between p-3 border bg-white cursor-pointer">
+                    <div class="d-flex align-items-center gap-3">
+                        <input type="checkbox" class="form-check-input mt-0 ticket-check" checked data-amount="96000" onchange="calculateRefund()">
+                        <div>
+                            <strong class="d-block text-dark">Ghế A6 (VIP) — #TC-A6-9922</strong>
+                            <span class="small text-muted">Bảo tàng Phụ nữ VN • Số tiền đã trả: 96.000 đ</span>
+                        </div>
+                    </div>
+                    <span class="status-pill status-dark">Chưa sử dụng</span>
+                </label>
+
+                <label class="d-flex align-items-center justify-content-between p-3 border bg-white cursor-pointer">
+                    <div class="d-flex align-items-center gap-3">
+                        <input type="checkbox" class="form-check-input mt-0 ticket-check" data-amount="32000" onchange="calculateRefund()">
+                        <div>
+                            <strong class="d-block text-dark">Vé Phổ Thông — #TC-GA-1032</strong>
+                            <span class="small text-muted">Bảo tàng Phụ nữ VN • Số tiền đã trả: 32.000 đ</span>
+                        </div>
+                    </div>
+                    <span class="status-pill status-dark">Chưa sử dụng</span>
+                </label>
+            </div>
+
+            <!-- Refund Reason -->
+            <h6 class="fw-bold mb-3 text-dark">2. Lý do hoàn trả:</h6>
+            <div class="mb-3">
+                <select class="form-select rounded-0 border-secondary-subtle py-2">
+                    <option selected>Bận lịch cá nhân đột xuất</option>
+                    <option>Không thể tham dự (CUSTOMER_REQUEST)</option>
+                    <option>Lý do sức khỏe / Bất khả kháng</option>
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="filter-label">Ghi chú thêm (Không bắt buộc)</label>
+                <textarea class="form-control rounded-0 border-secondary-subtle" rows="3" placeholder="Nhập thêm chi tiết nếu cần thiết..."></textarea>
+            </div>
+
+            <!-- Refund Amount Preview -->
+            <div class="p-4 bg-light border d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <span class="small text-muted d-block">Theo dõi nghĩa vụ hoàn:</span>
+                    <strong class="text-dark">Refund giữ quyết định và currentAttemptId; 0đ vẫn lưu nghĩa vụ, không tạo chuyển tiền</strong>
+                </div>
+                <div class="text-end">
+                    <span class="small text-muted d-block">Tổng số tiền hoàn:</span>
+                    <span class="h3 fw-bold text-danger mb-0" id="refundTotal">192.000 đ</span>
+                </div>
+            </div>
+
+            <!-- Submit -->
+            <div class="d-flex gap-3">
+                <button class="btn-primary-custom flex-1 py-3 text-center" onclick="submitRefund()">
+                    Gửi yêu cầu hoàn tiền <i class="fa-solid fa-paper-plane ms-2"></i>
+                </button>
+                <a href="my-orders.html" class="btn-outline-custom flex-1 text-center py-3">
+                    Hủy bỏ
+                </a>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-auto py-4 bg-white border-top">
+        <div class="container text-center small text-muted">
+            &copy; 2026 TicketsCenter. Tiếp nhận và xử lý yêu cầu đổi trả vé minh bạch.
+        </div>
+    </footer>
+
+    <script>
+        function calculateRefund() {
+            let total = 0;
+            document.querySelectorAll('.ticket-check:checked').forEach(c => {
+                total += parseInt(c.getAttribute('data-amount'), 10);
+            });
+            document.getElementById('refundTotal').innerText = `${total.toLocaleString('vi-VN')} đ`;
+        }
+
+        function submitRefund() {
+            alert('Mô phỏng: Yêu cầu hoàn vé của bạn đã được ghi nhận! Refund REQUESTED đã được mô tả; chỉ quản trị nền tảng quyết định. Bản mẫu không lưu yêu cầu hoặc chuyển tiền.');
+            location.href = 'my-orders.html';
+        }
+    </script>
+</body>
+</html>

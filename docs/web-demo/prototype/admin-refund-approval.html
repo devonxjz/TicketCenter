@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xử Lý Hoàn Vé — TicketsCenter Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-light min-h-screen">
+    <div class="small text-center py-2 bg-light text-muted" role="note">Prototype tĩnh • Dữ liệu và thao tác mô phỏng • Chưa kết nối backend, email hoặc cổng thanh toán.</div>
+
+    <!-- Top Admin Bar -->
+    <nav class="admin-navbar sticky-top">
+        <div class="container-fluid d-flex align-items-center justify-content-between p-0">
+            <div class="d-flex align-items-center gap-3">
+                <a class="navbar-brand-custom" href="index.html">
+                    TicketsCenter
+                </a>
+                <span class="status-pill status-neutral">Quản Trị Hệ Thống</span>
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+                <span class="small text-muted d-none d-sm-inline">admin@ticketscenter.vn</span>
+                <a href="index.html" class="btn btn-sm btn-outline-dark rounded-0 px-3">
+                    Xem sàn bán vé
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Layout -->
+    <div class="dashboard-layout">
+        
+        <!-- Sidebar -->
+        <aside class="dashboard-sidebar">
+            <div class="sidebar-title">Trung tâm Quản trị</div>
+            <ul class="sidebar-menu">
+                <li><a href="admin-dashboard.html">• Tổng quan vận hành</a></li>
+                <li><a href="admin-org-approval.html">• Duyệt hồ sơ tổ chức</a></li>
+                <li><a href="admin-event-approval.html">• Duyệt & Hủy sự kiện</a></li>
+                <li><a href="admin-refund-approval.html" class="active">• Xử lý hoàn vé</a></li>
+                <li><a href="admin-settlements.html">• Hoa hồng & Quyết toán</a></li>
+                <li><a href="admin-audit-logs.html">• Nhật ký hệ thống</a></li>
+            </ul>
+
+            <div class="sidebar-title">Điều hướng nhanh</div>
+            <ul class="sidebar-menu">
+                <li><a href="index.html">• Cổng người mua</a></li>
+                <li><a href="organizer-dashboard.html">• Cổng Ban tổ chức</a></li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="dashboard-content">
+            
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center pb-4 mb-4 border-bottom">
+                <div>
+                    <h1 class="h4 fw-bold mb-1 text-dark">Xét Duyệt & Xử Lý Yêu Cầu Hoàn Vé</h1>
+                    <p class="small text-muted mb-0">Thẩm định tính hợp lệ của các yêu cầu trả vé từ người mua trước giờ diễn ra sự kiện.</p>
+                </div>
+            </div>
+
+            <!-- Refund Policy Notice -->
+            <div class="p-3 bg-white border border-secondary-subtle small mb-4">
+                <strong>Quy định hạch toán tài chính:</strong> Số tiền hoàn trả cho người mua được tính tự động dựa trên số tiền thực tế khách đã chi trả (sau khi trừ các mã giảm giá áp dụng). Chỉ Refund COMPLETED được tính vào tiền hoàn thành công khi đối soát; duyệt chưa đồng nghĩa đã hoàn.
+            </div>
+
+            <!-- Table 1: Pending Refunds -->
+            <div class="panel-box bg-white mb-5">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">Danh sách yêu cầu hoàn vé chờ xử lý (5 yêu cầu)</h2>
+                        <span class="small text-muted">Refund: REQUESTED → APPROVED/REJECTED; FAILED → RETRYABLE, UNKNOWN → NEEDS_RECONCILIATION. 0đ hoàn tất không chuyển tiền.</span>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table-custom">
+                        <thead>
+                            <tr>
+                                <th>Mã đơn & Người yêu cầu</th>
+                                <th>Sự kiện & Vị trí vé</th>
+                                <th>Lý do hoàn trả</th>
+                                <th>Số tiền hoàn thực tế</th>
+                                <th>Thời gian gửi</th>
+                                <th class="text-end">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <strong class="d-block font-monospace text-dark">#TC-20261020-8841</strong>
+                                    <span class="small text-muted">buyer@ticketscenter.vn</span>
+                                </td>
+                                <td>
+                                    <strong class="d-block text-dark">Vé Tham Quan Bảo Tàng Phụ Nữ VN</strong>
+                                    <span class="small text-muted">2 vé: Ghế A5 VIP, Ghế A6 VIP</span>
+                                </td>
+                                <td>
+                                    <span class="status-pill status-neutral">Bận việc đột xuất</span>
+                                </td>
+                                <td>
+                                    <strong class="text-danger">192.000 đ</strong>
+                                    <span class="small text-muted d-block">(96.000 đ / vé)</span>
+                                </td>
+                                <td>24/09/2026 13:45</td>
+                                <td class="text-end">
+                                    <div class="d-inline-flex gap-2">
+                                        <button class="btn btn-sm btn-dark rounded-0 px-3 py-1" onclick="alert('Mô phỏng: Refund → APPROVED; beginAttempt(currentAttemptId) → PROCESSING. SUCCEEDED mới COMPLETED và trả kho.')">
+                                            Duyệt hoàn tiền
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger rounded-0 px-2 py-1" onclick="prompt('Nhập lý do từ chối hoàn vé:')">
+                                            Từ chối
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td>
+                                    <strong class="d-block font-monospace text-dark">#TC-20260920-5512</strong>
+                                    <span class="small text-muted">nam.nguyen@gmail.com</span>
+                                </td>
+                                <td>
+                                    <strong class="d-block text-dark">Vé Tham Quan Bảo Tàng Phụ Nữ VN</strong>
+                                    <span class="small text-muted">1 vé: Vé Phổ Thông</span>
+                                </td>
+                                <td>
+                                    <span class="status-pill status-neutral">Trùng lịch công tác</span>
+                                </td>
+                                <td>
+                                    <strong class="text-danger">32.000 đ</strong>
+                                    <span class="small text-muted d-block">(Áp voucher 20%)</span>
+                                </td>
+                                <td>24/09/2026 11:20</td>
+                                <td class="text-end">
+                                    <div class="d-inline-flex gap-2">
+                                        <button class="btn btn-sm btn-dark rounded-0 px-3 py-1" onclick="alert('Mô phỏng: Refund → APPROVED; beginAttempt(currentAttemptId) → PROCESSING. SUCCEEDED mới COMPLETED và trả kho.')">
+                                            Duyệt hoàn tiền
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger rounded-0 px-2 py-1" onclick="prompt('Nhập lý do từ chối hoàn vé:')">
+                                            Từ chối
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Table 2: Completed Refunds -->
+            <div class="panel-box bg-white">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">Lịch sử yêu cầu đã giải quyết</h2>
+                        <span class="small text-muted">Lịch sử mô phỏng: Refund giữ nghĩa vụ/lần hiện hành; RefundTransferLog giữ lịch sử lần xử lý</span>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table-custom">
+                        <thead>
+                            <tr>
+                                <th>Mã đơn hàng</th>
+                                <th>Người yêu cầu</th>
+                                <th>Sự kiện</th>
+                                <th>Số tiền đã hoàn</th>
+                                <th>Trạng thái</th>
+                                <th>Thời gian giải quyết</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="font-monospace text-dark">#TC-20260918-1209</span></td>
+                                <td>le.thuy@domain.com</td>
+                                <td>Vé Tham Quan Bảo Tàng Phụ Nữ VN</td>
+                                <td><strong class="text-dark">80.000 đ</strong></td>
+                                <td><span class="status-pill status-success">Đã hoàn tiền</span></td>
+                                <td>23/09/2026 16:30</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+</body>
+</html>

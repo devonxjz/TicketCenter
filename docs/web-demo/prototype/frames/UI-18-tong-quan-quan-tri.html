@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bảng Điều Hành Quản Trị — TicketsCenter Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="bg-light min-h-screen">
+    <div class="small text-center py-2 bg-light text-muted" role="note">Prototype tĩnh • Dữ liệu và thao tác mô phỏng • Chưa kết nối backend, email hoặc cổng thanh toán.</div>
+
+    <!-- Top Admin Bar -->
+    <nav class="admin-navbar sticky-top">
+        <div class="container-fluid d-flex align-items-center justify-content-between p-0">
+            <div class="d-flex align-items-center gap-3">
+                <a class="navbar-brand-custom" href="UI-01-danh-sach-su-kien.html">
+                    TicketsCenter
+                </a>
+                <span class="status-pill status-neutral">Quản Trị Hệ Thống</span>
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+                <span class="status-pill status-success">
+                    Trạng thái mẫu
+                </span>
+                <span class="small text-muted d-none d-sm-inline">admin@ticketscenter.vn</span>
+                <a href="UI-01-danh-sach-su-kien.html" class="btn btn-sm btn-outline-dark rounded-0 px-3">
+                    Xem sàn bán vé
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Layout -->
+    <div class="dashboard-layout">
+        
+        <!-- Admin Sidebar -->
+        <aside class="dashboard-sidebar">
+            <div class="sidebar-title">Trung tâm Quản trị</div>
+            <ul class="sidebar-menu">
+                <li><a href="UI-18-tong-quan-quan-tri.html" class="active">• Tổng quan vận hành</a></li>
+                <li><a href="UI-19-duyet-yeu-cau-to-chuc.html">• Duyệt hồ sơ tổ chức</a></li>
+                <li><a href="UI-20-duyet-huy-su-kien.html">• Duyệt & Hủy sự kiện</a></li>
+                <li><a href="UI-21-duyet-hoan-ve.html">• Xử lý hoàn vé</a></li>
+                <li><a href="UI-22-chinh-sach-hoa-hong-doi-soat.html">• Hoa hồng & Quyết toán</a></li>
+                <li><a href="UI-23-bao-cao-he-thong-audit.html">• Nhật ký hệ thống</a></li>
+            </ul>
+
+            <div class="sidebar-title">Điều hướng nhanh</div>
+            <ul class="sidebar-menu">
+                <li><a href="UI-01-danh-sach-su-kien.html">• Cổng người mua</a></li>
+                <li><a href="UI-10-tong-quan-to-chuc.html">• Cổng Ban tổ chức</a></li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="dashboard-content">
+            
+            <!-- Page Header -->
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center pb-4 mb-4 border-bottom">
+                <div>
+                    <h1 class="h4 fw-bold mb-1 text-dark">Bảng Điều Hành Quản Trị Hệ Thống</h1>
+                    <p class="small text-muted mb-0">Giám sát các luồng công việc cần phê duyệt, kiểm soát sự kiện và quyết toán tài chính toàn sàn.</p>
+                </div>
+                <div class="mt-3 mt-sm-0 small text-muted">
+                    Dữ liệu minh họa tại: <strong>24/09/2026</strong>
+                </div>
+            </div>
+
+            <!-- Triage Queue Cards (4 cột đều nhau, bố trí gọn gàng) -->
+            <div class="row g-4 mb-5">
+                
+                <!-- Queue 1: Org Approvals -->
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="admin-queue-card">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="filter-label mb-0">Hồ sơ đối tác</span>
+                            <span class="status-pill status-amber">3 chờ duyệt</span>
+                        </div>
+                        <div class="admin-queue-val">3</div>
+                        <div>
+                            <span class="d-block small text-muted mb-2">Đăng ký mở ban tổ chức mới</span>
+                            <a href="UI-19-duyet-yeu-cau-to-chuc.html" class="small fw-bold text-danger text-decoration-none">
+                                Xem xét & Duyệt &rarr;
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Queue 2: Event Approvals -->
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="admin-queue-card">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="filter-label mb-0">Sự kiện mới</span>
+                            <span class="status-pill status-amber">2 chờ duyệt</span>
+                        </div>
+                        <div class="admin-queue-val">2</div>
+                        <div>
+                            <span class="d-block small text-muted mb-2">Chờ thẩm định nội dung mở bán</span>
+                            <a href="UI-20-duyet-huy-su-kien.html" class="small fw-bold text-danger text-decoration-none">
+                                Kiểm duyệt nội dung &rarr;
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Queue 3: Refund Approvals -->
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="admin-queue-card">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="filter-label mb-0">Đơn hoàn vé</span>
+                            <span class="status-pill status-red">5 yêu cầu</span>
+                        </div>
+                        <div class="admin-queue-val text-danger">5</div>
+                        <div>
+                            <span class="d-block small text-muted mb-2">Yêu cầu hoàn tiền từ người mua</span>
+                            <a href="UI-21-duyet-hoan-ve.html" class="small fw-bold text-danger text-decoration-none">
+                                Xử lý hoàn trả &rarr;
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Queue 4: Settlements -->
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="admin-queue-card">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="filter-label mb-0">Kỳ quyết toán</span>
+                            <span class="status-pill status-success">Đến hạn</span>
+                        </div>
+                        <div class="admin-queue-val">12.5M</div>
+                        <div>
+                            <span class="d-block small text-muted mb-2">Đối soát doanh thu các sự kiện</span>
+                            <a href="UI-22-chinh-sach-hoa-hong-doi-soat.html" class="small fw-bold text-danger text-decoration-none">
+                                Chi trả đối tác &rarr;
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Two-Column Layout: Events Table & Live Audit Logs -->
+            <div class="row g-4">
+                
+                <!-- Left Column: Active Events (7 cols) -->
+                <div class="col-lg-7">
+                    <div class="panel-box bg-white h-100">
+                        <div class="panel-header">
+                            <div>
+                                <h2 class="panel-title">Sự kiện gần nhất trên toàn sàn</h2>
+                                <span class="small text-muted">Giám sát trạng thái bán vé và xử lý khẩn cấp</span>
+                            </div>
+                            <a href="UI-20-duyet-huy-su-kien.html" class="small fw-bold text-danger text-decoration-none">
+                                Quản lý tất cả &rarr;
+                            </a>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table-custom">
+                                <thead>
+                                    <tr>
+                                        <th>Sự kiện</th>
+                                        <th>Đơn vị tổ chức</th>
+                                        <th>Vé đã bán</th>
+                                        <th>Trạng thái</th>
+                                        <th class="text-end">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>
+                                            <strong class="d-block text-dark">Vé Tham Quan Bảo Tàng Phụ Nữ VN</strong>
+                                            <span class="small text-muted">Hà Nội</span>
+                                        </td>
+                                        <td>Bảo tàng Phụ nữ VN</td>
+                                        <td>820 / 1.000</td>
+                                        <td><span class="status-pill status-success">Đang mở bán</span></td>
+                                        <td class="text-end">
+                                            <a href="UI-20-duyet-huy-su-kien.html" class="btn btn-sm btn-outline-danger rounded-0 px-2 py-1">
+                                                Hủy khẩn cấp
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <strong class="d-block text-dark">Chuyên Đề: Di Sản Phụ Nữ VN</strong>
+                                            <span class="small text-muted">Hà Nội</span>
+                                        </td>
+                                        <td>Bảo tàng Phụ nữ VN</td>
+                                        <td>0 / 200</td>
+                                        <td><span class="status-pill status-amber">Chờ duyệt</span></td>
+                                        <td class="text-end">
+                                            <a href="UI-20-duyet-huy-su-kien.html" class="btn btn-sm btn-dark rounded-0 px-3 py-1">
+                                                Phê duyệt
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <strong class="d-block text-dark">Giải Bóng Rổ Đấu Trường 2026</strong>
+                                            <span class="small text-muted">TP.HCM</span>
+                                        </td>
+                                        <td>Vietnam Sports Corp</td>
+                                        <td>1.450 / 2.000</td>
+                                        <td><span class="status-pill status-success">Đang mở bán</span></td>
+                                        <td class="text-end">
+                                            <a href="UI-20-duyet-huy-su-kien.html" class="btn btn-sm btn-outline-danger rounded-0 px-2 py-1">
+                                                Hủy khẩn cấp
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Recent Activity Feed (5 cols) -->
+                <div class="col-lg-5">
+                    <div class="panel-box bg-white h-100">
+                        <div class="panel-header">
+                            <div>
+                                <h2 class="panel-title">Nhật ký vận hành gần đây</h2>
+                                <span class="small text-muted">Nhật ký mẫu của prototype</span>
+                            </div>
+                            <a href="UI-23-bao-cao-he-thong-audit.html" class="small fw-bold text-danger text-decoration-none">
+                                Xem toàn bộ &rarr;
+                            </a>
+                        </div>
+
+                        <div class="d-flex flex-column gap-3 small">
+                            <div class="border-bottom pb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="status-pill status-success">Thanh toán</span>
+                                    <span class="text-muted">13:42 • 24/09</span>
+                                </div>
+                                <div class="text-dark fw-semibold">Đơn hàng #TC-20261020-8841</div>
+                                <div class="text-muted">Khách thanh toán 224.000 đ thành công qua cổng VNPAY.</div>
+                            </div>
+
+                            <div class="border-bottom pb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="status-pill status-red">Soát vé tại cửa</span>
+                                    <span class="text-muted">13:38 • 24/09</span>
+                                </div>
+                                <div class="text-dark fw-semibold">Nhân viên Lê Văn Hùng</div>
+                                <div class="text-muted">Quét vé hợp lệ #TC-A5-9921 tại Cổng 1 (Sự kiện Bảo tàng).</div>
+                            </div>
+
+                            <div class="border-bottom pb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="status-pill status-amber">Hoàn vé</span>
+                                    <span class="text-muted">13:30 • 24/09</span>
+                                </div>
+                                <div class="text-dark fw-semibold">Yêu cầu hoàn trả mới</div>
+                                <div class="text-muted">Người mua buyer@ticketscenter.vn gửi yêu cầu hoàn 2 vé (192.000 đ).</div>
+                            </div>
+
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="status-pill status-neutral">Khuyến mãi</span>
+                                    <span class="text-muted">13:15 • 24/09</span>
+                                </div>
+                                <div class="text-dark fw-semibold">Áp dụng mã giảm giá</div>
+                                <div class="text-muted">Mã CHAOTHU20 (-20%) được áp dụng thành công.</div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+    </div>
+
+</body>
+</html>

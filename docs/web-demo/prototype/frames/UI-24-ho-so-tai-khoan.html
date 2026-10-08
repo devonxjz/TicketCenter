@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hồ Sơ Tài Khoản — TicketsCenter</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="bg-light min-h-screen d-flex flex-column justify-content-between">
+    <div class="small text-center py-2 bg-light text-muted" role="note">Prototype tĩnh • Dữ liệu và thao tác mô phỏng • Chưa kết nối backend, email hoặc cổng thanh toán.</div>
+
+    <!-- Header & Navbar -->
+    <nav class="navbar navbar-custom sticky-top">
+        <div class="container d-flex align-items-center justify-content-between">
+            <a class="navbar-brand-custom" href="UI-01-danh-sach-su-kien.html">
+                TicketsCenter
+            </a>
+
+            <!-- Search Bar -->
+            <div class="search-wrapper d-none d-md-flex mx-4">
+                <div class="location-box">
+                    <select class="location-select">
+                        <option value="">Toàn quốc</option>
+                        <option value="HN">Hà Nội</option>
+                        <option value="HCM">TP. Hồ Chí Minh</option>
+                    </select>
+                </div>
+                <input type="text" class="search-input" placeholder="Tìm kiếm sự kiện, nghệ sĩ...">
+                <button class="search-btn">Tìm kiếm</button>
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+                <a href="UI-06-don-cua-toi.html" class="small fw-semibold text-muted text-decoration-none">
+                    Đơn hàng của tôi
+                </a>
+                <a href="UI-07-ve-ma-qr.html" class="small fw-semibold text-muted text-decoration-none">
+                    Vé của tôi
+                </a>
+                <a href="UI-03-dang-nhap-otp.html" class="btn btn-sm btn-outline-dark rounded-0 px-3">
+                    Đăng xuất
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container my-5">
+        
+        <div class="mx-auto" style="max-width: 860px;">
+            
+            <!-- 1. Profile Header Card -->
+            <div class="panel-box bg-white mb-4">
+                <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="profile-avatar">
+                            HN
+                        </div>
+                        <div>
+                            <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                                <h1 class="h4 fw-bold text-dark mb-0">Nguyễn Hoàng Nam</h1>
+                                <span class="status-pill status-success">Đã xác thực Email</span>
+                            </div>
+                            <div class="small text-muted mb-2">
+                                buyer@ticketscenter.vn • Thành viên từ 12/03/2026
+                            </div>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <span class="status-pill status-neutral">Khán giả mua vé</span>
+                                <span class="status-pill status-red">Quản lý Ban tổ chức</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-2 pt-sm-0">
+                        <button id="btn-edit-toggle" class="btn-outline-custom px-4 py-2" onclick="toggleEditMode()">
+                            Chỉnh sửa thông tin
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Personal Information Card -->
+            <div class="panel-box bg-white mb-4">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">Thông tin cá nhân</h2>
+                        <span id="mode-hint" class="small text-muted">Chế độ xem thông tin. Nhấn "Chỉnh sửa thông tin" ở trên để thay đổi.</span>
+                    </div>
+                </div>
+
+                <form id="profile-form" onsubmit="saveProfile(event)">
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-6">
+                            <label class="filter-label">Tên đăng nhập (userName)</label>
+                            <input type="text" class="form-control rounded-0 border-secondary-subtle py-2 mb-3" readonly value="buyer">
+                            <label class="filter-label">Họ và tên</label>
+                            <input type="text" id="inp-name" class="form-control rounded-0 form-view-input py-2" value="Nguyễn Hoàng Nam" disabled>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="filter-label">Địa chỉ Email (Cố định gắn với tài khoản)</label>
+                            <input type="email" id="inp-email" class="form-control rounded-0 form-view-input py-2" value="buyer@ticketscenter.vn" disabled readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="filter-label">Số điện thoại</label>
+                            <input type="tel" id="inp-phone" class="form-control rounded-0 form-view-input py-2" value="0988 776 655" disabled>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="filter-label">Ngày sinh</label>
+                            <input type="date" id="inp-dob" class="form-control rounded-0 form-view-input py-2" value="1995-10-24" disabled>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="filter-label">Giới tính</label>
+                            <select id="inp-gender" class="form-control rounded-0 form-view-input py-2" disabled>
+                                <option value="male" selected>Nam</option>
+                                <option value="female">Nữ</option>
+                                <option value="other">Khác</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="filter-label">Ghi chú hồ sơ minh họa (không dùng để quyết định check-in)</label>
+                            <input type="text" id="inp-cccd" class="form-control rounded-0 form-view-input py-2" value="001095018899" disabled>
+                        </div>
+                    </div>
+
+                    <!-- Action Bar (Chỉ hiển thị khi bấm nút Chỉnh sửa) -->
+                    <div id="edit-actions" class="d-none justify-content-end gap-3 pt-3 border-top">
+                        <button type="button" class="btn-outline-custom px-4 py-2" onclick="cancelEdit()">
+                            Hủy bỏ
+                        </button>
+                        <button type="submit" class="btn-primary-custom px-4 py-2">
+                            Lưu thay đổi
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 3. Organization Affiliations Card -->
+            <div class="panel-box bg-white mb-4">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">Tư cách trong Ban tổ chức</h2>
+                        <span class="small text-muted">Danh sách các tổ chức sự kiện bạn đang trực thuộc</span>
+                    </div>
+                    <a href="UI-09-yeu-cau-tao-to-chuc.html" class="small fw-bold text-danger text-decoration-none">
+                        + Đăng ký tổ chức mới
+                    </a>
+                </div>
+
+                <div class="d-flex flex-column gap-3">
+                    <div class="p-3 border d-flex justify-content-between align-items-center bg-light">
+                        <div>
+                            <strong class="d-block text-dark">Bảo tàng Phụ nữ Việt Nam</strong>
+                            <span class="small text-muted">Quyền hạn: Toàn quyền quản trị sự kiện, thiết lập vé, báo cáo tài chính và phân quyền</span>
+                        </div>
+                        <span class="status-pill status-red">Quản lý tổ chức</span>
+                    </div>
+
+                    <div class="p-3 border d-flex justify-content-between align-items-center bg-light">
+                        <div>
+                            <strong class="d-block text-dark">Vietnam Show Corp</strong>
+                            <span class="small text-muted">Quyền hạn: Kiểm tra và quét mã QR vé vào cổng các sự kiện</span>
+                        </div>
+                        <span class="status-pill status-neutral">Soát vé tại cửa</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Security & Password Card -->
+            <div class="panel-box bg-white">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">Bảo mật tài khoản</h2>
+                        <span class="small text-muted">Thay đổi mật khẩu định kỳ để bảo vệ tài khoản và đơn hàng của bạn</span>
+                    </div>
+                </div>
+
+                <form id="pwd-form" onsubmit="changePassword(event)">
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-4">
+                            <label class="filter-label">Mật khẩu hiện tại</label>
+                            <input type="password" id="pwd-current" class="form-control rounded-0 py-2 border-secondary-subtle" placeholder="Nhập mật khẩu hiện tại" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="filter-label">Mật khẩu mới</label>
+                            <input type="password" id="pwd-new" class="form-control rounded-0 py-2 border-secondary-subtle" placeholder="Tối thiểu 8 ký tự" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="filter-label">Xác nhận lại mật khẩu mới</label>
+                            <input type="password" id="pwd-confirm" class="form-control rounded-0 py-2 border-secondary-subtle" placeholder="Nhập lại mật khẩu mới" required>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end">
+                        <button type="submit" class="btn btn-dark rounded-0 px-4 py-2 fw-semibold">
+                            Cập nhật mật khẩu
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-auto py-4 bg-white border-top">
+        <div class="container text-center small text-muted">
+            &copy; 2026 TicketsCenter. Bảo mật thông tin cá nhân và tài khoản người dùng.
+        </div>
+    </footer>
+
+    <script>
+        let isEditing = false;
+        const initialData = {
+            name: "Nguyễn Hoàng Nam",
+            phone: "0988 776 655",
+            dob: "1995-10-24",
+            gender: "male",
+            cccd: "001095018899"
+        };
+
+        function toggleEditMode() {
+            if (isEditing) {
+                cancelEdit();
+            } else {
+                startEdit();
+            }
+        }
+
+        function startEdit() {
+            isEditing = true;
+            document.getElementById('btn-edit-toggle').textContent = "Hủy chỉnh sửa";
+            document.getElementById('mode-hint').textContent = "Đang trong chế độ chỉnh sửa. Thay đổi các trường bên dưới và bấm 'Lưu thay đổi'.";
+            document.getElementById('mode-hint').classList.add('text-danger');
+            document.getElementById('edit-actions').classList.remove('d-none');
+            document.getElementById('edit-actions').classList.add('d-flex');
+
+            const editableIds = ['inp-name', 'inp-phone', 'inp-dob', 'inp-gender', 'inp-cccd'];
+            editableIds.forEach(id => {
+                const el = document.getElementById(id);
+                el.disabled = false;
+                el.classList.remove('form-view-input');
+                el.classList.add('form-edit-input');
+            });
+            document.getElementById('inp-name').focus();
+        }
+
+        function cancelEdit() {
+            isEditing = false;
+            document.getElementById('btn-edit-toggle').textContent = "Chỉnh sửa thông tin";
+            document.getElementById('mode-hint').textContent = "Chế độ xem thông tin. Nhấn 'Chỉnh sửa thông tin' ở trên để thay đổi.";
+            document.getElementById('mode-hint').classList.remove('text-danger');
+            document.getElementById('edit-actions').classList.add('d-none');
+            document.getElementById('edit-actions').classList.remove('d-flex');
+
+            // Restore initial values
+            document.getElementById('inp-name').value = initialData.name;
+            document.getElementById('inp-phone').value = initialData.phone;
+            document.getElementById('inp-dob').value = initialData.dob;
+            document.getElementById('inp-gender').value = initialData.gender;
+            document.getElementById('inp-cccd').value = initialData.cccd;
+
+            const editableIds = ['inp-name', 'inp-phone', 'inp-dob', 'inp-gender', 'inp-cccd'];
+            editableIds.forEach(id => {
+                const el = document.getElementById(id);
+                el.disabled = true;
+                el.classList.add('form-view-input');
+                el.classList.remove('form-edit-input');
+            });
+        }
+
+        function saveProfile(e) {
+            e.preventDefault();
+            initialData.name = document.getElementById('inp-name').value;
+            initialData.phone = document.getElementById('inp-phone').value;
+            initialData.dob = document.getElementById('inp-dob').value;
+            initialData.gender = document.getElementById('inp-gender').value;
+            initialData.cccd = document.getElementById('inp-cccd').value;
+
+            alert('Mô phỏng: Đã lưu thay đổi thông tin cá nhân thành công!');
+            cancelEdit();
+        }
+
+        function changePassword(e) {
+            e.preventDefault();
+            const current = document.getElementById('pwd-current').value;
+            const newPwd = document.getElementById('pwd-new').value;
+            const confirmPwd = document.getElementById('pwd-confirm').value;
+
+            if (newPwd.length < 8) {
+                alert('Mô phỏng: Mật khẩu mới phải có tối thiểu 8 ký tự!');
+                document.getElementById('pwd-new').focus();
+                return;
+            }
+
+            if (newPwd !== confirmPwd) {
+                alert('Mô phỏng: Mật khẩu mới và Xác nhận lại mật khẩu không khớp nhau!');
+                document.getElementById('pwd-confirm').focus();
+                return;
+            }
+
+            alert('Mô phỏng: Đã cập nhật mật khẩu mới thành công!');
+            document.getElementById('pwd-form').reset();
+        }
+    </script>
+
+</body>
+</html>

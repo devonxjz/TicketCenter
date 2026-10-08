@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nhân Sự & Phân Quyền — TicketsCenter Partner</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="bg-light min-h-screen">
+    <div class="small text-center py-2 bg-light text-muted" role="note">Prototype tĩnh • Dữ liệu và thao tác mô phỏng • Chưa kết nối backend, email hoặc cổng thanh toán.</div>
+
+    <!-- Top Navbar -->
+    <nav class="navbar navbar-custom sticky-top">
+        <div class="container-fluid px-4 d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-3">
+                <a class="navbar-brand-custom" href="UI-01-danh-sach-su-kien.html">TicketsCenter</a>
+                <span class="status-pill status-dark">Cổng Đối Tác</span>
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+                <select class="form-select form-select-sm rounded-0 border-secondary-subtle fw-bold" style="width: auto;">
+                    <option selected>Bảo tàng Phụ nữ Việt Nam (Quản lý)</option>
+                </select>
+                <div class="vr mx-2"></div>
+                <span class="small fw-bold">Trần Minh Thảo</span>
+                <a href="UI-01-danh-sach-su-kien.html" class="btn btn-sm btn-outline-dark rounded-0 px-3">Đăng xuất</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Layout -->
+    <div class="dashboard-layout">
+        <aside class="dashboard-sidebar">
+            <div class="sidebar-title">Quản lý tổ chức</div>
+            <ul class="sidebar-menu">
+                <li><a href="UI-10-tong-quan-to-chuc.html">• Tổng quan</a></li>
+                <li><a href="UI-12-danh-sach-su-kien-to-chuc.html">• Danh sách sự kiện</a></li>
+                <li><a href="UI-13-bien-tap-su-kien-ghe.html">• Tạo mới sự kiện</a></li>
+                <li><a href="UI-14-ma-giam-gia.html">• Mã khuyến mãi</a></li>
+                <li><a href="UI-11-thanh-vien-to-chuc.html" class="active">• Nhân sự & Phân quyền</a></li>
+                <li><a href="UI-15-chon-su-kien-checkin.html">• Soát vé tại cửa</a></li>
+                <li><a href="UI-17-bao-cao-to-chuc.html">• Báo cáo & Quyết toán</a></li>
+            </ul>
+        </aside>
+
+        <main class="dashboard-content">
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-5">
+                <div>
+                    <h1 class="h3 fw-bold mb-1 text-dark">Nhân Sự & Phân Quyền Tổ Chức</h1>
+                    <p class="small text-muted mb-0">Quản lý danh sách nhân sự tham gia vận hành sự kiện và phân quyền kiểm soát vé tại cổng.</p>
+                </div>
+                <div class="mt-3 mt-sm-0">
+                    <button class="btn-primary-custom" onclick="document.getElementById('inviteBox').classList.toggle('d-none')">
+                         Thêm thành viên
+                    </button>
+                </div>
+            </div>
+
+            <!-- Invariant Notice -->
+            <div class="p-3 bg-white border border-danger-subtle text-danger small mb-4">
+                <i class="fa-solid fa-shield-halved me-2"></i> <strong>Lưu ý quản trị:</strong> 
+                Tổ chức cần duy trì tối thiểu 01 Quản lý đang hoạt động. Hệ thống không cho phép khóa hoặc hạ quyền tài khoản Quản lý duy nhất.
+            </div>
+
+            <!-- Invite Form -->
+            <div id="inviteBox" class="panel-box d-none mb-5 bg-white">
+                <div class="panel-header">
+                    <span class="panel-title">Thêm tài khoản đã tồn tại</span>
+                </div>
+                <form onsubmit="event.preventDefault(); alert('Mô phỏng: Tìm User theo userName và gọi assignRole(org, role); bản mẫu không lưu dữ liệu.');">
+                    <div class="row g-4">
+                        <div class="col-md-5">
+                            <label class="filter-label">Tên đăng nhập (userName) *</label>
+                            <input type="text" name="userName" class="form-control rounded-0 border-secondary-subtle py-2" required placeholder="hoangphuc">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="filter-label">Vai trò bổ nhiệm *</label>
+                            <select class="form-select rounded-0 border-secondary-subtle py-2">
+                                <option value="CHECK_IN_STAFF" selected>Nhân viên soát vé tại cửa</option>
+                                <option value="MANAGER">Quản lý toàn quyền tổ chức</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn-dark-custom w-100 py-2">Thêm trực tiếp</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Members Table -->
+            <div class="panel-box">
+                <div class="panel-header">
+                    <span class="panel-title">Danh sách thành viên hiện tại (3 nhân sự)</span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table-custom">
+                        <thead>
+                            <tr>
+                                <th>userName, Họ tên & Email</th>
+                                <th>Vai trò</th>
+                                <th>Ngày tham gia</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <strong class="d-block text-dark">Trần Minh Thảo</strong>
+                                    <span class="small text-muted font-monospace">minhthao • manager@vwm.vn</span>
+                                </td>
+                                <td>
+                                    <span class="status-pill status-red">Quản lý tổ chức</span>
+                                </td>
+                                <td>10/01/2026</td>
+                                <td><span class="status-pill status-dark">Đang hoạt động</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-secondary rounded-0 px-2 py-1" disabled title="Quản lý tổ chức đang hoạt động cuối cùng">
+                                        <i class="fa-solid fa-lock text-muted me-1"></i> Quản lý cuối cùng
+                                    </button>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td>
+                                    <strong class="d-block text-dark">Lê Văn Hùng</strong>
+                                    <span class="small text-muted font-monospace">hoangphuc • staff1@vwm.vn</span>
+                                </td>
+                                <td>
+                                    <span class="status-pill status-dark">Soát vé tại cửa</span>
+                                </td>
+                                <td>01/03/2026</td>
+                                <td><span class="status-pill status-dark">Đang hoạt động</span></td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-dark rounded-0 px-2 py-1" onclick="alert('Mô phỏng: Đã cập nhật phân quyền.')">Đổi quyền</button>
+                                        <button class="btn btn-outline-danger rounded-0 px-2 py-1" onclick="confirm('Mô phỏng revokeRole(org): bỏ quyền hiệu lực tại tổ chức, giữ lịch sử và tài khoản User. Tiếp tục?')">Vô hiệu hóa quyền</button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td>
+                                    <strong class="d-block text-dark">Nguyễn Thị Mai</strong>
+                                    <span class="small text-muted font-monospace">nguyenmai • staff2@vwm.vn</span>
+                                </td>
+                                <td>
+                                    <span class="status-pill status-dark">Soát vé tại cửa</span>
+                                </td>
+                                <td>15/03/2026</td>
+                                <td><span class="status-pill status-dark">Đang hoạt động</span></td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-dark rounded-0 px-2 py-1" onclick="alert('Mô phỏng: Đã cập nhật phân quyền.')">Đổi quyền</button>
+                                        <button class="btn btn-outline-danger rounded-0 px-2 py-1" onclick="confirm('Mô phỏng revokeRole(org): bỏ quyền hiệu lực tại tổ chức, giữ lịch sử và tài khoản User. Tiếp tục?')">Vô hiệu hóa quyền</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+</body>
+</html>

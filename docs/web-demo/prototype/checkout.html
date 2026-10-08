@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thanh Toán Đơn Vé — TicketsCenter</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .hold-timer-bar {
+            background: var(--black);
+            color: var(--white);
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.92rem;
+            font-weight: 600;
+        }
+        .timer-display {
+            font-family: var(--font-mono);
+            font-size: 1.35rem;
+            color: var(--primary);
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body class="bg-light min-h-screen d-flex flex-column justify-content-between">
+    <div class="small text-center py-2 bg-light text-muted" role="note">Prototype tĩnh • Dữ liệu và thao tác mô phỏng • Chưa kết nối backend, email hoặc cổng thanh toán.</div>
+
+    <!-- Header & Navbar -->
+    <nav class="navbar navbar-custom sticky-top">
+        <div class="container d-flex align-items-center justify-content-between">
+            <a class="navbar-brand-custom" href="index.html">
+                TicketsCenter
+            </a>
+            <div class="small fw-semibold text-muted">
+                <i class="fa-solid fa-lock text-dark me-1"></i> Thanh toán VNPAY Sandbox • mô phỏng
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Checkout -->
+    <main class="container my-5">
+        
+        <!-- 10-Minute Hold Timer Bar -->
+        <div class="hold-timer-bar mb-5">
+            <div class="d-flex align-items-center gap-3">
+                <i class="fa-regular fa-clock text-danger fs-5"></i>
+                <span>Lượt giữ minh họa còn hạn (máy chủ quyết định khi triển khai):</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="timer-display" id="holdCountdown">09:42</span>
+            </div>
+        </div>
+
+        <div class="row g-5">
+            
+            <!-- Left Column: Customer Information & Payment Method -->
+            <div class="col-lg-7">
+                
+                <!-- 1. Customer Information -->
+                <div class="panel-box">
+                    <div class="panel-header">
+                        <span class="panel-title">1. Thông tin người nhận vé</span>
+                    </div>
+
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="filter-label">Họ và tên *</label>
+                            <input type="text" class="form-control rounded-0 border-secondary-subtle py-2" value="Nguyễn Hoàng Nam">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="filter-label">Số điện thoại *</label>
+                            <input type="tel" class="form-control rounded-0 border-secondary-subtle py-2" value="0988 776 655">
+                        </div>
+                        <div class="col-12">
+                            <label class="filter-label">Email nhận mã vé điện tử *</label>
+                            <input type="email" class="form-control rounded-0 border-secondary-subtle py-2" value="buyer@ticketscenter.vn">
+                            <span class="small text-muted mt-2 d-block">Email tài khoản dùng nhận thông tin và liên kết xem QR sau commit; lỗi email không đảo ngược đơn đã trả.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Payment Method -->
+                <div class="panel-box">
+                    <div class="panel-header">
+                        <span class="panel-title">2. Phương thức thanh toán</span>
+                    </div>
+
+                    <div class="d-flex flex-column gap-3">
+                        <label class="d-flex align-items-center justify-content-between p-3 border bg-white cursor-pointer border-2 border-dark">
+                            <div class="d-flex align-items-center gap-3">
+                                <input type="radio" name="paymentMethod" value="VNPAY" checked class="form-check-input mt-0">
+                                <div>
+                                    <strong class="d-block text-dark">VNPAY Sandbox (giao dịch thử nghiệm)</strong>
+                                    <span class="small text-muted">Hỗ trợ tất cả ngân hàng Việt Nam và thẻ tín dụng Visa / MasterCard.</span>
+                                </div>
+                            </div>
+                            <span class="badge bg-danger rounded-0">Khuyên dùng</span>
+                        </label>
+
+                        <label class="d-flex align-items-center justify-content-between p-3 border bg-white cursor-pointer opacity-75">
+                            <div class="d-flex align-items-center gap-3">
+                                <input type="radio" name="paymentMethod" value="ZERO_ORDER" disabled class="form-check-input mt-0">
+                                <div>
+                                    <strong class="d-block text-dark">Đơn 0đ: hoàn tất trực tiếp</strong>
+                                    <span class="small text-muted">Không gọi VNPAY và không tạo Payment giả; vẫn kiểm tra Hold/Event và ghi Order.paidAt.</span>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Column: Order Review & Pricing -->
+            <div class="col-lg-5">
+                <div class="panel-box bg-white">
+                    <div class="panel-header">
+                        <span class="panel-title">Chi tiết đơn vé</span>
+                        <span class="small text-muted font-monospace">Mã giữ chỗ: #TC-9982</span>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-1 text-dark">Vé Tham Quan Bảo Tàng Phụ Nữ Việt Nam & Triển Lãm</h6>
+                        <span class="small text-muted d-block">Địa điểm: 36 Lý Thường Kiệt, Hoàn Kiếm, Hà Nội</span>
+                        <span class="small text-muted d-block">Thời gian: 01/11/2026 • 08:30 – 17:30</span>
+                    </div>
+
+                    <!-- Items List -->
+                    <div class="border-top pt-3 pb-2 small">
+                        <div class="d-flex justify-content-between py-2">
+                            <span>1x Ghế A5 (VIP)</span>
+                            <span class="fw-bold">120.000 đ</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-2">
+                            <span>1x Ghế A6 (VIP)</span>
+                            <span class="fw-bold">120.000 đ</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-2">
+                            <span>1x Vé Phổ Thông</span>
+                            <span class="fw-bold">40.000 đ</span>
+                        </div>
+                    </div>
+
+                    <!-- Coupon Input -->
+                    <div class="border-top pt-3 my-2">
+                        <label class="filter-label">Mã khuyến mãi / Giảm giá</label>
+                        <div class="input-group">
+                            <input type="text" id="couponInput" class="form-control rounded-0 border-secondary-subtle text-uppercase" placeholder="Nhập mã khuyến mãi" value="CHAOTHU20">
+                            <button class="btn btn-dark rounded-0 px-3 fw-bold" onclick="applyCoupon()">Áp dụng</button>
+                        </div>
+                        <span class="small text-danger mt-2 d-block fw-semibold" id="couponMsg">
+                            <i class="fa-solid fa-check"></i> Đã áp dụng mã giảm giá <strong>CHAOTHU20</strong> (-20%).
+                        </span>
+                    </div>
+
+                    <!-- Financial Summary -->
+                    <div class="border-top pt-4">
+                        <div class="d-flex justify-content-between py-1 small">
+                            <span class="text-muted">Tổng tiền vé:</span>
+                            <span class="fw-bold">280.000 đ</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-1 small text-danger">
+                            <span>Khuyến mãi đã giảm:</span>
+                            <span class="fw-bold" id="discountAmount">-56.000 đ</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-3 border-top mt-3 align-items-center">
+                            <span class="fw-bold fs-6">Tổng thanh toán:</span>
+                            <span class="h3 fw-bold text-danger mb-0" id="finalTotal">224.000 đ</span>
+                        </div>
+                    </div>
+
+                    <!-- Action Button -->
+                    <div class="mt-4">
+                        <a href="payment-result.html" class="btn-primary-custom w-100 py-3 text-center text-uppercase fw-bold fs-6">
+                            Mô phỏng tiếp tục thanh toán 
+                        </a>
+                        <span class="small text-muted text-center d-block mt-3">
+                            Một Order có nhiều lần Payment; chỉ acceptedPayment CAPTURED hoàn tất đơn. PENDING/UNKNOWN chặn đổi coupon và lần thu mới. Thu muộn/trùng tạo Refund bù trừ, không phát hành vé.<br>Bằng việc nhấn thanh toán, bạn đồng ý với Điều khoản dịch vụ và Quy chế hoạt động của TicketsCenter.
+                        </span>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-auto py-4 bg-white border-top">
+        <div class="container text-center small text-muted">
+            &copy; 2026 TicketsCenter. Cổng thanh toán trực tuyến bảo mật.
+        </div>
+    </footer>
+
+    <script>
+        function applyCoupon() {
+            const code = document.getElementById('couponInput').value.trim().toUpperCase();
+            if (code === 'CHAOTHU20') {
+                document.getElementById('couponMsg').innerHTML = '<i class="fa-solid fa-check"></i> Đã áp dụng mã giảm giá <strong>CHAOTHU20</strong> (-20%).';
+                document.getElementById('couponMsg').className = 'small text-danger mt-2 d-block fw-semibold';
+                document.getElementById('discountAmount').innerText = '-56.000 đ';
+                document.getElementById('finalTotal').innerText = '224.000 đ';
+            } else {
+                alert('Mô phỏng: Mã giảm giá không hợp lệ hoặc đã hết hạn.');
+            }
+        }
+    </script>
+</body>
+</html>
