@@ -1,0 +1,108 @@
+-- Tham chiếu API cho toàn bộ 70 phương thức trong class diagram.
+-- File này chỉ có chú thích, không thay đổi dữ liệu.
+-- Chạy install.sql trong database trống, bật SQLCMD Mode khi dùng SSMS.
+-- functions.sql ghi rõ các trạng thái enum do diagram chưa định nghĩa.
+-- Quy ước: người mua phải ACTIVE và đã xác minh email; bán vé kết thúc trước
+-- giờ bắt đầu; check-in trong [start_time,end_time); yêu cầu hoàn vé trước giờ
+-- bắt đầu, ngoại trừ sự kiện bị hủy. Vé CHECKED_IN không được hoàn.
+-- Hủy sự kiện giải phóng giữ chỗ, hủy đơn chưa trả tiền và duyệt hoàn các vé
+-- chưa sử dụng. Khoản hoàn bằng 0 hoàn tất ngay; khoản khác chờ kết quả chuyển tiền.
+-- Coupon giữ lượt dùng cho đơn chờ thanh toán còn hạn và đơn đã PAID.
+-- Phí tính mỗi đơn trên doanh thu còn lại sau hoàn, tối đa bằng doanh thu đó.
+-- Số tiền mỗi vé được phân bổ theo giá gốc; vé cuối nhận chênh lệch làm tròn.
+-- UNKNOWN giữ nguyên tiền/kho đang chờ xử lý. Lần thử mới cần mã định danh mới.
+-- Callback SUCCEEDED/FAILED lặp cùng mã và tham chiếu không thay đổi số dư.
+-- Callback thành công của khoản thu không được nhận tạo hoàn COMPENSATION.
+-- Tham số thời gian dùng UTC. Ứng dụng phải kiểm tra quyền gọi API quản trị.
+-- Không gọi cổng thanh toán từ SQL; refund_attempts/settlement_payouts lưu công
+-- việc chuyển tiền và kết quả do ứng dụng cung cấp.
+-- Thủ tục quản lý transaction; lỗi rollback cả transaction đang hoạt động.
+-- Ba helper tạo hold/thêm item/tạo settlement bổ sung đường tạo dữ liệu cho UML.
+-- Danh sách vé truyền dưới dạng JSON, ví dụ N'[1,2,3]'.
+-- Các tham số OUTPUT trả về ID đối tượng vừa tạo hoặc đã có.
+-- Bản SQL này giới hạn sơ đồ ghế và số lượng mỗi dòng giữ vé ở 10000.
+-- Ví dụ luồng mua vé, dùng các ID thực tế trong database của bạn:
+-- DECLARE @hold BIGINT, @item BIGINT, @order BIGINT, @payment BIGINT;
+-- DECLARE @expires DATETIME2(6)=DATEADD(MINUTE,10,SYSUTCDATETIME());
+-- EXEC dbo.sp_ticket_hold_create @buyer_id=1,@event_id=1,@expires_at=@expires,@hold_id=@hold OUTPUT;
+-- EXEC dbo.sp_ticket_hold_add_item @hold_id=@hold,@zone_id=1,@seat_id=NULL,@quantity=2,@item_id=@item OUTPUT;
+-- EXEC dbo.sp_order_from_hold @hold_id=@hold,@order_id=@order OUTPUT;
+-- EXEC dbo.sp_payment_start @order_id=@order,@txn_ref=N'unique-reference',@payment_id=@payment OUTPUT;
+-- DECLARE @captured DATETIME2(6)=SYSUTCDATETIME();
+-- EXEC dbo.sp_payment_mark_captured @payment_id=@payment,@transaction_no=N'provider-reference',@paid_at=@captured;
+-- Chỉ báo CAPTURED khi ứng dụng đã xác thực kết quả thật từ nhà cung cấp.
+-- Primitive bán stock tiêu thụ cả hold để không bán một phần đơn hàng.
+-- Primitive trả stock kiểm tra hoàn tiền đã xong. Trigger đã trả stock một lần.
+-- Expiry cần scheduler gọi sp_release_expired_holds định kỳ. View không tự giải
+-- phóng stock khi hết hạn, và SQL không tự tạo scheduler trong hệ thống của bạn.
+
+-- User.updateProfile -> dbo.sp_user_update_profile
+-- User.verifyEmail -> dbo.sp_user_verify_email
+-- User.assignRole -> dbo.sp_user_assign_role
+-- User.revokeRole -> dbo.sp_user_revoke_role
+-- User.isEligibleBuyer -> dbo.fn_user_is_eligible_buyer
+-- Organization.submitForApproval -> dbo.sp_organization_submit_for_approval
+-- Organization.approve -> dbo.sp_organization_approve
+-- Organization.reject -> dbo.sp_organization_reject
+-- Coupon.isActiveAt -> dbo.fn_coupon_is_active_at
+-- Coupon.calculateDiscount -> dbo.fn_coupon_calculate_discount
+-- Coupon.activate -> dbo.sp_coupon_activate
+-- Coupon.deactivate -> dbo.sp_coupon_deactivate
+-- Coupon.reviseTerms -> dbo.sp_coupon_revise_terms
+-- CommissionRule.isEffectiveAt -> dbo.fn_commission_rule_is_effective_at
+-- CommissionRule.calculateFee -> dbo.fn_commission_rule_calculate_fee
+-- Event.updateDetails -> dbo.sp_event_update_details
+-- Event.configureSchedule -> dbo.sp_event_configure_schedule
+-- Event.addZone -> dbo.sp_event_add_zone
+-- Event.removeZone -> dbo.sp_event_remove_zone
+-- Event.submitForApproval -> dbo.sp_event_submit_for_approval
+-- Event.publish -> dbo.sp_event_publish
+-- Event.reject -> dbo.sp_event_reject
+-- Event.cancel -> dbo.sp_event_cancel
+-- Event.isSaleActive -> dbo.fn_event_is_sale_active
+-- Event.isCheckInOpen -> dbo.fn_event_is_check_in_open
+-- Zone.changePrice -> dbo.sp_zone_change_price
+-- Zone.configureSeating -> dbo.sp_zone_configure_seating
+-- Zone.setStandingCapacity -> dbo.sp_zone_set_standing_capacity
+-- Zone.holdStanding -> dbo.sp_zone_hold_standing
+-- Zone.releaseHeldStanding -> dbo.sp_zone_release_held_standing
+-- Zone.sellHeldStanding -> dbo.sp_zone_sell_held_standing
+-- Zone.returnSoldStanding -> dbo.sp_zone_return_sold_standing
+-- Zone.getCapacity -> dbo.fn_zone_get_capacity
+-- Zone.getAvailable -> dbo.fn_zone_get_available
+-- Seat.hold -> dbo.sp_seat_hold
+-- Seat.release -> dbo.sp_seat_release
+-- Seat.markSold -> dbo.sp_seat_mark_sold
+-- Seat.returnToInventory -> dbo.sp_seat_return_to_inventory
+-- Settlement.recalculate -> dbo.sp_settlement_recalculate
+-- Settlement.confirm -> dbo.sp_settlement_confirm
+-- Settlement.beginPayout -> dbo.sp_settlement_begin_payout
+-- Settlement.recordPayoutResult -> dbo.sp_settlement_record_payout_result
+-- TicketHold.isExpired -> dbo.fn_ticket_hold_is_expired
+-- TicketHold.isActive -> dbo.fn_ticket_hold_is_active
+-- TicketHold.release -> dbo.sp_ticket_hold_release
+-- TicketHold.consume -> dbo.sp_ticket_hold_consume
+-- TicketHoldItem.lineTotal -> dbo.fn_ticket_hold_item_line_total
+-- Order.fromHold -> dbo.sp_order_from_hold
+-- Order.applyCoupon -> dbo.sp_order_apply_coupon
+-- Order.removeCoupon -> dbo.sp_order_remove_coupon
+-- Order.markPaid -> dbo.sp_order_mark_paid
+-- Order.cancel -> dbo.sp_order_cancel
+-- Order.expire -> dbo.sp_order_expire
+-- OrderItem.lineTotal -> dbo.fn_order_item_line_total
+-- Ticket.checkIn -> dbo.sp_ticket_check_in
+-- Ticket.markRefundPending -> dbo.sp_ticket_mark_refund_pending
+-- Ticket.restoreAfterRejection -> dbo.sp_ticket_restore_after_rejection
+-- Ticket.markRefunded -> dbo.sp_ticket_mark_refunded
+-- Payment.start -> dbo.sp_payment_start
+-- Payment.markCaptured -> dbo.sp_payment_mark_captured
+-- Payment.markFailed -> dbo.sp_payment_mark_failed
+-- Payment.markUnknown -> dbo.sp_payment_mark_unknown
+-- Refund.requestForTickets -> dbo.sp_refund_request_for_tickets
+-- Refund.createCompensation -> dbo.sp_refund_create_compensation
+-- Refund.adoptEventCancellation -> dbo.sp_refund_adopt_event_cancellation
+-- Refund.approve -> dbo.sp_refund_approve
+-- Refund.reject -> dbo.sp_refund_reject
+-- Refund.beginAttempt -> dbo.sp_refund_begin_attempt
+-- Refund.recordAttemptResult -> dbo.sp_refund_record_attempt_result
+-- Refund.completeWithoutTransfer -> dbo.sp_refund_complete_without_transfer
