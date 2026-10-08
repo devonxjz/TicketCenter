@@ -1,0 +1,95 @@
+name: "CI/CD Master Pipeline"
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+    inputs:
+      deploy_to_production:
+        description: "Có triển khai tiếp lên Production sau khi pass Staging không?"
+        type: boolean
+        default: false
+      deployment_strategy:
+        description: "Chiến lược triển khai Production"
+        type: choice
+        options:
+          - "blue-green"
+          - "canary"
+        default: "blue-green"
+
+permissions:
+  contents: write
+  packages: write
+  checks: write
+  security-events: write
+
+jobs:
+  # =========================================================================
+  # 1. Code Quality & Security Scan (Lint, Secret scan, SAST)
+  # =========================================================================
+  stage-1-quality-and-security:
+    name: "Stage 1: Quality & Security"
+    uses: ./.github/workflows/01-code-quality-security.yml
+    secrets: inherit
+
+  # =========================================================================
+  # 2. Unit & Integration Tests (Testcontainers, Coverage check)
+  # =========================================================================
+  stage-2-tests-and-coverage:
+    name: "Stage 2: Tests & Coverage"
+    needs: stage-1-quality-and-security
+    uses: ./.github/workflows/02-unit-integration-tests.yml
+    secrets: inherit
+
+  # =========================================================================
+  # 3. Dependency & CVE Scan (SCA, npm audit, Trivy)
+  # =========================================================================
+  stage-3-dependency-and-cve:
+    name: "Stage 3: Dependency & CVE"
+    needs: stage-2-tests-and-coverage
+    uses: ./.github/workflows/03-dependency-cve-scan.yml
+    secrets: inherit
+
+  # =========================================================================
+  # 4. Production Build & Docker Image Packaging
+  # =========================================================================
+  stage-4-build-and-packaging:
+    name: "Stage 4: Build & Packaging"
+    needs: stage-3-dependency-and-cve
+    uses: ./.github/workflows/04-build-docker-packaging.yml
+    secrets: inherit
+
+  # =========================================================================
+  # 5. Deploy to Staging + E2E / Smoke Test + DB Migration Test
+  # =========================================================================
+  stage-5-staging-and-smoke:
+    name: "Stage 5: Staging & Smoke"
+    needs: stage-4-build-and-packaging
+    uses: ./.github/workflows/05-deploy-staging-smoke-test.yml
+    secrets: inherit
+
+  # =========================================================================
+  # 6. Manual Approval / Tag Release -> Deploy Prod (Canary / Blue-Green)
+  # =========================================================================
+  stage-6-production-deploy:
+    name: "Stage 6: Production Deployment"
+    needs: stage-5-staging-and-smoke
+    if: |
+      always() &&
+      needs.stage-5-staging-and-smoke.result == 'success' &&
+      (
+        github.ref == 'refs/heads/main' ||
+        startsWith(github.ref, 'refs/tags/v') ||
+        inputs.deploy_to_production == true
+      )
+    uses: ./.github/workflows/06-deploy-production.yml
+    with:
+      deployment_strategy: ${{ inputs.deployment_strategy || 'blue-green' }}
+    secrets: inherit

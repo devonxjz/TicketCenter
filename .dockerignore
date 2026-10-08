@@ -1,0 +1,12 @@
+.git
+.github
+.gitignore
+.codegraph
+target/
+build/
+docs/
+*.md
+*.log
+*.tmp
+.env*
+!*.example

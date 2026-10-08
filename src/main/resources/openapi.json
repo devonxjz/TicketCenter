@@ -1,0 +1,880 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "TicketsCenter API",
+    "description": "API tài liệu và thử nghiệm cho hệ thống bán vé TicketsCenter (Java 25, Jakarta Servlet 6.1, SQL Server). Hỗ trợ xác thực session cookie, CSRF token, OTP email và khôi phục mật khẩu.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Local & Current Server Context"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Kiểm tra trạng thái liveness và readiness của hệ thống"
+    },
+    {
+      "name": "Authentication",
+      "description": "Đăng ký, đăng nhập, CSRF token và quản lý phiên"
+    },
+    {
+      "name": "OTP & Password Reset",
+      "description": "Phát hành mã OTP, xác thực email và khôi phục mật khẩu"
+    },
+    {
+      "name": "Organizations",
+      "description": "Yêu cầu tổ chức, thành viên và chính sách hoa hồng"
+    },
+    {
+      "name": "Events",
+      "description": "Bản nháp, khu/ghế, ảnh bìa, duyệt và catalog công khai"
+    },
+    {
+      "name": "Refunds",
+      "description": "Retry vận hành; kết quả provider không nhận từ browser"
+    },
+    {
+      "name": "VNPAY Payment Gateway",
+      "description": "Tạo URL thanh toán Sandbox, truy vấn giao dịch (QueryDR) và hoàn tiền (Refund)"
+    }
+  ],
+  "paths": {
+    "/health/live": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Liveness Probe",
+        "description": "Xác nhận container Tomcat đang chạy và phản hồi HTTP.",
+        "responses": {
+          "200": {
+            "description": "Ứng dụng hoạt động bình thường",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "status": { "type": "string", "example": "UP" },
+                        "timestamp": { "type": "string", "example": "2026-09-27T10:00:00Z" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Readiness Probe",
+        "description": "Kiểm tra kết nối tới cơ sở dữ liệu SQL Server và trạng thái khởi tạo EntityManagerFactory.",
+        "responses": {
+          "200": {
+            "description": "Cơ sở dữ liệu sẵn sàng",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "status": { "type": "string", "example": "READY" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Cơ sở dữ liệu không khả dụng",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/csrf": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Lấy CSRF Token",
+        "description": "Sinh hoặc đọc token CSRF gắn với session hiện tại. Bắt buộc gửi token này qua header `X-CSRF-Token` trên tất cả các request POST, PUT, DELETE.",
+        "responses": {
+          "200": {
+            "description": "CSRF token hợp lệ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "token": { "type": "string", "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Đăng ký tài khoản",
+        "description": "Tạo tài khoản mới. Email được chuẩn hóa (chữ thường, cắt khoảng trắng). Mật khẩu được băm bằng PBKDF2-HMAC-SHA256 với salt 16 byte và 210.000 vòng lặp.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RegisterRequest" }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": { "$ref": "#/components/schemas/RegisterRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Đăng ký thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "registered": { "type": "boolean", "example": true }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dữ liệu không hợp lệ (mật khẩu dưới 12 ký tự hoặc email sai)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "429": {
+            "description": "Quá giới hạn tần suất đăng ký (tối đa 10 lần/IP hoặc 5 lần/tài khoản trong 15 phút)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Đăng nhập",
+        "description": "Xác thực danh tính bằng email (hoặc alias `admin`) và mật khẩu. Cấp mới Session ID trong cookie `JSESSIONID` để ngăn ngừa session fixation.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LoginRequest" }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": { "$ref": "#/components/schemas/LoginRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Đăng nhập thành công",
+            "headers": {
+              "Set-Cookie": {
+                "description": "Cookie phiên JSESSIONID (HttpOnly, SameSite=Lax)",
+                "schema": { "type": "string", "example": "JSESSIONID=E524BA4E181DA...; Path=/; HttpOnly; SameSite=Lax" }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "authenticated": { "type": "boolean", "example": true }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sai thông tin đăng nhập hoặc tài khoản bị khóa",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "429": {
+            "description": "Quá giới hạn tần suất đăng nhập (tối đa 5 lần sai/tài khoản hoặc 20 lần/IP trong 15 phút)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Đăng xuất",
+        "description": "Hủy toàn bộ phiên làm việc hiện tại trên máy chủ.",
+        "responses": {
+          "200": {
+            "description": "Đã đăng xuất",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "loggedOut": { "type": "boolean", "example": true }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Thông tin tài khoản hiện tại",
+        "description": "Lấy thông tin người dùng đang đăng nhập dựa trên phiên cookie.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Thông tin người dùng",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid", "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479" },
+                        "email": { "type": "string", "example": "user@example.com" },
+                        "admin": { "type": "boolean", "example": false }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chưa đăng nhập hoặc session đã hết hạn / thu hồi",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/otp/send": {
+      "post": {
+        "tags": ["OTP & Password Reset"],
+        "summary": "Gửi mã OTP qua Email",
+        "description": "Sinh mã OTP 6 chữ số ngẫu nhiên, lưu hash HMAC-SHA256, áp dụng cooldown 60 giây và giới hạn sliding window 15 phút.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/OtpSendRequest" }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": { "$ref": "#/components/schemas/OtpSendRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Mã OTP đã được gửi",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "sent": { "type": "boolean", "example": true }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dữ liệu yêu cầu không hợp lệ",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "429": {
+            "description": "Vượt quá tần suất gửi (cooldown 60s hoặc rate limit)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/otp/verify": {
+      "post": {
+        "tags": ["OTP & Password Reset"],
+        "summary": "Xác thực mã OTP",
+        "description": "Kiểm tra mã OTP (tối đa 5 lần thử sai, TTL 5 phút). Nếu purpose là RESET_PASSWORD, trả về `resetToken` dùng 1 lần để đổi mật khẩu.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/OtpVerifyRequest" }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": { "$ref": "#/components/schemas/OtpVerifyRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Xác thực thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "verified": { "type": "boolean", "example": true },
+                        "resetToken": { "type": "string", "nullable": true, "example": "d290f1ee-6c54-4b01-90e6-d701748f0851.1790500000000.vO9z..." }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Mã OTP sai, hết hạn hoặc vượt quá số lần thử",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/password/forgot": {
+      "post": {
+        "tags": ["OTP & Password Reset"],
+        "summary": "Yêu cầu khôi phục mật khẩu",
+        "description": "Gửi OTP đặt lại mật khẩu đến email. Không để lộ việc tài khoản có tồn tại hay không trong hệ thống (chống timing attack và user enumeration).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ForgotPasswordRequest" }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": { "$ref": "#/components/schemas/ForgotPasswordRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Yêu cầu được tiếp nhận",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "accepted": { "type": "boolean", "example": true },
+                        "message": { "type": "string", "example": "If the email exists, a reset code has been sent." }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/password/reset": {
+      "post": {
+        "tags": ["OTP & Password Reset"],
+        "summary": "Đặt lại mật khẩu mới",
+        "description": "Sử dụng `resetToken` nhận được từ bước verify OTP để đặt mật khẩu mới (12-256 ký tự). Tự động vô hiệu hóa token (stateless qua HMAC chữ ký mật khẩu cũ) và tăng `authVersion` để thu hồi toàn bộ session trên tất cả thiết bị.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ResetPasswordRequest" }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": { "$ref": "#/components/schemas/ResetPasswordRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Mật khẩu đã được đặt lại thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "reset": { "type": "boolean", "example": true }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Token không hợp lệ, đã sử dụng hoặc mật khẩu không đủ tiêu chuẩn",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/organization-requests": {
+      "post": {
+        "tags": ["Organizations"],
+        "summary": "Gửi yêu cầu tạo tổ chức",
+        "responses": {"200": {"description": "Yêu cầu PENDING đã được tạo"}, "400": {"description": "Dữ liệu không hợp lệ"}, "401": {"description": "Chưa đăng nhập"}}
+      }
+    },
+    "/api/me/organization-requests": {
+      "get": {
+        "tags": ["Organizations"],
+        "summary": "Danh sách yêu cầu tổ chức của tài khoản hiện tại",
+        "responses": {"200": {"description": "Danh sách phân trang"}, "401": {"description": "Chưa đăng nhập"}}
+      }
+    },
+    "/api/me/profile": {
+      "get": {"tags": ["Identity"], "summary": "Xem hồ sơ và avatar", "responses": {"200": {"description": "Hồ sơ hiện tại"}, "401": {"description": "Chưa đăng nhập"}}},
+      "post": {"tags": ["Identity"], "summary": "Upload hoặc thay avatar qua Cloudinary", "requestBody": {"required": true, "content": {"multipart/form-data": {"schema": {"type": "object", "required": ["avatar"], "properties": {"avatar": {"type": "string", "format": "binary"}}}}}}, "responses": {"200": {"description": "Avatar đã lưu"}, "400": {"description": "Ảnh không hợp lệ"}, "413": {"description": "Ảnh quá lớn"}}}
+    },
+    "/api/admin/organization-requests/{requestId}/approve": {
+      "post": {
+        "tags": ["Organizations"],
+        "summary": "Duyệt yêu cầu và tạo tổ chức, manager, chính sách ban đầu qua SP01",
+        "parameters": [{"in": "path", "name": "requestId", "required": true, "schema": {"type": "string", "format": "uuid"}}],
+        "responses": {"200": {"description": "Đã duyệt"}, "403": {"description": "Cần ADMIN"}, "409": {"description": "Trạng thái xung đột"}}
+      }
+    },
+    "/api/admin/organization-requests/{requestId}/reject": {
+      "post": {
+        "tags": ["Organizations"],
+        "summary": "Từ chối yêu cầu đang PENDING",
+        "parameters": [{"in": "path", "name": "requestId", "required": true, "schema": {"type": "string", "format": "uuid"}}],
+        "responses": {"200": {"description": "Đã từ chối"}, "400": {"description": "Thiếu lý do"}, "403": {"description": "Cần ADMIN"}}
+      }
+    },
+    "/api/organizations/{organizationId}/members": {
+      "get": {
+        "tags": ["Organizations"], "summary": "Danh sách thành viên", "responses": {"200": {"description": "Danh sách V10"}, "403": {"description": "Cần manager đúng tổ chức"}}
+      },
+      "post": {
+        "tags": ["Organizations"], "summary": "Thêm hoặc kích hoạt lại thành viên", "responses": {"200": {"description": "Đã cập nhật"}, "403": {"description": "Cần manager đúng tổ chức"}, "409": {"description": "Vi phạm manager cuối"}}
+      }
+    },
+    "/api/admin/organizations/{organizationId}/commission-rules": {
+      "get": {"tags": ["Organizations"], "summary": "Danh sách chính sách hoa hồng", "responses": {"200": {"description": "Danh sách chính sách"}}},
+      "post": {"tags": ["Organizations"], "summary": "Tạo chính sách hoa hồng", "responses": {"200": {"description": "Đã tạo"}, "400": {"description": "Điều khoản không hợp lệ"}}}
+    },
+    "/api/organizations/{organizationId}/events": {
+      "get": {"tags": ["Events"], "summary": "Danh sách sự kiện của tổ chức", "responses": {"200": {"description": "Gồm bản nháp và lý do từ chối"}, "403": {"description": "Cần manager đúng tổ chức"}}},
+      "post": {"tags": ["Events"], "summary": "Tạo sự kiện DRAFT", "responses": {"200": {"description": "Đã tạo"}, "400": {"description": "Dữ liệu không hợp lệ"}, "403": {"description": "Cần manager đúng tổ chức"}}}
+    },
+    "/api/events": {
+      "get": {"tags": ["Events"], "summary": "Tìm sự kiện đã xuất bản", "parameters": [
+        {"in": "query", "name": "q", "schema": {"type": "string"}},
+        {"in": "query", "name": "categoryId", "schema": {"type": "string", "format": "uuid"}},
+        {"in": "query", "name": "from", "schema": {"type": "string", "format": "date-time"}},
+        {"in": "query", "name": "to", "schema": {"type": "string", "format": "date-time"}},
+        {"in": "query", "name": "sort", "schema": {"type": "string", "enum": ["start", "minPrice"]}},
+        {"in": "query", "name": "page", "schema": {"type": "integer", "minimum": 1}},
+        {"in": "query", "name": "pageSize", "schema": {"type": "integer", "minimum": 1, "maximum": 100}}
+      ], "responses": {"200": {"description": "Catalog PUBLISHED phân trang"}, "400": {"description": "Filter không hợp lệ"}}}
+    },
+    "/api/events/{eventId}": {
+      "get": {"tags": ["Events"], "summary": "Chi tiết sự kiện công khai", "responses": {"200": {"description": "Sự kiện PUBLISHED"}, "404": {"description": "Không tìm thấy"}}}
+    },
+    "/api/events/{eventId}/zones": {
+      "get": {"tags": ["Events"], "summary": "Sơ đồ khu, tồn chỗ và ghế", "responses": {"200": {"description": "Khu và ghế"}}},
+      "post": {"tags": ["Events"], "summary": "Thêm khu và sinh ghế", "responses": {"200": {"description": "Đã tạo nguyên tử"}, "409": {"description": "Không còn được sửa"}}}
+    },
+    "/api/events/{eventId}/image": {
+      "post": {"tags": ["Events"], "summary": "Manager upload hoặc thay ảnh sự kiện qua Cloudinary", "requestBody": {"required": true, "content": {"multipart/form-data": {"schema": {"type": "object", "required": ["eventImage"], "properties": {"eventImage": {"type": "string", "format": "binary"}}}}}}, "responses": {"200": {"description": "Ảnh eventImage đã lưu"}, "400": {"description": "Ảnh không hợp lệ"}, "403": {"description": "Không có quyền manager"}, "413": {"description": "Ảnh quá lớn"}}}
+    },
+    "/api/admin/events/{eventId}/publish": {
+      "post": {"tags": ["Events"], "summary": "Admin xuất bản bằng SP12", "responses": {"200": {"description": "Đã xuất bản"}, "409": {"description": "Chưa đủ điều kiện"}}}
+    },
+    "/api/admin/events/{eventId}/reject": {
+      "post": {"tags": ["Events"], "summary": "Admin từ chối kèm lý do", "responses": {"200": {"description": "Đã từ chối"}, "400": {"description": "Thiếu lý do"}, "409": {"description": "Sai trạng thái"}}}
+    },
+    "/api/admin/events/{eventId}/cancel": {
+      "post": {"tags": ["Events"], "summary": "Admin hủy sự kiện bằng SP13", "responses": {"200": {"description": "Đã hủy và tạo công việc xử lý"}, "403": {"description": "Cần ADMIN"}, "409": {"description": "Sự kiện đã bắt đầu hoặc sai trạng thái"}}}
+    },
+    "/api/admin/events/{eventId}/cancellation-progress": {
+      "get": {"tags": ["Events"], "summary": "Tiến độ hoàn do hủy sự kiện", "responses": {"200": {"description": "Số đơn pending/completed, nghĩa vụ hoàn và ngoại lệ USED/FAILED/UNKNOWN"}, "403": {"description": "Cần ADMIN"}, "404": {"description": "Không tìm thấy sự kiện"}}}
+    },
+    "/api/admin/refund-requests/{requestId}/retry": {
+      "post": {
+        "tags": ["Refunds"], "summary": "Tạo attempt mới sau CUSTOMER_REFUND đã FAILED",
+        "parameters": [{"in": "path", "name": "requestId", "required": true, "schema": {"type": "string", "format": "uuid"}}],
+        "responses": {"200": {"description": "Attempt PENDING đã được tạo"}, "403": {"description": "Cần ADMIN"}, "409": {"description": "Không đủ điều kiện retry"}}
+      }
+    },
+    "/api/admin/payments/{paymentId}/compensation/retry": {
+      "post": {
+        "tags": ["Refunds"], "summary": "Tạo attempt mới sau PAYMENT_COMPENSATION đã FAILED",
+        "parameters": [{"in": "path", "name": "paymentId", "required": true, "schema": {"type": "string", "format": "uuid"}}],
+        "responses": {"200": {"description": "Attempt PENDING đã được tạo"}, "403": {"description": "Cần ADMIN"}, "409": {"description": "Không đủ điều kiện retry"}}
+      }
+    },
+    "/api/event-categories": {
+      "get": {"tags": ["Events"], "summary": "Danh mục sự kiện", "responses": {"200": {"description": "Danh mục seed"}}}
+    },
+    "/vnpayajax": {
+      "post": {
+        "tags": ["VNPAY Payment Gateway"],
+        "summary": "Tạo URL thanh toán VNPAY Sandbox",
+        "description": "Tạo giao dịch thanh toán và trả về URL chuyển hướng sang cổng thanh toán VNPAY Sandbox.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": ["amount"],
+                "properties": {
+                  "amount": {
+                    "type": "integer",
+                    "description": "Số tiền cần thanh toán (VNĐ)",
+                    "example": 50000
+                  },
+                  "bankCode": {
+                    "type": "string",
+                    "description": "Mã ngân hàng (bỏ trống nếu muốn người dùng chọn tại cổng VNPAY)",
+                    "example": "NCB",
+                    "enum": ["NCB", "VNPAYQR", "VISA", "MASTERCARD"]
+                  },
+                  "language": {
+                    "type": "string",
+                    "description": "Ngôn ngữ giao diện cổng thanh toán",
+                    "example": "vn",
+                    "enum": ["vn", "en"]
+                  },
+                  "returnUrl": {
+                    "type": "string",
+                    "description": "URL nhận kết quả sau khi người dùng thanh toán trên cổng VNPAY",
+                    "example": "http://localhost:8081/vnpay/vnpay_return.jsp"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Khởi tạo thành công, trả về URL thanh toán VNPAY Sandbox",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": { "type": "string", "example": "00" },
+                    "message": { "type": "string", "example": "success" },
+                    "data": { "type": "string", "example": "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?..." }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vnpayquery": {
+      "post": {
+        "tags": ["VNPAY Payment Gateway"],
+        "summary": "Truy vấn kết quả giao dịch VNPAY (QueryDR)",
+        "description": "Kiểm tra kết quả giao dịch thanh toán đã gửi lên VNPAY Sandbox.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": ["order_id", "trans_date"],
+                "properties": {
+                  "order_id": {
+                    "type": "string",
+                    "description": "Mã tham chiếu giao dịch (vnp_TxnRef nhận được lúc tạo đơn)",
+                    "example": "40265227"
+                  },
+                  "trans_date": {
+                    "type": "string",
+                    "description": "Thời gian tạo giao dịch định dạng yyyyMMddHHmmss (vnp_CreateDate)",
+                    "example": "20261001101620"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Kết quả truy vấn giao dịch từ server VNPAY"
+          }
+        }
+      }
+    },
+    "/vnpayrefund": {
+      "post": {
+        "tags": ["VNPAY Payment Gateway"],
+        "summary": "Hoàn tiền giao dịch VNPAY (Refund)",
+        "description": "Gửi yêu cầu hoàn tiền toàn phần hoặc một phần giao dịch tới cổng VNPAY.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": ["order_id", "amount", "trans_date"],
+                "properties": {
+                  "order_id": {
+                    "type": "string",
+                    "description": "Mã đơn hàng (vnp_TxnRef)",
+                    "example": "40265227"
+                  },
+                  "amount": {
+                    "type": "integer",
+                    "description": "Số tiền hoàn (VNĐ)",
+                    "example": 50000
+                  },
+                  "trantype": {
+                    "type": "string",
+                    "description": "Loại hoàn tiền: 02 (Toàn phần), 03 (Một phần)",
+                    "example": "02",
+                    "enum": ["02", "03"]
+                  },
+                  "trans_date": {
+                    "type": "string",
+                    "description": "Thời gian tạo giao dịch ban đầu (yyyyMMddHHmmss)",
+                    "example": "20261001101620"
+                  },
+                  "transactionNo": {
+                    "type": "string",
+                    "description": "Mã giao dịch tại hệ thống VNPAY (vnp_TransactionNo nếu có)",
+                    "example": ""
+                  },
+                  "user": {
+                    "type": "string",
+                    "description": "Tên người thực hiện hoàn",
+                    "example": "TicketsCenter"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Kết quả xử lý hoàn tiền từ server VNPAY"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "JSESSIONID",
+        "description": "Session cookie được cấp tự động sau khi gọi POST /api/auth/login"
+      },
+      "csrfToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-CSRF-Token",
+        "description": "CSRF token lấy từ GET /api/auth/csrf"
+      }
+    },
+    "schemas": {
+      "RegisterRequest": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "newuser@example.com"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 12,
+            "maxLength": 256,
+            "example": "SecurePassword123!"
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["identifier", "password"],
+        "properties": {
+          "identifier": {
+            "type": "string",
+            "example": "newuser@example.com",
+            "description": "Địa chỉ email hoặc tài khoản 'admin'"
+          },
+          "password": {
+            "type": "string",
+            "example": "SecurePassword123!"
+          }
+        }
+      },
+      "OtpSendRequest": {
+        "type": "object",
+        "required": ["email", "purpose"],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "newuser@example.com"
+          },
+          "purpose": {
+            "type": "string",
+            "enum": ["VERIFY_EMAIL", "RESET_PASSWORD"],
+            "example": "VERIFY_EMAIL"
+          }
+        }
+      },
+      "OtpVerifyRequest": {
+        "type": "object",
+        "required": ["email", "code", "purpose"],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "newuser@example.com"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 6,
+            "example": "123456"
+          },
+          "purpose": {
+            "type": "string",
+            "enum": ["VERIFY_EMAIL", "RESET_PASSWORD"],
+            "example": "VERIFY_EMAIL"
+          }
+        }
+      },
+      "ForgotPasswordRequest": {
+        "type": "object",
+        "required": ["email"],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "user@example.com"
+          }
+        }
+      },
+      "ResetPasswordRequest": {
+        "type": "object",
+        "required": ["resetToken", "newPassword"],
+        "properties": {
+          "resetToken": {
+            "type": "string",
+            "example": "d290f1ee-6c54-4b01-90e6-d701748f0851.1790500000000.vO9zM4...",
+            "description": "Token nhận được từ API /api/auth/otp/verify khi purpose=RESET_PASSWORD"
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 12,
+            "maxLength": 256,
+            "example": "BrandNewPassword123!"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": { "type": "string", "example": "VALIDATION_FAILED" },
+              "message": { "type": "string", "example": "Detailed error message" },
+              "timestamp": { "type": "string", "format": "date-time", "example": "2026-09-27T10:00:00Z" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

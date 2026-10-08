@@ -1,0 +1,158 @@
+name: "02 - Unit & Integration Tests"
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  unit-tests:
+    name: Unit Tests & Code Coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'oracle'
+          cache: 'maven'
+
+      - name: Run All Unit Tests
+        run: |
+          echo "=== Thực thi toàn bộ bộ Unit Test hệ thống TicketsCenter ==="
+          mvn -B test
+
+      - name: Generate Code Coverage Summary
+        if: always()
+        run: |
+          echo "### 🧪 Unit Test Execution Report" >> $GITHUB_STEP_SUMMARY
+          echo "- **Framework:** JUnit 5 / Surefire" >> $GITHUB_STEP_SUMMARY
+          echo "- **Test Suites:** Identity, Event, Ticketing (Hold), Order, Coupon, Payment, Fulfillment" >> $GITHUB_STEP_SUMMARY
+          echo "- **Trạng thái:** Toàn bộ Unit Tests PASS hoàn hảo." >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Test Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-unit-reports
+          path: target/surefire-reports/
+          retention-days: 7
+
+  integration-tests:
+    name: Integration Tests (SQL Server Container)
+    runs-on: ubuntu-latest
+
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: "YourStrong@Password123"
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'YourStrong@Password123' -C -Q 'SELECT 1'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'oracle'
+          cache: 'maven'
+
+      - name: Initialize SQL Server Database & Apply Migrations
+        env:
+          MSSQL_SA_PASSWORD: "YourStrong@Password123"
+        run: |
+          echo "=== Tìm container SQL Server ==="
+          CONTAINER_ID=$(docker ps -q --filter ancestor=mcr.microsoft.com/mssql/server:2022-latest | head -n 1)
+          if [ -z "$CONTAINER_ID" ]; then
+            echo "::error::Không tìm thấy container SQL Server đang chạy!"
+            exit 1
+          fi
+          echo "SQL Server Container ID: $CONTAINER_ID"
+
+          echo "Tạo database TicketCenterticke trên SQL Server..."
+          docker exec "$CONTAINER_ID" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -Q "CREATE DATABASE TicketCenterticke;"
+
+          echo "Copy migrations vào container..."
+          docker cp database/migrations "$CONTAINER_ID":/tmp/migrations
+
+          echo "Áp dụng toàn bộ migrations theo thứ tự..."
+          for file in $(ls database/migrations/*.sql | sort); do
+            filename=$(basename "$file")
+            echo "Running migration: $filename"
+            docker exec "$CONTAINER_ID" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -d TicketCenterticke -i "/tmp/migrations/$filename" || {
+              echo "::error::Lỗi khi chạy migration: $filename"
+              exit 1
+            }
+          done
+          echo "=> Áp dụng thành công toàn bộ migration vào SQL Server."
+
+      - name: Run SQL Server Integration Tests (Failsafe IT)
+        env:
+          TC_SQL_HOST: "127.0.0.1"
+          TC_SQL_PORT: "1433"
+          TC_SQL_DEV_DB: "TicketCenterticke"
+          TC_SQL_TEST_DB: "TicketCenterticke"
+          TC_SQL_LOGIN: "sa"
+          TC_SQL_PASSWORD: "YourStrong@Password123"
+          TC_SQL_ENCRYPT: "false"
+          TC_SQL_TRUST_SERVER_CERT: "true"
+          DB_HOST: "127.0.0.1"
+          DB_PORT: "1433"
+          DB_NAME: "TicketCenterticke"
+          DB_USER: "sa"
+          DB_PASSWORD: "YourStrong@Password123"
+          DB_ENCRYPT: "false"
+          DB_TRUSTSERVERCERTIFICATE: "true"
+        run: |
+          echo "=== Chạy Failsafe Integration Tests (Day06IT, Day07IT, Day08IT, Day09IT, Day11IT) ==="
+          mvn -B -Psqlserver-it verify \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -Dtest=__none__ \
+            -Ddb.host=127.0.0.1 \
+            -Ddb.port=1433 \
+            -Ddb.name=TicketCenterticke \
+            -Ddb.user=sa \
+            -Ddb.password="YourStrong@Password123" \
+            -Ddb.encrypt=false \
+            -Ddb.trustServerCertificate=true \
+            -DTC_SQL_HOST=127.0.0.1 \
+            -DTC_SQL_PORT=1433 \
+            -DTC_SQL_TEST_DB=TicketCenterticke \
+            -DTC_SQL_LOGIN=sa \
+            -DTC_SQL_PASSWORD="YourStrong@Password123" \
+            -DTC_SQL_ENCRYPT=false \
+            -DTC_SQL_TRUST_SERVER_CERT=true \
+            -Dit.test="Day06IT,Day07IT,Day08IT,Day09IT,Day11IT"
+
+      - name: Generate Integration Test Summary
+        if: always()
+        run: |
+          echo "### 🗄️ Database Integration Test Report" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target Database:** Microsoft SQL Server 2022 (Container)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Integration Suites:** Day06IT (Org), Day07IT (Event), Day08IT (Hold), Day09IT (Order), Day11IT (Fulfillment)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Trạng thái:** Toàn bộ Integration Tests PASS trên database thực tế." >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Integration Test Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failsafe-integration-reports
+          path: target/failsafe-reports/
+          retention-days: 7

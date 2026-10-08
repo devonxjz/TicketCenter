@@ -1,0 +1,109 @@
+name: "04 - Production Build & Docker Image Packaging"
+
+on:
+  workflow_call:
+    outputs:
+      image_tag:
+        description: "Docker image tag"
+        value: ${{ jobs.build-and-package.outputs.image_tag }}
+      image_name:
+        description: "Full Docker image name with registry"
+        value: ${{ jobs.build-and-package.outputs.image_name }}
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-package:
+    name: Production Build & Docker Image Packaging
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tag }}
+      image_name: ${{ steps.meta.outputs.image_name }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'oracle'
+          cache: 'maven'
+
+      - name: Build Production WAR Package
+        run: |
+          echo "=== Đóng gói ứng dụng WAR cho môi trường Production ==="
+          mvn -B clean package -DskipTests
+          ls -lh target/ticketscenter.war
+          test -f target/ticketscenter.war || (echo "ERROR: Không tìm thấy target/ticketscenter.war" && exit 1)
+
+      - name: Generate SHA256 Checksum
+        run: |
+          cd target
+          sha256sum ticketscenter.war > ticketscenter.war.sha256
+          echo "SHA256 Checksum:"
+          cat ticketscenter.war.sha256
+
+      - name: Upload Built WAR Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ticketscenter-war
+          path: |
+            target/ticketscenter.war
+            target/ticketscenter.war.sha256
+          retention-days: 7
+
+      - name: Determine Docker Metadata
+        id: meta
+        run: |
+          IMAGE_NAME="ghcr.io/${{ github.repository }}"
+          IMAGE_NAME=$(echo "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')
+          TAG="${{ github.sha }}"
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        if: github.actor != 'dependabot[bot]'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ${{ steps.meta.outputs.image_name }}:${{ steps.meta.outputs.short_sha }}
+            ${{ steps.meta.outputs.image_name }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run Trivy Container Vulnerability Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ steps.meta.outputs.image_name }}:${{ steps.meta.outputs.short_sha }}'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+
+      - name: Build & Package Summary
+        if: always()
+        run: |
+          echo "### 🐳 Docker Packaging & Production Build Report" >> $GITHUB_STEP_SUMMARY
+          echo "- **Artifact:** target/ticketscenter.war" >> $GITHUB_STEP_SUMMARY
+          echo "- **Docker Image:** \`${{ steps.meta.outputs.image_name }}:${{ steps.meta.outputs.short_sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tomcat Base:** Apache Tomcat 11.0.4 trên Eclipse Temurin Java 25" >> $GITHUB_STEP_SUMMARY
+          echo "- **Registry:** GitHub Container Registry (GHCR)" >> $GITHUB_STEP_SUMMARY

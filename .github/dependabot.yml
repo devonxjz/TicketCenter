@@ -1,0 +1,24 @@
+version: 2
+updates:
+  # Theo dõi và tự động cập nhật dependency Maven (pom.xml)
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "dependencies"
+      - "backend"
+
+  # Theo dõi và tự động cập nhật phiên bản của GitHub Actions (.github/workflows)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(ci)"
+    labels:
+      - "ci/cd"

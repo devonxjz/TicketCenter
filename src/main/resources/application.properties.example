@@ -1,0 +1,92 @@
+# ===================================================================
+# TicketsCenter — application.properties.example
+# File mẫu cấu hình hệ thống TicketsCenter (Không chứa mật khẩu thật)
+# Copy file này thành application.properties và điền thông tin thực tế
+# ===================================================================
+
+# 1. Cơ sở dữ liệu Microsoft SQL Server (Azure SQL / Local)
+db.host=devonxjz.database.windows.net
+db.port=1433
+db.name=TicketCenterticke
+db.user=adminTicket@devonxjz
+db.password=<your_password_here>
+db.encrypt=true
+db.trustServerCertificate=false
+db.loginTimeout=30
+
+# URL kết nối JDBC trực tiếp
+db.url=jdbc:sqlserver://devonxjz.database.windows.net:1433;database=TicketCenterticke;user=adminTicket@devonxjz;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;
+
+# Tương thích với các biến TC_SQL_*
+TC_SQL_HOST=devonxjz.database.windows.net
+TC_SQL_PORT=1433
+TC_SQL_DEV_DB=TicketCenterticke
+TC_SQL_TEST_DB=TicketCenterticke
+TC_SQL_BENCH_DB=TicketCenterticke
+TC_SQL_LOGIN=adminTicket@devonxjz
+TC_SQL_PASSWORD=<your_password_here>
+TC_SQL_MIGRATION_LOGIN=adminTicket@devonxjz
+TC_SQL_MIGRATION_PASSWORD=<your_password_here>
+TC_SQL_ENCRYPT=true
+TC_SQL_TRUST_SERVER_CERT=false
+TC_SQL_CONNECT_TIMEOUT_SEC=30
+
+# Runtime principals. Provision users with database/security scripts.
+db.buyer.user=tc_buyer_login
+db.buyer.password=<your_buyer_db_password>
+db.manager.user=tc_manager_login
+db.manager.password=<your_manager_db_password>
+db.check_in.user=tc_checkin_login
+db.check_in.password=<your_checkin_db_password>
+db.admin.user=tc_admin_login
+db.admin.password=<your_admin_db_password>
+db.auth.user=tc_auth_login
+db.auth.password=<your_auth_db_password>
+db.worker.user=tc_worker_login
+db.worker.password=<your_worker_db_password>
+
+# 2. Cấu hình Ứng dụng Web
+app.base.url=http://localhost:8080/ticketscenter
+app.env=development
+app.secret.key=<your_secret_key_here>
+event.image.directory=/var/lib/ticketscenter/event-images
+
+# Chính sách server-side dùng khi admin duyệt tổ chức; không nhận từ applicant.
+# organization.initialCommissionPolicy={"ratePercent":5,"fixedFee":0,"effectiveFrom":"2026-01-01","effectiveTo":"2027-01-01"}
+
+# Demo admin seed. Keep disabled unless explicitly needed.
+admin.seed.enabled=false
+admin.email=adminTIcket@gmail.com
+admin.password=<your_non_demo_admin_password>
+
+# 3. Cấu hình Cổng Thanh Toán VNPAY Sandbox
+vnpay.tmn.code=<sandbox_code>
+vnpay.hash.secret=<your_vnpay_hash_secret>
+vnpay.pay.url=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+vnpay.return.url=http://localhost:8080/ticketscenter/api/payments/vnpay/return
+vnpay.api.url=https://sandbox.vnpayment.vn/merchant_webapi/api/transaction
+
+# 4. Cấu hình Dịch vụ Gửi Email (SMTP)
+mail.smtp.host=smtp.gmail.com
+mail.smtp.port=587
+mail.smtp.user=no-reply@ticketscenter.vn
+mail.smtp.password=<your_smtp_password>
+# Simulated refund provider; never expose these controls through buyer requests.
+refund.simulated.state.directory=data/refund-gateway
+refund.simulated.outcome=SUCCEEDED
+refund.simulated.timeoutAfterSideEffect=false
+payout.simulated.state.directory=data/payout-gateway
+payout.simulated.outcome=SUCCEEDED
+payout.simulated.timeoutAfterSideEffect=false
+
+# 5. Cấu hình Redis (Idempotency Key & Caching)
+redis.host=localhost
+redis.port=6379
+redis.password=
+redis.timeout=2000
+
+
+# 6. Cấu hình Cloudinary Storage
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=

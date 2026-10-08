@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<persistence xmlns="https://jakarta.ee/xml/ns/persistence"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="https://jakarta.ee/xml/ns/persistence https://jakarta.ee/xml/ns/persistence/persistence_3_1.xsd"
+             version="3.1">
+    <persistence-unit name="ticketscenter" transaction-type="RESOURCE_LOCAL">
+        <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+        <class>vn.ticketscenter.identity.model.User</class>
+        <class>vn.ticketscenter.identity.model.Otp</class>
+        <class>vn.ticketscenter.identity.model.Organization</class>
+        <class>vn.ticketscenter.identity.model.OrganizationMembership</class>
+        <class>vn.ticketscenter.identity.model.OrganizationRequest</class>
+        <class>vn.ticketscenter.event.model.EventCategory</class>
+        <class>vn.ticketscenter.event.model.Event</class>
+        <class>vn.ticketscenter.event.model.Zone</class>
+        <class>vn.ticketscenter.event.model.Seat</class>
+        <class>vn.ticketscenter.ticketing.model.TicketHold</class>
+        <class>vn.ticketscenter.ticketing.model.TicketHoldItem</class>
+        <class>vn.ticketscenter.order.model.Order</class>
+        <class>vn.ticketscenter.order.model.OrderItem</class>
+        <class>vn.ticketscenter.order.model.Payment</class>
+        <class>vn.ticketscenter.order.model.Coupon</class>
+        <class>vn.ticketscenter.fulfillment.model.Ticket</class>
+        <class>vn.ticketscenter.fulfillment.model.CheckIn</class>
+        <class>vn.ticketscenter.fulfillment.model.RefundRequest</class>
+        <class>vn.ticketscenter.fulfillment.model.Refund</class>
+        <class>vn.ticketscenter.settlement.model.CommissionRule</class>
+        <class>vn.ticketscenter.settlement.model.Settlement</class>
+        <class>vn.ticketscenter.settlement.model.SettlementItem</class>
+        <class>vn.ticketscenter.settlement.model.Payout</class>
+        <class>vn.ticketscenter.audit.model.AuditLog</class>
+        <exclude-unlisted-classes>true</exclude-unlisted-classes>
+        <properties>
+            <property name="hibernate.hbm2ddl.auto" value="validate"/>
+            <property name="jakarta.persistence.schema-generation.database.action" value="none"/>
+            <property name="hibernate.jdbc.time_zone" value="UTC"/>
+            <property name="hibernate.show_sql" value="false"/>
+        </properties>
+    </persistence-unit>
+</persistence>
