@@ -44,7 +44,17 @@ Các quyết định được ghi trong ledger khi thực thi:
 - Giữ DB mutation/lock/concurrent attachment/rollback ở giai đoạn tích hợp khi có schema và DB JDBC test riêng. Policy hiện tại chưa chứng minh bất biến khi edit và publish Event chạy đồng thời.
 - Giữ idempotency/audit/Redis/approve integration ở giai đoạn tích hợp khi owner chốt contract. Chưa có bằng chứng chống mutation lặp hoặc invalidation cache trong runtime.
 
-Giữ nhánh local để review cùng nhóm; không push/merge và không đóng #29. WAR và báo cáo Surefire được giữ trong `target/` của managed worktree; `target/` cũ ở checkout chính thuộc #28, không dùng làm bằng chứng build #29.
+Ngày 09/10/2026, người dùng yêu cầu tiếp tục bàn giao theo quy trình: push feature branch và mở Draft PR vào `dev`. Không merge và không đóng #29. WAR và báo cáo Surefire được giữ trong `target/` của managed worktree; `target/` cũ ở checkout chính thuộc #28, không dùng làm bằng chứng build #29.
+
+## Chuẩn bị Draft PR
+
+Fetch xác nhận `origin/dev` vẫn tại `cfd77c60ce539f145a6af7749ba050561be6dd3f`, là tổ tiên của nhánh này; không cần merge cập nhật. Chạy lại nhóm regression 90 ca và package trên revision `38b25cd` trong worktree ngày 09/10/2026: 0 failures/errors/skips, cả hai lệnh exit 0. Commit bàn giao sau đó chỉ đổi hồ sơ này, không đổi implementation/test.
+
+CI **chưa chạy và chưa đạt gate merge**. Workflow hiện tại gọi bare `mvn test`, bao gồm test SMTP thật sử dụng cấu hình chung, và các test DB chung. Commit bàn giao dùng `[skip ci]` để việc push/mở Draft PR không kích hoạt các tác động này. Theo [GitHub Docs](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/skip-workflow-runs), chỉ dẫn này bỏ qua workflow `push`/`pull_request`; nó không thay thế checks bắt buộc.
+
+Cần owner phối hợp sửa profile CI để unit test không dùng SMTP/DB thật, integration có DB và mail test riêng, đồng thời thu hồi/đổi credential SMTP đã nằm trong cấu hình theo dõi của repo. Các file identity/config/workflow không được sửa lẫn vào PR #29. Khi môi trường CI an toàn được chốt, cập nhật nhánh và thêm commit không có skip instruction để chạy checks thật trước khi Ready/merge.
+
+Reviewers đề xuất theo ownership hiện tại: Thái (`devonxjz`) kiểm principal/ADMIN và contract duyệt tổ chức; Đông (`trungdong9919-svg`) kiểm linked event count và quy tắc bất biến rule khi publish. PR ghi `Refs #29`; Issue vẫn mở cho phần tích hợp.
 
 ## Lệnh tái kiểm chứng
 
