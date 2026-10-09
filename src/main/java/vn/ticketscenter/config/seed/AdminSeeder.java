@@ -35,9 +35,25 @@ public final class AdminSeeder {
                 if (!existing.hasPlatformRole("ADMIN")) {
                     throw new IllegalStateException("Admin seed email already belongs to a non-admin account");
                 }
+                existing.changePassword(passwords.hash(password));
+                existing.verifyEmail(clock.instant());
+                if (!"admin".equalsIgnoreCase(existing.getUserName())) {
+                    Long count = entityManager.createQuery("SELECT COUNT(u) FROM User u WHERE LOWER(u.userName) = 'admin' AND u.id != :id", Long.class)
+                            .setParameter("id", existing.getId())
+                            .getSingleResult();
+                    if (count == null || count == 0) {
+                        existing.changeUserName("admin");
+                    }
+                }
+                users.save(existing);
                 return null;
             }
-            User admin = new User(email, normalizedEmail, passwords.hash(password), "Administrator", clock.instant());
+            String adminUserName = "admin";
+            Long count = entityManager.createQuery("SELECT COUNT(u) FROM User u WHERE LOWER(u.userName) = 'admin'", Long.class).getSingleResult();
+            if (count != null && count > 0) {
+                adminUserName = normalizedEmail;
+            }
+            User admin = new User(email, adminUserName, passwords.hash(password), "Administrator", clock.instant());
             admin.verifyEmail(clock.instant());
             admin.grantPlatformRole("ADMIN");
             users.save(admin);

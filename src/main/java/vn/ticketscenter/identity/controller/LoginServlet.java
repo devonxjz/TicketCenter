@@ -44,6 +44,8 @@ public class LoginServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String csrfToken = SecurityContext.getOrCreateCsrfToken(req);
+        req.setAttribute("csrfToken", csrfToken);
         req.getRequestDispatcher("/WEB-INF/views/auth/login.jsp").forward(req, resp);
     }
 
@@ -67,6 +69,12 @@ public class LoginServlet extends HttpServlet {
                 if (identifier == null) {
                     identifier = json.get("email");
                 }
+                if (identifier == null) {
+                    identifier = json.get("userName");
+                }
+                if (identifier == null) {
+                    identifier = json.get("username");
+                }
                 password = json.get("password");
             } catch (Exception e) {
                 HttpResponses.error(resp, HttpServletResponse.SC_BAD_REQUEST,
@@ -77,6 +85,12 @@ public class LoginServlet extends HttpServlet {
             identifier = req.getParameter("identifier");
             if (identifier == null) {
                 identifier = req.getParameter("email");
+            }
+            if (identifier == null) {
+                identifier = req.getParameter("userName");
+            }
+            if (identifier == null) {
+                identifier = req.getParameter("username");
             }
             password = req.getParameter("password");
         }
@@ -92,7 +106,38 @@ public class LoginServlet extends HttpServlet {
             String csrfToken = SecurityContext.getOrCreateCsrfToken(req);
             resp.setHeader("X-CSRF-Token", csrfToken);
 
-            HttpResponses.data(resp, "{\"authenticated\":true}");
+            String roleName;
+            String defaultRedirect;
+            if (principal.isAdmin()) {
+                roleName = "ADMIN";
+                defaultRedirect = req.getContextPath() + "/admin/dashboard";
+            } else if (principal.organizationRole() == vn.ticketscenter.identity.model.OrganizationRole.MANAGER) {
+                roleName = "MANAGER";
+                defaultRedirect = req.getContextPath() + "/organizer/dashboard";
+            } else if (principal.organizationRole() == vn.ticketscenter.identity.model.OrganizationRole.CHECK_IN_STAFF) {
+                roleName = "STAFF";
+                defaultRedirect = req.getContextPath() + "/organizer/checkin-select";
+            } else {
+                roleName = "CUSTOMER";
+                defaultRedirect = req.getContextPath() + "/";
+            }
+
+            String requestedRedirect = req.getParameter("redirect");
+            String targetRedirect = defaultRedirect;
+            if (requestedRedirect != null && !requestedRedirect.isBlank() && !requestedRedirect.startsWith("http")) {
+                boolean isRestricted = (principal.isCustomerOnly() && (requestedRedirect.contains("/admin") || requestedRedirect.contains("/organizer")))
+                        || (principal.organizationRole() == vn.ticketscenter.identity.model.OrganizationRole.CHECK_IN_STAFF && requestedRedirect.contains("/admin"));
+                if (!isRestricted) {
+                    targetRedirect = requestedRedirect;
+                }
+            }
+
+            boolean isApiRequest = req.getRequestURI().contains("/api/") || (contentType != null && contentType.startsWith("application/json"));
+            if (isApiRequest) {
+                HttpResponses.data(resp, "{\"authenticated\":true,\"role\":\"" + roleName + "\",\"redirect\":\"" + targetRedirect + "\"}");
+            } else {
+                resp.sendRedirect(targetRedirect);
+            }
         } catch (SecurityException ex) {
             String code = ex.getMessage();
             String message = "ACCOUNT_DISABLED".equals(code)
