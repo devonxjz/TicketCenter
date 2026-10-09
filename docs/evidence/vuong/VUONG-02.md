@@ -31,7 +31,20 @@ Chạy trong managed worktree mới, tách khỏi `target/` và preview #28; JDK
 
 Ba lần RED đều exit 1 ở `testCompile` vì lớp production chưa tồn tại: Task 1 thiếu CommissionRuleException/CommissionRuleCreateDto, Task 2 thiếu CommissionRulePolicy, Task 3 thiếu CommissionRuleDto. Đây là lỗi biên dịch khi viết test trước API, chưa phải assertion failure lúc chạy test. Sau khi triển khai, các lần GREEN chạy lần lượt 14, 26 và 47 ca, không failures/errors/skips.
 
-Commit Task 1: `e130bb6`; Task 2: `b2d8952`; projection/test/hồ sơ này nằm trong commit Task 3. Review độc lập toàn nhánh sẽ được ghi tại mục review sau khi hoàn tất.
+Commit Task 1: `e130bb6`; Task 2: `b2d8952`; Task 3: `db8f522`.
+
+## Review độc lập và quyết định bàn giao
+
+Reviewer độc lập đọc toàn bộ range `cfd77c6..db8f522`, đặc tả, kế hoạch, diff và log kiểm chứng. Kết quả: không có Critical/Important/Minor; cả năm Review Focus được bao phủ đúng. Reviewer chỉ đọc, không sửa checkout và không chạy lại test; kết quả chạy test do implementer kiểm chứng trực tiếp trong phiên này. Không cần sửa implementation sau review.
+
+Các quyết định được ghi trong ledger khi thực thi:
+
+- Review sau commit Task 3 để package review có diff đầy đủ; vẫn review trước tích hợp. Nếu cần sửa sau review sẽ có commit bổ sung.
+- Giữ HTTP parser/serialization/status mapping/JSP ở giai đoạn tích hợp như đã duyệt. Kết quả hiện tại chưa chứng minh hoạt động qua HTTP.
+- Giữ DB mutation/lock/concurrent attachment/rollback ở giai đoạn tích hợp khi có schema và DB JDBC test riêng. Policy hiện tại chưa chứng minh bất biến khi edit và publish Event chạy đồng thời.
+- Giữ idempotency/audit/Redis/approve integration ở giai đoạn tích hợp khi owner chốt contract. Chưa có bằng chứng chống mutation lặp hoặc invalidation cache trong runtime.
+
+Giữ nhánh local để review cùng nhóm; không push/merge và không đóng #29. WAR và báo cáo Surefire được giữ trong `target/` của managed worktree; `target/` cũ ở checkout chính thuộc #28, không dùng làm bằng chứng build #29.
 
 ## Lệnh tái kiểm chứng
 
