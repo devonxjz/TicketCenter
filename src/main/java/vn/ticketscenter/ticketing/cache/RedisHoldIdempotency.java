@@ -88,8 +88,7 @@ public final class RedisHoldIdempotency {
         Objects.requireNonNull(claim);
         Objects.requireNonNull(response);
         long retentionMillis = retentionMillis(retention);
-        String completed = "1|C|" + claim.requestHash + "|" + response.status()
-                + "|" + encode(response.contentType()) + "|" + encode(response.body());
+        String completed = completedValue(claim.requestHash, response);
         try (Jedis jedis = connections.get()) {
             Object result = jedis.eval(COMPLETE, List.of(claim.redisKey),
                     List.of(claim.pendingValue, completed, Long.toString(retentionMillis)));
@@ -118,6 +117,34 @@ public final class RedisHoldIdempotency {
             throw new IllegalArgumentException("Idempotency-Key must contain 1..128 visible ASCII characters");
         }
         return "tc:idem:hold:" + actorId + ":" + key;
+    }
+
+    /**
+     * Caller must first confirm this exact actor, key, fingerprint and result in durable DB state.
+     * This reconciles Redis only. False never authorizes retry, and absent entries remain absent.
+     */
+    public boolean recoverConfirmedResult(UUID actorId, String key, String requestHash,
+                                          CompletedResponse response, Duration retention) {
+        String redisKey = redisKey(actorId, key);
+        if (requestHash == null || !requestHash.matches("[0-9a-f]{64}")) {
+            throw new IllegalArgumentException("requestHash must be a lowercase SHA-256 hash");
+        }
+        Objects.requireNonNull(response);
+        long millis = retentionMillis(retention);
+        String completed = completedValue(requestHash, response);
+        try (Jedis jedis = connections.get()) {
+            String observed = jedis.get(redisKey);
+            if (observed == null) return false;
+            Result state = readResult(observed, requestHash);
+            if (state instanceof Replay replay) return replay.response().equals(response);
+            if (!(state instanceof InProgress)) return false;
+            Object result = jedis.eval(COMPLETE, List.of(redisKey), List.of(observed, completed, Long.toString(millis)));
+            if (Long.valueOf(1).equals(result)) return true;
+            if (Long.valueOf(0).equals(result)) return false;
+            throw new HoldIdempotencyUnavailableException();
+        } catch (RuntimeException unavailable) {
+            throw new HoldIdempotencyUnavailableException();
+        }
     }
 
     private static Result readResult(String value, String requestHash) {
@@ -155,6 +182,11 @@ public final class RedisHoldIdempotency {
             throw new IllegalArgumentException("result retention must be 1 millisecond..30 days in whole milliseconds");
         }
         return retention.toMillis();
+    }
+
+    private static String completedValue(String requestHash, CompletedResponse response) {
+        return "1|C|" + requestHash + "|" + response.status()
+                + "|" + encode(response.contentType()) + "|" + encode(response.body());
     }
 
     private static String encode(String value) {
