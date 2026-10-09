@@ -10,6 +10,7 @@ import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.config.web.JsonObjectParser;
 import vn.ticketscenter.identity.dto.RegisterRequestDto;
 import vn.ticketscenter.identity.security.AuthSecurityListener;
+import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.service.AuthService;
 
 import jakarta.servlet.ServletException;
@@ -42,6 +43,8 @@ public class RegisterServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String csrfToken = SecurityContext.getOrCreateCsrfToken(req);
+        req.setAttribute("csrfToken", csrfToken);
         req.getRequestDispatcher("/WEB-INF/views/auth/register.jsp").forward(req, resp);
     }
 

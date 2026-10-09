@@ -78,4 +78,13 @@ public class User extends BaseEntity {
         this.fullName = fullName;
         this.phone = phone;
     }
+
+    public void changePassword(String newPasswordHash) {
+        this.passwordHash = newPasswordHash;
+        this.authVersion++;
+    }
+
+    public void changeUserName(String newUserName) {
+        this.userName = newUserName;
+    }
 }

@@ -37,6 +37,7 @@ public final class PersistenceListener implements ServletContextListener {
         try {
             registry.initialize();
             new AdminSeeder(new PasswordHasher(), Clock.systemUTC()).seed(registry.transactionManager());
+            new vn.ticketscenter.config.seed.DemoAccountSeeder(new PasswordHasher(), Clock.systemUTC()).seed(registry.transactionManager());
         } catch (RuntimeException exception) {
             LOGGER.log(Level.SEVERE, "Database persistence initialization failed", exception);
         }
