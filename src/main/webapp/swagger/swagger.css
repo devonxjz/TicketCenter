@@ -1,0 +1,14 @@
+:root { color-scheme: light; font-family: system-ui, sans-serif; color: #182b3d; background: #fafbfc; }
+body { margin: 0; }
+.api-header { background: #132d43; color: #fff; padding: 22px 24px; }
+.api-header-inner, .api-guide { max-width: 1412px; margin: auto; }
+.brand { color: inherit; text-decoration: none; font-weight: 750; font-size: 24px; }
+.brand span { color: #aedce8; margin-left: 8px; font-size: 16px; }
+.api-header p { margin-bottom: 0; color: #d3e1ea; }
+.api-guide { padding: 20px; font-size: 14px; line-height: 1.6; }
+.api-guide p { margin: 0 0 10px; }
+#load-status { margin-top: 16px; color: #496777; }
+#load-status[data-state="error"] { color: #b42318; }
+.swagger-ui .wrapper { padding: 0 20px 24px; }
+.swagger-ui .info { margin: 16px 0; }
+@media (max-width: 600px) { .api-header { padding: 18px 20px; } .swagger-ui .opblock .opblock-summary-path { font-size: 12px; overflow-wrap: anywhere; } }

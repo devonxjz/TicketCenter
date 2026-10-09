@@ -24,6 +24,9 @@ jobs:
           distribution: 'oracle'
           cache: 'maven'
 
+      - name: Test Swagger session and context handling
+        run: node --test src/test/js/swagger-initializer.test.cjs
+
       - name: Run All Unit Tests
         run: |
           echo "=== Thực thi toàn bộ bộ Unit Test hệ thống TicketsCenter ==="
