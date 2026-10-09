@@ -26,9 +26,11 @@ public final class PersistenceRegistry implements AutoCloseable {
             pool.setJdbcUrl(DatabaseConfig.getJdbcUrl());
             pool.setUsername(user);
             pool.setPassword(password);
-            pool.setMinimumIdle(0);
-            pool.setMaximumPoolSize(1);
-            pool.setConnectionTimeout(DatabaseConfig.getLoginTimeout() * 1000L);
+            pool.setMinimumIdle(DatabaseConfig.getMinimumIdle());
+            pool.setMaximumPoolSize(DatabaseConfig.getMaximumPoolSize());
+            pool.setIdleTimeout(DatabaseConfig.getIdleTimeout());
+            pool.setConnectionTimeout(DatabaseConfig.getConnectionTimeout());
+            pool.setMaxLifetime(DatabaseConfig.getMaxLifetime());
             pool.setInitializationFailTimeout(-1);
             pool.setAutoCommit(false);
             HikariDataSource dataSource = new HikariDataSource(pool);

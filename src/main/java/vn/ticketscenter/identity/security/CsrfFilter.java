@@ -18,6 +18,13 @@ public final class CsrfFilter implements Filter {
 
     private static final Set<String> MUTATING_METHODS = Set.of("POST", "PUT", "PATCH", "DELETE");
 
+    private static final Set<String> PUBLIC_AUTH_APIS = Set.of(
+            "/api/auth/otp/send",
+            "/api/auth/otp/verify",
+            "/api/auth/password/forgot",
+            "/api/auth/password/reset"
+    );
+
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
@@ -31,6 +38,12 @@ public final class CsrfFilter implements Filter {
 
             // Cho phép ngoại lệ đối với IPN Webhook từ cổng thanh toán có chữ ký riêng
             if (path.equals("/api/payments/vnpay/ipn")) {
+                chain.doFilter(request, response);
+                return;
+            }
+
+            // Cho phép các endpoint xác thực/OTP công khai trước đăng nhập
+            if (PUBLIC_AUTH_APIS.contains(path)) {
                 chain.doFilter(request, response);
                 return;
             }

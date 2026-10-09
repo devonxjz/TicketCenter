@@ -229,6 +229,30 @@ public class IdentityWebFlowTest {
     }
 
     @Test
+    @DisplayName("CsrfFilter cho phép các API xác thực OTP và đặt lại mật khẩu công khai đi qua không cần CSRF token")
+    void testCsrfFilterAllowsPublicAuthApis() throws Exception {
+        CsrfFilter filter = new CsrfFilter();
+        java.util.List<String> publicApis = java.util.List.of(
+                "/api/auth/otp/send",
+                "/api/auth/otp/verify",
+                "/api/auth/password/forgot",
+                "/api/auth/password/reset"
+        );
+
+        for (String api : publicApis) {
+            chainExecuted.set(false);
+            responseStatus.set(200);
+            HttpServletRequest req = createMockRequest("POST", api, false);
+            HttpServletResponse resp = createMockResponse();
+
+            filter.doFilter(req, resp, createMockChain());
+
+            assertTrue(chainExecuted.get(), "FilterChain must proceed for public auth API: " + api);
+            assertNotEquals(403, responseStatus.get(), "Must not return 403 Forbidden for: " + api);
+        }
+    }
+
+    @Test
     @DisplayName("SessionValidationFilter từ chối 401 khi authVersion không khớp")
     void testSessionValidationFilterStaleAuthVersion() throws Exception {
         UUID actorId = UUID.randomUUID();
