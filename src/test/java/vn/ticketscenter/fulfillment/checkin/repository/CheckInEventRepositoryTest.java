@@ -66,6 +66,12 @@ class CheckInEventRepositoryTest {
         Query query=queries.getLast();assertFalse(query.sql.contains("paid_amount"));assertFalse(query.sql.contains("price"));
         assertEquals(EVENT.toString(),query.bindings.get(1));
     }
+    @Test void datetimeoffsetPreservesTheActualInstant(){
+        var data=eventRow();data[4]=OffsetDateTime.parse("2026-10-10T02:00:00+07:00");
+        data[5]=OffsetDateTime.parse("2026-10-10T05:00:00+07:00");
+        results.add(Collections.singletonList(data));results.add(Collections.singletonList(new Object[]{1}));
+        assertEquals(Instant.parse("2026-10-09T19:00:00Z"),repository.accessibleEvent(ACTOR,EVENT).startTime());
+    }
     private Object[] eventRow(){return new Object[]{EVENT.toString(),ORG.toString(),"Đêm nhạc","Nhà hát",LocalDateTime.parse("2026-10-09T19:00:00"),LocalDateTime.parse("2026-10-09T22:00:00"),"PUBLISHED"};}
     private TransactionManager transactions(){
         EntityTransaction transaction=proxy(EntityTransaction.class,(m,a)->m.equals("isActive")?true:null);
@@ -79,6 +85,8 @@ class CheckInEventRepositoryTest {
             case "next" -> ++cursor[0]<data.size();
             case "getString" -> String.valueOf(data.get(cursor[0])[(int)a[0]-1]);
             case "getObject","getBoolean","getLong" -> data.get(cursor[0])[(int)a[0]-1];
+            case "getMetaData" -> proxy(ResultSetMetaData.class,(name,arguments)->name.equals("getColumnType")
+                    ? (data.get(cursor[0])[(int)arguments[0]-1] instanceof OffsetDateTime ? -155 : Types.TIMESTAMP) : null);
             default -> null;
         });
     }

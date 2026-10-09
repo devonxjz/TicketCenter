@@ -8,6 +8,7 @@ import vn.ticketscenter.fulfillment.checkin.CheckInException;
 import java.sql.*;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -137,6 +138,10 @@ public class CheckInEventRepository {
                 row.getString(3), row.getString(4), instant(row, 5), instant(row, 6), row.getString(7), 0, 0);
     }
     private static Instant instant(ResultSet row, int index) throws SQLException {
+        // SQL Server datetimeoffset must retain its offset; LocalDateTime is converted
+        // by the driver into the JVM's timezone and can shift the window by seven hours.
+        if (row.getMetaData().getColumnType(index) == -155) // SQL Server DATETIMEOFFSET JDBC type
+            return row.getObject(index, OffsetDateTime.class).toInstant();
         return row.getObject(index, LocalDateTime.class).toInstant(ZoneOffset.UTC);
     }
     private static void utc(PreparedStatement query, int index, Instant instant) throws SQLException {

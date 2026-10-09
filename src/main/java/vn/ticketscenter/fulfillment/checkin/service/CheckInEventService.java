@@ -36,11 +36,14 @@ public class CheckInEventService {
             cache.events(actorId, orgId).ifPresent(events -> events.forEach(e -> cached.put(e.eventId(), e)));
             List<EventInfo> refreshed = new ArrayList<>();
             boolean changed = current.size() != cached.size();
+            if (!changed) changed = current.stream().anyMatch(e -> !sameMetadata(e, cached.get(e.eventId())));
             for (EventInfo event : current) {
                 EventInfo old = cached.get(event.eventId());
                 EventInfo counted;
-                if (sameMetadata(event, old)) counted = old;
-                else { counted = repository.withTicketCounts(event); changed = true; }
+                // A rewritten list gets a new TTL, so refresh every counter together.
+                // Otherwise repeated schedule edits could keep unrelated counts stale forever.
+                if (!changed && sameMetadata(event, old)) counted = old;
+                else counted = repository.withTicketCounts(event);
                 refreshed.add(counted);
                 String status = windowStatus(event, now);
                 summaries.add(new CheckInEventSummaryDto(event.eventId(), event.title(), event.venue(),

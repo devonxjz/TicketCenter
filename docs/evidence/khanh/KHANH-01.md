@@ -4,7 +4,7 @@ Implementation date: 2026-10-09 (Asia/Saigon).
 
 Scope: [issue #21](https://github.com/devonxjz/TicketCenter/issues/21), with ownership from [epic #27](https://github.com/devonxjz/TicketCenter/issues/27). Branch: `feat/khanh/khanh-01-checkin-events`, based on `origin/dev` at `cfd77c6`. The live issue's explicit `dev` / `feat/khanh/...` convention takes precedence over the older `develop` / `feature/...` examples in the reference documents.
 
-Status: Java/JSP implementation, isolated tests and WAR packaging PASS. SQL Server integration, live Redis, Tomcat 11 deployment, GitHub Actions and reviewer acceptance remain UNVERIFIED/BLOCKED. This document does not mark the issue or its merge gate complete.
+Status: local implementation and acceptance PASS, including SQL Server 2022, real Redis, restricted CHECK_IN permissions and Tomcat 11. See [current local acceptance](KHANH-01-local.md) for final results and setup. The earlier runs below are historical. Shared Azure deployment, GitHub Actions and another person's review remain external merge/deployment gates; no merge acceptance is claimed.
 
 ## Delivered behavior
 
@@ -30,7 +30,7 @@ Covered: CHK-01/02 actor scope; CHK-03/04 at 61/60 minutes; exclusive end time; 
 
 UI fixture verification (not an API-to-database acceptance test): browser rendered the actual JSP's static HTML/JS with four fixture Events (OPEN, NOT_YET_OPEN, CANCELLED, ENDED). At a 390px viewport the document content width and scroll width were both 375px, with no horizontal overflow. Buttons were enabled only for OPEN. A literal `<script>` Event title rendered as text; zero injected script nodes appeared in cards. Production endpoints do not contain fixture data.
 
-## Outstanding integration gate and schema coordination
+## Historical Azure attempt and shared schema coordination
 
 The configured Azure SQL endpoint rejected the machine with SQL Server error 40615 (client IP not allowed). Full `mvn -B test` reached existing DB-dependent identity tests and could not finish in this environment; the independent suite above is not claimed as a full-suite pass. No firewall, SQL credentials or shared data were changed.
 
@@ -49,4 +49,4 @@ The checked-in SQL currently needs coordination with its owner before acceptance
 3. The CHECK_IN SQL principal must have the minimal identifier/status read permissions needed for membership/Event projections and ticket count joins, plus SELECT on the canonical UDF, without access to financial columns. Actual grants need verification by the schema owner on the test database.
 4. The Event/cancellation owner should invoke `invalidateEvent` after a committed schedule/cancellation change; current requests also check DB state, so missing notification cannot authorize a cancelled Event.
 
-After SQL coordination and a reachable dedicated database, rerun the SQL IT and full suite, verify with real Redis, deploy on Tomcat 11, and obtain green Actions plus another person's review before merging to `dev`. UI-16 navigation is completed by KHANH-02; QR decoding/atomic check-in are outside this branch.
+Local SQL/Redis/Tomcat acceptance has since passed, as recorded in KHANH-01-local.md. Shared deployment still needs the database owner's matching UUID function/grants, Event owner's invalidation hook, and Azure connectivity. Obtain green Actions plus another person's review before merging to `dev`. UI-16 navigation is completed by KHANH-02; QR decoding/atomic check-in are outside this branch.

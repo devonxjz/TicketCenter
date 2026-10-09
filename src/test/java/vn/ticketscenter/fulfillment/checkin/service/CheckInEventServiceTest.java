@@ -87,6 +87,13 @@ class CheckInEventServiceTest {
         service.events(ACTOR,ORG);assertEquals(1,repository.countQueries);assertEquals(1,cache.listWrites);
         cache.events.clear();service.events(ACTOR,ORG);assertEquals(2,repository.countQueries);
     }
+    @Test void rewritingListRefreshesAllCountersBeforeStartingAnotherTtl() {
+        repository.additional=new EventInfo(UUID.randomUUID(),ORG,"Second event","Venue",START,START.plusSeconds(7200),"PUBLISHED",0,0);
+        service.events(ACTOR,ORG);assertEquals(2,repository.countQueries);
+        repository.issued=581;repository.status("CANCELLED");
+        var list=service.events(ACTOR,ORG);
+        assertTrue(list.stream().allMatch(e->e.totalTicketsIssued()==581));assertEquals(4,repository.countQueries);
+    }
     @Test void staleCachedListCannotRevealEventOutsideCurrentDatabaseScope() {
         service.events(ACTOR,ORG);repository.visible=false;
         assertTrue(service.events(ACTOR,ORG).isEmpty());
@@ -109,16 +116,17 @@ class CheckInEventServiceTest {
     private static final class FakeRepository extends CheckInEventRepository {
         EventInfo event=new EventInfo(EVENT,ORG,"Đêm nhạc","Nhà hát",START,START.plusSeconds(12600),"PUBLISHED",0,0);
         boolean allowed=true,missing=false,visible=true;int countQueries,accessQueries;Boolean functionOverride;
+        EventInfo additional;long issued=580;
         FakeRepository(){super(null);}
         void status(String status){event=new EventInfo(EVENT,ORG,event.title(),event.venue(),event.startTime(),event.endTime(),status,0,0);}
         @Override public List<UUID> authorizedOrganizations(UUID actor){accessQueries++;return allowed?List.of(ORG):List.of();}
-        @Override public List<EventInfo> accessibleEvents(UUID actor,UUID org,Instant now){return allowed&&visible?List.of(event):List.of();}
+        @Override public List<EventInfo> accessibleEvents(UUID actor,UUID org,Instant now){return allowed&&visible?(additional==null?List.of(event):List.of(event,additional)):List.of();}
         @Override public EventInfo accessibleEvent(UUID actor,UUID id){
             accessQueries++;
             if(missing)throw new CheckInException(404,"EVENT_NOT_FOUND","Sự kiện không tồn tại.");
             if(!allowed)throw new CheckInException(403,"CHECK_IN_FORBIDDEN","Không có quyền.");return event;
         }
-        @Override public EventInfo withTicketCounts(EventInfo e){countQueries++;return new EventInfo(e.eventId(),e.organizationId(),e.title(),e.venue(),e.startTime(),e.endTime(),e.status(),580,142);}
+        @Override public EventInfo withTicketCounts(EventInfo e){countQueries++;return new EventInfo(e.eventId(),e.organizationId(),e.title(),e.venue(),e.startTime(),e.endTime(),e.status(),issued,142);}
         @Override public boolean isCheckInOpen(UUID id,Instant now){return functionOverride==null?event.isOpen(now):functionOverride;}
     }
     private static final class MemoryCache implements CheckInEventCache {

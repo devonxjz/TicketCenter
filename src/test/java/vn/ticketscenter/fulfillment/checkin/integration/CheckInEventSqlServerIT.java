@@ -26,7 +26,7 @@ class CheckInEventSqlServerIT {
                 query.setString(1,event.toString());query.setQueryTimeout(5);
                 try(ResultSet row=query.executeQuery()){
                     assertTrue(row.next(),"Provision a dedicated check-in test Event");assertEquals("PUBLISHED",row.getString(3));
-                    start=row.getObject(1,LocalDateTime.class).toInstant(ZoneOffset.UTC);end=row.getObject(2,LocalDateTime.class).toInstant(ZoneOffset.UTC);
+                    start=instant(row,1);end=instant(row,2);
                 }
             }
             try(PreparedStatement query=connection.prepareStatement("SELECT dbo.fn_event_is_check_in_open(?,?)")){
@@ -37,6 +37,10 @@ class CheckInEventSqlServerIT {
                 }
             }
         }
+    }
+    private static Instant instant(ResultSet row,int column)throws SQLException {
+        return row.getMetaData().getColumnType(column)==-155 ? row.getObject(column,OffsetDateTime.class).toInstant()
+                : row.getObject(column,LocalDateTime.class).toInstant(ZoneOffset.UTC);
     }
     private static String required(String key){
         String value=AppConfig.get(key);assertNotNull(value,"Required dedicated integration setting: "+key);return value;
