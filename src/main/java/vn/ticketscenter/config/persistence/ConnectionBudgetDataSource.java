@@ -12,7 +12,7 @@ import java.util.logging.Logger;
 
 final class ConnectionBudgetDataSource implements DataSource {
 
-    private static final Semaphore BUDGET = new Semaphore(5, true);
+    private static final Semaphore BUDGET = new Semaphore(vn.ticketscenter.config.DatabaseConfig.getPoolBudget(), true);
     private final DataSource delegate;
 
     ConnectionBudgetDataSource(DataSource delegate) {

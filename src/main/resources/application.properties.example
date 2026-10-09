@@ -90,3 +90,11 @@ redis.timeout=2000
 CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
+
+# 7. Cấu hình Connection Pool (HikariCP)
+hikari.maximum-pool-size=500
+hikari.minimum-idle=10
+hikari.idle-timeout=600000
+hikari.connection-timeout=30000
+hikari.max-lifetime=1800000
+hikari.pool-budget=500

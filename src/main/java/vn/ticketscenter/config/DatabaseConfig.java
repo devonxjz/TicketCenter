@@ -85,4 +85,28 @@ public final class DatabaseConfig {
                 getHost(), getPort(), getDatabaseName(), isEncrypt(), isTrustServerCertificate(), getLoginTimeout()
         );
     }
+
+    public static int getMaximumPoolSize() {
+        return AppConfig.getInt("hikari.maximum-pool-size", AppConfig.getInt("db.pool.max-size", 500));
+    }
+
+    public static int getMinimumIdle() {
+        return AppConfig.getInt("hikari.minimum-idle", AppConfig.getInt("db.pool.min-idle", 10));
+    }
+
+    public static long getIdleTimeout() {
+        return AppConfig.getInt("hikari.idle-timeout", 600000);
+    }
+
+    public static long getConnectionTimeout() {
+        return AppConfig.getInt("hikari.connection-timeout", getLoginTimeout() * 1000);
+    }
+
+    public static long getMaxLifetime() {
+        return AppConfig.getInt("hikari.max-lifetime", 1800000);
+    }
+
+    public static int getPoolBudget() {
+        return AppConfig.getInt("hikari.pool-budget", getMaximumPoolSize());
+    }
 }
