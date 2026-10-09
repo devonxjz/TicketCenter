@@ -79,12 +79,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and Push Docker Image
+      - name: Build and Load Docker Image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
-          push: ${{ github.event_name != 'pull_request' }}
+          load: true
           tags: |
             ${{ steps.meta.outputs.image_name }}:${{ steps.meta.outputs.short_sha }}
             ${{ steps.meta.outputs.image_name }}:latest
@@ -98,6 +98,12 @@ jobs:
           format: 'table'
           severity: 'CRITICAL,HIGH'
           exit-code: '0'
+
+      - name: Push Docker Image to GHCR
+        if: github.event_name != 'pull_request' && github.actor != 'dependabot[bot]'
+        run: |
+          docker push ${{ steps.meta.outputs.image_name }}:${{ steps.meta.outputs.short_sha }}
+          docker push ${{ steps.meta.outputs.image_name }}:latest
 
       - name: Build & Package Summary
         if: always()

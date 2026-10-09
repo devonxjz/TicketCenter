@@ -47,4 +47,17 @@ public class EmailSenderTest {
         assertThrows(EmailDeliveryException.class, () -> sender.send(message));
         assertTrue(sender.getSentMessages().isEmpty());
     }
+
+    @Test
+    @DisplayName("SmtpEmailSender gửi email thật qua Gmail SMTP")
+    void smtpEmailSenderShouldSendRealEmail() {
+        SmtpEmailSender sender = new SmtpEmailSender();
+        EmailMessage message = new EmailMessage(
+                "tranlethai11102006@gmail.com",
+                "[TicketsCenter] Kiểm tra mã OTP thực tế",
+                "Xin chào,\n\nĐây là mã OTP kiểm thử thực tế từ TicketsCenter: 889966\nHiệu lực: 5 phút.",
+                null
+        );
+        assertDoesNotThrow(() -> sender.send(message));
+    }
 }
