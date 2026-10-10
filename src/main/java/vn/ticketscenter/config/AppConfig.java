@@ -84,6 +84,14 @@ public final class AppConfig {
         public static final String REDIS_PASSWORD = "redis.password";
         public static final String REDIS_TIMEOUT = "redis.timeout";
 
+        // 6. Cấu hình Connection Pool (HikariCP)
+        public static final String HIKARI_MAX_POOL_SIZE = "hikari.maximum-pool-size";
+        public static final String HIKARI_MIN_IDLE = "hikari.minimum-idle";
+        public static final String HIKARI_IDLE_TIMEOUT = "hikari.idle-timeout";
+        public static final String HIKARI_CONNECTION_TIMEOUT = "hikari.connection-timeout";
+        public static final String HIKARI_MAX_LIFETIME = "hikari.max-lifetime";
+        public static final String HIKARI_POOL_BUDGET = "hikari.pool-budget";
+
         private Keys() {
             // Không cho phép khởi tạo hằng số keys
         }

@@ -1,0 +1,238 @@
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quên mật khẩu — TicketsCenter</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
+    <style>
+        .auth-container {
+            max-width: 480px;
+            margin: 60px auto;
+            border: 1px solid var(--gray-border);
+            padding: 40px;
+            background: var(--white);
+        }
+        .auth-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--gray-border);
+            margin-bottom: 32px;
+        }
+        .auth-tab-btn {
+            flex: 1;
+            text-align: center;
+            padding: 12px 0;
+            font-size: 0.95rem;
+            font-weight: 700;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--gray-text);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-decoration: none;
+        }
+        .auth-tab-btn.active {
+            color: var(--black);
+            border-bottom-color: var(--primary);
+        }
+        .auth-tab-btn:hover {
+            color: var(--black);
+        }
+        .otp-input {
+            letter-spacing: 0.3em;
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-align: center;
+        }
+    </style>
+</head>
+<body class="bg-light min-h-screen d-flex flex-column justify-content-between">
+    <!-- Header -->
+    <nav class="navbar navbar-custom">
+        <div class="container d-flex align-items-center justify-content-between">
+            <a class="navbar-brand-custom" href="${pageContext.request.contextPath}/">
+                TicketsCenter
+            </a>
+            <a href="${pageContext.request.contextPath}/" class="small fw-semibold text-muted text-decoration-none">
+                <i class="fa-solid fa-house me-1"></i> Trang chủ
+            </a>
+        </div>
+    </nav>
+
+    <!-- Central Auth Card -->
+    <main class="container my-auto py-5">
+        <div class="auth-container shadow-sm">
+            <!-- Auth Switcher Tabs -->
+            <div class="auth-tabs">
+                <a href="${pageContext.request.contextPath}/auth/login" class="auth-tab-btn"><i class="fa-solid fa-arrow-left me-1"></i> Đăng nhập</a>
+                <span class="auth-tab-btn active">Quên mật khẩu</span>
+            </div>
+
+            <!-- Forgot Password Content -->
+            <div>
+                <h2 class="h4 fw-bold mb-1 text-dark">Khôi phục mật khẩu</h2>
+                <p class="small text-muted mb-4">
+                    Nhập địa chỉ email của bạn để nhận mã xác thực OTP (hiệu lực 5 phút) đặt lại mật khẩu.
+                </p>
+
+                <div id="alertBox" class="alert d-none mb-3" role="alert"></div>
+
+                <form id="forgotPasswordForm">
+                    <input type="hidden" name="_csrf" value="${sessionScope.TC_CSRF_TOKEN}">
+
+                    <!-- Bước 1: Gửi OTP -->
+                    <div id="stepSend">
+                        <div class="mb-3">
+                            <label class="filter-label" for="emailInput">Email tài khoản</label>
+                            <input type="email" id="emailInput" class="form-control rounded-0 border-secondary-subtle py-2" placeholder="name@example.com" required autofocus>
+                        </div>
+                        <button type="button" id="btnSendOtp" class="btn-primary-custom w-100 py-3 mb-3 fs-6" onclick="handleSendOtp()">
+                            Gửi mã OTP
+                        </button>
+                    </div>
+
+                    <!-- Bước 2: Nhập OTP -->
+                    <div id="stepVerify" class="d-none mt-4">
+                        <div class="mb-3">
+                            <label class="filter-label" for="otpCodeInput">Mã OTP (6 chữ số)</label>
+                            <input type="text" id="otpCodeInput" class="form-control rounded-0 border-secondary-subtle py-2 otp-input" maxlength="6" placeholder="000000">
+                            <div class="form-text text-muted mt-2">
+                                Không nhận được mã? <span id="cooldownText" class="text-secondary"></span>
+                                <button type="button" id="btnResendOtp" class="btn btn-link btn-sm p-0 text-danger text-decoration-none d-none" onclick="handleSendOtp()">Gửi lại mã</button>
+                            </div>
+                        </div>
+                        <button type="button" id="btnVerifyOtp" class="btn-primary-custom w-100 py-3 mb-3 fs-6" onclick="handleVerifyOtp()">
+                            Xác thực mã OTP <i class="fa-solid fa-check ms-1"></i>
+                        </button>
+                    </div>
+                </form>
+
+                <div class="mt-4 text-center">
+                    <a href="${pageContext.request.contextPath}/auth/login" class="small text-decoration-none text-muted">&larr; Quay lại đăng nhập</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-auto py-4 bg-white border-top">
+        <div class="container text-center small text-muted">
+            &copy; 2026 TicketsCenter. Bảo mật thông tin phiên đăng nhập và tài khoản người dùng.
+        </div>
+    </footer>
+
+    <script>
+        const contextPath = '${pageContext.request.contextPath}';
+        const csrfToken = '${csrfToken != null ? csrfToken : sessionScope.TC_CSRF_TOKEN}';
+        let cooldownTimer = null;
+        let remainingCooldown = 0;
+
+        function showAlert(type, message) {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.className = 'alert alert-' + type;
+            alertBox.innerText = message;
+            alertBox.classList.remove('d-none');
+        }
+
+        function startCooldown(seconds) {
+            remainingCooldown = seconds;
+            const resendBtn = document.getElementById('btnResendOtp');
+            const cooldownText = document.getElementById('cooldownText');
+            resendBtn.classList.add('d-none');
+
+            if (cooldownTimer) clearInterval(cooldownTimer);
+            cooldownTimer = setInterval(() => {
+                if (remainingCooldown <= 0) {
+                    clearInterval(cooldownTimer);
+                    cooldownText.innerText = '';
+                    resendBtn.classList.remove('d-none');
+                } else {
+                    cooldownText.innerText = 'Gửi lại sau (' + remainingCooldown + 's)';
+                    remainingCooldown--;
+                }
+            }, 1000);
+        }
+
+        async function handleSendOtp() {
+            const email = document.getElementById('emailInput').value.trim();
+            if (!email) {
+                showAlert('danger', 'Vui lòng nhập địa chỉ email hợp lệ.');
+                return;
+            }
+
+            const btnSend = document.getElementById('btnSendOtp');
+            btnSend.disabled = true;
+            btnSend.innerText = 'Đang gửi...';
+
+            try {
+                const resp = await fetch(contextPath + '/api/auth/otp/send', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken
+                    },
+                    body: JSON.stringify({ email: email, purpose: 'RESET_PASSWORD' })
+                });
+                const data = await resp.json();
+
+                if (resp.ok) {
+                    showAlert('success', 'Mã OTP đã được gửi đến email (nếu tài khoản tồn tại). Vui lòng kiểm tra hộp thư.');
+                    document.getElementById('stepVerify').classList.remove('d-none');
+                    startCooldown(60);
+                } else {
+                    showAlert('danger', (data.error && data.error.message) || 'Không thể gửi mã OTP.');
+                }
+            } catch (e) {
+                showAlert('danger', 'Lỗi kết nối máy chủ, vui lòng thử lại.');
+            } finally {
+                btnSend.disabled = false;
+                btnSend.innerText = 'Gửi mã OTP';
+            }
+        }
+
+        async function handleVerifyOtp() {
+            const email = document.getElementById('emailInput').value.trim();
+            const code = document.getElementById('otpCodeInput').value.trim();
+            if (!code || code.length !== 6) {
+                showAlert('danger', 'Vui lòng nhập đúng 6 chữ số OTP.');
+                return;
+            }
+
+            const btnVerify = document.getElementById('btnVerifyOtp');
+            btnVerify.disabled = true;
+            btnVerify.innerText = 'Đang xác thực...';
+
+            try {
+                const resp = await fetch(contextPath + '/api/auth/otp/verify', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken
+                    },
+                    body: JSON.stringify({ email: email, purpose: 'RESET_PASSWORD', code: code })
+                });
+                const res = await resp.json();
+
+                if (resp.ok && res.data && res.data.resetToken) {
+                    showAlert('success', 'Xác thực OTP thành công! Đang chuyển hướng đặt lại mật khẩu...');
+                    setTimeout(() => {
+                        window.location.href = contextPath + '/auth/reset-password?token=' + encodeURIComponent(res.data.resetToken);
+                    }, 1000);
+                } else {
+                    showAlert('danger', (res.error && res.error.message) || 'Mã OTP không hợp lệ hoặc đã hết hạn.');
+                }
+            } catch (e) {
+                showAlert('danger', 'Lỗi kết nối khi xác thực OTP.');
+            } finally {
+                btnVerify.disabled = false;
+                btnVerify.innerText = 'Xác thực mã OTP';
+            }
+        }
+    </script>
+</body>
+</html>

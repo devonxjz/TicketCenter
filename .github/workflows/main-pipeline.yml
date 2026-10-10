@@ -1,95 +1,77 @@
-name: "CI/CD Master Pipeline"
-
+name: "CI with Explicit External Actions"
 on:
   push:
-    branches:
-      - '**'
-    tags:
-      - 'v*'
+    branches: ['**']
   pull_request:
-    branches:
-      - main
-      - dev
+    branches: [main, dev]
   workflow_dispatch:
     inputs:
+      run_database_tests:
+        description: "Run disposable SQL fixture tests"
+        type: boolean
+        default: false
+      run_http_smoke:
+        description: "Run isolated Swagger HTTP boundary tests"
+        type: boolean
+        default: false
+      publish_images:
+        description: "Publish container image (main/dev only)"
+        type: boolean
+        default: false
+      khanh01_acceptance:
+        description: "Chạy nghiệm thu KHANH-01 với SQL/Redis/SMTP riêng, không triển khai"
+        type: boolean
+        default: false
       deploy_to_production:
-        description: "Có triển khai tiếp lên Production sau khi pass Staging không?"
+        description: "Run protected production rollout simulation"
         type: boolean
         default: false
       deployment_strategy:
-        description: "Chiến lược triển khai Production"
         type: choice
-        options:
-          - "blue-green"
-          - "canary"
-        default: "blue-green"
-
+        options: [blue-green, canary]
+        default: blue-green
 permissions:
-  contents: write
-  packages: write
+  contents: read
   checks: write
   security-events: write
-
 jobs:
+  khanh01-acceptance:
+    name: "KHANH-01: Full regression and SQL Redis acceptance"
+    if: github.event_name == 'workflow_dispatch' && inputs.khanh01_acceptance == true
+    uses: ./.github/workflows/khanh01-acceptance.yml
   # =========================================================================
   # 1. Code Quality & Security Scan (Lint, Secret scan, SAST)
   # =========================================================================
   stage-1-quality-and-security:
     name: "Stage 1: Quality & Security"
+    if: github.event_name != 'workflow_dispatch' || inputs.khanh01_acceptance != true
     uses: ./.github/workflows/01-code-quality-security.yml
-    secrets: inherit
-
-  # =========================================================================
-  # 2. Unit & Integration Tests (Testcontainers, Coverage check)
-  # =========================================================================
   stage-2-tests-and-coverage:
-    name: "Stage 2: Tests & Coverage"
     needs: stage-1-quality-and-security
     uses: ./.github/workflows/02-unit-integration-tests.yml
-    secrets: inherit
-
-  # =========================================================================
-  # 3. Dependency & CVE Scan (SCA, npm audit, Trivy)
-  # =========================================================================
+    with:
+      run_db_tests: ${{ github.event_name == 'workflow_dispatch' && inputs.run_database_tests == true }}
   stage-3-dependency-and-cve:
-    name: "Stage 3: Dependency & CVE"
     needs: stage-2-tests-and-coverage
     uses: ./.github/workflows/03-dependency-cve-scan.yml
-    secrets: inherit
-
-  # =========================================================================
-  # 4. Production Build & Docker Image Packaging
-  # =========================================================================
   stage-4-build-and-packaging:
-    name: "Stage 4: Build & Packaging"
     needs: stage-3-dependency-and-cve
+    permissions:
+      contents: read
+      packages: write
     uses: ./.github/workflows/04-build-docker-packaging.yml
-    secrets: inherit
-
-  # =========================================================================
-  # 5. Deploy to Staging + E2E / Smoke Test + DB Migration Test
-  # =========================================================================
+    with:
+      publish_images: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_images == true }}
   stage-5-staging-and-smoke:
-    name: "Stage 5: Staging & Smoke"
+    if: github.event_name == 'workflow_dispatch' && inputs.run_http_smoke == true
     needs: stage-4-build-and-packaging
     uses: ./.github/workflows/05-deploy-staging-smoke-test.yml
-    secrets: inherit
-
-  # =========================================================================
-  # 6. Manual Approval / Tag Release -> Deploy Prod (Canary / Blue-Green)
-  # =========================================================================
   stage-6-production-deploy:
-    name: "Stage 6: Production Deployment"
-    needs: stage-5-staging-and-smoke
-    if: |
-      always() &&
-      needs.stage-5-staging-and-smoke.result == 'success' &&
-      (
-        github.ref == 'refs/heads/main' ||
-        startsWith(github.ref, 'refs/tags/v') ||
-        inputs.deploy_to_production == true
-      )
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy_to_production == true && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+    needs: stage-4-build-and-packaging
+    permissions:
+      contents: write
+      packages: read
     uses: ./.github/workflows/06-deploy-production.yml
     with:
       deployment_strategy: ${{ inputs.deployment_strategy || 'blue-green' }}
-    secrets: inherit

@@ -34,6 +34,7 @@
         <class>vn.ticketscenter.audit.model.AuditLog</class>
         <exclude-unlisted-classes>true</exclude-unlisted-classes>
         <properties>
+            <property name="hibernate.dialect" value="org.hibernate.dialect.SQLServerDialect"/>
             <property name="hibernate.hbm2ddl.auto" value="validate"/>
             <property name="jakarta.persistence.schema-generation.database.action" value="none"/>
             <property name="hibernate.jdbc.time_zone" value="UTC"/>
