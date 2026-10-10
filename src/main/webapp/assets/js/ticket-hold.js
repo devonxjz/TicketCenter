@@ -224,15 +224,15 @@
         async execute(pending) {
             let sent = false;
             try {
+                this.storage.setItem(this.slot(), JSON.stringify(pending));
+                if (this.storage.getItem(this.slot()) !== JSON.stringify(pending)) throw new Error("Không lưu được yêu cầu. Kiểm tra quyền lưu trữ của trình duyệt.");
+                const csrf = await this.request("/api/auth/csrf");
+                if (typeof csrf.data?.token !== "string" || !csrf.data.token) throw new Error("Không lấy được mã bảo vệ phiên. Thử lại cùng yêu cầu.");
                 if (await this.actor() !== pending.actorId) {
                     this.set("uncertain", { pending: null, hold: null, message: "Phiên đăng nhập đã đổi. Đang đọc lượt giữ của tài khoản hiện tại." });
                     await this.refresh();
                     return;
                 }
-                this.storage.setItem(this.slot(), JSON.stringify(pending));
-                if (this.storage.getItem(this.slot()) !== JSON.stringify(pending)) throw new Error("Không lưu được yêu cầu. Kiểm tra quyền lưu trữ của trình duyệt.");
-                const csrf = await this.request("/api/auth/csrf");
-                if (typeof csrf.data?.token !== "string" || !csrf.data.token) throw new Error("Không lấy được mã bảo vệ phiên. Thử lại cùng yêu cầu.");
                 sent = true;
                 const receipt = await this.request(pending.path, { method: "POST", headers: {
                     "Content-Type": "application/json", "X-CSRF-Token": csrf.data.token, "Idempotency-Key": pending.key
@@ -329,10 +329,12 @@
         get("hold-recovery").hidden = !state.pending;
         get("hold-retry").disabled = state.phase !== "uncertain";
         get("hold-refresh").disabled = ["loading", "submitting"].includes(state.phase);
+        get("hold-cancel").disabled = state.phase !== "active" || client.remaining() <= 0;
         const form = get("hold-form");
         if (form) {
             form.hidden = state.phase !== "selecting";
             get("hold-zones").disabled = state.phase !== "selecting";
+            if (state.phase !== "selecting") get("hold-submit").disabled = true;
             if (state.options && state.options !== renderedOptions) {
                 renderedOptions = state.options;
                 renderOptions(state.options);
@@ -347,7 +349,6 @@
         for (const item of hold.items) get("hold-items").append(element("li", "Khu " + item.zoneId +
             (item.seatId ? " · Ghế " + item.seatId : " · Vé đứng") + " · " + item.quantity + " vé × " + vnd(item.unitPrice)));
         get("hold-total").textContent = vnd(total(hold.items));
-        get("hold-cancel").disabled = state.phase !== "active" || client.remaining() <= 0;
         const view = get("hold-view");
         view.href = context + (page === "selection" ? "/checkout" : "/event-detail?id=" + encodeURIComponent(hold.eventId));
         get("hold-countdown").textContent = countdown(client.remaining());
@@ -361,7 +362,7 @@
     get("hold-cancel").addEventListener("click", () => void client.cancel());
     get("hold-retry").addEventListener("click", () => void client.retry());
     get("hold-refresh").addEventListener("click", () => void client.refresh());
-    const timer = root.setInterval(() => {
+    const tick = () => {
         if (client.state.hold) {
             const left = client.remaining();
             get("hold-countdown").textContent = countdown(left);
@@ -376,7 +377,18 @@
             Date.parse(client.state.options.saleEnd) <= client.anchor.serverMs + root.performance.now() - client.anchor.clientMs) {
             client.set("expired", { options: null, message: "Sự kiện đã đóng bán. Hãy cập nhật trạng thái." });
         }
-    }, 250);
-    root.addEventListener("pagehide", () => root.clearInterval(timer), { once: true });
+    };
+    let timer = root.setInterval(tick, 250);
+    root.addEventListener("pagehide", () => {
+        root.clearInterval(timer);
+        timer = null;
+    });
+    root.addEventListener("pageshow", event => {
+        if (!event.persisted) return;
+        client.set("loading", { hold: null, options: null, auth: false, message: "Đang đối chiếu lượt giữ..." });
+        expiryRead = null;
+        if (timer === null) timer = root.setInterval(tick, 250);
+        void client.refresh();
+    });
     void client.refresh();
 })(typeof window !== "undefined" ? window : globalThis);

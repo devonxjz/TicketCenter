@@ -2,6 +2,8 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const vm = require("node:vm");
 const { HoldClient, selectionPayload, currentHold, catalog, total, vnd, countdown } = require("../../main/webapp/assets/js/ticket-hold.js");
 
 const ACTOR = "10000000-0000-4000-8000-000000000001";
@@ -267,4 +269,115 @@ test("a failed current read after confirmed mutation cannot turn the historical 
     f.server.time = TIME; f.server.hold = hold(); await client.refresh();
     assert.equal(client.state.phase, "active");
     assert.equal(f.calls.filter(call => call.method === "POST").length, 1);
+});
+
+test("session switch during CSRF acquisition cannot send the previous actor's intent", async () => {
+    const f = fixture();
+    const baseFetch = f.create().fetch;
+    const client = f.create({ fetch: async (path, request) => {
+        if (path === "/api/auth/csrf") f.server.actor = OTHER;
+        return baseFetch(path, request);
+    } });
+    await client.refresh(); await client.submit(selected());
+    assert.equal(f.calls.filter(call => call.method === "POST").length, 0);
+    assert.equal(client.actorId, OTHER);
+    assert.equal(client.state.pending, null);
+    assert.equal(client.state.phase, "selecting");
+    const saved = JSON.parse(f.storage.getItem("tc:hold-command:v1:" + ACTOR));
+    assert.equal(saved.actorId, ACTOR);
+    assert.deepEqual(JSON.parse(saved.body), { eventId: EVENT, selections: selected() });
+});
+
+test("session switch after the final actor check uses the old CSRF token and cannot adopt the new actor's intent", async () => {
+    const f = fixture();
+    const baseFetch = f.create().fetch;
+    let actorReads = 0;
+    let accepted = 0;
+    const client = f.create({ fetch: async (path, request) => {
+        if (path === "/api/auth/csrf") return f.reply({ data: { token: "actor-a-token" } });
+        if (path === "/api/me") {
+            const response = await baseFetch(path, request);
+            if (++actorReads === 2) f.server.actor = OTHER;
+            return response;
+        }
+        if (request.method === "POST") {
+            assert.equal(request.headers["X-CSRF-Token"], "actor-a-token");
+            if (f.server.actor === OTHER) return f.error(403, "CSRF_INVALID");
+            accepted++;
+        }
+        return baseFetch(path, request);
+    } });
+    await client.refresh(); await client.submit(selected());
+    assert.equal(accepted, 0);
+    assert.equal(client.state.phase, "uncertain");
+    assert.equal(client.state.pending.actorId, ACTOR);
+    assert.equal(client.state.auth, true);
+});
+
+test("cached history restore freezes controls, rereads actor and server time, and restarts one expiry timer on every restore", async () => {
+    const f = fixture({ page: "current" }); f.server.hold = hold();
+    const baseFetch = f.create().fetch;
+    let now = 0;
+    let gate = null;
+    class Element {
+        constructor() { this.dataset = {}; this.children = []; this.textContent = ""; }
+        append(...nodes) { this.children.push(...nodes); }
+        replaceChildren(...nodes) { this.children = nodes; }
+        addEventListener() {}
+        querySelectorAll() { return []; }
+    }
+    const nodes = new Map();
+    const body = new Element(); body.dataset = { holdPage: "current", context: "" };
+    const document = { body, createElement: () => new Element(), getElementById: id => {
+        if (id === "hold-form") return null;
+        if (!nodes.has(id)) nodes.set(id, new Element());
+        return nodes.get(id);
+    } };
+    const events = new Map();
+    const intervals = new Map();
+    let timerId = 0;
+    const root = { document, sessionStorage: f.storage, crypto: { randomUUID: () => "60000000-0000-4000-8000-000000000001" },
+        performance: { now: () => now }, location: { search: "" }, fetch: async (path, request) => {
+            if (path === "/api/me" && gate) await gate;
+            return baseFetch(path, request);
+        }, setInterval: fn => { intervals.set(++timerId, fn); return timerId; },
+        clearInterval: id => intervals.delete(id), addEventListener: (name, fn) => events.set(name, fn) };
+    const flush = async () => { for (let i = 0; i < 5; i++) await new Promise(resolve => setImmediate(resolve)); };
+    vm.runInNewContext(fs.readFileSync(require.resolve("../../main/webapp/assets/js/ticket-hold.js"), "utf8"), { window: root, URLSearchParams });
+    await flush();
+    assert.equal(body.dataset.holdState, "active");
+    assert.equal(nodes.get("hold-cancel").disabled, false);
+    assert.equal(intervals.size, 1);
+    events.get("pagehide")({ persisted: true });
+    assert.equal(intervals.size, 0);
+    now += 660000;
+    f.server.time = "2026-10-11T10:11:00Z"; f.server.hold = null; f.server.actor = OTHER;
+    let release;
+    gate = new Promise(resolve => { release = resolve; });
+    events.get("pageshow")({ persisted: true });
+    assert.equal(body.dataset.holdState, "loading");
+    assert.equal(nodes.get("hold-cancel").disabled, true);
+    assert.equal(nodes.get("hold-retry").disabled, true);
+    assert.equal(intervals.size, 1);
+    release(); gate = null; await flush();
+    assert.equal(body.dataset.holdState, "expired");
+    assert.equal(nodes.get("current-hold").hidden, true);
+    assert.equal(f.calls.filter(call => call.path === "/api/me").length, 2);
+    assert.equal(f.calls.filter(call => call.path === "/api/me/hold").length, 2);
+    events.get("pagehide")({ persisted: true });
+    assert.equal(intervals.size, 0);
+    f.server.hold = { ...hold(), createdAt: f.server.time, expiresAt: "2026-10-11T10:21:00Z" };
+    events.get("pageshow")({ persisted: true }); await flush();
+    assert.equal(body.dataset.holdState, "active");
+    assert.equal(nodes.get("hold-countdown").textContent, "10:00");
+    assert.equal(intervals.size, 1);
+    events.get("pageshow")({ persisted: false });
+    assert.equal(intervals.size, 1);
+    now += 600000; f.server.time = "2026-10-11T10:21:00Z"; f.server.hold = null;
+    for (const tick of intervals.values()) tick();
+    assert.equal(nodes.get("hold-cancel").disabled, true);
+    await flush();
+    assert.equal(body.dataset.holdState, "expired");
+    assert.equal(f.calls.filter(call => call.method === "POST").length, 0);
+    assert.equal(f.calls.filter(call => call.path === "/api/me/hold").length, 4);
 });
