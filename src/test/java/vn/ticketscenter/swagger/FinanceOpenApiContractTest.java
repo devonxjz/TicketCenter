@@ -26,7 +26,7 @@ class FinanceOpenApiContractTest {
     @Test void pendingReadsideRoutesRemainPlannedAlongsideCompletedFinanceContracts() throws Exception {
         var paths=document().getJSONObject("paths");
         for(String path:java.util.List.of("/api/admin/reports","/api/organizations/{organizationId}/reports","/api/reports/export","/api/reports/options","/api/admin/audit-logs","/api/admin/audit-logs/{auditId}","/api/admin/overview","/api/organizations/{organizationId}/overview","/api/admin/commission-rules"))
-            assertEquals(path.equals("/api/admin/commission-rules")?"implemented":"planned",paths.getJSONObject(path).getJSONObject("get").getString("x-implementation-status"),path);
+            assertEquals((path.contains("reports")||path.equals("/api/admin/commission-rules"))?"implemented":"planned",paths.getJSONObject(path).getJSONObject("get").getString("x-implementation-status"),path);
         var export=paths.getJSONObject("/api/reports/export").getJSONObject("get");
         assertTrue(export.getJSONObject("responses").getJSONObject("200").getJSONObject("content").has("text/csv"));
         assertTrue(export.getString("description").contains("TAB"));

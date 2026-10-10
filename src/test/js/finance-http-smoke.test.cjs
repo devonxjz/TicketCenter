@@ -66,3 +66,29 @@ test('financial JSP pages render real selectors and escaped content',async()=>{
  for(const path of ['/finance/commission','/finance/settlements']){const result=await request(path);assert.equal(result.status,200);assert.match(result.data,/finance-app/);assert.match(result.data,/HTTP Fixture/);assert.doesNotMatch(result.data,/<script>fixture/);}
 });
 const filters=(metric='COHORT_REVENUE',eventId=fixture.event)=>new URLSearchParams({metric,organizationId:fixture.org,eventId,from:'2019-01-01T00:00:00Z',to:'2099-01-01T00:00:00Z'}).toString();
+test('report HTTP metrics retain exact money and shared UTC filters',async()=>{
+ await login(fixture.admin);
+ for(const metric of ['COHORT_REVENUE','CASH_FLOW','EVENT_SALES','SETTLEMENT_BALANCE']){
+  const result=await request('/api/admin/reports?'+filters(metric));assert.equal(result.status,200);const data=result.data.data;
+  assert.equal(data.metric,metric);assert.equal(data.timezone,'UTC');assert.equal(data.rows.length,1);assert.equal(data.rows[0].eventId,fixture.event);
+  if(metric==='CASH_FLOW'){assert.equal(data.rows[0].ticketCaptured,'100');assert.equal(data.rows[0].netCashFlow,'100');}
+  else assert.equal(data.rows[0].netPayable,'93');
+ }
+});
+test('manager report and options restrict exact organization; staff export is denied before CSV bytes',async()=>{
+ await login(fixture.manager);
+ let result=await request('/api/organizations/'+fixture.org+'/reports?'+filters());assert.equal(result.status,200);
+ result=await request('/api/admin/reports?'+filters());assert.equal(result.status,403);
+ result=await request('/api/reports/options?organizationId='+fixture.org);assert.equal(result.status,200);assert.equal(result.data.data.organizations.length,1);assert.equal(result.data.data.organizations[0].id,fixture.org);
+ result=await request('/api/organizations/'+fixture.otherOrg+'/reports?'+filters().replace(fixture.org,fixture.otherOrg));assert.equal(result.status,403);
+ await login(fixture.staff);result=await request('/api/reports/export?'+filters().replace(fixture.org,fixture.otherOrg));assert.equal(result.status,403);assert.match(result.response.headers.get('content-type'),/application\/json/);
+});
+test('CSV HTTP streams BOM, exact values and Excel-safe formula cells',async()=>{
+ await login(fixture.admin);
+ const response=await fetch(origin+'/ticketscenter/api/reports/export?'+filters('EVENT_SALES',fixture.formulaEvent),{headers:{Cookie:cookie}});
+ assert.equal(response.status,200);assert.match(response.headers.get('content-type'),/text\/csv/);assert.equal(response.headers.get('cache-control'),'no-store');assert.match(response.headers.get('content-disposition'),/^attachment; filename="ticketscenter-event_sales.csv"$/);
+ const bytes=Buffer.from(await response.arrayBuffer());assert.deepEqual([...bytes.subarray(0,3)],[0xef,0xbb,0xbf]);assert.ok(bytes.toString('utf8').includes('"\t=1+1"'));assert.ok(bytes.toString('utf8').includes(fixture.formulaEvent));
+});
+
+test('report JSP renders authorized scope and actual summary/export UI',async()=>{await login(fixture.admin);let result=await request('/finance/reports');assert.equal(result.status,200);assert.match(result.data,/finance-reports\.js/);assert.match(result.data,/id="summary"/);assert.match(result.data,/id="top-events"/);await login(fixture.manager);result=await request('/finance/reports?organizationId='+fixture.org);assert.equal(result.status,200);await login(fixture.staff);result=await request('/finance/reports');assert.equal(result.status,403);});
+test('manager cannot export another organization and unknown format fails before CSV bytes',async()=>{await login(fixture.manager);let result=await request('/api/reports/export?'+filters().replace(fixture.org,fixture.otherOrg));assert.equal(result.status,403);assert.match(result.response.headers.get('content-type'),/application\/json/);result=await request('/api/reports/export?'+filters()+'&format=xlsx');assert.equal(result.status,400);result=await request('/api/organizations/'+fixture.org+'/overview');assert.equal(result.status,404);});

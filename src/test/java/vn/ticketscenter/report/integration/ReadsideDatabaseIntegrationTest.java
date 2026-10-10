@@ -108,6 +108,32 @@ class ReadsideDatabaseIntegrationTest {
         var result=new DashboardRepository().overview(connection,null,Instant.parse("2026-10-01T14:00:00Z"));
         assertEquals(users+1,result.get("totalUsers"));assertEquals(approved-1,result.get("activeOrganizations"));
     }
+    @Test void reportSummaryAndTopEventsUseWholeFilteredSetInsteadOfPage()throws Exception{
+        var p=new HashMap<>(Map.of("metric","COHORT_REVENUE","from","2026-10-01T00:00:00Z","to","2026-10-02T00:00:00Z","pageSize","1"));
+        var data=new vn.ticketscenter.report.repository.ReportRepository().page(connection,ReportFilter.parse(p,orgA));
+        var summary=(Map<?,?>)data.get("summary");assertNotNull(summary);assertEquals(2L,summary.get("totalEvents"));
+        assertEquals(new java.math.BigDecimal("100"),summary.get("grossRevenue"));assertEquals(new java.math.BigDecimal("5"),summary.get("totalCommission"));assertEquals(new java.math.BigDecimal("95"),summary.get("netPayable"));
+        var top=(List<Map<String,Object>>)data.get("topEvents");assertEquals(eventA.toString(),top.get(0).get("eventId"));assertEquals(1,((List<?>)data.get("rows")).size());
+        p.put("eventId",zeroA.toString());data=new vn.ticketscenter.report.repository.ReportRepository().page(connection,ReportFilter.parse(p,orgA));summary=(Map<?,?>)data.get("summary");assertEquals(1L,summary.get("totalEvents"));assertEquals(java.math.BigDecimal.ZERO,summary.get("grossRevenue"));
+    }
+    @Test void checkinCountIncludesPreviouslyUsedRefundedTicketsWithoutMultiplyingMoney()throws Exception{
+        UUID order;try(var q=connection.prepareStatement("SELECT TOP(1) id FROM dbo.tc_orders WHERE event_id=? ORDER BY paid_at")){q.setString(1,eventA.toString());try(var r=q.executeQuery()){assertTrue(r.next());order=UUID.fromString(r.getString(1));}}
+        UUID item=UUID.randomUUID();sql("INSERT dbo.tc_order_items(id,order_id,quantity,unit_price) VALUES(?,?,3,0)",item,order);
+        for(String status:List.of("USED","REFUNDED","ACTIVE")){UUID ticket=UUID.randomUUID();sql("INSERT dbo.tc_tickets(id,order_item_id,ticket_code,status,paid_amount,used_at) VALUES(?,?,?,?,0,?)",ticket,item,ticket.toString(),status,status.equals("ACTIVE")?null:"2026-10-01T12:00:00");}
+        var data=new vn.ticketscenter.report.repository.ReportRepository().page(connection,filter("EVENT_SALES",orgA));var summary=(Map<?,?>)data.get("summary");assertNotNull(summary);
+        assertEquals(3L,summary.get("ticketCount"));assertEquals(2L,summary.get("ticketsCheckedInCount"));assertEquals(new java.math.BigDecimal("155"),summary.get("grossRevenue"));
+        var rows=(List<Map<String,Object>>)data.get("rows");var event=rows.stream().filter(r->r.get("eventId").equals(eventA.toString())).findFirst().orElseThrow();assertEquals(2L,event.get("ticketsCheckedInCount"));
+        var out=new ByteArrayOutputStream();new ReportService(database,ReportCache.none()).export(managerActor(),filter("EVENT_SALES",orgA),out);assertTrue(out.toString(java.nio.charset.StandardCharsets.UTF_8).contains("\"ticketsCheckedInCount\""));
+    }
+    @Test void tenThousandEventRowsStreamThroughActualJdbcWithoutCollectingCsv()throws Exception{
+        sql("WITH n AS (SELECT TOP (10000) ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) n FROM sys.all_objects a CROSS JOIN sys.all_objects b) INSERT dbo.tc_events(id,organization_id,title,end_time) SELECT NEWID(),?,'Bulk streaming row','2026-10-01T12:00:00' FROM n",orgA);
+        class Sink extends OutputStream {long bytes,lines; public void write(int value){bytes++;if(value=='\n')lines++;} public void write(byte[] data,int offset,int length){bytes+=length;for(int i=offset;i<offset+length;i++)if(data[i]=='\n')lines++;}}
+        var sink=new Sink();long before=java.lang.management.ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed(),started=System.nanoTime();
+        new ReportService(database,ReportCache.none()).export(managerActor(),filter("EVENT_SALES",orgA),sink);
+        assertEquals(10003,sink.lines,"Header plus 10,000 new events and two seeded events; no pagination cutoff");assertTrue(sink.bytes>1_000_000);
+        long after=java.lang.management.ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed();assertTrue(after-before<64L*1024*1024,"Actual JDBC export must not retain the whole CSV");
+        System.out.printf("REPORT_CSV rows=10002 bytes=%d exportMs=%d heapBefore=%d heapAfter=%d%n",sink.bytes,(System.nanoTime()-started)/1_000_000,before,after);
+    }
     UUID paidOrder(UUID event,int amount,String paid)throws Exception{return paidOrder(event,new java.math.BigDecimal(amount),paid);}
     UUID paidOrder(UUID event,java.math.BigDecimal amount,String paid)throws Exception{UUID order=UUID.randomUUID(),payment=UUID.randomUUID();sql("INSERT dbo.tc_orders(id,buyer_id,event_id,order_code,status,subtotal_amount,total_amount,paid_at) VALUES(?,?,?,?,'PAID',?,?,?)",order,manager,event,order.toString(),amount,amount,paid);sql("INSERT dbo.tc_payments(id,order_id,amount,status,txn_ref,paid_at) VALUES(?,?,?,'CAPTURED',?,?)",payment,order,amount,payment.toString(),paid);sql("UPDATE dbo.tc_orders SET accepted_payment_id=? WHERE id=?",payment,order);return order;}
     void refund(UUID order,int amount,String purpose,String processed)throws Exception{UUID id=UUID.randomUUID();sql("INSERT dbo.tc_refunds(id,order_id,amount,purpose,status,processed_at) VALUES(?,?,?,?,'COMPLETED',?)",id,order,amount,purpose,processed);sql("INSERT dbo.tc_refund_transfer_logs(id,refund_id,attempt_no,result,processed_at) VALUES(?,?,1,'SUCCEEDED',?)",UUID.randomUUID(),id,processed);}

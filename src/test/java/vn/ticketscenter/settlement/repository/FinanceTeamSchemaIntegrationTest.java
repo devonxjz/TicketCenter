@@ -27,7 +27,7 @@ class FinanceTeamSchemaIntegrationTest {
     FinanceDatabase database;
     FinanceRepository repository;
     final UUID admin=UUID.randomUUID(),org=UUID.randomUUID(),event=UUID.randomUUID();
-    final UUID category=UUID.randomUUID(),hold=UUID.randomUUID(),rule=UUID.randomUUID();
+    final UUID category=UUID.randomUUID(),hold=UUID.randomUUID(),rule=UUID.randomUUID(),zone=UUID.randomUUID();
     final UUID order=UUID.randomUUID(),payment=UUID.randomUUID();
     final UserPrincipal principal=new UserPrincipal(admin,PlatformRole.ADMIN,0);
 
@@ -44,7 +44,9 @@ class FinanceTeamSchemaIntegrationTest {
         sql("INSERT dbo.tc_organizations(id,name,contact_email) VALUES(?,'Team test organization','org@test.invalid')",org);
         sql("INSERT dbo.tc_event_categories(id,name,slug) VALUES(?,'Team test',?)",category,category.toString());
         sql("INSERT dbo.tc_commission_rules(id,organization_id,rate_percent,fixed_fee,effective_from,effective_to) VALUES(?,?,5,2,'2020-01-01','2099-01-01')",rule,org);
-        sql("INSERT dbo.tc_events(id,organization_id,category_id,commission_rule_id,title,description,venue_name,venue_address,sale_start,sale_end,start_time,end_time,status) VALUES(?,?,?,?,'Team test','','Venue','Address','2019-01-01','2019-02-01','2019-03-01','2019-03-02','PUBLISHED')",event,org,category,rule);
+        sql("INSERT dbo.tc_events(id,organization_id,category_id,commission_rule_id,title,description,venue_name,venue_address,sale_start,sale_end,start_time,end_time,status) VALUES(?,?,?,?,'Team test','','Venue','Address','2019-01-01','2019-02-01','2019-03-01','2019-03-02','DRAFT')",event,org,category,rule);
+        sql("INSERT dbo.tc_zones(id,event_id,name,type,price,capacity) VALUES(?,?,'Test zone','STANDING',0,100)",zone,event);
+        sql("UPDATE dbo.tc_events SET status='PUBLISHED' WHERE id=?",event);
         sql("INSERT dbo.tc_ticket_holds(id,user_id,event_id,status,created_at,expires_at) VALUES(?,?,?,'CONSUMED','2025-01-01','2025-01-02')",hold,admin,event);
         sql("INSERT dbo.tc_orders(id,user_id,event_id,hold_id,order_code,status,subtotal_amount,discount_amount,total_amount,paid_at) VALUES(?,?,?,?,?,'PAID',100,0,100,'2026-01-01')",order,admin,event,hold,order.toString());
         sql("INSERT dbo.tc_payments(id,order_id,amount,status,txn_ref,captured_at) VALUES(?,?,100,'CAPTURED',?,'2026-01-01')",payment,order,payment.toString());
@@ -150,6 +152,20 @@ class FinanceTeamSchemaIntegrationTest {
         assertEquals(3,csv.split("\r\n",-1).length,"This event report has one data row summarizing all 10,000 orders");
         assertTrue(after-before<32L*1024*1024,"Streaming export heap growth must stay below 32 MiB");
         System.out.printf("TEAM_CSV orders=10000 reportRows=1 bytes=%d exportMs=%d heapBefore=%d heapAfter=%d%n",output.size(),(System.nanoTime()-started)/1_000_000,before,after);
+    }
+    @Test void eventSalesUsesDistinctSuccessfulCheckinsOnActualTeamSchemaForJsonAndCsv()throws Exception{
+        UUID item=UUID.randomUUID(),used=UUID.randomUUID(),refunded=UUID.randomUUID(),active=UUID.randomUUID();
+        sql("INSERT dbo.tc_order_items(id,order_id,zone_id,quantity,unit_price,zone_name_snapshot) VALUES(?,?,?,3,0,'Test zone')",item,order,zone);
+        for(UUID ticket:List.of(used,refunded,active))sql("INSERT dbo.tc_tickets(id,order_item_id,ticket_code,qr_secret_hash,paid_amount,status) VALUES(?,?,?,0x01,0,?)",ticket,item,ticket.toString(),ticket.equals(used)?"USED":ticket.equals(refunded)?"REFUNDED":"ACTIVE");
+        for(UUID ticket:List.of(used,refunded,used))sql("INSERT dbo.tc_ticket_check_in_logs(event_id,ticket_id,actor_id,result,scanned_at) VALUES(?,?,?,'SUCCESS','2019-03-01')",event,ticket,admin);
+        sql("INSERT dbo.tc_ticket_check_in_logs(event_id,ticket_id,actor_id,result,scanned_at) VALUES(?,?,?,'ALREADY_USED','2019-03-01')",event,active,admin);
+        var filter=new ReportFilter(ReportFilter.Metric.EVENT_SALES,org,event,Instant.parse("2019-03-01T00:00:00Z"),Instant.parse("2019-03-03T00:00:00Z"),1,1);
+        var report=new ReportRepository().page(connection,filter);var summary=(Map<?,?>)report.get("summary");assertEquals(2L,summary.get("ticketsCheckedInCount"));assertEquals(3L,summary.get("ticketCount"));assertEquals(new BigDecimal("100"),summary.get("grossRevenue"));
+        String json=new vn.ticketscenter.report.service.ReportService(database,vn.ticketscenter.report.service.ReportCache.none()).json(principal,filter);assertTrue(json.contains("\"ticketsCheckedInCount\":2"),json);
+        var output=new ByteArrayOutputStream();try(var cursor=new ReportRepository().cursor(connection,filter)){StreamingCsvExporter.write(output,cursor.headers(),cursor);}
+        String csv=output.toString(java.nio.charset.StandardCharsets.UTF_8);assertTrue(csv.contains("\"ticketsCheckedInCount\""));assertTrue(csv.contains("\"3\",\"2\",\"1\",\"2\",\"100\""),csv);
+        String reader="tc_report_"+UUID.randomUUID().toString().replace("-","");sql("CREATE USER ["+reader+"] WITHOUT LOGIN; ALTER ROLE tc_manager ADD MEMBER ["+reader+"]; DENY SELECT ON dbo.tc_tickets TO ["+reader+"];");
+        try{sql("EXECUTE AS USER='"+reader+"';");try{assertEquals(2L,((Map<?,?>)new ReportRepository().page(connection,filter).get("summary")).get("ticketsCheckedInCount"));}finally{sql("REVERT;");}}finally{sql("DROP USER ["+reader+"];");}
     }
     private void sql(String text,Object... params)throws SQLException{try(var q=connection.prepareStatement(text)){FinanceJdbc.bind(q,params);q.executeUpdate();}}
     private Object scalar(String text,Object... params)throws SQLException{try(var q=connection.prepareStatement(text)){FinanceJdbc.bind(q,params);try(var rows=q.executeQuery()){assertTrue(rows.next());return rows.getObject(1);}}}
