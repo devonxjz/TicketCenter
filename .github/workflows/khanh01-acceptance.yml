@@ -21,7 +21,9 @@ jobs:
       redis:
         image: redis:7.4
         ports: ['16379:6379']
-        options: --health-cmd 'redis-cli ping' --health-interval 5s --health-timeout 5s --health-retries 10
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       DB_HOST: 127.0.0.1
       DB_PORT: '1433'
@@ -93,6 +95,14 @@ jobs:
           set -euo pipefail
           mvn -B '-DargLine=-Djavax.net.ssl.trustStore=target/khanh01-smtp.p12 -Djavax.net.ssl.trustStorePassword=local-fixture-only' test | tee target/khanh01-full-regression.log
           test "$(cat target/khanh01-smtp-count.txt)" -ge 2
+          python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+          suites = [ET.parse(path).getroot() for path in glob.glob('target/surefire-reports/TEST-*.xml')]
+          assert suites, 'Surefire reports missing'
+          for suite in suites:
+              assert all(int(suite.get(key, '0')) == 0 for key in ('failures', 'errors', 'skipped')), suite.get('name')
+          print('All regression tests executed, with no failures/errors/skips:', sum(int(s.get('tests', '0')) for s in suites))
+          PY
           cp -R target/surefire-reports target/khanh01-full-surefire-reports
           mvn -B -DskipTests package
       - name: Real SQL Server and Redis acceptance
@@ -100,6 +110,13 @@ jobs:
         run: |
           set -euo pipefail
           mvn -B -Psqlserver-it '-Dtest=CheckInEventServiceTest,RedisCheckInEventCacheTest,CheckInServletsTest,CheckInEventRepositoryTest' '-Dit.test=CheckInEventSqlServerIT,CheckInEventAcceptanceIT' verify | tee target/khanh01-local-integration.log
+          python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+          suites = [ET.parse(path).getroot() for path in glob.glob('target/failsafe-reports/TEST-*.xml')]
+          assert sum(int(s.get('tests', '0')) for s in suites) == 11, 'Expected all 11 real SQL/Redis acceptance tests'
+          for suite in suites:
+              assert all(int(suite.get(key, '0')) == 0 for key in ('failures', 'errors', 'skipped')), suite.get('name')
+          PY
       - name: Upload actual test evidence
         if: always()
         uses: actions/upload-artifact@v4

@@ -3,7 +3,22 @@ $ErrorActionPreference='Stop'
 $tomcat=(Resolve-Path -LiteralPath target/khanh01-runtime/apache-tomcat-11.0.25).Path
 $env:CATALINA_HOME=$tomcat
 $env:CATALINA_BASE=$tomcat
-Copy-Item -LiteralPath target/ticketscenter.war -Destination (Join-Path $tomcat 'webapps/ticketscenter.war') -Force
+if(Get-NetTCPConnection -LocalPort 18081 -State Listen -ErrorAction SilentlyContinue) {
+ throw 'Stop the isolated Tomcat before updating its web application.'
+}
+# Deploy an exploded WAR: Tomcat packed-WAR URLs can mis-handle this Unicode/OneDrive path.
+# Preserve the previous deployment outside webapps, with all moves confined to this test runtime.
+$runtimeRoot=[IO.Path]::GetFullPath($tomcat)+[IO.Path]::DirectorySeparatorChar
+foreach($old in @('webapps/ticketscenter.war','webapps/ticketscenter')) {
+ $source=[IO.Path]::GetFullPath((Join-Path $tomcat $old))
+ $backup=[IO.Path]::GetFullPath((Join-Path $tomcat ('temp/previous-'+[guid]::NewGuid().ToString())))
+ if(!$source.StartsWith($runtimeRoot,[StringComparison]::OrdinalIgnoreCase) -or !$backup.StartsWith($runtimeRoot,[StringComparison]::OrdinalIgnoreCase)) {
+  throw 'Deployment path escaped the isolated runtime'
+ }
+ if(Test-Path -LiteralPath $source){Move-Item -LiteralPath $source -Destination $backup}
+}
+$war=(Resolve-Path -LiteralPath target/ticketscenter.war).Path
+[IO.Compression.ZipFile]::ExtractToDirectory($war,(Join-Path $tomcat 'webapps/ticketscenter'))
 $javaArguments=@(
  ('-Dcatalina.home='+$tomcat),
  ('-Dcatalina.base='+$tomcat),

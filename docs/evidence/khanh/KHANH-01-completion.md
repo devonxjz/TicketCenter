@@ -24,7 +24,7 @@ Run `src/test/resources/checkin/verify-azure-contract.ps1`; log `target/khanh01-
 
 Run `verify-full-local.ps1` from checkin test resources; it privately loads Windows DPAPI credentials and starts local SMTP when needed. Logs: `target/khanh01-full-regression.log`, `target/khanh01-local-integration.log`. Credentials, fixture IDs, certificates and runtimes are ignored. `LocalCheckInFixture refresh` updates only named synthetic Events in the dedicated loopback test DB.
 
-Final local Tomcat HTTP results and CI link will be recorded after execution.
+Actual Tomcat 11 acceptance: **14 HTTP checks PASS** (login, manager/staff, outsider/foreign scope, 401/400/403/404, invalid UUID, open window, real counters, compiled UI-15 JSP and organizer navigation). Log `target/khanh01-web-acceptance.json`. Deploys the WAR exploded to avoid packed-WAR URL/extraction errors on this Unicode OneDrive path; prior local deployments are preserved outside webapps.
 
 ## CI and review
 
