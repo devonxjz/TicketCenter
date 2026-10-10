@@ -28,9 +28,9 @@ jobs:
       TC_REFUND_OWNER_USER: sa
       TC_REFUND_OWNER_PASSWORD: ${{ format('Khanh03_{0}_Aa!', github.run_id) }}
       TC_REFUND_BUYER_USER: khanh03_buyer
-      TC_REFUND_BUYER_PASSWORD: ${{ format('Khanh03_buyer_{0}_Aa!', github.run_id) }}
+      TC_REFUND_BUYER_PASSWORD: ${{ format('RfdB_{0}_xQ8!', github.run_id) }}
       TC_REFUND_ADMIN_USER: khanh03_admin
-      TC_REFUND_ADMIN_PASSWORD: ${{ format('Khanh03_admin_{0}_Aa!', github.run_id) }}
+      TC_REFUND_ADMIN_PASSWORD: ${{ format('RfdA_{0}_xQ8!', github.run_id) }}
       REDIS_HOST: 127.0.0.1
       REDIS_PORT: '16379'
       REDIS_PASSWORD: ''
