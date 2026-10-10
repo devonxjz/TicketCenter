@@ -60,6 +60,18 @@ class FinanceTeamSchemaIntegrationTest {
         assertNotNull(scalar("SELECT COL_LENGTH('dbo.tc_orders','user_id')"));
         assertNull(scalar("SELECT COL_LENGTH('dbo.tc_orders','buyer_id')"));
     }
+    @Test void adminOverviewAggregatesRealTeamSchemaAndRejectsRevokedAdminBeforeCache() throws Exception {
+        var rows=new vn.ticketscenter.dashboard.repository.DashboardRepository().overview(connection,null,Instant.parse("2026-01-01T14:00:00Z"));
+        assertEquals(((Number)scalar("SELECT COUNT_BIG(*) FROM dbo.tc_users")).longValue(),rows.get("totalUsers"));
+        assertEquals(((Number)scalar("SELECT COUNT_BIG(*) FROM dbo.tc_organizations WHERE status='APPROVED'")).longValue(),rows.get("activeOrganizations"));
+        var own=new vn.ticketscenter.dashboard.repository.DashboardRepository().overview(connection,org,Instant.parse("2026-01-01T14:00:00Z"));
+        assertEquals(new BigDecimal("100"),own.get("todayCohortGrossRevenue"));assertEquals(new BigDecimal("7"),own.get("todayCohortCommission"));
+        assertEquals(7,((java.util.List<?>)rows.get("dailyMetrics")).size());
+        var service=new vn.ticketscenter.dashboard.service.DashboardService(database,java.time.Clock.fixed(Instant.parse("2026-01-01T14:00:00Z"),java.time.ZoneOffset.UTC));
+        assertTrue(service.admin(principal).contains("\"timezone\":\"UTC\""));
+        sql("UPDATE dbo.tc_users SET platform_role='CUSTOMER' WHERE id=?",admin);
+        assertEquals(403,assertThrows(FinanceException.class,()->service.admin(principal)).status());
+    }
     @Test void actualTeamSettlementAndPayoutKeepExactBalancesAndDurableReplay() throws Exception {
         var summary=repository.recalculate(principal,event);assertEquals(new BigDecimal("93"),summary.get("netPayable"));
         UUID settlement=UUID.fromString(summary.get("settlementId").toString());

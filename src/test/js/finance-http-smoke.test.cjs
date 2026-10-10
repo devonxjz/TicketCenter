@@ -92,3 +92,40 @@ test('CSV HTTP streams BOM, exact values and Excel-safe formula cells',async()=>
 
 test('report JSP renders authorized scope and actual summary/export UI',async()=>{await login(fixture.admin);let result=await request('/finance/reports');assert.equal(result.status,200);assert.match(result.data,/finance-reports\.js/);assert.match(result.data,/id="summary"/);assert.match(result.data,/id="top-events"/);await login(fixture.manager);result=await request('/finance/reports?organizationId='+fixture.org);assert.equal(result.status,200);await login(fixture.staff);result=await request('/finance/reports');assert.equal(result.status,403);});
 test('manager cannot export another organization and unknown format fails before CSV bytes',async()=>{await login(fixture.manager);let result=await request('/api/reports/export?'+filters().replace(fixture.org,fixture.otherOrg));assert.equal(result.status,403);assert.match(result.response.headers.get('content-type'),/application\/json/);result=await request('/api/reports/export?'+filters()+'&format=xlsx');assert.equal(result.status,400);result=await request('/api/organizations/'+fixture.org+'/overview');assert.equal(result.status,404);});
+
+test('admin overview HTTP returns real UTC KPI and seven exact-money chart days',async()=>{
+ await login(fixture.admin);const result=await request('/api/admin/overview');assert.equal(result.status,200);
+ const data=result.data.data;assert.equal(data.timezone,'UTC');assert.equal(data.organizationId,null);
+ assert.ok(data.totalUsers>=3);assert.equal(data.dailyMetrics.length,7);
+ assert.match(data.todayCohortGrossRevenue,/^\d+$/);assert.match(data.todayCohortCommission,/^\d+$/);
+ assert.equal(data.dailyMetrics.at(-1).from,data.from);
+ for(const row of data.dailyMetrics){assert.match(row.cohortGrossRevenue,/^\d+$/);assert.match(row.netCashFlow,/^-?\d+$/);}
+ assert.equal(result.response.headers.get('cache-control'),'no-store');
+});
+test('audit HTTP list and detail return allowlisted metadata with exact ownership filters',async()=>{
+ await login(fixture.admin);const params=new URLSearchParams({from:'2026-01-01T00:00:00Z',to:'2026-01-02T00:00:00Z',action:'TEST_HTTP',actorId:fixture.admin,targetTable:'tc_events',organizationId:fixture.org,eventId:fixture.event});
+ let result=await request('/api/admin/audit-logs?'+params);assert.equal(result.status,200);assert.equal(result.data.data.total,1);
+ assert.equal(result.data.data.rows[0].id,fixture.audit);
+ result=await request('/api/admin/audit-logs/'+fixture.audit);assert.equal(result.status,200);assert.equal(result.data.data.id,fixture.audit);assert.equal(result.data.data.metadata.amount,'100');
+ assert.deepEqual(Object.keys(result.data.data.metadata).sort(),['amount','eventId','organizationId']);
+ assert.doesNotMatch(JSON.stringify(result.data),/DO_NOT_EXPOSE|123456|PRIVATE_TEST_BANK|passwordHash|metadataJson/);
+});
+test('audit HTTP rejects duplicate or invalid filters and unknown detail without SQL disclosure',async()=>{
+ await login(fixture.admin);
+ for(const [key,value]of [['action','A'],['actorId','1'],['targetTable','tc_unknown'],['from','invalid'],['pageSize','1000']]){
+  const params=new URLSearchParams({from:'2026-01-01T00:00:00Z',to:'2026-01-02T00:00:00Z'});params.set(key,value);if(key==='action')params.append('action','B');
+  const result=await request('/api/admin/audit-logs?'+params);assert.equal(result.status,400);assert.doesNotMatch(JSON.stringify(result.data),/SELECT|SQLException|password/);
+ }
+ let result=await request('/api/admin/audit-logs/'+crypto.randomUUID());assert.equal(result.status,404);
+ result=await request('/api/admin/audit-logs/invalid');assert.equal(result.status,404);
+});
+test('admin readside APIs reject absent session, manager and check-in staff',async()=>{
+ const paths=['/api/admin/overview','/api/admin/audit-logs?from=2026-01-01T00:00:00Z&to=2026-01-02T00:00:00Z','/api/admin/audit-logs/'+fixture.audit];
+ for(const path of paths)assert.equal((await request(path,'GET',undefined,undefined,false)).status,401);
+ for(const actor of [fixture.manager,fixture.staff]){await login(actor);for(const path of paths)assert.equal((await request(path)).status,403);}
+});
+test('admin audit and overview JSPs render dedicated UI and deny manager/staff',async()=>{
+ await login(fixture.admin);
+ for(const path of ['/finance/audit','/finance/overview']){const result=await request(path);assert.equal(result.status,200);assert.match(result.data,/finance-admin-readside\.js/);assert.doesNotMatch(result.data,/finance-reports\.js|<script>fixture/);assert.equal(result.response.headers.get('cache-control'),'no-store');}
+ for(const actor of [fixture.manager,fixture.staff]){await login(actor);for(const path of ['/finance/audit','/finance/overview'])assert.equal((await request(path)).status,403);}
+});

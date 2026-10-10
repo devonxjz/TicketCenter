@@ -8,7 +8,7 @@ import java.util.*;
 public final class AuditMetadata {
     private AuditMetadata() {}
     private static final Set<String> IDS=Set.of("eventId","organizationId","orderId","settlementId","refundId","commissionRuleId","payoutId");
-    private static final Set<String> MONEY=Set.of("amount","grossRevenue","totalRefund","totalCommission","netPayable","paidAmount","pendingAmount","ratePercent","fixedFee");
+    private static final Set<String> MONEY=Set.of("amount","grossRevenue","totalRefund","totalCommission","netPayable","paidAmount","pendingAmount","fixedFee");
     private static final Set<String> STATES=Set.of("DRAFT","PENDING_APPROVAL","APPROVED","REJECTED","PUBLISHED","CANCELLED","PAID","CONFIRMED","REQUESTED","PROCESSING","COMPLETED","RETRYABLE","NEEDS_RECONCILIATION","PENDING","UNKNOWN","FAILED","SUCCEEDED","ACTIVE","DISABLED");
     public static Map<String,String> project(String json) {
         if(json==null || json.length()>8000) return Map.of();
@@ -22,6 +22,10 @@ public final class AuditMetadata {
                 String text=raw.toString();
                 if(IDS.contains(key) && raw instanceof String && text.matches("[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}")) result.put(key,UUID.fromString(text).toString());
                 else if(MONEY.contains(key) && text.matches("[0-9]{1,19}")) result.put(key,new BigDecimal(text).toPlainString());
+                else if(key.equals("ratePercent") && text.matches("[0-9]{1,3}(\\.[0-9]{1,4})?")) {
+                    BigDecimal rate=new BigDecimal(text);
+                    if(rate.compareTo(new BigDecimal("100"))<=0)result.put(key,rate.setScale(4).toPlainString());
+                }
                 else if(Set.of("previousStatus","newStatus","status","result").contains(key) && STATES.contains(text)) result.put(key,text);
                 else if(Set.of("processedAt","confirmedAt","effectiveFrom","effectiveTo").contains(key) && raw instanceof String) { try { result.put(key,Instant.parse(text).toString()); } catch(RuntimeException ignored) {} }
             }

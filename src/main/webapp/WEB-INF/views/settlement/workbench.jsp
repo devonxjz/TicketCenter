@@ -2,7 +2,7 @@
 <%@ page import="vn.ticketscenter.settlement.controller.FinanceHtml" %>
 <!doctype html><html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Quyết toán · TicketCenter</title><link rel="stylesheet" href="<%= FinanceHtml.escape(request.getContextPath()) %>/assets/css/finance.css"></head>
 <body><main id="finance-app" data-context="<%= FinanceHtml.escape(request.getContextPath()) %>" data-page="settlements" data-csrf="<%= FinanceHtml.escape(request.getAttribute("csrf")) %>" data-payout-mode="<%= FinanceHtml.escape(request.getAttribute("payoutMode")) %>">
-<nav> <a href="<%= FinanceHtml.escape(request.getContextPath()) %>/finance/commission">Hoa hồng</a>  </nav>
+<nav aria-label="Tài chính"><a href="<%= FinanceHtml.escape(request.getContextPath()) %>/finance/overview">Tổng quan</a><a href="<%= FinanceHtml.escape(request.getContextPath()) %>/finance/audit">Nhật ký</a><a href="<%= FinanceHtml.escape(request.getContextPath()) %>/finance/reports">Báo cáo</a><a href="<%= FinanceHtml.escape(request.getContextPath()) %>/finance/commission">Hoa hồng</a></nav>
 <h1>Quyết toán sự kiện</h1><label>Sự kiện <select id="event" required><option value="">Chọn sự kiện</option><%= FinanceHtml.options(request.getAttribute("events"),"title") %></select></label>
 <p id="notice" role="status" aria-live="polite"></p><dl id="summary"></dl><h2>Giao dịch cần giải quyết</h2><ul id="blockers"></ul>
 <div class="actions"><button id="recalculate" disabled>Tính lại bảng kê</button><button id="confirm" disabled>Chốt quyết toán</button></div>
