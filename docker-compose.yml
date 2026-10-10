@@ -1,4 +1,28 @@
 services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ticketscenter-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - TC_SQL_HOST=${TC_SQL_HOST:-host.docker.internal}
+      - TC_SQL_PORT=${TC_SQL_PORT:-1433}
+      - TC_SQL_DEV_DB=${TC_SQL_DEV_DB:-TicketsCenter_Dev}
+      - TC_SQL_LOGIN=${TC_SQL_LOGIN:-sa}
+      - TC_SQL_PASSWORD=${TC_SQL_PASSWORD:-}
+      - TC_SQL_ENCRYPT=${TC_SQL_ENCRYPT:-false}
+      - TC_SQL_TRUST_SERVER_CERT=${TC_SQL_TRUST_SERVER_CERT:-true}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      redis:
+        condition: service_healthy
+
   redis:
     image: redis:7.4-alpine
     container_name: ticketscenter-redis
