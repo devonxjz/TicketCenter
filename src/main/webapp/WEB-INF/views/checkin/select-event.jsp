@@ -64,7 +64,7 @@
         const window=await json(base+'/api/events/'+encodeURIComponent(event.eventId)+'/check-in-window');
         if(!window.isOpen) {notice.textContent=window.message;await load();return;}
         // UI-16 consumes this event context; permission/time are checked again on each scan.
-        location.assign(base+'/check-ins/scanner?eventId='+encodeURIComponent(event.eventId));
+        location.assign(base+'/organizer/checkin-scanner?eventId='+encodeURIComponent(event.eventId));
       } catch(error) {notice.textContent=error.message;button.disabled=false;}
     });
     article.append(stats,button);return article;

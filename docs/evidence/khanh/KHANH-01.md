@@ -1,5 +1,7 @@
 # KHANH-01 — Check-in Event selection and time window cache
 
+Latest validation: [2026-10-10 acceptance](KHANH-01-completion.md). Earlier blocker/status entries are historical.
+
 Implementation date: 2026-10-09 (Asia/Saigon).
 
 Scope: [issue #21](https://github.com/devonxjz/TicketCenter/issues/21), with ownership from [epic #27](https://github.com/devonxjz/TicketCenter/issues/27). Branch: `feat/khanh/khanh-01-checkin-events`, based on `origin/dev` at `cfd77c6`. The live issue's explicit `dev` / `feat/khanh/...` convention takes precedence over the older `develop` / `feature/...` examples in the reference documents.

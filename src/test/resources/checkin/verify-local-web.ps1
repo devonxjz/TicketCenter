@@ -30,6 +30,9 @@ Check-Response 'invalid UUID' (Invoke-WebRequest "$base/api/events/invalid/check
 $page=Invoke-WebRequest "$base/check-ins" -WebSession $staff -SkipHttpErrorCheck
 Check-Response 'UI-15 JSP compiled' $page 200
 if(!$page.Content.Contains('Chọn sự kiện soát vé')){throw 'JSP content missing'}
+$navigation=Invoke-WebRequest "$base/organizer/checkin-select?organizationId=$env:TC_CHECKIN_TEST_ORG_ID" -WebSession $staff -SkipHttpErrorCheck
+Check-Response 'organizer navigation serves real UI-15' $navigation 200
+if(!$navigation.Content.Contains('Chọn sự kiện soát vé')){throw 'Organizer navigation still serves static demo'}
 $outside=Login-Local 'khanh01-outsider'
 Check-Response 'outsider list denied' (Invoke-WebRequest "$base/api/check-ins/events?organizationId=$env:TC_CHECKIN_TEST_ORG_ID" -WebSession $outside -SkipHttpErrorCheck) 403
 $manager=Login-Local 'khanh01-manager'

@@ -1,5 +1,7 @@
 # KHANH-01 — Local SQL, Redis and Tomcat acceptance
 
+Historical 2026-10-09 evidence. See [2026-10-10 acceptance](KHANH-01-completion.md) for current Azure, full Maven and CI results. Earlier Azure/SMTP blockers below are resolved through scoped provisioning and local SMTP capture.
+
 2026-10-09, Asia/Saigon. Branch: `feat/khanh/khanh-01-checkin-events`; issue #21; target PR `dev`.
 
 Local backend/database/UI-15 acceptance PASS. Shared Azure deployment and merge approval are separate dependencies, not claimed complete. Implementation details and contract rationale: [KHANH-01.md](KHANH-01.md).

@@ -35,6 +35,21 @@ public final class LocalCheckInFixture {
             var em=factory.createEntityManager();
             var tx=em.getTransaction(); tx.begin();
             try {
+                if (args.length == 1 && args[0].equals("refresh")) {
+                    var ids = new Properties();
+                    try (var in = Files.newInputStream(Path.of("docs/handoff/khanh01-fixture.properties"))) { ids.load(in); }
+                    Instant now = Instant.now();
+                    for (String key : List.of("EVENT", "EARLY", "CANCELLED", "ENDED", "FOREIGN")) {
+                        Event fixture = em.find(Event.class, UUID.fromString(ids.getProperty("TC_CHECKIN_TEST_" + key + "_ID")));
+                        if (fixture == null || !fixture.getTitle().startsWith("KHANH-01"))
+                            throw new IllegalStateException("Refusing to refresh non-fixture Event");
+                        long start = key.equals("EARLY") ? 7200 : key.equals("ENDED") ? -7200 : 1800;
+                        long end = key.equals("EARLY") ? 10800 : key.equals("ENDED") ? -60 : 7200;
+                        set(fixture, "startTime", now.plusSeconds(start));
+                        set(fixture, "endTime", now.plusSeconds(end));
+                    }
+                    tx.commit(); return;
+                }
                 if(args.length==1 && args[0].equals("tickets")) {
                     var ids=new Properties();try(var in=Files.newInputStream(Path.of("docs/handoff/khanh01-fixture.properties"))){ids.load(in);}
                     var event=em.find(Event.class,UUID.fromString(ids.getProperty("TC_CHECKIN_TEST_EVENT_ID")));

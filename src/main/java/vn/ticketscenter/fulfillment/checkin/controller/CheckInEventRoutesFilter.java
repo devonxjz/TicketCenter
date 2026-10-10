@@ -8,12 +8,23 @@ import vn.ticketscenter.config.web.HttpResponses;
 import java.io.IOException;
 
 /** Lets this feature coexist with future Event routes owned by another member. */
-@WebFilter(filterName = "CheckInEventRoutesFilter", urlPatterns = "/api/events/*", dispatcherTypes = DispatcherType.REQUEST)
+@WebFilter(filterName = "CheckInEventRoutesFilter", urlPatterns = {"/api/events/*", "/organizer/checkin",
+        "/organizer/checkin-select", "/organizer/checkin/select"}, dispatcherTypes = DispatcherType.REQUEST)
 public final class CheckInEventRoutesFilter implements Filter {
     @Override public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
         HttpServletRequest http = (HttpServletRequest) request;
         String path = http.getRequestURI().substring(http.getContextPath().length());
+        if (path.equals("/organizer/checkin") || path.equals("/organizer/checkin-select") || path.equals("/organizer/checkin/select")) {
+            if (!"GET".equals(http.getMethod())) {
+                HttpResponses.error((HttpServletResponse) response, 405, "METHOD_NOT_ALLOWED", "Chỉ hỗ trợ phương thức GET.");
+                return;
+            }
+            String org = http.getParameter("organizationId");
+            String query = org == null ? "" : "?organizationId=" + java.net.URLEncoder.encode(org, java.nio.charset.StandardCharsets.UTF_8);
+            ((HttpServletResponse) response).sendRedirect(http.getContextPath() + "/check-ins" + query);
+            return;
+        }
         String prefix = "/api/events/";
         String suffix = "/check-in-window";
         if (!path.startsWith(prefix) || !path.endsWith(suffix)) { chain.doFilter(request, response); return; }

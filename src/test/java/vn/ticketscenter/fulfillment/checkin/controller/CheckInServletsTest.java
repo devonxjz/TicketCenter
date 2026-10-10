@@ -68,6 +68,7 @@ class CheckInServletsTest {
         case "setStatus" -> {status=(int)a[0];yield null;}
         case "getWriter" -> new PrintWriter(output);
         case "setHeader" -> {responseHeaders.put((String)a[0],(String)a[1]);yield null;}
+        case "sendRedirect" -> {status=302;responseHeaders.put("Location",(String)a[0]);yield null;}
         default -> null;
     });}
     private RequestDispatcher dispatcher(String target){return proxy(RequestDispatcher.class,(m,a)->{if(m.equals("forward"))forwarded=target;return null;});}
@@ -126,6 +127,11 @@ class CheckInServletsTest {
         path="/api/events/"+EVENT+"/check-in-window";method="POST";
         new CheckInEventRoutesFilter().doFilter(request(),response(),(a,b)->fail("Unexpected forwarding"));
         assertEquals(405,status);assertEquals("GET",responseHeaders.get("Allow"));
+    }
+    @Test void organizerNavigationUsesRealUi15AndPreservesOrganizationFilter() throws Exception {
+        path="/organizer/checkin-select";parameters.put("organizationId",ORG.toString());
+        new CheckInEventRoutesFilter().doFilter(request(),response(),(a,b)->fail("Static demo must not handle UI-15"));
+        assertEquals(302,status);assertEquals("/ticketscenter/check-ins?organizationId="+ORG,responseHeaders.get("Location"));
     }
 
     private interface Call {Object run(String method,Object[] arguments) throws Throwable;}
