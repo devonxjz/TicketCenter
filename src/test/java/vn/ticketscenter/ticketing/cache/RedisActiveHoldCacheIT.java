@@ -20,6 +20,20 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class RedisActiveHoldCacheIT extends HoldRedisFixture {
     @Test
+    void fullCanonicalMoneyAndLongExpiryAreBoundedInRedis() {
+        var cache = cache(Clock.systemUTC());
+        var projection = new ActiveHoldProjection(UUID.randomUUID(), actor, UUID.randomUUID(),
+                Instant.now().plusSeconds(3600), List.of(new ActiveHoldProjection.Item(UUID.randomUUID(), null, 1,
+                        new BigDecimal("9999999999999999999"))));
+        assertTrue(cache.fill(cache.lookup(actor).fillToken().orElseThrow(), projection));
+        assertEquals(projection, cache.lookup(actor).projection().orElseThrow());
+        try (Jedis jedis = pool.getResource()) {
+            long ttl = jedis.pttl(RedisActiveHoldCache.redisKey(actor));
+            assertTrue(ttl > 0 && ttl <= 600_000);
+        }
+    }
+
+    @Test
     void roundTripsExactProjectionWithActorKeyAndBoundedTtl() {
         var cache = cache(Clock.systemUTC());
         var projection = projection(actor, Instant.now().plusSeconds(30).with(java.time.temporal.ChronoField.NANO_OF_SECOND, 123456789));
@@ -143,7 +157,7 @@ class RedisActiveHoldCacheIT extends HoldRedisFixture {
             original = Base64.getUrlDecoder().decode(jedis.get(RedisActiveHoldCache.redisKey(actor)).substring(4));
         }
         byte[] badVersion = original.clone();
-        badVersion[0] = 2;
+        badVersion[0] = 3;
         byte[] badNanos = original.clone();
         java.nio.ByteBuffer.wrap(badNanos).putInt(57, -1);
         byte[] badCount = original.clone();

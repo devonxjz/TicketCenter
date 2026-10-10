@@ -28,7 +28,9 @@ class ActiveHoldProjectionTest {
         assertThrows(IllegalArgumentException.class, () -> new ActiveHoldProjection.Item(ID, ID, 2, BigDecimal.ZERO));
         assertThrows(IllegalArgumentException.class, () -> new ActiveHoldProjection.Item(ID, null, 0, BigDecimal.ZERO));
         assertThrows(ArithmeticException.class, () -> new ActiveHoldProjection.Item(ID, null, 1, new BigDecimal("1.5")));
-        assertThrows(ArithmeticException.class, () -> new ActiveHoldProjection.Item(ID, null, 1, new BigDecimal("9223372036854775808")));
+        assertEquals(new BigDecimal("9999999999999999999"), new ActiveHoldProjection.Item(ID, null, 1,
+                new BigDecimal("9999999999999999999")).unitPrice());
+        assertThrows(IllegalArgumentException.class, () -> new ActiveHoldProjection.Item(ID, null, 1, new BigDecimal("10000000000000000000")));
         assertThrows(IllegalArgumentException.class, () -> new ActiveHoldProjection.Item(ID, null, 1, BigDecimal.valueOf(-1)));
         assertThrows(IllegalArgumentException.class, () -> projection(List.of()));
         assertThrows(IllegalArgumentException.class, () -> projection(List.of(new ActiveHoldProjection.Item(ID, null, 8, BigDecimal.ONE),

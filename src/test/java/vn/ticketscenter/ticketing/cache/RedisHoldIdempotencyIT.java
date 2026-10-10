@@ -95,7 +95,7 @@ class RedisHoldIdempotencyIT {
         String key = fixtureKey(actor);
         var claim = acquired(actor, key, HASH);
         assertInstanceOf(RedisHoldIdempotency.Conflict.class, store.acquire(actor, key, DIFFERENT_HASH));
-        assertTrue(store.complete(claim, RESPONSE, Duration.ofMinutes(20)));
+        assertTrue(store.complete(claim, RESPONSE, Duration.ofMinutes(10)));
         var replay = assertInstanceOf(RedisHoldIdempotency.Replay.class, store.acquire(actor, key, HASH));
         assertEquals(RESPONSE, replay.response());
         assertEquals(201, replay.response().status());
@@ -120,17 +120,17 @@ class RedisHoldIdempotencyIT {
     }
 
     @Test
-    void pendingClaimHasNoExpiryAndCannotBeReacquired() {
+    void pendingClaimIsBoundedAndCannotBeReacquiredWhilePresent() {
         String key = fixtureKey(actor);
         acquired(actor, key, HASH);
         try (Jedis jedis = pool.getResource()) {
-            assertEquals(-1L, jedis.pttl(RedisHoldIdempotency.redisKey(actor, key)));
+            long ttl = jedis.pttl(RedisHoldIdempotency.redisKey(actor, key)); assertTrue(ttl > 0 && ttl <= 600_000);
         }
         for (int attempt = 0; attempt < 3; attempt++) {
             assertInstanceOf(RedisHoldIdempotency.InProgress.class, store.acquire(actor, key, HASH));
         }
         try (Jedis jedis = pool.getResource()) {
-            assertEquals(-1L, jedis.pttl(RedisHoldIdempotency.redisKey(actor, key)));
+            long ttl = jedis.pttl(RedisHoldIdempotency.redisKey(actor, key)); assertTrue(ttl > 0 && ttl <= 600_000);
         }
     }
 
@@ -145,7 +145,7 @@ class RedisHoldIdempotencyIT {
         }
         assertTrue(before > 0 && before <= 30_000);
         assertFalse(store.complete(claim, new RedisHoldIdempotency.CompletedResponse(409, "application/json", "changed"),
-                Duration.ofDays(30)));
+                Duration.ofMinutes(10)));
         assertEquals(RESPONSE, assertInstanceOf(RedisHoldIdempotency.Replay.class, store.acquire(actor, key, HASH)).response());
         try (Jedis jedis = pool.getResource()) {
             long after = jedis.pttl(RedisHoldIdempotency.redisKey(actor, key));

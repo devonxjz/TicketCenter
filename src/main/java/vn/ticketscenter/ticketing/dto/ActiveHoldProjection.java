@@ -35,7 +35,8 @@ public record ActiveHoldProjection(UUID id, UUID buyerId, UUID eventId, Instant 
                 throw new IllegalArgumentException("invalid hold item quantity");
             }
             unitPrice = Objects.requireNonNull(unitPrice).setScale(0, RoundingMode.UNNECESSARY);
-            if (unitPrice.longValueExact() < 0) throw new IllegalArgumentException("unitPrice must be nonnegative VND");
+            if (unitPrice.signum() < 0 || unitPrice.precision() > 19)
+                throw new IllegalArgumentException("unitPrice must be nonnegative DECIMAL(19,0) VND");
         }
     }
 

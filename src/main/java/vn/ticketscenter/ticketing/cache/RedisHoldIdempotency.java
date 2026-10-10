@@ -17,10 +17,10 @@ import java.util.function.Supplier;
  * Before mutation, callers must recover durable DB state even after Acquired.
  * Redis data loss or completed-entry expiry can make an old key appear new.
  * Callers must check current authorization before replay and complete only after DB commit.
- * Pending claims never expire because the DB commit outcome may be unknown.
+ * SQL retains durable receipts when a bounded Redis entry expires.
  */
 public final class RedisHoldIdempotency {
-    public static final Duration MAX_RESULT_RETENTION = Duration.ofDays(30);
+    public static final Duration MAX_RESULT_RETENTION = Duration.ofMinutes(10);
     private static final String COMPLETE = """
             if redis.call('GET', KEYS[1]) ~= ARGV[1] then return 0 end
             redis.call('PSETEX', KEYS[1], ARGV[3], ARGV[2])
@@ -74,7 +74,7 @@ public final class RedisHoldIdempotency {
         }
         Claim claim = new Claim(redisKey, requestHash);
         try (Jedis jedis = connections.get()) {
-            if ("OK".equals(jedis.set(redisKey, claim.pendingValue, SetParams.setParams().nx()))) {
+            if ("OK".equals(jedis.set(redisKey, claim.pendingValue, SetParams.setParams().nx().px(MAX_RESULT_RETENTION.toMillis())))) {
                 return new Acquired(claim);
             }
             return readResult(jedis.get(redisKey), requestHash);
@@ -179,7 +179,7 @@ public final class RedisHoldIdempotency {
     private static long retentionMillis(Duration retention) {
         if (retention == null || retention.isNegative() || retention.isZero()
                 || retention.compareTo(MAX_RESULT_RETENTION) > 0 || retention.getNano() % 1_000_000 != 0) {
-            throw new IllegalArgumentException("result retention must be 1 millisecond..30 days in whole milliseconds");
+            throw new IllegalArgumentException("result retention must be 1 millisecond..600 seconds in whole milliseconds");
         }
         return retention.toMillis();
     }

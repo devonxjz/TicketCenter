@@ -93,7 +93,7 @@ public final class RedisActiveHoldCache {
         Objects.requireNonNull(projection);
         if (token == null || !token.actorId.equals(projection.buyerId())) return false;
         try (Jedis jedis = connections.get()) {
-            long ttl = Duration.between(clock.instant(), projection.expiresAt()).toMillis();
+            long ttl = Math.min(MARKER_TTL_MILLIS, Duration.between(clock.instant(), projection.expiresAt()).toMillis());
             if (ttl < 1) return false;
             return Long.valueOf(1).equals(jedis.eval(FILL, List.of(redisKey(token.actorId)),
                     List.of(token.marker, "1|D|" + encode(projection), Long.toString(ttl),
@@ -130,7 +130,7 @@ public final class RedisActiveHoldCache {
         try {
             var bytes = new ByteArrayOutputStream();
             try (var output = new DataOutputStream(bytes)) {
-                output.writeByte(1);
+                output.writeByte(2);
                 writeUuid(output, projection.id());
                 writeUuid(output, projection.buyerId());
                 writeUuid(output, projection.eventId());
@@ -142,7 +142,7 @@ public final class RedisActiveHoldCache {
                     output.writeBoolean(item.seatId() != null);
                     if (item.seatId() != null) writeUuid(output, item.seatId());
                     output.writeByte(item.quantity());
-                    output.writeLong(item.unitPrice().longValueExact());
+                    output.writeUTF(item.unitPrice().toPlainString());
                 }
             }
             return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes.toByteArray());
@@ -157,7 +157,7 @@ public final class RedisActiveHoldCache {
             byte[] bytes = Base64.getUrlDecoder().decode(payload);
             if (!Base64.getUrlEncoder().withoutPadding().encodeToString(bytes).equals(payload)) return Optional.empty();
             try (var input = new DataInputStream(new ByteArrayInputStream(bytes))) {
-                if (input.readUnsignedByte() != 1) return Optional.empty();
+                if (input.readUnsignedByte() != 2) return Optional.empty();
                 UUID id = readUuid(input);
                 UUID buyer = readUuid(input);
                 UUID event = readUuid(input);
@@ -173,7 +173,10 @@ public final class RedisActiveHoldCache {
                     int hasSeat = input.readUnsignedByte();
                     if (hasSeat > 1) return Optional.empty();
                     UUID seat = hasSeat == 1 ? readUuid(input) : null;
-                    items.add(new ActiveHoldProjection.Item(zone, seat, input.readUnsignedByte(), BigDecimal.valueOf(input.readLong())));
+                    int quantity = input.readUnsignedByte();
+                    String price = input.readUTF();
+                    if (!price.matches("0|[1-9][0-9]{0,18}")) return Optional.empty();
+                    items.add(new ActiveHoldProjection.Item(zone, seat, quantity, new BigDecimal(price)));
                 }
                 if (input.available() != 0) return Optional.empty();
                 return Optional.of(new ActiveHoldProjection(id, buyer, event, expires, items));

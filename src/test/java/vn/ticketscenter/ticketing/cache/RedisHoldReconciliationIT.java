@@ -16,7 +16,7 @@ class RedisHoldReconciliationIT extends HoldRedisFixture {
     private static final String HASH = "a".repeat(64);
     private static final String OTHER_HASH = "b".repeat(64);
     private static final RedisHoldIdempotency.CompletedResponse RESPONSE = new RedisHoldIdempotency.CompletedResponse(201, "application/json", "{\"saved\":true}");
-    private static final Duration RETENTION = Duration.ofMinutes(20);
+    private static final Duration RETENTION = Duration.ofMinutes(10);
 
     @Test
     void anotherProcessCanReconcileConfirmedResultWithoutOriginalClaim() {
