@@ -2,6 +2,7 @@ package vn.ticketscenter;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 import vn.ticketscenter.config.DatabaseConfig;
 
 import java.nio.charset.StandardCharsets;
@@ -15,6 +16,7 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Tag("db")
 public class MigrationSuiteVerificationTest {
 
     private static final String[] MIGRATION_FILES = {

@@ -1,0 +1,4 @@
+# Preserve reviewed upstream bytes and SHA-256 hashes across Windows/Linux checkouts.
+src/main/webapp/swagger/vendor/swagger-ui-bundle.js -text
+src/main/webapp/swagger/vendor/swagger-ui.css -text
+src/main/webapp/swagger/vendor/LICENSE -text
