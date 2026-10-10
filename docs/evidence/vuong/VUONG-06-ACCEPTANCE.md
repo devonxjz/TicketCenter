@@ -13,7 +13,8 @@ Issue [#33](https://github.com/devonxjz/TicketCenter/issues/33); started from ve
 ## Observed local verification — 10–11 October 2026
 
 - Fresh clean package after dev sync: Java386 discovered/327 executed/59 named guarded external skips, zero failures/errors (pre-sync359/300/59). Skips are not acceptance passes.
-- Safe Node regression after sync54/54, including13 admin UI and9 newly merged event-image tests (pre-sync45/45). Controller activation, 404/planned contract, dropped fractional commission rates, text-input staleness and scope-event bubbling were observed RED before fixes.
+- Safe Node regression after the review fix56/56, including15 admin UI and9 newly merged event-image tests (pre-review54/54, pre-sync45/45). Controller activation, 404/planned contract, dropped fractional commission rates, text-input staleness and scope-event bubbling were observed RED before fixes.
+- The fresh whole-branch reviewer found one Important issue: unrelated filter edits cancelled pending organization/event choices. Two new tests failed before removing option-request invalidation from generic filter changes, then the full Node56/56 and clean Java386/327/59 suites passed. Newer organization selections still supersede older option requests; row/detail invalidation is preserved. No Critical or deferred Minor findings.
 - Actual canonical JDBC23/23, zero skips: current SQL authority before cached overview, exact UTC metrics, scoped/redacted audit.
 - Actual schema-only team clone JDBC11/11, zero skips under128MiB: real team overview counts/commission, revoked ADMIN denial, BIGINT audit projection, constrained grants and existing report regressions.
 - Actual isolated Tomcat/HTTP/JDBC/JSP18/18, zero skips: finance/report regression, overview JSON, audit list/detail/filter/redaction/invalid inputs, absent session and manager/staff denial, JSP rendering. Test-only session bridge; not owner login/full-WAR/worker acceptance.

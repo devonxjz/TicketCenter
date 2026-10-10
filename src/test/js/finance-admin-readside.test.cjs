@@ -48,6 +48,15 @@ test('organization change bubbling to the form does not discard its own scope re
  h.requests.at(-1).resolve(h.response({organizations:[{id:actor,name:'New organization'}],events:[{id:actor,title:'New event'}]}));await pending;
  assert.equal(h.ids.organization.children.length,2);assert.equal(h.ids.event.children.length,2);assert.equal(h.ids.event.disabled,false);
 });
+test('typing an action during initial option load preserves organization choices without old rows',async()=>{
+ const h=harness();h.change('action','PAYOUT_RESULT');h.requests[0].resolve(h.response({organizations:[{id:actor,name:'Organization'}],events:[]}));await tick();await tick();
+ assert.equal(h.ids.organization.children.length,2);assert.equal(h.ids.rows.children.length,0);assert.match(h.ids.notice.textContent,/Bộ lọc/);
+});
+test('editing an unrelated filter during organization option load preserves its event choices',async()=>{
+ const h=harness();await h.ready();h.requests[1].resolve(h.audit());await tick();await tick();h.ids.organization.value=actor;
+ const pending=h.ids.organization.handlers.change();h.change('action','PAYOUT_RESULT');h.requests.at(-1).resolve(h.response({organizations:[{id:actor,name:'Organization'}],events:[{id:actor,title:'Event'}]}));await pending;
+ assert.equal(h.ids.organization.children.length,2);assert.equal(h.ids.event.children.length,2);assert.equal(h.ids.event.disabled,false);assert.equal(h.ids.rows.children.length,0);
+});
 test('selecting another detail prevents earlier response overwriting current detail',async()=>{
  const h=harness();await h.ready();h.requests[1].resolve(h.audit());await tick();await tick();const first=h.detail(),firstRequest=h.requests.at(-1);const second=h.detail();h.requests.at(-1).resolve(h.response({id:actor,action:'CURRENT',metadata:{}}));await second;
  const current=h.ids['audit-detail'].children;firstRequest.resolve(h.response({id:actor,action:'OLD',metadata:{}}));await first;assert.deepEqual(h.ids['audit-detail'].children,current);

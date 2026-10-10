@@ -61,7 +61,7 @@
     for(const id of ['previous','next']){const button=document.getElementById(id);if(button)button.disabled=true;}
     const pagination=document.getElementById('pagination');if(pagination)pagination.textContent='';
   }
-  function invalidate() {++revision;++sequence;++scopeSequence;clear();app.setAttribute('aria-busy','false');notice.textContent='Bộ lọc đã đổi. Bấm Lọc nhật ký để tải dữ liệu mới.';}
+  function invalidate() {++revision;++sequence;clear();app.setAttribute('aria-busy','false');notice.textContent='Bộ lọc đã đổi. Bấm Lọc nhật ký để tải dữ liệu mới.';}
   async function data(url) {return (await (await fetchResponse(context+url)).json()).data;}
   async function scope(selected) {
     const current=++scopeSequence;
