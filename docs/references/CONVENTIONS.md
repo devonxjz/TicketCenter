@@ -125,3 +125,24 @@ SQL chỉ seed trạng thái phức tạp trực tiếp trong database test vớ
 - Commit tiếng Anh `type(scope): description`, Task-Id/Validation/Evidence; Issue thật mới dùng Refs/Closes. Commit nhỏ theo đơn vị đã kiểm, stage đường dẫn sở hữu, không bịa PASS hoặc co-author.
 - Nhánh chia sẻ cập nhật bằng merge; không rewrite/force nhánh chung. Tài liệu Word tham khảo không cấp quyền chạy reset, push, merge, tag remote hoặc deploy.
 - Mọi điều kiện bootstrap/review/CI/sửa lỗi/dọn nhánh theo toàn bộ GIT-WORKFLOW; lịch backend cũ không ghi đè quy trình này.
+
+1. Triển khai Transactions (Giao dịch nghiệp vụ TX01–TX17)
+
+Theo thiết kế canonical tại docs/references/SPEC.md (Mục 14.9), hệ thống có 17 giao dịch cốt lõi (TX01: Duyệt tổ chức, TX02: Giữ vé, TX04: Check-in, TX09: Phát hành vé thanh toán,...).
+
+📍 Vị trí triển khai:
+Tại Database (T-SQL Stored Procedures):
+Nơi đặt: Trong database/migrations/006_create_procedures.sql (đã có sẵn các procedure như usp_CreateTicketHold, usp_CheckInTicket, usp_ApplyPaymentResult...).
+Cách tổ chức:
+Sử dụng SET XACT_ABORT ON; và BEGIN TRANSACTION; ... COMMIT TRANSACTION; trong khối BEGIN TRY ... BEGIN CATCH để đảm bảo tính nguyên tử (Atomicity).
+Áp dụng Lock hints đúng thứ tự: Khóa bản ghi điều phối (ví dụ UPDLOCK, ROWLOCK trên tc_seats, tc_ticket_holds) theo thứ tự khóa ID ổn định để chống race-condition và deadlock giữa 2 phiên cùng mua/giữ ghế.
+Tại ứng dụng Java (Application / Service Layer):
+Nơi đặt: Trong các Service package tại src/main/java/vn/ticketscenter/<feature>/service/ (ví dụ: CheckInEventService, OrderService, PaymentService).
+Quy tắc ranh giới giao dịch:
+Mỗi Use-case gọi 1 Transaction độc lập.
+Tách biệt I/O bên ngoài khỏi DB Transaction: Tuyệt đối không gọi API bên thứ ba (gửi Mail OTP, gọi cổng VNPAY, upload Cloudinary) bên trong DB Transaction. Thay vào đó, ghi intent vào bảng tc_outbox -> commit DB -> Worker gọi ra ngoài -> khi có kết quả mở transaction mới ghi nhận (Idempotency qua txn_ref hoặc order_code).
+Kịch bản kiểm thử cạnh tranh & Rollback (Minh chứng báo cáo):
+Nơi đặt: src/test/java/vn/ticketscenter/transaction/ hoặc database/test_scripts/.
+Nội dung:
+Rollback Proof: Test cố tình chèn lỗi vào bước cuối để chứng minh toàn bộ các bước trước bị rollback sạch sẽ (không mồ côi dữ liệu).
+Concurrency Proof: Chạy 2 thread đồng thời (2 connection riêng biệt) tranh nhau ghế cuối hoặc vé cuối, chứng minh chỉ duy nhất 1 phiên thành công.

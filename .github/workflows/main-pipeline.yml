@@ -18,6 +18,10 @@ on:
         description: "Publish container image (main/dev only)"
         type: boolean
         default: false
+      khanh01_acceptance:
+        description: "Chạy nghiệm thu KHANH-01 với SQL/Redis/SMTP riêng, không triển khai"
+        type: boolean
+        default: false
       deploy_to_production:
         description: "Run protected production rollout simulation"
         type: boolean
@@ -31,7 +35,16 @@ permissions:
   checks: write
   security-events: write
 jobs:
+  khanh01-acceptance:
+    name: "KHANH-01: Full regression and SQL Redis acceptance"
+    if: github.event_name == 'workflow_dispatch' && inputs.khanh01_acceptance == true
+    uses: ./.github/workflows/khanh01-acceptance.yml
+  # =========================================================================
+  # 1. Code Quality & Security Scan (Lint, Secret scan, SAST)
+  # =========================================================================
   stage-1-quality-and-security:
+    name: "Stage 1: Quality & Security"
+    if: github.event_name != 'workflow_dispatch' || inputs.khanh01_acceptance != true
     uses: ./.github/workflows/01-code-quality-security.yml
   stage-2-tests-and-coverage:
     needs: stage-1-quality-and-security

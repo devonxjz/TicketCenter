@@ -18,3 +18,5 @@ Kiểm thử cuối sau fix: default295 discovered/243 executed/52 guarded skips
 Final review: một reviewer đọc độc lập toàn bộ thay đổi. Sửa blocker retry compensation và hướng dẫn thứ tự migration. Hai regression được quan sát RED→GREEN; cả suite9/9 đạt. Giữ alias cột order-summary để các module cũ compile, không tuyên bố quy trình cũ được nghiệm thu.
 
 Ruling: bỏ khỏi projection chỉ mirror compensation FAILED/RETRYABLE khi cùng payment CAPTURED đã được hoàn đủ bằng các obligation COMPLETED có current transfer SUCCEEDED và timestamp — giữ pending/unknown/partial và lịch sử vật lý — nếu owner tạo debt độc lập thiếu liên kết thì vẫn chặn, cần owner reconciliation.
+
+Đồng bộ dev71e02ad do PR dirty: giữ job KHANH-01 cùng opt-in tài chính, xử lý xung đột duy nhất main-pipeline. Test migration mới thiếu Tag db được tái hiện RED trên loopback không kết nối; thêm Tag để default không mở DB. Full default sau đồng bộ343 discovered/290 executed/53 skips đạt. CI snapshot SQL1934 đã quan sát; thêm SET options rõ ràng, sqlcmd cài từ đầu không -I và team JDBC9/9 đạt.

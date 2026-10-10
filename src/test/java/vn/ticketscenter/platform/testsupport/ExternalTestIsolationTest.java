@@ -17,6 +17,12 @@ class ExternalTestIsolationTest {
     private static final AtomicInteger setupCalls = new AtomicInteger();
     private static final AtomicInteger pureCalls = new AtomicInteger();
 
+    @Test void mergedOwnerMigrationSuiteIsDisabledBeforeOpeningItsDatabase() {
+        ProbeResult result=execute(vn.ticketscenter.MigrationSuiteVerificationTest.class,Map.of());
+        assertEquals(1,result.skipped,"Owner migration verification must obey the default DB gate");
+        assertEquals(0,result.failed,"Default tests must never open or alter the owner database");
+    }
+
     @Test void defaultDbGateStopsBeforeAll() {
         setupCalls.set(0);
         ProbeResult result = execute(DbProbe.class, Map.of());

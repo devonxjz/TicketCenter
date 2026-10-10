@@ -1,6 +1,11 @@
 -- Schema-only snapshot from SQL Azure TicketCenterticke, 2026-10-10.
 -- No accounts, application rows or credentials. Dedicated empty local test DB only.
 SET NOCOUNT ON; SET XACT_ABORT ON;
+-- Required for filtered indexes and persisted module settings, including sqlcmd
+-- sessions that start without -I. Do not rely on a client's implicit defaults.
+SET QUOTED_IDENTIFIER ON; SET ANSI_NULLS ON; SET ANSI_PADDING ON;
+SET ANSI_WARNINGS ON; SET ARITHABORT ON; SET CONCAT_NULL_YIELDS_NULL ON;
+SET NUMERIC_ROUNDABORT OFF;
 IF DB_NAME() NOT LIKE 'TC[_]Vuong[_]Test[_]%' THROW 52790,'Dedicated test database required',1;
 IF EXISTS(SELECT 1 FROM sys.tables WHERE is_ms_shipped=0) THROW 52791,'Empty database required',1;
 GO

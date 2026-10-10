@@ -27,3 +27,13 @@ The fresh review found the compensation retry blocker and missing migration-orde
 Full application startup/JPA and register→event→hold→pay→check-in→settlement require the owners' model/schema alignment and operational integration. This finance JDBC adapter does not establish that full flow. Native Excel open/save/reopen acceptance is still pending. Production bank acceptance remains separate from the explicit simulated fixture provider. No issue closure, merge or deployment is implied by these tests.
 
 Expanded Actions is configured to run both canonical19 and team-schema9 cases with zero skips, five SQL suites/six races, actual standalone Redis, packaging and isolated HTTP. The latest revision's remote run is tracked in PR42; earlier successful runs do not prove the new snapshot passes on SQL Server2022.
+
+## Synchronization with current dev
+
+`dev` advanced to71e02ad (owner migrations and KHANH-01 check-in) during handoff. Merge into the feature preserves the optional KHANH-01 acceptance job and finance opt-in jobs. It does not merge the feature into dev. Owner migration026 moved to archive through the teammate's commit; finance does not alter its contents or the locked models.
+
+The incoming MigrationSuiteVerificationTest was untagged and opened the configured database in a default run. That run was interrupted before its migration-execution section. A regression run with an unreachable loopback target reproduced the missing default gate; tagging the class as db then passed the regression and full default suite. Its original production-name assertion remains an owner acceptance limitation; default CI cannot execute it against the team database.
+
+The initial expanded run38047207607 failed at snapshot initialization with SQL1934 (QUOTED_IDENTIFIER), before the team JDBC cases. The snapshot now declares all required filtered-index SET options explicitly. Fresh sqlcmd installation without -I succeeded, followed by **9/9 actual team JDBC cases**; final export329ms with sampled heap16,231,568bytes. After synchronization, default package discovers343 cases, **290 execute**,53 guarded skips, zero failures/errors. The new revision's expanded run must independently establish SQL Server2022 acceptance. The preserved KHANH-01 workflow is not certified here; full cross-owner acceptance remains separate.
+
+Post-merge canonical19, Node29, finance HTTP14 and Swagger HTTP10 also pass. Post-merge WAR SHA256: 159459F2691363225A3B724CF11FD670D36DC188539E605D9DB561324F2566C2.
