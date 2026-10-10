@@ -2,7 +2,7 @@
 
 Branch `feat/vuong/vuong-epic-finance-integration`; PR target `dev`. Original base `8d5828a`, groundwork `36e5239`, read-side commits `8e3b85a`/`03cc139`. Final revision is the PR head; worktree is preserved for iteration.
 
-Handoff: draft [PR #42](https://github.com/devonxjz/TicketCenter/pull/42), attached to the Codex task. Implementation `4f8cf5d`; latest teammate `dev`63643d5 merged into feature at `5fa7d74` with only the three Docker files changed and no conflicts. Post-merge Maven tests/package passed. Final WAR SHA256 `F4F0992820631974792EE13938BFC61244DA4010BA4610D38889B34AD5828D7E`. GitHub Actions runs/checks on the PR provide separate remote evidence; no reviewer reply is awaited, and the PR remains unmerged.
+Handoff: draft [PR #42](https://github.com/devonxjz/TicketCenter/pull/42), attached to the Codex task. Implementation `4f8cf5d`; latest teammate `dev`63643d5 merged into feature at `5fa7d74` with only the three Docker files changed and no conflicts. Post-merge Maven tests/package passed. Post-merge WAR SHA256 `FC7AFC5084EF3BAE01FD1F26871DCAB3C1920F9617FB82BA0E9DBEF38E577F9E` (ZIP timestamps can change between packages). GitHub Actions runs/checks on the PR provide separate remote evidence; no reviewer reply is awaited, and the PR remains unmerged.
 
 The user approved UUID/tc_* and whole VND, isolated test schema/additive migration, continuing without peer-review waits, and local SQL Server TCP enable/restart. Team merge gates and missing other-owner acceptance remain separate.
 
