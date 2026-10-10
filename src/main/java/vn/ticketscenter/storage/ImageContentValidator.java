@@ -38,6 +38,10 @@ public final class ImageContentValidator {
         if (total == 0) throw new IllegalArgumentException("image is empty");
 
         byte[] bytes = output.toByteArray();
+        if (WebpContentValidator.isWebp(bytes)) {
+            WebpContentValidator.inspect(bytes,maxPixels);
+            return bytes;
+        }
         inspect(bytes, maxPixels);
         return bytes;
     }

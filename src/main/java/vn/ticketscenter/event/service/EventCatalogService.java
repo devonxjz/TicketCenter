@@ -35,11 +35,17 @@ public final class EventCatalogService {
         return cached("tc:event:categories:v1", CATEGORIES_TTL,
                 () -> EventDtos.data(EventDtos.array(repository.categories(), EventDtos.Category::toJson)));
     }
+    public String image(UUID id) {
+        String url=repository.event(id).orElseThrow(NotFound::new).coverImageUrl();
+        if(url==null || url.isBlank()) throw new NotFound();return url;
+    }
     private String cached(String key, int ttl, Supplier<String> load) {
         try { var hit = cache.get(key); if (hit.isPresent()) return hit.get(); }
         catch (RuntimeException ignored) { }
+        String generation;
+        try { generation=cache.generation(); } catch(RuntimeException e) { generation=null; }
         String json = load.get(); // DB transaction finishes before a projection is cached. Errors are never cached.
-        try { cache.put(key, json, ttl); } catch (RuntimeException ignored) { }
+        try { cache.putIfGeneration(key, json, ttl,generation); } catch (RuntimeException ignored) { }
         return json;
     }
     public static final class NotFound extends RuntimeException { }

@@ -80,7 +80,7 @@ public class EventCatalogRepository {
         return read(connection -> {
             try (var query = prepare(connection, "SELECT s.id,s.zone_id,s.row_name,s.seat_number,s.label,s.status"
                     + " FROM dbo.vw_ZoneInventory z JOIN dbo.vw_PublicEvents e ON e.event_id=z.event_id"
-                    + " LEFT JOIN dbo.tc_seats s ON s.zone_id=z.zone_id WHERE z.zone_id=? ORDER BY s.row_name,s.seat_number,s.id")) {
+                    + " LEFT JOIN dbo.vw_PublicEventSeats s ON s.zone_id=z.zone_id WHERE z.zone_id=? ORDER BY LEN(s.row_name),s.row_name,s.seat_number,s.id")) {
                 query.setString(1, zoneId.toString());
                 try (var rows = query.executeQuery()) {
                     if (!rows.next()) return Optional.empty();

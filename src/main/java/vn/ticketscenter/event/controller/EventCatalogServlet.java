@@ -1,6 +1,7 @@
 package vn.ticketscenter.event.controller;
 
 import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.*;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.event.dto.EventFilter;
@@ -8,7 +9,8 @@ import vn.ticketscenter.event.service.EventCatalogService;
 import java.io.IOException;
 import java.util.HashMap;
 
-@WebServlet(name = "EventCatalogServlet", urlPatterns = {"/api/events", "/api/events/*", "/api/zones/*", "/api/event-categories"})
+@WebServlet(name = "EventCatalogServlet", urlPatterns = {"/api/events", "/api/events/*", "/api/zones/*", "/api/event-categories"}, loadOnStartup=1)
+@MultipartConfig(maxFileSize=5242880,maxRequestSize=6291456,fileSizeThreshold=0)
 public class EventCatalogServlet extends HttpServlet {
     private final EventCatalogService injected;
     public EventCatalogServlet() { injected = null; }
