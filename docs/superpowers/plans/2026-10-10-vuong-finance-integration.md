@@ -1,6 +1,6 @@
 # VUONG Finance Integration Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Triển khai và kiểm chứng toàn bộ phần Vương của #28–#33 trên UUID/tc_*; không chờ review PR.
 
@@ -75,7 +75,7 @@ Files settlement/commission/{repository,service,controller}, settlement/{dto,rep
 
 - [x] Reconcile actual implemented route/DTO schemas to OpenAPI, keep absent owner APIs planned; Redis registry actual producers/invalidation, no guessed QR/IPN owner policy.
 - [x] Run bare safe unit suite, Node, SQL fixture/procedure permission/concurrency, isolated WAR/HTTP own routes, package/diff-check. Test failures require root cause fix and rerun affected checks; no shared DB/SMTP.
-- [ ] Commit evidence with exact revisions/case counts and explicit remaining owner/Excel/provider gates. Keep worktree/artifacts; update relevant PRs only as authorized task handoff, no merge without actual team CI gate.
+- [x] Commit evidence with exact revisions/case counts and explicit remaining owner/Excel/provider gates. Keep worktree/artifacts; update relevant PRs only as authorized task handoff, no merge without actual team CI gate.
 
 ## Execution record
 
