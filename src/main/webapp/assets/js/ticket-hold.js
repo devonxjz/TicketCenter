@@ -11,6 +11,8 @@
         constructor(status, code, message) { super(message); this.status = status; this.code = code; }
     }
 
+    class StaleOperation extends Error {}
+
     function parseItems(items) {
         if (!Array.isArray(items) || !items.length || items.some(item => !uuid(item.zoneId) ||
             !(item.seatId === null || uuid(item.seatId)) || !Number.isInteger(item.quantity) ||
@@ -96,12 +98,36 @@
             this.changed = changed;
             this.actorId = null;
             this.anchor = null;
+            this.epoch = 0;
             this.state = { phase: "loading", hold: null, pending: null, options: null, message: "Đang đối chiếu lượt giữ...", auth: false };
         }
 
         set(phase, values = {}) {
             this.state = Object.freeze({ ...this.state, phase, ...values });
             this.changed(this.state);
+        }
+
+        begin(actorId) { return Object.freeze({ epoch: ++this.epoch, actorId }); }
+
+        owns(operation) {
+            return operation.epoch === this.epoch && (operation.actorId === null || operation.actorId === this.actorId);
+        }
+
+        requireCurrent(operation) { if (!this.owns(operation)) throw new StaleOperation(); }
+
+        apply(operation, phase, values, anchor = this.anchor) {
+            this.requireCurrent(operation);
+            this.anchor = anchor;
+            this.set(phase, values);
+        }
+
+        async read(operation, path, options) {
+            this.requireCurrent(operation);
+            try {
+                const response = await this.request(path, options);
+                this.requireCurrent(operation);
+                return response;
+            } catch (error) { this.requireCurrent(operation); throw error; }
         }
 
         async request(path, options = {}) {
@@ -115,13 +141,38 @@
             return data;
         }
 
-        async actor() {
-            const response = await this.request("/api/me");
+        async actor(operation) {
+            const response = await this.read(operation, "/api/me");
             if (!uuid(response.data?.id)) throw new Error("Không xác định được phiên đăng nhập hiện tại.");
             return response.data.id.toLowerCase();
         }
 
-        slot() { return "tc:hold-command:v1:" + this.actorId; }
+        slot(actorId = this.actorId) { return "tc:hold-command:v1:" + actorId; }
+
+        matches(pending, saved) {
+            try {
+                const stored = JSON.parse(saved);
+                return stored.actorId === pending.actorId && stored.key === pending.key && stored.body === pending.body &&
+                    stored.kind === pending.kind && stored.path === pending.path;
+            } catch (_) { return false; }
+        }
+
+        store(operation, pending) {
+            this.requireCurrent(operation);
+            const slot = this.slot(pending.actorId);
+            const saved = this.storage.getItem(slot);
+            if (saved !== null && !this.matches(pending, saved)) throw new Error("Yêu cầu đã lưu đã thay đổi. Hãy cập nhật trạng thái.");
+            this.storage.setItem(slot, JSON.stringify(pending));
+            if (!this.matches(pending, this.storage.getItem(slot))) throw new Error("Không lưu được yêu cầu. Kiểm tra quyền lưu trữ của trình duyệt.");
+        }
+
+        forget(operation, pending) {
+            this.requireCurrent(operation);
+            const slot = this.slot(pending.actorId);
+            if (!this.matches(pending, this.storage.getItem(slot))) return false;
+            this.storage.removeItem(slot);
+            return true;
+        }
 
         restore() {
             const saved = this.storage.getItem(this.slot());
@@ -142,115 +193,122 @@
             return Object.freeze(pending);
         }
 
-        persist(kind, path, body) {
+        persist(operation, kind, path, body) {
             if (this.restore()) throw new Error("Còn yêu cầu chưa rõ kết quả. Hãy cập nhật trạng thái để thử lại.");
             const pending = Object.freeze({ actorId: this.actorId, kind, path, body: JSON.stringify(body), key: this.randomUUID() });
             if (!uuid(pending.key)) throw new Error("Không tạo được mã yêu cầu an toàn.");
-            this.set("submitting", { pending, message: "Đang gửi yêu cầu..." });
-            this.storage.setItem(this.slot(), JSON.stringify(pending));
-            if (this.storage.getItem(this.slot()) !== JSON.stringify(pending)) throw new Error("Không lưu được yêu cầu. Kiểm tra quyền lưu trữ của trình duyệt.");
+            this.apply(operation, "submitting", { pending, message: "Đang gửi yêu cầu..." });
+            this.store(operation, pending);
             return pending;
-        }
-
-        async readCurrent() {
-            const current = currentHold(await this.request("/api/me/hold"));
-            this.anchor = { serverMs: Date.parse(current.serverTime), clientMs: this.now() };
-            return current.hold;
         }
 
         remaining() {
             return this.state.hold && this.anchor ? Date.parse(this.state.hold.expiresAt) - this.anchor.serverMs - (this.now() - this.anchor.clientMs) : 0;
         }
 
-        async reconcile({ receipt = false, message = "" } = {}) {
-            const hold = await this.readCurrent();
+        async reconcile(operation, { receipt = false, message = "" } = {}) {
+            const current = currentHold(await this.read(operation, "/api/me/hold"));
+            const hold = current.hold;
+            let anchor = { serverMs: Date.parse(current.serverTime), clientMs: this.now() };
             const pending = this.state.pending;
             if (pending) {
-                this.set("uncertain", { hold, options: null, message: message || "Kết quả yêu cầu chưa rõ. Thử lại cùng yêu cầu đã lưu." });
+                this.apply(operation, "uncertain", { hold, options: null, message: message || "Kết quả yêu cầu chưa rõ. Thử lại cùng yêu cầu đã lưu." }, anchor);
             } else if (hold) {
-                this.set("active", { hold, options: null, message: message || "Máy chủ đã xác nhận lượt giữ hiện tại." });
+                this.apply(operation, "active", { hold, options: null, message: message || "Máy chủ đã xác nhận lượt giữ hiện tại." }, anchor);
             } else if (this.page === "selection" && this.eventId) {
-                const options = catalog(await this.request("/api/hold-options?eventId=" + encodeURIComponent(this.eventId)), this.eventId);
-                this.anchor = { serverMs: Date.parse(options.serverTime), clientMs: this.now() };
+                const options = catalog(await this.read(operation, "/api/hold-options?eventId=" + encodeURIComponent(this.eventId)), this.eventId);
+                anchor = { serverMs: Date.parse(options.serverTime), clientMs: this.now() };
                 if (Date.parse(options.saleEnd) <= Date.parse(options.serverTime)) {
-                    this.set("expired", { hold: null, options: null, message: "Sự kiện đã đóng bán." });
+                    this.apply(operation, "expired", { hold: null, options: null, message: "Sự kiện đã đóng bán." }, anchor);
                 } else {
-                    this.set("selecting", { hold: null, options, message: message || (receipt ? "Lượt giữ trước không còn hiệu lực. Bạn có thể chọn vé mới." : "Chọn vé từ danh sách khả dụng hiện tại.") });
+                    this.apply(operation, "selecting", { hold: null, options, message: message || (receipt ? "Lượt giữ trước không còn hiệu lực. Bạn có thể chọn vé mới." : "Chọn vé từ danh sách khả dụng hiện tại.") }, anchor);
                 }
             } else {
-                this.set("expired", { hold: null, options: null, message: message || (receipt ? "Lượt giữ không còn hiệu lực." : "Bạn chưa có lượt giữ đang hiệu lực. Chọn một sự kiện để giữ vé.") });
+                this.apply(operation, "expired", { hold: null, options: null, message: message || (receipt ? "Lượt giữ không còn hiệu lực." : "Bạn chưa có lượt giữ đang hiệu lực. Chọn một sự kiện để giữ vé.") }, anchor);
             }
         }
 
         async refresh() {
-            if (this.state.phase === "submitting") return;
-            this.set("loading", { options: null, hold: null, auth: false, message: "Đang đối chiếu lượt giữ..." });
+            let operation = this.begin(null);
+            this.apply(operation, "loading", { pending: null, options: null, hold: null, auth: false, message: "Đang đối chiếu lượt giữ..." }, null);
             try {
-                this.actorId = await this.actor();
-                this.set("loading", { pending: this.restore(), hold: null });
-                await this.reconcile();
-            } catch (error) { this.failed(error); }
+                const actorId = await this.actor(operation);
+                this.requireCurrent(operation);
+                this.actorId = actorId;
+                operation = Object.freeze({ ...operation, actorId });
+                this.apply(operation, "loading", { pending: this.restore(), hold: null });
+                await this.reconcile(operation);
+            } catch (error) { this.failed(operation, error); }
         }
 
-        failed(error) {
+        failed(operation, error) {
+            if (!this.owns(operation)) return;
             const auth = error.status === 401 || error.status === 403;
+            if (auth) ++this.epoch;
             this.set("uncertain", { options: null, hold: auth ? null : this.state.hold, auth,
                 message: error.message || "Không thể kết nối. Hãy thử lại cùng yêu cầu." });
         }
 
         async submit(selections) {
             if (this.state.phase !== "selecting" || this.state.pending) return;
+            const operation = this.begin(this.actorId);
             try {
                 const body = selectionPayload(this.state.options, selections);
-                const pending = this.persist("create", "/api/holds", body);
-                await this.execute(pending);
-            } catch (error) { if (this.state.pending) this.failed(error); else this.set("selecting", { message: error.message }); }
+                const pending = this.persist(operation, "create", "/api/holds", body);
+                await this.execute(operation, pending);
+            } catch (error) {
+                if (!this.owns(operation)) return;
+                if (this.state.pending) this.failed(operation, error);
+                else this.apply(operation, "selecting", { message: error.message });
+            }
         }
 
         async cancel() {
             if (this.state.phase !== "active" || this.state.pending || this.remaining() <= 0) return;
+            const operation = this.begin(this.actorId);
             try {
-                const pending = this.persist("cancel", "/api/holds/" + this.state.hold.id + "/cancel", {});
-                await this.execute(pending);
-            } catch (error) { this.failed(error); }
+                const pending = this.persist(operation, "cancel", "/api/holds/" + this.state.hold.id + "/cancel", {});
+                await this.execute(operation, pending);
+            } catch (error) { this.failed(operation, error); }
         }
 
         async retry() {
             if (this.state.phase !== "uncertain" || !this.state.pending) return;
-            this.set("submitting", { auth: false, message: "Đang đối chiếu cùng yêu cầu đã lưu..." });
-            await this.execute(this.state.pending);
+            const operation = this.begin(this.actorId);
+            this.apply(operation, "submitting", { auth: false, message: "Đang đối chiếu cùng yêu cầu đã lưu..." });
+            await this.execute(operation, this.state.pending);
         }
 
-        async execute(pending) {
+        async execute(operation, pending) {
             let sent = false;
             try {
-                this.storage.setItem(this.slot(), JSON.stringify(pending));
-                if (this.storage.getItem(this.slot()) !== JSON.stringify(pending)) throw new Error("Không lưu được yêu cầu. Kiểm tra quyền lưu trữ của trình duyệt.");
-                const csrf = await this.request("/api/auth/csrf");
+                this.store(operation, pending);
+                const csrf = await this.read(operation, "/api/auth/csrf");
                 if (typeof csrf.data?.token !== "string" || !csrf.data.token) throw new Error("Không lấy được mã bảo vệ phiên. Thử lại cùng yêu cầu.");
-                if (await this.actor() !== pending.actorId) {
-                    this.set("uncertain", { pending: null, hold: null, message: "Phiên đăng nhập đã đổi. Đang đọc lượt giữ của tài khoản hiện tại." });
+                if (await this.actor(operation) !== pending.actorId) {
+                    this.requireCurrent(operation);
                     await this.refresh();
                     return;
                 }
                 sent = true;
-                const receipt = await this.request(pending.path, { method: "POST", headers: {
+                const receipt = await this.read(operation, pending.path, { method: "POST", headers: {
                     "Content-Type": "application/json", "X-CSRF-Token": csrf.data.token, "Idempotency-Key": pending.key
                 }, body: pending.body });
                 if (!uuid(receipt?.id) || !uuid(receipt.eventId) || !instant(receipt.expiresAt) ||
                     (pending.kind === "create" ? receipt.eventId !== JSON.parse(pending.body).eventId : receipt.id !== pending.path.split("/")[3]) ||
                     receipt.outcome !== (pending.kind === "create" ? "CREATED" : "CANCELLED")) throw new Error("Chưa xác định được kết quả yêu cầu. Thử lại cùng mã yêu cầu.");
-                this.storage.removeItem(this.slot());
-                this.set("loading", { pending: null, message: "Đang kiểm tra hiệu lực lượt giữ..." });
-                await this.reconcile({ receipt: true });
+                if (!this.forget(operation, pending)) { await this.refresh(); return; }
+                this.apply(operation, "loading", { pending: null, message: "Đang kiểm tra hiệu lực lượt giữ..." });
+                await this.reconcile(operation, { receipt: true });
             } catch (error) {
-                if (sent && this.state.pending === pending && error instanceof ApiError && [400, 404, 409, 413, 415].includes(error.status)) {
+                if (!this.owns(operation)) return;
+                if (sent && error instanceof ApiError && [400, 404, 409, 413, 415].includes(error.status)) {
                     try {
-                        this.storage.removeItem(this.slot());
-                        this.set("loading", { pending: null, hold: null });
-                        await this.reconcile({ message: error.message });
-                    } catch (readError) { this.failed(readError); }
-                } else { this.failed(error); }
+                        if (!this.forget(operation, pending)) { await this.refresh(); return; }
+                        this.apply(operation, "loading", { pending: null, hold: null });
+                        await this.reconcile(operation, { message: error.message });
+                    } catch (readError) { this.failed(operation, readError); }
+                } else { this.failed(operation, error); }
             }
         }
     }
@@ -385,7 +443,6 @@
     });
     root.addEventListener("pageshow", event => {
         if (!event.persisted) return;
-        client.set("loading", { hold: null, options: null, auth: false, message: "Đang đối chiếu lượt giữ..." });
         expiryRead = null;
         if (timer === null) timer = root.setInterval(tick, 250);
         void client.refresh();

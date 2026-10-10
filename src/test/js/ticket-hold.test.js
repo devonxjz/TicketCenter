@@ -381,3 +381,141 @@ test("cached history restore freezes controls, rereads actor and server time, an
     assert.equal(f.calls.filter(call => call.method === "POST").length, 0);
     assert.equal(f.calls.filter(call => call.path === "/api/me/hold").length, 4);
 });
+
+function deferred() {
+    let resolve;
+    const promise = new Promise(done => { resolve = done; });
+    return { promise, resolve };
+}
+
+function commandFor(actorId, key = "60000000-0000-4000-8000-000000000099") {
+    return { actorId, kind: "create", path: "/api/holds", body: JSON.stringify({ eventId: EVENT, selections: selected() }), key };
+}
+
+test("late current Hold response cannot overwrite a newer actor or its server-time anchor", async () => {
+    const f = fixture({ page: "current" }); const baseFetch = f.create().fetch;
+    const started = deferred(); const release = deferred(); let first = true;
+    const client = f.create({ fetch: async (path, request) => {
+        if (path === "/api/me/hold" && first) {
+            first = false; started.resolve(); await release.promise;
+            return f.reply({ serverTime: TIME, hold: hold() });
+        }
+        return baseFetch(path, request);
+    } });
+    const oldRead = client.refresh(); await started.promise;
+    f.server.actor = OTHER; f.server.time = "2026-10-11T10:11:00Z";
+    await client.refresh();
+    release.resolve(); await oldRead;
+    assert.equal(client.actorId, OTHER);
+    assert.equal(client.state.phase, "expired");
+    assert.equal(client.state.hold, null);
+    assert.equal(client.anchor.serverMs, Date.parse("2026-10-11T10:11:00Z"));
+});
+
+for (const outcome of ["success", "conflict", "network"]) {
+    test("late actor A mutation " + outcome + " preserves both actors' immutable saved commands and actor B state", async () => {
+        const f = fixture(); const client = f.create(); await client.refresh();
+        const started = deferred(); const release = deferred();
+        f.server.create = async (_, reply, error) => {
+            started.resolve(); await release.promise;
+            if (outcome === "network") throw new Error("lost response");
+            return outcome === "conflict" ? error(409, "HOLD_CONFLICT") : reply(receipt("CREATED"), 201);
+        };
+        const oldSubmit = client.submit(selected()); await started.promise;
+        const savedA = f.storage.getItem("tc:hold-command:v1:" + ACTOR);
+        const pendingB = commandFor(OTHER);
+        const savedB = JSON.stringify(pendingB);
+        f.storage.setItem("tc:hold-command:v1:" + OTHER, savedB);
+        f.server.actor = OTHER;
+        await client.refresh();
+        assert.equal(client.state.phase, "uncertain");
+        release.resolve(); await oldSubmit;
+        assert.equal(client.actorId, OTHER);
+        assert.equal(client.state.phase, "uncertain");
+        assert.equal(client.state.pending.key, pendingB.key);
+        assert.equal(f.storage.getItem("tc:hold-command:v1:" + OTHER), savedB);
+        assert.equal(f.storage.getItem("tc:hold-command:v1:" + ACTOR), savedA);
+        assert.equal(f.calls.filter(call => call.method === "POST").length, 1);
+    });
+}
+
+test("a receipt removes only its exact stored command and preserves a replacement for the same actor", async () => {
+    const f = fixture(); const client = f.create(); await client.refresh();
+    const started = deferred(); const release = deferred();
+    f.server.create = async (_, reply) => { started.resolve(); await release.promise; return reply(receipt("CREATED"), 201); };
+    const oldSubmit = client.submit(selected()); await started.promise;
+    const replacement = commandFor(ACTOR);
+    replacement.body = JSON.stringify({ eventId: EVENT, selections: [{ zoneId: STANDING, seatId: null, quantity: 3 }] });
+    const saved = JSON.stringify(replacement);
+    f.storage.setItem("tc:hold-command:v1:" + ACTOR, saved);
+    release.resolve(); await oldSubmit;
+    assert.equal(client.state.phase, "uncertain");
+    assert.equal(client.state.pending.key, replacement.key);
+    assert.equal(client.state.pending.body, replacement.body);
+    assert.equal(f.storage.getItem("tc:hold-command:v1:" + ACTOR), saved);
+});
+
+test("an older options response cannot replace the newer actor's selection catalog", async () => {
+    const f = fixture(); const baseFetch = f.create().fetch;
+    const started = deferred(); const release = deferred(); let first = true;
+    const client = f.create({ fetch: async (path, request) => {
+        if (path.startsWith("/api/hold-options") && first) {
+            first = false; started.resolve(); await release.promise;
+            return f.reply(options());
+        }
+        return baseFetch(path, request);
+    } });
+    const oldRead = client.refresh(); await started.promise;
+    f.server.actor = OTHER; f.server.options = { ...options(), title: "Latest catalog", zones: [] };
+    await client.refresh(); release.resolve(); await oldRead;
+    assert.equal(client.actorId, OTHER);
+    assert.equal(client.state.phase, "selecting");
+    assert.equal(client.state.options.title, "Latest catalog");
+    assert.deepEqual(client.state.options.zones, []);
+});
+
+test("an older authentication failure cannot expire or hide a newer session", async () => {
+    const f = fixture({ page: "current" }); const baseFetch = f.create().fetch;
+    const started = deferred(); const release = deferred(); let first = true;
+    const client = f.create({ fetch: async (path, request) => {
+        if (path === "/api/me" && first) {
+            first = false; started.resolve(); await release.promise;
+            return f.error(401, "UNAUTHENTICATED");
+        }
+        return baseFetch(path, request);
+    } });
+    const oldRead = client.refresh(); await started.promise;
+    f.server.actor = OTHER; f.server.hold = hold();
+    await client.refresh(); release.resolve(); await oldRead;
+    assert.equal(client.actorId, OTHER);
+    assert.equal(client.state.phase, "active");
+    assert.equal(client.state.auth, false);
+    assert.equal(client.state.hold.id, HOLD);
+});
+
+for (const pathToDelay of ["/api/auth/csrf", "/api/me"]) {
+    test("refresh fences the old mutation while " + pathToDelay + " is waiting and prevents its POST", async () => {
+        const f = fixture(); const baseFetch = f.create().fetch;
+        const started = deferred(); const release = deferred(); let delay = false;
+        const client = f.create({ fetch: async (path, request) => {
+            if (delay && path === pathToDelay) {
+                delay = false;
+                const response = await baseFetch(path, request);
+                started.resolve(); await release.promise;
+                return response;
+            }
+            return baseFetch(path, request);
+        } });
+        await client.refresh(); delay = true;
+        const oldSubmit = client.submit(selected()); await started.promise;
+        const pendingB = commandFor(OTHER);
+        const savedB = JSON.stringify(pendingB);
+        f.storage.setItem("tc:hold-command:v1:" + OTHER, savedB);
+        f.server.actor = OTHER;
+        await client.refresh(); release.resolve(); await oldSubmit;
+        assert.equal(client.actorId, OTHER);
+        assert.equal(client.state.pending.key, pendingB.key);
+        assert.equal(f.storage.getItem("tc:hold-command:v1:" + OTHER), savedB);
+        assert.equal(f.calls.filter(call => call.method === "POST").length, 0);
+    });
+}
