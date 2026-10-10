@@ -1,0 +1,270 @@
+"use strict";
+
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const { HoldClient, selectionPayload, currentHold, catalog, total, vnd, countdown } = require("../../main/webapp/assets/js/ticket-hold.js");
+
+const ACTOR = "10000000-0000-4000-8000-000000000001";
+const OTHER = "10000000-0000-4000-8000-000000000002";
+const EVENT = "20000000-0000-4000-8000-000000000001";
+const STANDING = "30000000-0000-4000-8000-000000000001";
+const SEATED = "30000000-0000-4000-8000-000000000002";
+const SEAT = "40000000-0000-4000-8000-000000000001";
+const HOLD = "50000000-0000-4000-8000-000000000001";
+const TIME = "2026-10-11T10:00:00Z";
+const options = () => ({ eventId: EVENT, title: "<img onerror=alert(1)>", serverTime: TIME,
+    saleEnd: "2026-10-11T11:00:00Z", zones: [
+        { id: STANDING, name: "Floor", type: "STANDING", unitPrice: "150000", availableStanding: 30, availableSeats: [] },
+        { id: SEATED, name: "Balcony", type: "SEATED", unitPrice: "200000", availableStanding: null, availableSeats: [{ id: SEAT, label: "A1" }] }
+    ] });
+const selected = () => [{ zoneId: STANDING, seatId: null, quantity: 2 }];
+const hold = () => ({ id: HOLD, eventId: EVENT, createdAt: TIME, expiresAt: "2026-10-11T10:10:00Z", status: "ACTIVE",
+    items: [{ zoneId: STANDING, seatId: null, quantity: 2, unitPrice: "150000" }] });
+const receipt = outcome => ({ ...hold(), status: undefined, outcome });
+
+function fixture(config = {}) {
+    const values = new Map();
+    const storage = { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value), removeItem: key => values.delete(key) };
+    const server = { actor: ACTOR, hold: null, time: TIME, options: options(), create: null, cancel: null };
+    const calls = [];
+    let sequence = 0;
+    let now = 0;
+    const reply = (body, status = 200) => ({ ok: status < 400, status, json: async () => body });
+    const error = (status, code = "HOLD_UNAVAILABLE") => reply({ error: { code, message: code } }, status);
+    const fetch = async (path, request) => {
+        calls.push({ path, ...request });
+        if (path === "/api/me") return server.actor ? reply({ data: { id: server.actor } }) : error(401, "UNAUTHENTICATED");
+        if (path === "/api/auth/csrf") return reply({ data: { token: "session-token" } });
+        if (path === "/api/me/hold") return reply({ serverTime: server.time, hold: server.hold });
+        if (path.startsWith("/api/hold-options?")) return reply(server.options);
+        if (path === "/api/holds") {
+            if (server.create) return server.create(request, reply, error);
+            server.hold = hold(); return reply(receipt("CREATED"), 201);
+        }
+        if (path === "/api/holds/" + HOLD + "/cancel") {
+            if (server.cancel) return server.cancel(request, reply, error);
+            server.hold = null; return reply(receipt("CANCELLED"));
+        }
+        throw new Error("Unexpected route " + path);
+    };
+    const create = (overrides = {}) => new HoldClient({ fetch, storage, randomUUID: () =>
+        "60000000-0000-4000-8000-" + String(++sequence).padStart(12, "0"), now: () => now, eventId: EVENT, ...config, ...overrides });
+    return { create, server, calls, values, storage, reply, error, advance: ms => { now += ms; } };
+}
+
+test("canonical request contains only UUID inventory and quantities, sorts selections, and limits total to eight", () => {
+    assert.deepEqual(selectionPayload(options(), [{ zoneId: SEATED, seatId: SEAT, quantity: 1 }, ...selected()]), {
+        eventId: EVENT, selections: [...selected(), { zoneId: SEATED, seatId: SEAT, quantity: 1 }]
+    });
+    assert.throws(() => selectionPayload(options(), [...selected(), ...selected()]), /chỉ được chọn một lần/);
+    assert.throws(() => selectionPayload(options(), [{ zoneId: STANDING, quantity: 8 }, { zoneId: SEATED, seatId: SEAT, quantity: 1 }]), /tối đa 8/);
+    assert.throws(() => selectionPayload(options(), [{ zoneId: SEATED, seatId: SEAT, quantity: 2 }]), /không còn/);
+    assert.throws(() => selectionPayload(options(), [{ zoneId: STANDING, quantity: 1.5 }]), /không hợp lệ/);
+    const depleted = options(); depleted.zones[0].availableStanding = 1;
+    assert.throws(() => selectionPayload(depleted, selected()), /không còn/);
+    assert.throws(() => selectionPayload(options(), [{ zoneId: OTHER, quantity: 1 }]), /không hợp lệ/);
+});
+
+test("integer VND snapshots remain exact above Number safe range", () => {
+    const value = total([{ unitPrice: "9007199254740993", quantity: 2 }, { unitPrice: "1", quantity: 1 }]);
+    assert.equal(value, 18014398509481987n);
+    assert.equal(vnd(value), "18.014.398.509.481.987 đ");
+    assert.throws(() => catalog({ ...options(), zones: [{ ...options().zones[0], unitPrice: "1.5" }] }, EVENT));
+});
+
+test("load uses normal cookie reads and wrappers, and never creates a hold", async () => {
+    const f = fixture(); const client = f.create(); await client.refresh();
+    assert.equal(client.state.phase, "selecting");
+    assert.deepEqual(f.calls.map(call => call.path), ["/api/me", "/api/me/hold", "/api/hold-options?eventId=" + EVENT]);
+    assert.equal(f.calls.every(call => call.credentials === "same-origin" && call.cache === "no-store" && !call.method), true);
+});
+
+test("submit persists before POST, uses cookie CSRF, and confirms active status by GET", async () => {
+    const f = fixture(); const client = f.create(); await client.refresh();
+    f.server.create = (request, reply) => {
+        const saved = JSON.parse(f.storage.getItem("tc:hold-command:v1:" + ACTOR));
+        assert.equal(saved.key, request.headers["Idempotency-Key"]);
+        assert.equal(saved.body, request.body);
+        assert.equal(request.headers["X-CSRF-Token"], "session-token");
+        assert.equal(request.headers["Content-Type"], "application/json");
+        assert.equal(request.credentials, "same-origin");
+        f.server.hold = hold(); return reply(receipt("CREATED"), 201);
+    };
+    await client.submit(selected());
+    assert.equal(client.state.phase, "active");
+    assert.equal(client.state.hold.id, HOLD);
+    assert.equal(f.calls.at(-1).path, "/api/me/hold");
+    assert.equal(f.values.size, 0);
+});
+
+test("503 freezes the selection and key, reload only reads, and explicit retry sends identical bytes", async () => {
+    const f = fixture(); const first = f.create(); await first.refresh();
+    f.server.create = (_, __, error) => error(503);
+    await first.submit(selected());
+    const posted = f.calls.find(call => call.method === "POST");
+    assert.equal(first.state.phase, "uncertain");
+    await first.submit([{ zoneId: STANDING, quantity: 3 }]);
+    assert.equal(f.calls.filter(call => call.method === "POST").length, 1);
+    const reloaded = f.create(); await reloaded.refresh();
+    assert.equal(reloaded.state.phase, "uncertain");
+    assert.equal(f.calls.filter(call => call.method === "POST").length, 1);
+    assert.equal(reloaded.state.pending.key, posted.headers["Idempotency-Key"]);
+    f.server.create = (request, reply) => { f.server.hold = hold(); return reply(receipt("CREATED"), 201); };
+    await reloaded.retry();
+    const retried = f.calls.filter(call => call.method === "POST").at(-1);
+    assert.equal(retried.body, posted.body);
+    assert.equal(retried.headers["Idempotency-Key"], posted.headers["Idempotency-Key"]);
+    assert.equal(reloaded.state.phase, "active");
+});
+
+test("lost commit response remains uncertain even when GET finds a hold, and historical receipt cannot activate an expired hold", async () => {
+    const f = fixture({ page: "current" }); const client = f.create();
+    await client.refresh();
+    client.page = "selection"; await client.refresh();
+    f.server.create = () => { f.server.hold = hold(); throw new Error("connection lost"); };
+    await client.submit(selected());
+    const reloaded = f.create(); await reloaded.refresh();
+    assert.equal(reloaded.state.phase, "uncertain");
+    assert.equal(reloaded.state.hold.id, HOLD);
+    f.server.hold = null; f.server.time = "2026-10-11T10:12:00Z";
+    f.server.create = (_, reply) => reply(receipt("CREATED"), 201);
+    await reloaded.retry();
+    assert.equal(reloaded.state.phase, "expired");
+    assert.equal(reloaded.state.hold, null);
+    assert.equal(f.values.size, 0);
+});
+
+test("rejected conflict refreshes current SQL and inventory before a changed command gets a new key", async () => {
+    const f = fixture(); const client = f.create(); await client.refresh();
+    f.server.create = (_, __, error) => error(409, "HOLD_CONFLICT");
+    await client.submit(selected());
+    const first = f.calls.find(call => call.method === "POST");
+    assert.equal(client.state.phase, "selecting");
+    assert.deepEqual(f.calls.slice(-2).map(call => call.path), ["/api/me/hold", "/api/hold-options?eventId=" + EVENT]);
+    f.server.create = null;
+    await client.submit([{ zoneId: STANDING, quantity: 3 }]);
+    const second = f.calls.filter(call => call.method === "POST").at(-1);
+    assert.notEqual(second.headers["Idempotency-Key"], first.headers["Idempotency-Key"]);
+    assert.notEqual(second.body, first.body);
+});
+
+test("current active hold blocks new selection globally, and cancellation confirms a current read", async () => {
+    const f = fixture({ page: "current" }); f.server.hold = hold(); const client = f.create(); await client.refresh();
+    assert.equal(client.state.phase, "active");
+    assert.equal(f.calls.some(call => call.path.startsWith("/api/hold-options")), false);
+    await client.submit(selected());
+    assert.equal(f.calls.some(call => call.method === "POST"), false);
+    await client.cancel();
+    const post = f.calls.find(call => call.method === "POST");
+    assert.equal(post.path, "/api/holds/" + HOLD + "/cancel");
+    assert.equal(post.body, "{}");
+    assert.equal(client.state.phase, "expired");
+    assert.equal(f.calls.at(-1).path, "/api/me/hold");
+});
+
+test("uncertain cancellation retains its own key and cannot be replaced by create", async () => {
+    const f = fixture({ page: "current" }); f.server.hold = hold(); const client = f.create(); await client.refresh();
+    f.server.cancel = () => { throw new Error("network lost"); };
+    await client.cancel();
+    const command = client.state.pending;
+    const reloaded = f.create(); await reloaded.refresh(); await reloaded.submit(selected());
+    assert.equal(reloaded.state.pending.kind, "cancel");
+    f.server.cancel = null; await reloaded.retry();
+    const posts = f.calls.filter(call => call.method === "POST");
+    assert.equal(posts.length, 2);
+    assert.equal(posts[1].headers["Idempotency-Key"], command.key);
+    assert.equal(posts[1].body, "{}");
+});
+
+test("server anchored countdown ignores client wall clock and expires exactly at the deadline", async () => {
+    const f = fixture({ page: "current" }); f.server.hold = hold(); const client = f.create(); await client.refresh();
+    assert.equal(client.remaining(), 600000);
+    assert.equal(countdown(client.remaining()), "10:00");
+    f.advance(599999); assert.equal(countdown(client.remaining()), "00:01");
+    f.advance(1); assert.equal(countdown(client.remaining()), "00:00");
+    await client.cancel(); assert.equal(f.calls.some(call => call.method === "POST"), false);
+    assert.equal(currentHold({ serverTime: "2026-10-11T10:10:00Z", hold: hold() }).hold, null);
+});
+
+test("account changes never send another actor's persisted command", async () => {
+    const f = fixture(); const client = f.create(); await client.refresh();
+    f.server.create = (_, __, error) => error(503);
+    await client.submit(selected());
+    f.server.actor = OTHER;
+    await client.retry();
+    assert.equal(f.calls.filter(call => call.method === "POST").length, 1);
+    assert.equal(client.state.phase, "selecting");
+    assert.equal(client.state.pending, null);
+    assert.equal(f.values.has("tc:hold-command:v1:" + ACTOR), true);
+    const reloaded = f.create(); await reloaded.refresh();
+    assert.equal(reloaded.state.pending, null);
+});
+
+test("authentication failure hides the old hold and keeps the original pending command for the same actor", async () => {
+    const f = fixture(); const client = f.create(); await client.refresh();
+    f.server.create = (_, __, error) => error(503);
+    await client.submit(selected()); const saved = client.state.pending;
+    f.server.actor = null; await client.retry();
+    assert.equal(client.state.auth, true);
+    assert.equal(client.state.hold, null);
+    assert.equal(client.state.pending.key, saved.key);
+    assert.equal(f.calls.filter(call => call.method === "POST").length, 1);
+});
+
+test("blocked persistent storage cannot send a mutation or silently use memory-only retry keys", async () => {
+    const f = fixture(); const client = f.create({ storage: { getItem: () => null, setItem: () => { throw new Error("storage denied"); }, removeItem: () => {} } });
+    await client.refresh(); await client.submit(selected());
+    assert.equal(client.state.phase, "uncertain");
+    assert.equal(f.calls.filter(call => call.method === "POST").length, 0);
+    await client.retry();
+    assert.equal(f.calls.filter(call => call.method === "POST").length, 0);
+});
+
+test("concurrent submit clicks produce one immutable command and one POST", async () => {
+    const f = fixture(); const client = f.create(); await client.refresh();
+    let release;
+    f.server.create = async (_, reply) => { await new Promise(resolve => { release = resolve; }); f.server.hold = hold(); return reply(receipt("CREATED"), 201); };
+    const first = client.submit(selected());
+    await client.submit([{ zoneId: STANDING, quantity: 4 }]);
+    while (!release) await new Promise(resolve => setImmediate(resolve));
+    release(); await first;
+    assert.equal(f.calls.filter(call => call.method === "POST").length, 1);
+    assert.equal(JSON.parse(f.calls.find(call => call.method === "POST").body).selections[0].quantity, 2);
+});
+
+test("malformed success is uncertain and retry uses the saved key", async () => {
+    const f = fixture(); const client = f.create(); await client.refresh();
+    f.server.create = (_, reply) => reply({ data: receipt("CREATED") }, 201);
+    await client.submit(selected());
+    assert.equal(client.state.phase, "uncertain");
+    assert.equal(f.values.size, 1);
+    const key = client.state.pending.key;
+    f.server.create = null; await client.retry();
+    assert.equal(f.calls.filter(call => call.method === "POST").at(-1).headers["Idempotency-Key"], key);
+    assert.equal(client.state.phase, "active");
+});
+
+test("CSRF rejection keeps the same command and a fresh token can resolve it", async () => {
+    const f = fixture(); const client = f.create(); await client.refresh();
+    f.server.create = (_, __, error) => error(403, "CSRF_INVALID");
+    await client.submit(selected());
+    const key = client.state.pending.key;
+    assert.equal(client.state.auth, true);
+    f.server.create = null; await client.retry();
+    assert.equal(client.state.phase, "active");
+    assert.equal(f.calls.filter(call => call.method === "POST").at(-1).headers["Idempotency-Key"], key);
+    assert.equal(f.calls.filter(call => call.path === "/api/auth/csrf").length, 2);
+});
+
+test("a failed current read after confirmed mutation cannot turn the historical receipt into an active hold", async () => {
+    const f = fixture(); const client = f.create(); await client.refresh();
+    f.server.create = (_, reply) => { f.server.time = "invalid"; return reply(receipt("CREATED"), 201); };
+    await client.submit(selected());
+    assert.equal(client.state.phase, "uncertain");
+    assert.equal(client.state.hold, null);
+    assert.equal(client.state.pending, null);
+    assert.equal(f.values.size, 0);
+    f.server.time = TIME; f.server.hold = hold(); await client.refresh();
+    assert.equal(client.state.phase, "active");
+    assert.equal(f.calls.filter(call => call.method === "POST").length, 1);
+});
