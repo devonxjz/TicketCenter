@@ -81,6 +81,7 @@
 
     function total(items) { return items.reduce((sum, item) => sum + BigInt(item.unitPrice) * BigInt(item.quantity), 0n); }
     function vnd(value) { return BigInt(value).toLocaleString("vi-VN") + " đ"; }
+    const displayText = value => typeof value === "string" ? value.trim() : "";
     function countdown(milliseconds) {
         const seconds = Math.max(0, Math.ceil(milliseconds / 1000));
         return String(Math.floor(seconds / 60)).padStart(2, "0") + ":" + String(seconds % 60).padStart(2, "0");
@@ -399,13 +400,20 @@
             }
         }
         get("current-hold").hidden = !state.hold;
+        if (page === "current") get("hold-heading").textContent = displayText(state.hold?.eventTitle) || "Lượt giữ vé";
         if (!state.hold) return;
         const hold = state.hold;
-        get("hold-id").textContent = "Mã lượt giữ " + hold.id + " · Sự kiện " + hold.eventId;
+        if (page === "selection") get("hold-heading").textContent = displayText(hold.eventTitle) || "Lượt giữ vé";
+        get("hold-id").textContent = "Mã lượt giữ " + hold.id;
         get("hold-deadline").textContent = "Hết hạn lúc " + dateText(hold.expiresAt);
         get("hold-items").replaceChildren();
-        for (const item of hold.items) get("hold-items").append(element("li", "Khu " + item.zoneId +
-            (item.seatId ? " · Ghế " + item.seatId : " · Vé đứng") + " · " + item.quantity + " vé × " + vnd(item.unitPrice)));
+        for (const item of hold.items) {
+            const zone = displayText(item.zoneName);
+            const seat = displayText(item.seatLabel);
+            const ticket = item.seatId ? (seat ? "Ghế " + seat : "Vé ghế") : "Vé đứng";
+            get("hold-items").append(element("li", (zone ? "Khu " + zone + " · " : "") + ticket +
+                " · " + item.quantity + " vé × " + vnd(item.unitPrice)));
+        }
         get("hold-total").textContent = vnd(total(hold.items));
         const view = get("hold-view");
         view.href = context + (page === "selection" ? "/checkout" : "/event-detail?id=" + encodeURIComponent(hold.eventId));

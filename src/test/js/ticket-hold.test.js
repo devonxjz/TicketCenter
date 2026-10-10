@@ -519,3 +519,52 @@ for (const pathToDelay of ["/api/auth/csrf", "/api/me"]) {
         assert.equal(f.calls.filter(call => call.method === "POST").length, 0);
     });
 }
+
+test("production summary renders optional snapshot labels as text and omits raw inventory and event UUIDs", async () => {
+    const f = fixture({ page: "current" });
+    f.server.hold = { ...hold(), eventTitle: "Concert <img src=x onerror=alert(1)>", items: [
+        { zoneId: SEATED, seatId: SEAT, quantity: 1, unitPrice: "200000", zoneName: "Balcony", seatLabel: "A1 <svg onload=alert(1)>" },
+        { ...hold().items[0], zoneName: "Floor" }
+    ] };
+    class Element {
+        constructor(tag = "div") { this.tag = tag; this.dataset = {}; this.children = []; this.textContent = ""; }
+        set innerHTML(_) { assert.fail("API text must never be parsed as HTML"); }
+        set outerHTML(_) { assert.fail("API text must never be parsed as HTML"); }
+        append(...nodes) { this.children.push(...nodes); }
+        replaceChildren(...nodes) { this.children = nodes; }
+        addEventListener() {}
+        querySelectorAll() { return []; }
+    }
+    const nodes = new Map(); const events = new Map();
+    const body = new Element(); body.dataset = { holdPage: "current", context: "" };
+    const root = { document: { body, createElement: tag => new Element(tag), getElementById: id => {
+        if (id === "hold-form") return null;
+        if (!nodes.has(id)) nodes.set(id, new Element());
+        return nodes.get(id);
+    } }, sessionStorage: f.storage, crypto: { randomUUID: () => "60000000-0000-4000-8000-000000000001" },
+        performance: { now: () => 0 }, location: { search: "" }, fetch: f.create().fetch,
+        setInterval: () => 1, clearInterval: () => {}, addEventListener: (name, fn) => events.set(name, fn) };
+    const flush = async () => { for (let i = 0; i < 5; i++) await new Promise(resolve => setImmediate(resolve)); };
+    vm.runInNewContext(fs.readFileSync(require.resolve("../../main/webapp/assets/js/ticket-hold.js"), "utf8"), { window: root, URLSearchParams });
+    await flush();
+    assert.equal(body.dataset.holdState, "active");
+    assert.equal(nodes.get("hold-heading").textContent, "Concert <img src=x onerror=alert(1)>");
+    assert.deepEqual(nodes.get("hold-items").children.map(node => node.textContent), [
+        "Khu Balcony · Ghế A1 <svg onload=alert(1)> · 1 vé × 200.000 đ", "Khu Floor · Vé đứng · 2 vé × 150.000 đ"
+    ]);
+    assert.equal(nodes.get("hold-items").children.every(node => node.tag === "li" && node.children.length === 0), true);
+    assert.equal(nodes.get("hold-total").textContent, "500.000 đ");
+    assert.equal(nodes.get("hold-id").textContent, "Mã lượt giữ " + HOLD);
+    const visible = [nodes.get("hold-heading").textContent, nodes.get("hold-id").textContent,
+        ...nodes.get("hold-items").children.map(node => node.textContent)].join(" ");
+    for (const id of [EVENT, STANDING, SEATED, SEAT]) assert.equal(visible.includes(id), false);
+    f.server.hold = { ...hold(), eventTitle: { invalid: true }, items: [
+        { zoneId: SEATED, seatId: SEAT, quantity: 1, unitPrice: "200000", zoneName: 123, seatLabel: {} },
+        { ...hold().items[0], zoneName: " " }
+    ] };
+    events.get("pageshow")({ persisted: true }); await flush();
+    assert.equal(nodes.get("hold-heading").textContent, "Lượt giữ vé");
+    assert.deepEqual(nodes.get("hold-items").children.map(node => node.textContent), [
+        "Vé ghế · 1 vé × 200.000 đ", "Vé đứng · 2 vé × 150.000 đ"
+    ]);
+});
