@@ -1,0 +1,12 @@
+<%@ page contentType="text/html;charset=UTF-8" %>
+<%@ page import="vn.ticketscenter.settlement.controller.FinanceHtml" %>
+<!doctype html><html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Quyết toán · TicketCenter</title><link rel="stylesheet" href="<%= FinanceHtml.escape(request.getContextPath()) %>/assets/css/finance.css"></head>
+<body><main id="finance-app" data-context="<%= FinanceHtml.escape(request.getContextPath()) %>" data-page="settlements" data-csrf="<%= FinanceHtml.escape(request.getAttribute("csrf")) %>" data-payout-mode="<%= FinanceHtml.escape(request.getAttribute("payoutMode")) %>">
+<nav> <a href="<%= FinanceHtml.escape(request.getContextPath()) %>/finance/commission">Hoa hồng</a>  </nav>
+<h1>Quyết toán sự kiện</h1><label>Sự kiện <select id="event" required><option value="">Chọn sự kiện</option><%= FinanceHtml.options(request.getAttribute("events"),"title") %></select></label>
+<p id="notice" role="status" aria-live="polite"></p><dl id="summary"></dl><h2>Giao dịch cần giải quyết</h2><ul id="blockers"></ul>
+<div class="actions"><button id="recalculate" disabled>Tính lại bảng kê</button><button id="confirm" disabled>Chốt quyết toán</button></div>
+<h2>Chi trả</h2><% if ("fixture-simulated".equals(request.getAttribute("payoutMode"))) { %><p>Chế độ kiểm thử: lệnh chi trả được mô phỏng, không chuyển tiền ngân hàng thật.</p><% } else { %><p>Chưa kết nối dịch vụ chi trả. Bạn vẫn có thể chốt bảng kê và xem lịch sử.</p><% } %>
+<form id="payout-form"><label>Số tiền (VND)<input name="amount" inputmode="numeric" pattern="[0-9]+" required></label><label>Số tài khoản<input name="bankAccountNumber" maxlength="64" required></label><label>Ngân hàng<input name="bankName" maxlength="100" required></label><label>Tên chủ tài khoản<input name="accountHolderName" maxlength="200" required></label><label>Ghi chú<input name="note" maxlength="500"></label><button id="payout-submit" type="submit" disabled>Tạo lệnh chi trả</button><button id="reconcile" type="button" hidden>Xác minh lại kết quả đang chờ</button></form>
+<h2>Lịch sử chi trả</h2><div class="scroll"><table><thead><tr><th>Thời gian</th><th>Số tiền (VND)</th><th>Trạng thái</th><th>Mã chuyển tiền</th></tr></thead><tbody id="payouts"></tbody></table></div>
+</main><script src="<%= FinanceHtml.escape(request.getContextPath()) %>/assets/js/finance-workbench.js" defer></script></body></html>

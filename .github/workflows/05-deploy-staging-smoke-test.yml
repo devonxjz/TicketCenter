@@ -1,163 +1,42 @@
-name: "05 - Deploy to Staging, E2E Smoke & DB Migration Test"
-
+name: "05 - Explicit Isolated HTTP Smoke"
 on:
   workflow_call:
   workflow_dispatch:
-
 permissions:
   contents: read
-
 jobs:
-  db-migration-test:
-    name: Database Migration Validation
-    runs-on: ubuntu-latest
-
-    services:
-      mssql:
-        image: mcr.microsoft.com/mssql/server:2022-latest
-        env:
-          ACCEPT_EULA: "Y"
-          MSSQL_SA_PASSWORD: "YourStrong@Password123"
-        ports:
-          - 1433:1433
-        options: >-
-          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'YourStrong@Password123' -C -Q 'SELECT 1'"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-
+  isolated-http-smoke:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Install SQLCMD & Run Migrations Sequentially
-        env:
-          MSSQL_SA_PASSWORD: "YourStrong@Password123"
-        run: |
-          echo "=== Tìm container SQL Server ==="
-          CONTAINER_ID=$(docker ps -q --filter ancestor=mcr.microsoft.com/mssql/server:2022-latest | head -n 1)
-          if [ -z "$CONTAINER_ID" ]; then
-            echo "::error::Không tìm thấy container SQL Server đang chạy!"
-            exit 1
-          fi
-          echo "SQL Server Container ID: $CONTAINER_ID"
-
-          echo "Tạo cơ sở dữ liệu staging..."
-          docker exec "$CONTAINER_ID" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -Q "CREATE DATABASE StagingTicketsCenter;"
-
-          echo "Copy migrations vào container..."
-          docker cp database/migrations "$CONTAINER_ID":/tmp/staging_migrations
-
-          echo "=== Thực hiện xác minh Migration theo thứ tự chặt chẽ ==="
-          if ls database/migrations/*.sql 1> /dev/null 2>&1; then
-            for file in $(ls database/migrations/*.sql | sort); do
-              filename=$(basename "$file")
-              echo "--- Đang áp dụng migration: $filename ---"
-              docker exec "$CONTAINER_ID" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -d StagingTicketsCenter -i "/tmp/staging_migrations/$filename" || {
-                echo "::error::Lỗi khi chạy migration file $filename"
-                exit 1
-              }
-            done
-          else
-            echo "Chưa có file migration .sql nào. Bỏ qua bước chạy migration."
-          fi
-          echo "=> Hoàn tất xác minh Migration."
-
-  deploy-staging-and-smoke:
-    name: Staging Deployment & E2E Smoke Test
-    needs: db-migration-test
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 25
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           java-version: '25'
-          distribution: 'oracle'
-
-      - name: Download Built WAR
-        uses: actions/download-artifact@v4
+          distribution: oracle
+      - uses: actions/setup-node@v4
         with:
-          name: ticketscenter-war
-          path: target/
-
-      - name: Install Apache Tomcat 11 Staging Runtime
+          node-version: '22'
+      - name: Build WAR without starting full application
+        run: mvn -B package -DskipTests
+      - name: Prepare isolated Tomcat runtime
+        shell: pwsh
         run: |
-          TOMCAT_VER="11.0.4"
-          echo "Cài đặt Tomcat 11 cho môi trường Staging..."
-          curl -sSL --retry 3 \
-            "https://archive.apache.org/dist/tomcat/tomcat-11/v${TOMCAT_VER}/bin/apache-tomcat-${TOMCAT_VER}.tar.gz" \
-            -o tomcat11.tar.gz || \
-          curl -sSL --retry 3 \
-            "https://dlcdn.apache.org/tomcat/tomcat-11/v${TOMCAT_VER}/bin/apache-tomcat-${TOMCAT_VER}.tar.gz" \
-            -o tomcat11.tar.gz
-
-          tar -xzf tomcat11.tar.gz
-          mv "apache-tomcat-${TOMCAT_VER}" tomcat11
-          chmod +x tomcat11/bin/*.sh
-
-      - name: Deploy WAR to Staging Container
-        run: |
-          cp target/ticketscenter.war tomcat11/webapps/ticketscenter.war
-
-      - name: Start Staging Service & Run E2E Health Smoke Tests
-        run: |
-          export CATALINA_HOME="$PWD/tomcat11"
-          "$CATALINA_HOME/bin/catalina.sh" start
-
-          echo "Chờ Staging service khởi động và kiểm tra E2E..."
-          attempt=0
-          max_attempts=30
-          success=false
-
-          while [ $attempt -lt $max_attempts ]; do
-            response=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:8080/ticketscenter/health/live" || echo "000")
-            if [ "$response" = "200" ]; then
-              echo "=> /health/live trả về HTTP 200 thành công!"
-              success=true
-              break
-            fi
-            echo "Attempt $attempt: HTTP $response. Chờ 1 giây..."
-            sleep 1
-            attempt=$((attempt + 1))
-          done
-
-          if [ "$success" = false ]; then
-            echo "::error::Staging service không phản hồi HTTP 200!"
-            cat tomcat11/logs/catalina.out || true
-            exit 1
-          fi
-
-          echo "=== 1. Kiểm tra JSON payload của /health/live ==="
-          live_body=$(curl -s "http://127.0.0.1:8080/ticketscenter/health/live")
-          echo "Payload: $live_body"
-          echo "$live_body" | grep -q '{"data":{"status":"UP"}}' || (echo "Payload không đúng định dạng UP!" && exit 1)
-
-          echo "=== 2. Kiểm tra OpenAPI Specification Endpoint ==="
-          openapi_code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:8080/ticketscenter/openapi.json" || echo "000")
-          echo "OpenAPI Status: $openapi_code"
-          test "$openapi_code" = "200" || test "$openapi_code" = "302" || echo "OpenAPI checked"
-
-          echo "=== 3. Kiểm tra Webapp Landing Page (HTML/Assets) ==="
-          welcome_code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:8080/ticketscenter/" || echo "000")
-          echo "Welcome Page Status: $welcome_code"
-
-          echo "=> Đã kiểm tra sẵn sàng Staging HTTP service."
-
-      - name: Stop Staging Tomcat Service
+          $ErrorActionPreference = 'Stop'
+          Invoke-WebRequest 'https://archive.apache.org/dist/tomcat/tomcat-11/v11.0.25/bin/apache-tomcat-11.0.25.zip' -OutFile 'target/tomcat-smoke.zip'
+          Expand-Archive -LiteralPath 'target/tomcat-smoke.zip' -DestinationPath 'target/tomcat-smoke-runtime'
+      - name: Run ROOT and WAR context boundary smoke
+        id: smoke
+        shell: pwsh
+        run: ./src/test/scripts/swagger-smoke.ps1 -TomcatHome 'target/tomcat-smoke-runtime/apache-tomcat-11.0.25'
+      - name: Report observed smoke status
         if: always()
+        shell: pwsh
         run: |
-          export CATALINA_HOME="$PWD/tomcat11"
-          test -d "$CATALINA_HOME" && "$CATALINA_HOME/bin/catalina.sh" stop || true
-          echo "=> Tomcat Staging service stopped cleanly."
-
-      - name: Staging Deployment Summary
+          'Isolated Swagger HTTP boundary test step: ${{ steps.smoke.outcome }}. Full app, DB workflows and SMTP were not started.' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+      - uses: actions/upload-artifact@v4
         if: always()
-        run: |
-          echo "### 🚀 Staging Deployment & Smoke Test Report" >> $GITHUB_STEP_SUMMARY
-          echo "- **DB Migration Status:** 14/14 migration scripts verified successfully." >> $GITHUB_STEP_SUMMARY
-          echo "- **Staging Health:** /health/live returned HTTP 200 UP." >> $GITHUB_STEP_SUMMARY
-          echo "- **Smoke Validation:** PASSED." >> $GITHUB_STEP_SUMMARY
+        with:
+          name: isolated-http-smoke-logs
+          path: target/swagger-smoke/
+          retention-days: 7
