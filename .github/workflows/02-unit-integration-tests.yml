@@ -1,163 +1,231 @@
-name: "02 - Unit & Integration Tests"
-
+name: "02 - Safe Unit Tests and Opt-in Database Tests"
 on:
   workflow_call:
+    inputs:
+      run_db_tests:
+        type: boolean
+        default: false
   workflow_dispatch:
-
+    inputs:
+      run_db_tests:
+        description: "Run actual database tests in a disposable SQL Server fixture"
+        type: boolean
+        default: false
 permissions:
   contents: read
-  checks: write
-
 jobs:
   unit-tests:
-    name: Unit Tests & Code Coverage
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 25
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           java-version: '25'
-          distribution: 'oracle'
-          cache: 'maven'
-
-      - name: Run All Unit Tests
-        run: |
-          echo "=== Thực thi toàn bộ bộ Unit Test hệ thống TicketsCenter ==="
-          mvn -B test
-
-      - name: Generate Code Coverage Summary
-        if: always()
-        run: |
-          echo "### 🧪 Unit Test Execution Report" >> $GITHUB_STEP_SUMMARY
-          echo "- **Framework:** JUnit 5 / Surefire" >> $GITHUB_STEP_SUMMARY
-          echo "- **Test Suites:** Identity, Event, Ticketing (Hold), Order, Coupon, Payment, Fulfillment" >> $GITHUB_STEP_SUMMARY
-          echo "- **Trạng thái:** Toàn bộ Unit Tests PASS hoàn hảo." >> $GITHUB_STEP_SUMMARY
-
-      - name: Upload Test Reports
-        if: always()
-        uses: actions/upload-artifact@v4
+          distribution: oracle
+          cache: maven
+      - uses: actions/setup-node@v4
         with:
-          name: surefire-unit-reports
+          node-version: '22'
+      - name: Safe default Java tests
+        run: mvn -B clean test
+      - name: Finance mutation UI and contract-support tests
+        run: node --test src/test/js/swagger-initializer.test.cjs src/test/scripts/test-report-summary.test.cjs src/test/js/finance-workbench.test.cjs src/test/js/finance-reports.test.cjs
+      - name: Actual Java test totals
+        if: always()
+        run: node src/test/scripts/test-report-summary.cjs target/surefire-reports --summary="$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: surefire-safe-unit-reports
           path: target/surefire-reports/
           retention-days: 7
-
-  integration-tests:
-    name: Integration Tests (SQL Server Container)
+  redis-tests:
+    if: github.event_name == 'workflow_dispatch' && inputs.run_db_tests == true
     runs-on: ubuntu-latest
-
+    env:
+      TC_REDIS_TEST_PORT: '16379'
+    services:
+      redis:
+        image: redis:7.4
+        ports:
+          - 16379:6379
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: oracle
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Mark standalone disposable Redis fixture
+        run: |
+          set -euo pipefail
+          container=$(docker ps -q --filter ancestor=redis:7.4)
+          test -n "$container"
+          docker exec "$container" redis-cli SET tc:fixture:vuong-finance-v1 vuong-finance-v1
+      - name: Verify actual cache TTL invalidation and server outage
+        run: mvn -B test -Dtest=FinanceRedisRuntimeTest -Dtc.tests.redis=true -Dredis.host=127.0.0.1 -Dredis.port=16379 -Dredis.password= -Dredis.timeout=250 -Dfinance.redis.enabled=true
+      - name: Require the actual Redis case without skips
+        if: always()
+        run: node src/test/scripts/test-report-summary.cjs target/surefire-reports --require-no-skips --require-suite=vn.ticketscenter.settlement.service.FinanceRedisRuntimeTest --summary="$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: surefire-opt-in-redis-reports
+          path: target/surefire-reports/
+          retention-days: 7
+  database-tests:
+    if: github.event_name == 'workflow_dispatch' && inputs.run_db_tests == true
+    runs-on: ubuntu-latest
+    env:
+      TC_TEST_SQL_PASSWORD: ${{ format('TCci_{0}_Aa!', github.run_id) }}
     services:
       mssql:
         image: mcr.microsoft.com/mssql/server:2022-latest
         env:
-          ACCEPT_EULA: "Y"
-          MSSQL_SA_PASSWORD: "YourStrong@Password123"
+          ACCEPT_EULA: 'Y'
+          MSSQL_SA_PASSWORD: ${{ format('TCci_{0}_Aa!', github.run_id) }}
         ports:
           - 1433:1433
-        options: >-
-          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'YourStrong@Password123' -C -Q 'SELECT 1'"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 25
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           java-version: '25'
-          distribution: 'oracle'
-          cache: 'maven'
-
-      - name: Initialize SQL Server Database & Apply Migrations
-        env:
-          MSSQL_SA_PASSWORD: "YourStrong@Password123"
-        run: |
-          echo "=== Tìm container SQL Server ==="
-          CONTAINER_ID=$(docker ps -q --filter ancestor=mcr.microsoft.com/mssql/server:2022-latest | head -n 1)
-          if [ -z "$CONTAINER_ID" ]; then
-            echo "::error::Không tìm thấy container SQL Server đang chạy!"
-            exit 1
-          fi
-          echo "SQL Server Container ID: $CONTAINER_ID"
-
-          echo "Tạo database TicketCenterticke trên SQL Server..."
-          docker exec "$CONTAINER_ID" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -Q "CREATE DATABASE TicketCenterticke;"
-
-          echo "Copy migrations vào container..."
-          docker cp database/migrations "$CONTAINER_ID":/tmp/migrations
-
-          echo "Áp dụng toàn bộ migrations theo thứ tự..."
-          if ls database/migrations/*.sql 1> /dev/null 2>&1; then
-            for file in $(ls database/migrations/*.sql | sort); do
-              filename=$(basename "$file")
-              echo "Running migration: $filename"
-              docker exec "$CONTAINER_ID" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -d TicketCenterticke -i "/tmp/migrations/$filename" || {
-                echo "::error::Lỗi khi chạy migration: $filename"
-                exit 1
-              }
-            done
-          else
-            echo "Chưa có file migration .sql nào. Bỏ qua bước chạy migration."
-          fi
-          echo "=> Hoàn tất kiểm tra migration SQL Server."
-
-      - name: Run SQL Server Integration Tests (Failsafe IT)
-        env:
-          TC_SQL_HOST: "127.0.0.1"
-          TC_SQL_PORT: "1433"
-          TC_SQL_DEV_DB: "TicketCenterticke"
-          TC_SQL_TEST_DB: "TicketCenterticke"
-          TC_SQL_LOGIN: "sa"
-          TC_SQL_PASSWORD: "YourStrong@Password123"
-          TC_SQL_ENCRYPT: "false"
-          TC_SQL_TRUST_SERVER_CERT: "true"
-          DB_HOST: "127.0.0.1"
-          DB_PORT: "1433"
-          DB_NAME: "TicketCenterticke"
-          DB_USER: "sa"
-          DB_PASSWORD: "YourStrong@Password123"
-          DB_ENCRYPT: "false"
-          DB_TRUSTSERVERCERTIFICATE: "true"
-        run: |
-          echo "=== Chạy Failsafe Integration Tests (Day06IT, Day07IT, Day08IT, Day09IT, Day11IT) ==="
-          mvn -B -Psqlserver-it verify \
-            -Dsurefire.failIfNoSpecifiedTests=false \
-            -Dfailsafe.failIfNoSpecifiedTests=false \
-            -Dtest=__none__ \
-            -Ddb.host=127.0.0.1 \
-            -Ddb.port=1433 \
-            -Ddb.name=TicketCenterticke \
-            -Ddb.user=sa \
-            -Ddb.password="YourStrong@Password123" \
-            -Ddb.encrypt=false \
-            -Ddb.trustServerCertificate=true \
-            -DTC_SQL_HOST=127.0.0.1 \
-            -DTC_SQL_PORT=1433 \
-            -DTC_SQL_TEST_DB=TicketCenterticke \
-            -DTC_SQL_LOGIN=sa \
-            -DTC_SQL_PASSWORD="YourStrong@Password123" \
-            -DTC_SQL_ENCRYPT=false \
-            -DTC_SQL_TRUST_SERVER_CERT=true \
-            -Dit.test="Day06IT,Day07IT,Day08IT,Day09IT,Day11IT"
-
-      - name: Generate Integration Test Summary
-        if: always()
-        run: |
-          echo "### 🗄️ Database Integration Test Report" >> $GITHUB_STEP_SUMMARY
-          echo "- **Target Database:** Microsoft SQL Server 2022 (Container)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Integration Suites:** Day06IT (Org), Day07IT (Event), Day08IT (Hold), Day09IT (Order), Day11IT (Fulfillment)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Trạng thái:** Toàn bộ Integration Tests PASS trên database thực tế." >> $GITHUB_STEP_SUMMARY
-
-      - name: Upload Integration Test Reports
-        if: always()
-        uses: actions/upload-artifact@v4
+          distribution: oracle
+          cache: maven
+      - uses: actions/setup-node@v4
         with:
-          name: failsafe-integration-reports
-          path: target/failsafe-reports/
+          node-version: '22'
+      - name: Initialize dedicated UUID fixture and finance migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "::add-mask::$TC_TEST_SQL_PASSWORD"
+          test -f database/tests/vuong/001_uuid_test_schema.sql
+          test -f database/migrations/027_team_schema_adapter.sql
+          test -f database/migrations/027_vuong_finance.sql
+          container=$(docker ps -q --filter ancestor=mcr.microsoft.com/mssql/server:2022-latest)
+          test -n "$container"
+          ready=false
+          for attempt in $(seq 1 30); do
+            if docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$TC_TEST_SQL_PASSWORD" -C -b -Q 'SELECT 1' >/dev/null 2>&1; then
+              ready=true
+              break
+            fi
+            sleep 2
+          done
+          test "$ready" = true
+          database="TC_Vuong_Test_CI_${GITHUB_RUN_ID}"
+          docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$TC_TEST_SQL_PASSWORD" -C -b -Q "CREATE DATABASE [$database];"
+          docker cp database/tests/vuong/001_uuid_test_schema.sql "$container":/tmp/vuong_fixture.sql
+          docker cp database/migrations/027_team_schema_adapter.sql "$container":/tmp/vuong_adapter.sql
+          docker cp database/migrations/027_vuong_finance.sql "$container":/tmp/vuong_finance.sql
+          docker cp database/migrations/028_vuong_report_checkins.sql "$container":/tmp/vuong_report_checkins.sql
+          docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$TC_TEST_SQL_PASSWORD" -C -b -d "$database" -i /tmp/vuong_fixture.sql
+          docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$TC_TEST_SQL_PASSWORD" -C -b -d "$database" -i /tmp/vuong_adapter.sql
+          docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$TC_TEST_SQL_PASSWORD" -C -b -d "$database" -i /tmp/vuong_finance.sql
+          docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$TC_TEST_SQL_PASSWORD" -C -b -d "$database" -i /tmp/vuong_report_checkins.sql
+      - name: Run financial contract guardrail temporal and permission assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          container=$(docker ps -q --filter ancestor=mcr.microsoft.com/mssql/server:2022-latest)
+          test -n "$container"
+          database="TC_Vuong_Test_CI_${GITHUB_RUN_ID}"
+          mkdir -p target/finance-sql
+          for suite in finance_contract finance_guardrails finance_evidence_guardrails finance_temporal finance_permissions; do
+            docker cp "database/tests/vuong/$suite.sql" "$container":/tmp/finance_assertions.sql
+            docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$TC_TEST_SQL_PASSWORD" -C -b -I -d "$database" -i /tmp/finance_assertions.sql -v Case=ALL >"target/finance-sql/$suite.log"
+          done
+      - name: Run six actual concurrent SQL sessions
+        shell: bash
+        run: |
+          set -euo pipefail
+          container=$(docker ps -q --filter ancestor=mcr.microsoft.com/mssql/server:2022-latest)
+          test -n "$container"
+          database="TC_Vuong_Test_CI_${GITHUB_RUN_ID}"
+          run_id=$(cat /proc/sys/kernel/random/uuid)
+          mkdir -p target/finance-sql
+          docker cp database/tests/vuong/finance_concurrency.sql "$container":/tmp/finance_concurrency.sql
+          sql_mode() {
+            docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$TC_TEST_SQL_PASSWORD" -C -b -I -d "$database" -i /tmp/finance_concurrency.sql -v "RunId=$run_id" "Mode=$1" >"target/finance-sql/$1.log"
+          }
+          sql_mode SETUP
+          for pair in 'CAPACITY_A CAPACITY_B' 'REPLAY_A REPLAY_B' 'REFUND_A CONFIRM_B' 'PUBLISH_A EDIT_B' 'EVIDENCE_A EVIDENCE_CONFIRM_B' 'EVIDENCE_CONFIRM_A EVIDENCE_WRITE_B'; do
+            read -r first second <<<"$pair"
+            sql_mode "$first" &
+            contender=$!
+            ready=false
+            for attempt in $(seq 1 100); do
+              if grep -q 'LOCKED:' "target/finance-sql/$first.log"; then ready=true; break; fi
+              if ! kill -0 "$contender" 2>/dev/null; then break; fi
+              sleep 0.1
+            done
+            if [ "$ready" != true ]; then wait "$contender" || true; exit 1; fi
+            sql_mode "$second"
+            wait "$contender"
+          done
+          sql_mode ASSERT
+      - name: Run finance JDBC cases with explicit opt-in and no SMTP
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f src/test/java/vn/ticketscenter/settlement/repository/FinanceRepositoryIntegrationTest.java
+          test -f src/test/java/vn/ticketscenter/report/integration/ReadsideDatabaseIntegrationTest.java
+          test -f src/test/java/vn/ticketscenter/audit/repository/AuditDatabaseScopeIntegrationTest.java
+          database="TC_Vuong_Test_CI_${GITHUB_RUN_ID}"
+          export DB_NAME="$database"
+          export DB_URL="jdbc:sqlserver://127.0.0.1:1433;databaseName=$database;loginTimeout=5;encrypt=false;trustServerCertificate=true"
+          export DB_USER=sa
+          export DB_PASSWORD="$TC_TEST_SQL_PASSWORD"
+          export DB_ADMIN_USER="$DB_USER" DB_ADMIN_PASSWORD="$DB_PASSWORD"
+          mvn -B test -Dtc.tests.db=true -Dtc.tests.smtp=false \
+            -Dtc.tests.db.name="$database" \
+            -Dtest='FinanceRepositoryIntegrationTest,ReadsideDatabaseIntegrationTest,AuditDatabaseScopeIntegrationTest'
+      - name: Require actual executed DB cases without skips
+        if: always()
+        run: node src/test/scripts/test-report-summary.cjs target/surefire-reports --require-no-skips --require-suite=vn.ticketscenter.settlement.repository.FinanceRepositoryIntegrationTest --require-suite=vn.ticketscenter.report.integration.ReadsideDatabaseIntegrationTest --require-suite=vn.ticketscenter.audit.repository.AuditDatabaseScopeIntegrationTest --summary="$GITHUB_STEP_SUMMARY"
+      - name: Initialize schema-only team snapshot in a second disposable database
+        shell: bash
+        run: |
+          set -euo pipefail
+          container=$(docker ps -q --filter ancestor=mcr.microsoft.com/mssql/server:2022-latest)
+          test -n "$container"
+          database="TC_Vuong_Test_TeamSchema_${GITHUB_RUN_ID}"
+          docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$TC_TEST_SQL_PASSWORD" -C -b -Q "CREATE DATABASE [$database];"
+          docker cp database/tests/vuong/002_team_schema_snapshot.sql "$container":/tmp/team_schema.sql
+          docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$TC_TEST_SQL_PASSWORD" -C -b -d "$database" -i /tmp/team_schema.sql
+          docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$TC_TEST_SQL_PASSWORD" -C -b -d "$database" -i /tmp/vuong_adapter.sql
+          docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$TC_TEST_SQL_PASSWORD" -C -b -d "$database" -i /tmp/vuong_finance.sql
+          docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$TC_TEST_SQL_PASSWORD" -C -b -d "$database" -i /tmp/vuong_report_checkins.sql
+      - name: Run actual team-schema JDBC and ten-thousand-order CSV acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          database="TC_Vuong_Test_TeamSchema_${GITHUB_RUN_ID}"
+          export DB_NAME="$database"
+          export DB_URL="jdbc:sqlserver://127.0.0.1:1433;databaseName=$database;loginTimeout=5;encrypt=false;trustServerCertificate=true"
+          export DB_USER=sa DB_PASSWORD="$TC_TEST_SQL_PASSWORD"
+          export DB_ADMIN_USER="$DB_USER" DB_ADMIN_PASSWORD="$DB_PASSWORD"
+          mvn -B test -Dtc.tests.db=true -Dtc.tests.smtp=false \
+            -Dtc.tests.db.name="$database" -DargLine=-Xmx128m \
+            -Dtest=FinanceTeamSchemaIntegrationTest
+      - name: Require actual team-schema cases without skips
+        if: always()
+        run: node src/test/scripts/test-report-summary.cjs target/surefire-reports --require-no-skips --require-suite=vn.ticketscenter.settlement.repository.FinanceTeamSchemaIntegrationTest --summary="$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: surefire-opt-in-db-reports
+          path: target/surefire-reports/
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: finance-sql-assertions
+          path: target/finance-sql/
           retention-days: 7

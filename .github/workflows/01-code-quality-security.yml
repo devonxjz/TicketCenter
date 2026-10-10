@@ -30,6 +30,7 @@ jobs:
           mvn -B clean compile test-compile -DskipTests
 
       - name: Enforce Architecture & Naming Invariants
+        id: architecture
         run: |
           echo "=== Chạy kiểm tra quy chuẩn kiến trúc Package-by-Feature ==="
           mvn -B test -Dtest=FeaturePackageStructureTest
@@ -39,8 +40,8 @@ jobs:
         run: |
           echo "### 🔍 Code Quality & Lint Report" >> $GITHUB_STEP_SUMMARY
           echo "- **Java Version:** JDK 25 (Oracle Distribution)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Architecture Check:** FeaturePackageStructureTest passed cleanly." >> $GITHUB_STEP_SUMMARY
-          echo "- **Servlet Mappings:** 100% Unique, không có duplicate url-pattern." >> $GITHUB_STEP_SUMMARY
+          echo "- **Architecture Test Step:** ${{ steps.architecture.outcome }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Scope:** package structure only; servlet mapping and business acceptance are separate gates." >> $GITHUB_STEP_SUMMARY
 
   secret-scan:
     name: Secret & Credential Leak Scan
@@ -94,6 +95,5 @@ jobs:
       - name: Security Scan Summary
         if: always()
         run: |
-          echo "### 🛡️ Security & SAST Scan Completed" >> $GITHUB_STEP_SUMMARY
-          echo "- **Secret Leak Scan:** Pass (Gitleaks + Sensitive file pattern scanner)" >> $GITHUB_STEP_SUMMARY
-          echo "- **SAST Scan:** Semgrep OWASP Top 10 rules executed" >> $GITHUB_STEP_SUMMARY
+          echo "### Security and SAST execution" >> $GITHUB_STEP_SUMMARY
+          echo "- Review each scan step outcome and findings; warning-only scans do not establish clean acceptance." >> $GITHUB_STEP_SUMMARY

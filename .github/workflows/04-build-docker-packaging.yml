@@ -2,6 +2,10 @@ name: "04 - Production Build & Docker Image Packaging"
 
 on:
   workflow_call:
+    inputs:
+      publish_images:
+        type: boolean
+        default: false
     outputs:
       image_tag:
         description: "Docker image tag"
@@ -10,6 +14,11 @@ on:
         description: "Full Docker image name with registry"
         value: ${{ jobs.build-and-package.outputs.image_name }}
   workflow_dispatch:
+    inputs:
+      publish_images:
+        description: "Explicitly publish image on main/dev"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -72,7 +81,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to GitHub Container Registry (GHCR)
-        if: github.actor != 'dependabot[bot]'
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_images == true && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') && github.actor != 'dependabot[bot]'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -100,7 +109,7 @@ jobs:
           exit-code: '0'
 
       - name: Push Docker Image to GHCR
-        if: github.event_name != 'pull_request' && github.actor != 'dependabot[bot]'
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_images == true && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') && github.actor != 'dependabot[bot]'
         run: |
           docker push ${{ steps.meta.outputs.image_name }}:${{ steps.meta.outputs.short_sha }}
           docker push ${{ steps.meta.outputs.image_name }}:latest

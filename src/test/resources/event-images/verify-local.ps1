@@ -23,7 +23,7 @@ try {
             & java -cp $taskClasspath vn.ticketscenter.event.integration.EventImageWebFixture serve-local-test
             $taskResult = $LASTEXITCODE
         } else {
-            & mvn -B '-Dtest=EventImageSqlIT,EventImageHttpIT' test
+            & mvn -B '-Dtest=EventImageSqlIT,EventImageHttpIT' '-Djunit.jupiter.extensions.autodetection.enabled=false' test
             $taskResult = $LASTEXITCODE
         }
     } finally { Pop-Location }
