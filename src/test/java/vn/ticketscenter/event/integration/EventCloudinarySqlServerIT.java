@@ -18,6 +18,8 @@ class EventCloudinarySqlServerIT {
         var provider=CloudinaryStorageService.fromEnvironment();List<StoredAsset> uploaded=new ArrayList<>();
         StorageService tracking=new StorageService(){
             public StoredAsset upload(InputStream input,String folder) throws IOException {var asset=provider.upload(input,folder);uploaded.add(asset);return asset;}
+            public StoredAsset ensure(InputStream input,String id) throws IOException {return provider.ensure(input,id);}
+            public Optional<StoredAsset> find(String id) throws IOException {return provider.find(id);}
             public void delete(String id) throws IOException {provider.delete(id);}
             public String getUrl(String id){return provider.getUrl(id);}
         };

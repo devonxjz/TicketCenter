@@ -23,6 +23,8 @@ public final class EventManagementRuntime {
             // Missing provider credentials must not disable draft/inventory/review endpoints.
             StorageService storage=new StorageService() {
                 public StoredAsset upload(InputStream content,String folder) throws IOException { return CloudinaryStorageService.fromEnvironment().upload(content,folder); }
+                public StoredAsset ensure(InputStream content,String id) throws IOException { return CloudinaryStorageService.fromEnvironment().ensure(content,id); }
+                public java.util.Optional<StoredAsset> find(String id) throws IOException { return CloudinaryStorageService.fromEnvironment().find(id); }
                 public void delete(String publicId) throws IOException { CloudinaryStorageService.fromEnvironment().delete(publicId); }
                 public String getUrl(String publicId) { return CloudinaryStorageService.fromEnvironment().getUrl(publicId); }
             };

@@ -3,7 +3,7 @@
 <!-- Left Sidebar -->
 <aside class="dashboard-sidebar">
     <c:choose>
-        <c:when test="${not empty sessionScope.TC_CURRENT_USER && sessionScope.TC_CURRENT_USER.organizationRole == 'CHECK_IN_STAFF' && !sessionScope.TC_CURRENT_USER.admin}">
+        <c:when test="${not empty sessionScope.TC_CURRENT_USER && sessionScope.TC_CURRENT_USER.organizationRole == 'CHECK_IN_STAFF' && !sessionScope.TC_CURRENT_USER.isAdmin()}">
             <div class="sidebar-title">Soát vé tại cửa</div>
             <ul class="sidebar-menu">
                 <li><a href="${pageContext.request.contextPath}/organizer/checkin-select" class="${activeTab == 'checkin' || activeTab == 'checkin-select' || empty activeTab ? 'active' : ''}">• Chọn sự kiện soát vé</a></li>

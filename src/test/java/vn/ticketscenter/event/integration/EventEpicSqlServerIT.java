@@ -117,6 +117,8 @@ class EventEpicSqlServerIT {
                 return fake.upload(input,folder);
             }
             public void delete(String id){fail("No blind provider deletion");}
+            public StoredAsset ensure(InputStream input,String id) throws IOException{return upload(input,id);}
+            public Optional<StoredAsset> find(String id){return Optional.empty();}
             public String getUrl(String id){return fake.getUrl(id);}
         };
         assertEquals(409,assertThrows(EventProblem.class,()->f.covers(provider,(e,a)->orphans.add(a)).upload(f.actor,event,UUID.randomUUID().toString(),new ByteArrayInputStream(DongSqlFixture.png()))).status());

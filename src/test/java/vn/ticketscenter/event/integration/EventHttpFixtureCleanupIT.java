@@ -12,11 +12,15 @@ class EventHttpFixtureCleanupIT {
     @Test void removeOnlyUnreferencedDedicatedHttpFixtureAssets() throws Exception {
         assertTrue(AppConfig.getBoolean("TC_DONG_CLOUDINARY_ACCEPTANCE",false),"Explicit fixture/provider cleanup opt-in required");
         var assets=new LinkedHashMap<UUID,String>();
-        try(Connection c=DongSqlFixture.connection(null);var q=c.prepareStatement("SELECT id,event_image_public_id FROM dbo.tc_events WHERE title=? AND event_image_public_id IS NOT NULL")) {
-            q.setNString(1,"Đêm nhạc nghiệm thu Đông");try(var rows=q.executeQuery()){while(rows.next())assets.put(UUID.fromString(rows.getString(1)),rows.getString(2));}
+        var allIds=new LinkedHashSet<String>();
+        try(Connection c=DongSqlFixture.connection(null);var q=c.prepareStatement("SELECT id,event_image_public_id FROM dbo.tc_events WHERE title IN(?,?) AND event_image_public_id IS NOT NULL")) {
+            q.setNString(1,"Đêm nhạc nghiệm thu Đông");q.setNString(2,"Đêm nhạc nghiệm thu Đông ảnh mặc định");try(var rows=q.executeQuery()){while(rows.next())assets.put(UUID.fromString(rows.getString(1)),rows.getString(2));}
             c.setAutoCommit(false);
             for(var asset:assets.entrySet()) {
-                assertTrue(asset.getValue().startsWith("ticketscenter/events/"+asset.getKey()+"/"),"Only the fixture's Event folder may be cleaned");
+                assertTrue(asset.getValue().startsWith("ticketscenter/events/"+asset.getKey()+"/") || asset.getValue().startsWith("ticketcenter/events/"+asset.getKey()+"/"),"Only the fixture's Event folder may be cleaned");allIds.add(asset.getValue());
+                try(var owned=c.prepareStatement("SELECT public_id FROM dbo.tc_event_image_assets WHERE event_id=?")) {
+                    owned.setString(1,asset.getKey().toString());try(var rows=owned.executeQuery()){while(rows.next()){String id=rows.getString(1);assertTrue(id.startsWith("ticketcenter/events/"+asset.getKey()+"/"));allIds.add(id);}}
+                }
                 try(var guard=c.prepareStatement("SELECT (SELECT COUNT_BIG(*) FROM dbo.tc_orders WHERE event_id=?)+(SELECT COUNT_BIG(*) FROM dbo.tc_ticket_holds WHERE event_id=?)")) {
                     guard.setString(1,asset.getKey().toString());guard.setString(2,asset.getKey().toString());
                     try(var rows=guard.executeQuery()){rows.next();assertEquals(0,rows.getLong(1),"Refuse cleanup of an Event with transactions");}
@@ -29,7 +33,7 @@ class EventHttpFixtureCleanupIT {
             c.commit();
         }
         var provider=CloudinaryStorageService.fromEnvironment();
-        for(String publicId:assets.values()) {
+        for(String publicId:allIds) {
             try(Connection c=DongSqlFixture.connection(null);var q=c.prepareStatement("SELECT COUNT_BIG(*) FROM dbo.tc_events WHERE event_image_public_id=?")) {
                 q.setString(1,publicId);try(var rows=q.executeQuery()){rows.next();assertEquals(0,rows.getLong(1),"Never delete a referenced asset");}
             }

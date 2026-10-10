@@ -16,11 +16,12 @@ public final class EventDtos {
                         Instant startTime, Instant endTime, BigDecimal minimumPrice,
                         String category, String organizationName, BigDecimal maximumPrice, boolean isSaleActive) {
         public String toJson() {
-            return "{\"eventId\":" + json(eventId) + ",\"categoryId\":" + json(categoryId)
+            return "{\"eventId\":" + json(eventId) + ",\"id\":" + json(eventId) + ",\"categoryId\":" + json(categoryId)
                     + ",\"title\":" + json(title) + ",\"description\":" + json(description)
                     + ",\"coverImageUrl\":" + json(coverImageUrl) + ",\"venueName\":" + json(venueName)
                     + ",\"venueAddress\":" + json(venueAddress) + ",\"venue\":" + json(venueName + ", " + venueAddress)
                     + ",\"saleStartTime\":" + json(saleStart) + ",\"saleEndTime\":" + json(saleEnd)
+                    + ",\"saleStart\":" + json(saleStart) + ",\"saleEnd\":" + json(saleEnd)
                     + ",\"startTime\":" + json(startTime) + ",\"endTime\":" + json(endTime)
                     + ",\"minPrice\":" + money(minimumPrice) + ",\"maxPrice\":" + money(maximumPrice)
                     + ",\"category\":" + json(category) + ",\"organizationName\":" + json(organizationName)

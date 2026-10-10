@@ -1,14 +1,24 @@
 # DONG-EPIC — Event integration handoff
 
-Verified locally on 11 October 2026 (UTC+7). Scope is the live epic [#13](https://github.com/devonxjz/TicketCenter/issues/13), DONG-01–05 (#8–12), not the older thirteen-task organization assignment in the reference documents.
+Verified locally on 11 October 2026 (UTC+7). Integrated with `origin/dev` at `28ce056` after the initial acceptance checkpoint. Scope is the live epic [#13](https://github.com/devonxjz/TicketCenter/issues/13), DONG-01–05 (#8–12), not the older thirteen-task organization assignment in the reference documents.
 
 Implementation and local acceptance are complete. Remote delivery and shared SQL integration remain open gates; this is not a merged release or a claim that all project tests/CI passed.
+
+## Integration with current dev
+
+The initial checkpoint commits are `d84c4ef` (catalog), `d003350` (SQL proposal), `9d8b4ec` (five-issue integration). A final fetch found newer dev `28ce056`, including PR48 Event images and PR49 dashboards/reports. The local integration preserves their source/history; no shared-domain business code was rewritten.
+
+- Removed Event's overlapping public/organization wildcard mappings. Catalog serves public reads; the scoped Event filter routes only its actions. Report keeps its organization wildcard; an Event-owned startup listener supplies multipart metadata on that registration, and named dispatch enters the existing image servlet. Actual WAR tests prove deployment and Report pass-through (its own missing-filter400), rather than assuming annotation compilation proves deployment.
+- Preserved the newer immutable Cloudinary intent/assets workflow, default category artwork, migration CLI and cleanup worker. Organizer creation uses its multipart contract; versioned cover uploads use it, including its existing published-cover exception. JSON lifecycle/partial description edits and unversioned compatibility cover requests keep the scoped SP/receipt path. Separate `EVENT_IMAGE` Redis keys coordinate the image workflow; its durable SQL receipt remains authoritative. Provider calls stay outside transactions; completion failure preserves successful writes.
+- Added post-commit cache invalidation to existing image saves/replays; preserved `id`/`saleStart`/`saleEnd` public aliases and old `?id=` links while retaining new `eventId`/paging/filters/Seat APIs. Both write formats apply title/schedule validation. UI retains cover thumbnails, millisecond schedule precision, previews/progress and default artwork; aborted image intents rotate keys while transient failures retain them.
+- Final safe-default build: **375 executed tests passed, 59 external DB/SMTP/Redis tests explicitly skipped (434 total)**. **56 Node tests passed**. Dong's opted-in acceptance runs **12 SQL/Redis +1 real provider +2 actual WAR HTTP tests without skips**. The extra HTTP flow covers default artwork creation/replay, invalid title/past sale opening, published versioned cover replacement/replay and immediate public cache refresh. These results supersede the 143-test checkpoint, not the unrelated skipped external suites.
+- The new globally discovered test extension only accepts Vương's named fixture/marker. Direct runs of exactly Dong's listed ITs turn off its auto-discovery and use Dong's own explicit `TC_DONG_ACCEPTANCE=true`, loopback URL/database-name guard and provider opt-in. Never use that invocation to run unrelated DB/SMTP suites. No application/runtime security setting or shared test-support source was changed.
 
 ## Traceability
 
 | Task | Delivered behavior | Evidence |
 |---|---|---|
-| DONG-01 / #8 | Public catalog/category/detail/Zone/Seat, filters/pagination, public JSPs, Redis fallback and post-commit invalidation | 126-test initial milestone; current 143-test package; SQL public projection after publish; actual HTTP and browser public detail/seat matrix |
+| DONG-01 / #8 | Public catalog/category/detail/Zone/Seat, filters/pagination, public JSPs, Redis fallback and post-commit invalidation | 126-test initial milestone; final 375-test safe build; SQL public projection after publish; actual HTTP and browser public detail/seat matrix |
 | DONG-02 / #9 | Organization-scoped draft CRUD/submit, current membership/authVersion, chronological validation, lifecycle locks, CSRF/idempotency | SQL replay/conflict/cross-org/revocation/FK rollback/concurrency; actual HTTP 201 replay/401/403; browser create/submit/locked/rejected |
 | DONG-03 / #10 | SEATED matrix A…Z, AA…ALL; STANDING capacity; price edits; inventory-safe update/delete; immutable published layout | SQL 27×2 with AA2, held+sold floor, duplicate Zone race, submit/delete and publish/delete races; browser 2×3 plus standing capacity10 |
 | DONG-04 / #11 | Multipart PNG/JPEG/WEBP validation, provider upload outside SQL transaction, optimistic save, durable SQL replay, old/unused asset journal | Real Cloudinary upload→SQL URL→public detail, verified provider cleanup; forced rollback/provider failure/cross-org/stale upload tests; actual multipart through WAR |
@@ -18,15 +28,15 @@ Implementation and local acceptance are complete. Remote delivery and shared SQL
 
 | Check | Result | Local output (ignored by Git) |
 |---|---|---|
-| Selected unit/regression tests + WAR packaging | **143 tests, 0 failures/errors/skips; BUILD SUCCESS** | `target/dong-epic-unit-package.log`, `target/surefire-reports`, `target/ticketscenter.war` |
-| Real SQL Server/Redis acceptance | **12 tests, 0 failures/errors/skips** | `EventEpicSqlServerIT`, `target/dong-epic-final-it.log` |
+| Safe-default unit/regression tests + WAR packaging | **375 executed tests pass, 59 external tests skipped by the new safe-default guard (434 total); BUILD SUCCESS** | `target/dong-merged-unit-package.log`, `target/surefire-reports`, `target/ticketscenter.war` |
+| Real SQL Server/Redis acceptance | **12 tests, 0 failures/errors/skips** | `EventEpicSqlServerIT`, `target/dong-merged-it.log` |
 | Real Cloudinary + SQL/public read | **1 test, 0 failures/errors/skips** | `EventCloudinarySqlServerIT`, same final log |
-| Actual Tomcat WAR HTTP/auth/session/CSRF/multipart/JSP | **1 test, 0 failures/errors/skips** | `EventHttpWarIT`, same final log |
+| Actual Tomcat WAR HTTP/auth/session/CSRF/multipart/JSP | **2 tests, 0 failures/errors/skips** | `EventHttpWarIT`, same final log |
 | Retained HTTP provider fixture cleanup after browser acceptance | **1 cleanup test passed** | `EventHttpFixtureCleanupIT`, `target/dong-epic-cleanup-it.log`; only its unreferenced assets removed |
 | Public DOM fixture checks and owned JS syntax | PASS | `src/test/resources/event/dong-01-ui-check.cjs`; `node --check` |
 | Actual in-app browser, narrow viewport | PASS: manager list/create/editor, seated/standing forms, submit lock, published description→immediate public update, public seat rows, admin detail/full schedule/inventory, missing-cover rejection and reason persistence | `target/dong-runtime/*-browser.png`; generated fixture accounts only |
 
-The 14 integration tests are real SQL/Redis/HTTP checks. Fault-only storage scenarios use the explicitly named `DongSqlFixture.Storage` fake; the separate provider test and HTTP multipart use real Cloudinary. Redis outage is injected via a failing connection supplier, not a claim that an actual Redis server was stopped. The generation/corrupt-entry tests use real Redis.
+The 15 integration tests are real SQL/Redis/HTTP checks. Fault-only storage scenarios use the explicitly named `DongSqlFixture.Storage` fake; the separate provider test and HTTP multipart use real Cloudinary. Redis outage is injected via a failing connection supplier, not a claim that an actual Redis server was stopped. The generation/corrupt-entry tests use real Redis.
 
 SQL Server is 17.0.1000.7 SQLEXPRESS; only `TicketCenter_Dong_Epic_Test_20261011` was provisioned. Transport uses Windows authentication with a temporary loopback named-pipe bridge because server TCP is disabled. Tests execute as dedicated database users `dong_buyer`, `dong_manager`, `dong_admin` in the respective restricted roles; this verifies restricted execution contexts, **not separate SQL-auth logins**. Actual WAR additionally exercises existing JPA pools/auth filters. Redis 8.10.2 runs separately on localhost:16479 without persistence. Tomcat 11.0.25 runs separately on localhost:18082. No existing database or SQL Server service configuration was changed.
 
@@ -50,5 +60,5 @@ The default Maven test suite contains database seeding and real SMTP tests. Thes
 1. [Coordination #45](https://github.com/devonxjz/TicketCenter/issues/45): database owner reviews/adopts the new SQL contract as a **new migration**, grants/views, role synchronization and deploy order. Current baseline alone cannot run the new writes/public seats. Models, `database/**`, `pom.xml`, shared config/persistence/OpenAPI and other domains remain untouched.
 2. Tomcat acceptance needed existing JSTL API3.0.0 + implementation3.0.1 in the dedicated server library. This runtime prerequisite must be supplied by deployment/common build owner; no locked POM edit was made. Other owners' dashboard prototype data remain outside this epic.
 3. Cancellation/progress controls call the other owner's API and were not counted as completed backend functionality. Hold/payment/refund/coupon flows are outside Đông's five-issue scope.
-4. Local branch `feat/dong/dong-epic-event-integration` is based on the DONG-01 commit atop `origin/dev` `71e02ad`. Live issues explicitly target `dev`/`feat/dong/...`, while the older reference workflow says `develop`/`feature/...`; this handoff follows the actual issue/base and records that discrepancy. Coupled subissues are delivered together on the epic integration branch with issue references.
+4. Local branch `feat/dong/dong-epic-event-integration` began atop `origin/dev` `71e02ad` and incorporates current dev `28ce056`. Live issues explicitly target `dev`/`feat/dong/...`, while the older reference workflow says `develop`/`feature/...`; this handoff follows the actual issue/base and records that discrepancy. Coupled subissues are delivered together on the epic integration branch with issue references.
 5. Push of the earlier DONG-01 branch was rejected by automatic approval review (private repository payload to an external destination without exact approval). No bypass occurred. Commit/push/PR status must be reported honestly; after explicit destination/payload approval, publish this concrete branch and open PR against `dev`, then obtain required CI and independent review. Issues remain open until shared integration/merge gates are satisfied.

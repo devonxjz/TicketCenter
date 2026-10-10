@@ -12,3 +12,5 @@ The initial 126-test milestone lacked SQL/browser acceptance. Those gaps have no
 - Public JSPs use API loading/empty/error/filter/pagination, safe text/URL rendering and actual seat-status rows; detail is accessible without login.
 
 Shared rollout still requires [coordination #45](https://github.com/devonxjz/TicketCenter/issues/45): adopt [SQL proposal](DONG-DB-CONTRACT.sql) as a new reviewed migration and verify actual runtime principal logins. The proposal was applied only to the dedicated test DB. Locked models/POM/config/shared migrations/OpenAPI were not edited. Remote push awaits exact approval following the earlier automatic review rejection; issue remains open pending integration/CI/review.
+
+Final integration update: dev 28ce056 was merged locally, retaining its durable image workflow/migration tooling. Safe default build: 375 tests executed successfully, 59 external tests explicitly skipped; 56 Node tests passed; 12 SQL/Redis +1 provider +2 actual WAR HTTP checks passed without skips. Earlier 143-test numbers above describe the pre-integration checkpoint. See DONG-EPIC and RUNBOOK for the updated routing/contract details.

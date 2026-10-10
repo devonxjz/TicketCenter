@@ -1,9 +1,9 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <!DOCTYPE html>
 <html lang="vi">
-<head><title>Chi tiết sự kiện | TicketsCenter</title><jsp:include page="/WEB-INF/views/layout/meta-head.jsp" /></head>
+<head><title>Chi tiết sự kiện | TicketsCenter</title><jsp:include page="/WEB-INF/views/layout/meta-head.jsp" /><link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/event-images.css"></head>
 <body data-context="${pageContext.request.contextPath}">
-<nav class="navbar border-bottom bg-white"><div class="container"><a class="navbar-brand fw-bold" href="${pageContext.request.contextPath}/">TicketsCenter</a><a href="${pageContext.request.contextPath}/">Danh sách sự kiện</a></div></nav>
+<jsp:include page="/WEB-INF/views/layout/header.jsp" />
 <main class="container py-5">
     <p id="status" role="status" aria-live="polite">Đang tải sự kiện…</p>
     <article id="event" hidden><img id="cover" alt="" class="w-100 mb-4" style="max-height:420px;object-fit:cover" hidden>
@@ -24,7 +24,7 @@
         if (!response.ok) throw new Error(payload.error ? payload.error.message : 'Không thể tải dữ liệu.');
         return payload.data;
     }
-    const id = new URLSearchParams(location.search).get('eventId');
+    const id = new URLSearchParams(location.search).get('eventId') || new URLSearchParams(location.search).get('id');
     if (!id || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(id)) { status.textContent = 'ID sự kiện không hợp lệ. Vui lòng chọn sự kiện từ danh sách.'; return; }
     try {
         const event = await api('/api/events/' + encodeURIComponent(id));

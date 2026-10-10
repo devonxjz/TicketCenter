@@ -1,0 +1,71 @@
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+SET QUOTED_IDENTIFIER ON;
+IF DB_NAME() NOT LIKE N'TC[_]Vuong[_]Test[_]%' OR OBJECT_ID('dbo.tc_vuong_test_fixture') IS NULL THROW 52790,'Isolated fixture required',1;
+GO
+CREATE PROCEDURE #ExpectError @statement nvarchar(max),@number int,@test varchar(100) AS
+BEGIN
+ SET NOCOUNT ON;
+ DECLARE @caught int=NULL;
+ BEGIN TRY EXEC sys.sp_executesql @statement; END TRY
+ BEGIN CATCH SET @caught=ERROR_NUMBER(); IF XACT_STATE()<>0 ROLLBACK; END CATCH;
+ IF @caught IS NULL OR @caught<>@number BEGIN DECLARE @message nvarchar(2048)=CONCAT('FAIL: ',@test,' expected ',@number,', got ',COALESCE(CONVERT(varchar(20),@caught),'success')); THROW 52793,@message,1; END;
+ PRINT CONCAT('PASS: ',@test);
+END;
+GO
+DECLARE @actor uniqueidentifier=NEWID(),@buyer uniqueidentifier=NEWID(),@org uniqueidentifier=NEWID(),@event uniqueidentifier=NEWID(),@key uniqueidentifier=NEWID();
+INSERT dbo.tc_users(id,email,user_name,full_name,platform_role) VALUES(@actor,CONCAT(@actor,'@test.invalid'),CONVERT(varchar(36),@actor),'Guard Admin','ADMIN'),(@buyer,CONCAT(@buyer,'@test.invalid'),CONVERT(varchar(36),@buyer),'Guard Buyer','CUSTOMER');
+INSERT dbo.tc_organizations(id,name,contact_email) VALUES(@org,'Guardrails','guard@test.invalid');
+DECLARE @rules TABLE(rule_id uniqueidentifier,organization_id uniqueidentifier,rate_percent decimal(12,4),fixed_fee decimal(19,0),effective_from datetime2(3),effective_to datetime2(3),associated_events_count bigint,is_replay bit);
+INSERT @rules EXEC dbo.usp_CreateCommissionRule @org,@actor,@key,5,2,'2020-01-01','2099-01-01',0;
+DECLARE @rule uniqueidentifier=(SELECT rule_id FROM @rules),@editkey uniqueidentifier=NEWID();
+EXEC dbo.usp_UpdateCommissionRule @rule,@org,@actor,@editkey,10,3,'2020-01-01','2099-01-01',0;
+DELETE @rules;
+INSERT @rules EXEC dbo.usp_CreateCommissionRule @org,@actor,@key,5,2,'2020-01-01','2099-01-01',0;
+IF (SELECT rate_percent FROM @rules)<>5 OR (SELECT fixed_fee FROM @rules)<>2 THROW 52793,'Replay must preserve original mutation result after subsequent edits',1;
+PRINT 'PASS: durable original commission replay';
+INSERT dbo.tc_events(id,organization_id,commission_rule_id,title,end_time) VALUES(@event,@org,@rule,'Guard Event','2020-01-01');
+DECLARE @order uniqueidentifier=NEWID(),@payment uniqueidentifier=NEWID();
+INSERT dbo.tc_orders(id,buyer_id,event_id,order_code,status,subtotal_amount,total_amount,paid_at) VALUES(@order,@buyer,@event,CONVERT(varchar(36),@order),'PAID',100,100,'2026-01-01');
+INSERT dbo.tc_payments(id,order_id,amount,status,txn_ref,paid_at) VALUES(@payment,@order,100,'CAPTURED',CONVERT(varchar(36),@payment),'2026-01-01');
+UPDATE dbo.tc_orders SET accepted_payment_id=@payment WHERE id=@order;
+DECLARE @statement nvarchar(max)=CONCAT('EXEC dbo.usp_CreateCommissionRule ''',@org,''',''',@actor,''',''',@key,''',15,2,''2020-01-01'',''2099-01-01'',0;');
+EXEC #ExpectError @statement,52709,'same-key different commission terms';
+SET @statement=CONCAT('EXEC dbo.usp_UpdateCommissionRule ''',@rule,''',''',@org,''',''',@actor,''',''',NEWID(),''',5,2,''2020-01-01'',''2099-01-01'',0;');
+EXEC #ExpectError @statement,52709,'event-linked edit lock';
+SET @statement=CONCAT('EXEC dbo.usp_RecalculateSettlement ''',@event,''',''',@buyer,''',0;');
+EXEC #ExpectError @statement,52701,'non-admin write denied';
+SET @statement=CONCAT('EXEC dbo.usp_RecalculateSettlement ''',@event,''',''',@actor,''',1;');
+EXEC #ExpectError @statement,52701,'stale auth version denied';
+EXEC dbo.usp_RecalculateSettlement @event,@actor,0;
+DECLARE @settlement uniqueidentifier=(SELECT id FROM dbo.tc_settlements WHERE event_id=@event);
+EXEC dbo.usp_ConfirmSettlement @settlement,@actor,0;
+SET @statement=CONCAT('UPDATE dbo.tc_settlement_order_snapshots SET gross_amount=101,net_amount=88 WHERE settlement_id=''',@settlement,''';');
+EXEC #ExpectError @statement,52709,'confirmed snapshots immutable';
+SET @statement=CONCAT('UPDATE dbo.tc_settlements SET gross_revenue=101 WHERE id=''',@settlement,''';');
+EXEC #ExpectError @statement,52709,'confirmed header immutable';
+SET @statement=CONCAT('UPDATE dbo.tc_audit_logs SET action=''BAD'' WHERE entity_id=''',@settlement,''';');
+EXEC #ExpectError @statement,52709,'audit append-only';
+SET @statement=CONCAT('UPDATE dbo.tc_finance_mutations SET response_json=''{}'' WHERE idempotency_key=''',@key,''';');
+EXEC #ExpectError @statement,52709,'durable mutation history immutable';
+SET @statement=CONCAT('INSERT dbo.tc_refunds(id,order_id,amount,purpose,status) VALUES(NEWID(),''',@order,''',1,''CUSTOMER_REFUND'',''REQUESTED'');');
+EXEC #ExpectError @statement,52709,'new refund cannot change confirmed financial source';
+DECLARE @payout uniqueidentifier=NEWID(),@fp varbinary(32)=HASHBYTES('SHA2_256','guard');
+EXEC dbo.usp_RecordPayout @settlement,@payout,@actor,20,'REQUEST',NULL,@fp,0;
+EXEC dbo.usp_RecordPayout @settlement,@payout,@actor,20,'PROVIDER','UNKNOWN',@fp,0;
+SET @statement=CONCAT('EXEC dbo.usp_RecordPayout ''',@settlement,''',''',NEWID(),''',''',@actor,''',10,''NEW'';');
+EXEC #ExpectError @statement,52709,'UNKNOWN requires reconciliation before a new payout';
+IF (SELECT pending_amount FROM dbo.tc_settlements WHERE id=@settlement)<>20 THROW 52793,'UNKNOWN guard changed reservation',1;
+EXEC dbo.usp_RecordPayout @settlement,@payout,@actor,20,'PROVIDER','FAILED',@fp,0;
+SET @statement=CONCAT('EXEC dbo.usp_RecordPayout ''',@settlement,''',''',@payout,''',''',@actor,''',21,''REQUEST'';');
+EXEC #ExpectError @statement,52709,'payout amount conflict';
+DECLARE @newpayout uniqueidentifier=NEWID();
+EXEC dbo.usp_RecordPayout @settlement,@newpayout,@actor,87,'REQUEST',NULL,@fp,0;
+EXEC dbo.usp_RecordPayout @settlement,@newpayout,@actor,87,'PROVIDER','SUCCEEDED',@fp,0;
+SET @statement=CONCAT('EXEC dbo.usp_RecordPayout ''',@settlement,''',''',@newpayout,''',''',@actor,''',87,''WRONG'',''SUCCEEDED'',0x',CONVERT(varchar(64),@fp,2),',0;');
+EXEC #ExpectError @statement,52709,'terminal provider reference conflict';
+INSERT dbo.tc_vuong_simulated_transfers(payout_id,fingerprint,result) VALUES(@newpayout,@fp,'SUCCEEDED');
+SET @statement=CONCAT('UPDATE dbo.tc_vuong_simulated_transfers SET result=''FAILED'' WHERE payout_id=''',@newpayout,''';');
+EXEC #ExpectError @statement,52709,'durable simulated provider history immutable';
+PRINT 'PASS: guardrail suite';
+GO

@@ -7,12 +7,12 @@
     const money = value => BigInt(value || '0').toLocaleString('vi-VN') + ' đ';
     const labels = {DRAFT:'Bản nháp',PENDING_APPROVAL:'Chờ duyệt',REJECTED:'Bị từ chối',PUBLISHED:'Đã công khai',CANCELLED:'Đã hủy'};
     const date = value => value ? new Date(value).toLocaleString('vi-VN') : '';
-    function localTime(value) { const d = new Date(value); return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,16); }
+    function localTime(value) { const d = new Date(value); return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,23); }
     function message(text, bad = false) { const e = $('status'); e.textContent = text; e.className = bad ? 'alert alert-danger' : 'text-muted'; }
     async function api(path, options = {}) {
         const response = await fetch(base + path, {...options, credentials:'same-origin', headers:{Accept:'application/json',...(options.headers || {})}});
         let result; try { result = await response.json(); } catch (_) { throw new Error('Không thể đọc phản hồi máy chủ. Vui lòng thử lại.'); }
-        if (!response.ok) { const error = new Error(result.error?.message || 'Không thể xử lý yêu cầu.'); error.status = response.status; throw error; }
+        if (!response.ok) { const error = new Error(result.error?.message || 'Không thể xử lý yêu cầu.'); error.status = response.status;error.code=result.error?.code; throw error; }
         return result;
     }
     async function token() { return (await api('/api/auth/csrf')).data.token; }
@@ -29,19 +29,19 @@
         try {
             const result = await api(path,{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':await token(),'Idempotency-Key':operation.key},body});
             operation.clear();return result.data;
-        } catch (e) { if ([400,403,404,415].includes(e.status)) operation.clear();throw e; }
+        } catch (e) { if ([400,403,404,415].includes(e.status) || e.code==='REQUEST_ABORTED') operation.clear();throw e; }
     }
-    async function upload(path,file) {
+    async function upload(path,file,version) {
         if (!file || file.size > 5242880) throw new Error('Chọn ảnh PNG/JPEG/WEBP tối đa 5 MB.');
         const digest = await crypto.subtle.digest('SHA-256',await file.arrayBuffer());
-        const operation = await intent(path,Array.from(new Uint8Array(digest)).map(x=>x.toString(16).padStart(2,'0')).join(''));
+        const operation = await intent(path,String(version)+'|'+Array.from(new Uint8Array(digest)).map(x=>x.toString(16).padStart(2,'0')).join(''));
         const csrf = await token();
         return new Promise((resolve,reject) => {
             const xhr = new XMLHttpRequest(); xhr.open('POST',base+path);xhr.setRequestHeader('X-CSRF-Token',csrf);xhr.setRequestHeader('Idempotency-Key',operation.key);
             xhr.upload.onprogress = e => { if(e.lengthComputable) $('upload-progress').value=Math.round(e.loaded/e.total*100); };
             xhr.onerror = () => reject(new Error('Mất kết nối tải ảnh. Vui lòng thử lại.'));
-            xhr.onload = () => { try { const result=JSON.parse(xhr.responseText);if(xhr.status>=200 && xhr.status<300) {operation.clear();resolve(result.data);} else {reject(new Error(result.error?.message || 'Không thể tải ảnh.'));} } catch (_) {reject(new Error('Phản hồi ảnh không hợp lệ.'));} };
-            const data=new FormData();data.append('file',file);xhr.send(data);
+            xhr.onload = () => { try { const result=JSON.parse(xhr.responseText);if(xhr.status>=200 && xhr.status<300) {operation.clear();resolve(result.data);} else {if([400,403,404,415].includes(xhr.status) || result.error?.code==='REQUEST_ABORTED')operation.clear();reject(new Error(result.error?.message || 'Không thể tải ảnh.'));} } catch (_) {reject(new Error('Phản hồi ảnh không hợp lệ.'));} };
+            const data=new FormData();data.append('file',file);data.append('expectedVersion',String(version));xhr.send(data);
         });
     }
     async function action(button, work) { const before=button.disabled;button.disabled=true;try { await work(); } catch(e) { message(e.message,true); } finally { button.disabled=button.dataset.locked===undefined?before:button.dataset.locked==='true'; } }
@@ -69,7 +69,7 @@
             if(current!==revision)return;
             $('create-event').href=base+'/events/manage/editor?organizationId='+org;
             for(const event of result.data) {
-                const tr=document.createElement('tr');tr.append(node('td',event.title),node('td',labels[event.status] || event.status),node('td',date(event.startTime)),node('td',String(event.totalCapacity)));
+                const tr=document.createElement('tr'),coverCell=node('td'),thumbnail=node('img');thumbnail.alt=event.title;thumbnail.style.maxWidth='120px';thumbnail.style.maxHeight='80px';thumbnail.className='rounded';image(event.coverImageUrl,thumbnail);coverCell.append(thumbnail);if(thumbnail.hidden)coverCell.append(node('span','Chưa có ảnh','small text-muted'));tr.append(coverCell,node('td',event.title),node('td',labels[event.status] || event.status),node('td',date(event.startTime)),node('td',String(event.totalCapacity)));
                 const actions=node('td','', 'd-flex flex-wrap gap-2');const link=node('a','Xem / sửa','btn btn-outline-dark btn-sm');link.href=base+'/events/manage/editor?organizationId='+org+'&eventId='+event.eventId;actions.append(link);
                 if(['DRAFT','REJECTED'].includes(event.status)) actions.append(button('Gửi duyệt',async()=>{await mutate('/api/events/'+event.eventId+'/submit',{expectedVersion:String(event.version)});await load();}));
                 if(event.status==='DRAFT') actions.append(button('Xóa nháp',async()=>{if(!confirm('Xóa bản nháp này và các khu/ghế chưa có giao dịch?'))return;await mutate('/api/events/'+event.eventId+'/delete',{expectedVersion:String(event.version)});await load();},'btn btn-outline-danger btn-sm'));
@@ -110,7 +110,7 @@
         if(!items.length) target.append(node('p','Chưa có khu vực. Thêm khu ngồi hoặc khu đứng trước khi gửi duyệt.','text-muted'));
     }
     async function editorPage() {
-        const params=new URLSearchParams(location.search);let eventId=params.get('eventId'),event=null;
+        const params=new URLSearchParams(location.search);let eventId=params.get('eventId') || params.get('id'),event=null;
         await organizations($('organization'),params.get('organizationId'));
         for(const category of (await api('/api/event-categories')).data) {const option=node('option',category.name);option.value=category.categoryId;$('categoryId').append(option);}
         async function load() {
@@ -125,7 +125,7 @@
             lock($('save-event'),!(editable || published));$('submit-event').hidden=!editable;$('delete-event').hidden=event.status!=='DRAFT';
             $('inventory').hidden=$('media').hidden=false;image(event.coverImageUrl,$('cover-preview'));
             for(const input of $('zone-form').querySelectorAll('input,select,button')) lock(input,!editable);
-            lock($('upload-cover'),!editable);$('cover-file').disabled=!editable;
+            lock($('upload-cover'),!(editable || published));$('cover-file').disabled=!(editable || published);
             zones((await api('/api/events/'+eventId+'/layout')).data,$('zones'),event,load,true);message('Hồ sơ và tồn kho đã được cập nhật.');
         }
         $('event-form').addEventListener('submit',e=>{e.preventDefault();action($('save-event'),async()=>{
@@ -137,8 +137,15 @@
                 if(!eventId && new Date(payload.saleStartTime)<=new Date()) throw new Error('Thời gian mở bán phải ở tương lai.');
             }
             if(event) payload.expectedVersion=String(event.version);
-            const result=await mutate(eventId?'/api/events/'+eventId+'/edit':'/api/organizations/'+$('organization').value+'/events',payload);
-            if(!eventId) {location.replace(base+'/events/manage/editor?organizationId='+result.organizationId+'&eventId='+result.eventId);return;}await load();
+            let result;
+            if(!eventId) {
+                const path='/api/organizations/'+$('organization').value+'/events',operation=await intent(path,JSON.stringify(payload)),form=new FormData();
+                for(const [name,value] of Object.entries(payload)) form.append(name==='saleStartTime'?'saleStart':name==='saleEndTime'?'saleEnd':name,value);
+                try {result=(await api(path,{method:'POST',headers:{'X-CSRF-Token':await token(),'Idempotency-Key':operation.key},body:form})).data;operation.clear();}
+                catch(e) {if([400,403,404,415].includes(e.status) || e.code==='REQUEST_ABORTED')operation.clear();throw e;}
+                location.replace(base+'/events/manage/editor?organizationId='+result.organizationId+'&eventId='+(result.eventId || result.id));return;
+            }
+            result=await mutate('/api/events/'+eventId+'/edit',payload);await load();
         });});
         $('submit-event').addEventListener('click',()=>action($('submit-event'),async()=>{await mutate('/api/events/'+eventId+'/submit',{expectedVersion:String(event.version)});await load();}));
         $('delete-event').addEventListener('click',()=>action($('delete-event'),async()=>{if(!confirm('Xóa bản nháp này?'))return;await mutate('/api/events/'+eventId+'/delete',{expectedVersion:String(event.version)});location.assign(base+'/events/manage?organizationId='+event.organizationId);}));
@@ -150,7 +157,7 @@
         });});
         let preview;
         $('cover-file').addEventListener('change',()=>{if(preview)URL.revokeObjectURL(preview);const file=$('cover-file').files[0];if(file){preview=URL.createObjectURL(file);$('cover-preview').src=preview;$('cover-preview').hidden=false;}});
-        $('upload-cover').addEventListener('click',()=>action($('upload-cover'),async()=>{$('upload-progress').value=0;await upload('/api/events/'+eventId+'/cover',$('cover-file').files[0]);await load();message('Ảnh mới đã được lưu.');}));
+        $('upload-cover').addEventListener('click',()=>action($('upload-cover'),async()=>{$('upload-progress').value=0;await upload('/api/events/'+eventId+'/cover',$('cover-file').files[0],event.version);await load();message('Ảnh mới đã được lưu.');}));
         await load();
     }
     async function reviewPage() {

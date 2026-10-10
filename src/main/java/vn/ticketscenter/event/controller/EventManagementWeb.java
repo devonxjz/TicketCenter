@@ -61,6 +61,12 @@ public final class EventManagementWeb {
                 write(response,200,services.management().read(actor,admin,kind,org,event,zone,status,page,size));return;
             }
             String key=request.getHeader("Idempotency-Key");EventManagementService.validateKey(key);
+            boolean multipart=request.getContentType()!=null && request.getContentType().toLowerCase(Locale.ROOT).startsWith("multipart/form-data");
+            if(multipart && (operation.equals("CREATE") || operation.equals("EDIT") || (operation.equals("COVER") && request.getParameter("expectedVersion")!=null))) {
+                try { request.getServletContext().getNamedDispatcher("EventApiServlet").forward(request,response); }
+                catch(jakarta.servlet.ServletException e) { throw EventProblem.invalid("Dữ liệu upload không hợp lệ."); }
+                return;
+            }
             if(operation.equals("COVER")) {
                 if(request.getContentType()==null || !request.getContentType().toLowerCase(Locale.ROOT).startsWith("multipart/form-data")) throw EventProblem.invalid("Cần gửi ảnh bằng multipart/form-data.");
                 Part file;

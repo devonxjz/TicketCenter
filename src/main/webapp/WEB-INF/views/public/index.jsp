@@ -1,9 +1,9 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <!DOCTYPE html>
 <html lang="vi">
-<head><title>Khám phá sự kiện | TicketsCenter</title><jsp:include page="/WEB-INF/views/layout/meta-head.jsp" /></head>
+<head><title>Khám phá sự kiện | TicketsCenter</title><jsp:include page="/WEB-INF/views/layout/meta-head.jsp" /><link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/event-images.css"></head>
 <body data-context="${pageContext.request.contextPath}">
-<nav class="navbar border-bottom bg-white"><div class="container"><a class="navbar-brand fw-bold" href="${pageContext.request.contextPath}/">TicketsCenter</a><a class="btn btn-outline-dark" href="${pageContext.request.contextPath}/auth/login">Tài khoản</a></div></nav>
+<jsp:include page="/WEB-INF/views/layout/header.jsp" />
 <main class="container py-5">
     <h1 class="fw-bold">Khám phá sự kiện</h1><p class="text-muted">Tìm sự kiện và xem tình trạng vé đang được mở bán.</p>
     <form id="filters" class="row g-3 my-3" aria-label="Tìm kiếm sự kiện">

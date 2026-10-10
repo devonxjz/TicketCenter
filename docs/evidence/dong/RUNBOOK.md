@@ -5,12 +5,12 @@ Run from repository root with Java25 and Maven. All generated binaries, logs, fa
 ## Local build (no external email/DB seed tests)
 
 ```powershell
-mvn '-Dtest=*Test,!JpaConnectionTest,!DemoAccountSeederTest,!MigrationSuiteVerificationTest,!OtpRepositoryTest,!AuthServiceTest,!PasswordResetServiceTest,!OtpServiceTest,!EmailSenderTest' package
+mvn '-Dtc.tests.db=false' '-Dtc.tests.smtp=false' '-Dtc.tests.redis=false' package
 node --check src/main/webapp/assets/js/dong-events.js
 node src/test/resources/event/dong-01-ui-check.cjs
 ```
 
-Expected: 143 selected tests and WAR package. The excluded suites and `PasswordResetIT` are not evidence for this epic. Run their tests separately only in their owners' configured environment.
+Expected on integrated dev: 375 executed tests pass, 59 external tests explicitly skip (434 total), WAR package succeeds. The earlier selected 143-test checkpoint preceded dev's safe-default extension. Skipped DB/SMTP/Redis suites are not evidence for this epic; run them only in their owners' configured environments.
 
 ## Dedicated SQL/Redis/provider environment
 
@@ -22,15 +22,17 @@ Expected: 143 selected tests and WAR package. The excluded suites and `PasswordR
 
 ```powershell
 $env:TC_DONG_SQL_URL='jdbc:sqlserver://127.0.0.1:11433;databaseName=TicketCenter_Dong_Epic_Test_20261011;integratedSecurity=true;encrypt=true;trustServerCertificate=true;loginTimeout=5'
+$env:TC_DONG_ACCEPTANCE='true'
+$env:TC_DONG_CLOUDINARY_ACCEPTANCE='true'
 $env:TC_DONG_REDIS_HOST='127.0.0.1'
 $env:TC_DONG_REDIS_PORT='16479'
 $native=Join-Path ([IO.Path]::GetTempPath()) 'ticketcenter-dong-native-12-8-1'
-mvn '-Dit.test=EventEpicSqlServerIT' "-DargLine=--enable-native-access=ALL-UNNAMED -Djava.library.path=$native" failsafe:integration-test failsafe:verify
+mvn '-Djunit.jupiter.extensions.autodetection.enabled=false' '-Dit.test=EventEpicSqlServerIT' "-DargLine=--enable-native-access=ALL-UNNAMED -Djava.library.path=$native" failsafe:integration-test failsafe:verify
 $env:TC_DONG_CLOUDINARY_ACCEPTANCE='true'
-mvn '-Dit.test=EventCloudinarySqlServerIT' "-DargLine=--enable-native-access=ALL-UNNAMED -Djava.library.path=$native" failsafe:integration-test failsafe:verify
+mvn '-Djunit.jupiter.extensions.autodetection.enabled=false' '-Dit.test=EventCloudinarySqlServerIT' "-DargLine=--enable-native-access=ALL-UNNAMED -Djava.library.path=$native" failsafe:integration-test failsafe:verify
 ```
 
-Expected: 12 SQL/Redis tests +1 real Cloudinary test. `trustServerCertificate=true` applies to this loopback test endpoint only; production requires a trusted certificate. Recompile test sources if changed before direct failsafe execution.
+Expected: 12 SQL/Redis tests +1 real Cloudinary test. The inherited global test extension only accepts Vương's fixture marker; exactly these Dong ITs use their own explicit opt-in, loopback/dedicated-DB guard instead of that auto-discovered extension. Do not turn off discovery for unrelated suites. `trustServerCertificate=true` applies to this loopback test endpoint only; production requires a trusted certificate. Recompile test sources if changed before direct failsafe execution.
 
 ## WAR and browser acceptance
 
@@ -39,14 +41,14 @@ Unpack verified official Apache Tomcat11.0.25 into `target/dong-runtime/apache-t
 ```powershell
 ./src/test/resources/event/start-dong-war.ps1
 $env:TC_DONG_HTTP_URL='http://127.0.0.1:18082/ticketscenter'
-mvn '-Dit.test=EventHttpWarIT' "-DargLine=--enable-native-access=ALL-UNNAMED -Djava.library.path=$native" failsafe:integration-test failsafe:verify
+mvn '-Djunit.jupiter.extensions.autodetection.enabled=false' '-Dit.test=EventHttpWarIT' "-DargLine=--enable-native-access=ALL-UNNAMED -Djava.library.path=$native" failsafe:integration-test failsafe:verify
 ```
 
-Wait for the deployed app before invoking the HTTP test. Expected: 1 complete HTTP test. It exercises real auth cookies, CSRF, current roles, owner checks, JSP rendering, UTF8 JSON, idempotent creation, seats, actual multipart/Cloudinary, canonical publish/public read/image302 and auth-version revocation. It intentionally retains its fixture for browser checks and writes fake credentials only to ignored `target/dong-runtime/browser-fixture.json`.
+Wait for the deployed app before invoking the HTTP test. Expected: 2 complete HTTP tests. They exercise real auth cookies, CSRF, current roles, owner checks, JSP rendering, UTF8 JSON, idempotent creation, seats, actual multipart/Cloudinary, canonical publish/public read/image302, auth-version revocation, Report pass-through, merged default artwork and published versioned cover replay/cache refresh. They intentionally retain fixtures for browser checks and write fake credentials only to ignored `target/dong-runtime/browser-fixture.json`.
 
 Browser paths: `/events/manage`, `/events/manage/editor?organizationId=...&eventId=...`, `/events/review?eventId=...`, `/event-detail?eventId=...`. Existing organizer/admin page routes render the same owned JSPs. Test manager list/create/SEATED/STANDING/submit/PENDING locks; admin full schedule/layout/missing-cover error/rejection; manager rejected form; published description-only edit and public immediate refresh; empty/error/403 states; mobile layout and keyboard focus. The common dashboard is another owner's prototype and is not this epic's delivered UI.
 
-To clean the HTTP fixture afterward, run `EventHttpFixtureCleanupIT` with the same dedicated URL and explicit `TC_DONG_CLOUDINARY_ACCEPTANCE=true`. It targets only known HTTP fixture title/assets in the dedicated DB, checks for transactions, clears those test Event references and confirms no SQL reference before provider deletion. Keep the dedicated DB for reproducibility; never drop another database. Stop only the verified helper PIDs created for this test session. Browser screenshots/evidence are disposable outputs.
+To clean the HTTP fixture afterward, run only `EventHttpFixtureCleanupIT` with the same dedicated URL/opt-ins and the same per-command auto-discovery setting. It targets only known HTTP fixture titles/assets in the dedicated DB, checks for transactions, clears those test Event references and confirms no SQL reference before provider deletion, including replaced assets registered by the merged image workflow. Keep the dedicated DB for reproducibility; never drop another database. Stop only the verified helper PIDs created for this test session. Browser screenshots/evidence are disposable outputs.
 
 ## Shared rollout / orphan reconciliation
 

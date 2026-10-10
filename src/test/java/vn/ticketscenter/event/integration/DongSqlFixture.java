@@ -55,6 +55,8 @@ final class DongSqlFixture {
     }
     static Connection connection(String user) throws SQLException {
         String url=AppConfig.get("TC_DONG_SQL_URL");assertNotNull(url,"Provide dedicated TC_DONG_SQL_URL; this integration suite never skips");
+        assertTrue(AppConfig.getBoolean("TC_DONG_ACCEPTANCE",false),"Explicit Dong test-workflow opt-in required");
+        assertTrue(url.matches("jdbc:sqlserver://(?:127\\.0\\.0\\.1|localhost):[0-9]{1,5};.*databaseName=TicketCenter_Dong_[A-Za-z0-9_]+;.*"),"Only an explicit loopback Dong fixture URL is allowed");
         Connection c=DriverManager.getConnection(url);
         try(var q=c.createStatement();var r=q.executeQuery("SELECT DB_NAME()")) {r.next();if(!r.getString(1).startsWith("TicketCenter_Dong_")){c.close();throw new SQLException("Refusing non-Dong test database");}}
         if(user!=null){if(!Set.of("dong_buyer","dong_manager","dong_admin").contains(user))throw new SQLException("Invalid test principal");try(var q=c.createStatement()){q.execute("EXECUTE AS USER='"+user+"'");}}
@@ -73,6 +75,8 @@ final class DongSqlFixture {
     static final class Storage implements StorageService {
         int uploads,deletes;boolean fail;String lastUrl;
         public StoredAsset upload(InputStream content,String folder) throws IOException{uploads++;if(fail)throw new IOException("provider credentials must remain private");String id=folder+"/"+UUID.randomUUID();lastUrl="https://fixture.example.test/"+id+".png";return new StoredAsset(lastUrl,id);}
+        public StoredAsset ensure(InputStream content,String id) throws IOException {return upload(content,id);}
+        public Optional<StoredAsset> find(String id){return Optional.empty();}
         public void delete(String id){deletes++;}public String getUrl(String id){return "https://fixture.example.test/"+id;}
     }
 }
