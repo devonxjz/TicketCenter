@@ -14,6 +14,9 @@ public record ReportFilter(Metric metric, UUID organizationId, UUID eventId, Ins
             UUID org=uuid(params.get("organizationId")), event=uuid(params.get("eventId"));
             if(routeOrganization!=null && org!=null && !routeOrganization.equals(org)) throw invalid();
             if(routeOrganization!=null) org=routeOrganization;
+            String scope=params.get("scope"), format=params.get("format");
+            if(scope!=null && !(scope.equals("ORGANIZATION") && org!=null || scope.equals("PLATFORM") && org==null)) throw invalid();
+            if(format!=null && !format.equals("csv")) throw invalid();
             Instant from=Instant.parse(params.get("from")), to=Instant.parse(params.get("to"));
             if(!from.isBefore(to) || from.getNano()%1_000_000!=0 || to.getNano()%1_000_000!=0) throw invalid();
             int page=Integer.parseInt(params.getOrDefault("page","1")), size=Integer.parseInt(params.getOrDefault("pageSize","20"));

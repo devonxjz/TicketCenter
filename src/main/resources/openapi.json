@@ -2779,7 +2779,7 @@
           }
         },
         "operationId": "getApiOrganizationsOrganizationIdReports",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "matched-to-source",
         "x-owner": "vuong",
         "externalDocs": {
@@ -2953,7 +2953,7 @@
           }
         },
         "operationId": "getApiAdminReports",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "matched-to-source",
         "x-owner": "vuong",
         "externalDocs": {
@@ -3049,7 +3049,7 @@
           "Reports"
         ],
         "summary": "Xuất CSV có filter",
-        "description": "Session hiện tại được kiểm ACTIVE/authVersion và ADMIN hoặc MANAGER đúng tổ chức trước cache/bytes. UUID/tc_*, VND nguyên dạng chuỗi, UTC [from,to). COHORT_REVENUE chọn order.paid_at và refund hoàn tất trước to; CASH_FLOW chọn payment.paid_at/refund.processed_at, tách compensation. EVENT_SALES/SETTLEMENT_BALANCE chọn event.end_time và totals hiện tại/đã chốt, không thay bằng lịch sử dòng tiền. JSON phân trang, CSV cùng filter xuất toàn bộ. UTF-8 BOM, CRLF, quote/escape RFC4180, ô nguy hiểm thêm TAB bên trong quote theo quyết định ưu tiên Excel; đây là thay đổi hợp đồng so với apostrophe của issue. Chưa nghiệm thu Native Excel mở-lưu-mở. Stream ResultSet, cleanup khi disconnect; không dùng report cache.",
+        "description": "Session hiện tại được kiểm ACTIVE/authVersion và ADMIN hoặc MANAGER đúng tổ chức trước cache/bytes. UUID/tc_*, VND nguyên dạng chuỗi, UTC [from,to). COHORT_REVENUE chọn order.paid_at và refund hoàn tất trước to; CASH_FLOW chọn payment.paid_at/refund.processed_at, tách compensation. EVENT_SALES/SETTLEMENT_BALANCE chọn event.end_time và totals hiện tại/đã chốt, không thay bằng lịch sử dòng tiền. JSON phân trang, CSV cùng filter xuất toàn bộ. UTF-8 BOM, CRLF, quote/escape RFC4180, ô nguy hiểm thêm TAB bên trong quote theo quyết định ưu tiên Excel; đây là thay đổi hợp đồng so với apostrophe của issue. Chưa nghiệm thu Native Excel mở-lưu-mở. Stream ResultSet, cleanup khi disconnect; không dùng report cache. Excel: import with UTF-8, comma delimiter; select Text for money/UUID columns to avoid numeric conversion. Summary/topEvents are JSON only; CSV exports every underlying row.",
         "responses": {
           "200": {
             "description": "CSV streaming chưa commit bytes trước authorize.",
@@ -3130,7 +3130,7 @@
           }
         },
         "operationId": "getApiReportsExport",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "matched-to-source",
         "x-owner": "vuong",
         "externalDocs": {
@@ -3215,6 +3215,31 @@
               "minimum": 1,
               "maximum": 100,
               "default": 20
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ORGANIZATION",
+                "PLATFORM"
+              ]
+            },
+            "description": "ORGANIZATION requires organizationId; PLATFORM requires no organizationId. Omitted scope derives from organizationId and current SQL authorization."
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "csv"
+              ],
+              "default": "csv"
             }
           }
         ]
@@ -6189,7 +6214,7 @@
         "description": "ADMIN xem tất cả tổ chức; MANAGER chỉ active memberships. Khi chọn organizationId, kiểm đúng quyền trước lấy events.",
         "operationId": "getApiReportsOptions",
         "x-owner": "vuong",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "matched-to-source",
         "security": [
           {
@@ -7018,6 +7043,11 @@
           },
           "isConfirmed": {
             "type": "boolean"
+          },
+          "ticketsCheckedInCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Tickets with used_at recorded, including tickets refunded after use; current count, not period activity."
           }
         }
       },
@@ -7141,6 +7171,27 @@
           "total": {
             "type": "integer",
             "format": "int64"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/ReportSummary"
+          },
+          "topEvents": {
+            "type": "array",
+            "maxItems": 5,
+            "description": "Same filter, highest grossRevenue first with stable ID tie-break; empty for CASH_FLOW.",
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/CohortRevenueRow"
+                },
+                {
+                  "$ref": "#/components/schemas/EventSalesRow"
+                },
+                {
+                  "$ref": "#/components/schemas/SettlementBalanceRow"
+                }
+              ]
+            }
           }
         }
       },
@@ -7483,6 +7534,73 @@
           },
           "netCashFlow": {
             "$ref": "#/components/schemas/SignedMoney"
+          }
+        }
+      },
+      "ReportSummary": {
+        "type": "object",
+        "description": "Whole filtered set, independent of page; only columns applicable to the selected metric are returned.",
+        "properties": {
+          "totalEvents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "paidOrderCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "grossRevenue": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "totalRefund": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "remainingAmount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "totalCommission": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "netPayable": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "ticketCaptured": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "compensationCaptured": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "ticketRefund": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "compensationRefund": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "ticketCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "validTicketCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "refundedTicketCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ticketsCheckedInCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Tickets with used_at recorded, including tickets refunded after use; current count, not period activity."
+          },
+          "paidAmount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "pendingAmount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "availableToPay": {
+            "$ref": "#/components/schemas/Money"
           }
         }
       }
