@@ -116,6 +116,20 @@ for (const context of ['', '/ticketscenter']) {
     assert.deepEqual(await logout.json(), { data: { loggedOut: true } });
     const replay = await call(base + '/api/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
     assert.equal(replay.status, 200, 'Logout remains idempotent after session invalidation');
-    await assert.rejects(options.requestInterceptor({ url: base + '/api/events/event-1', method: 'GET', headers: {} }), /planned/);
+    const eventUrl = base + '/api/events/event-1';
+    assert.equal(spec.paths['/api/events/{eventId}'].get['x-implementation-status'], 'implemented');
+    assert.equal((await options.requestInterceptor({ url: eventUrl, method: 'GET', headers: {} })).url, eventUrl);
+    let unavailable = 0;
+    for (const [path, item] of Object.entries(spec.paths)) {
+      for (const [method, operation] of Object.entries(item)) {
+        if (!/^(get|post|put|patch|delete|head|options|trace)$/.test(method)
+            || operation['x-implementation-status'] === 'implemented') continue;
+        ++unavailable;
+        const url = base + path.replace(/\{[^}]+\}/g, 'contract-placeholder');
+        await assert.rejects(options.requestInterceptor({ url, method: method.toUpperCase(), headers: {} }), /planned\/legacy/,
+          method.toUpperCase() + ' ' + path + ' must remain documentation-only');
+      }
+    }
+    assert.ok(unavailable > 0, 'The deployed contract contains planned or legacy operations');
   });
 }

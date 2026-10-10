@@ -2206,7 +2206,7 @@
           "Overview and Audit"
         ],
         "summary": "Tổng quan quản trị",
-        "description": "ADMIN hiện tại; counter live và dòng tiền ngày UTC hiện tại, không fake data.",
+        "description": "ADMIN hiện tại, kiểm SQL trước cache TTL60/fallback. Tổng người dùng, tổ chức đã duyệt, các mục chờ xử lý và 7 ngày UTC; doanh thu cohort tách dòng tiền thực tế. Đây là nghiệm thu Dashboard, không đại diện E2E các owner.",
         "responses": {
           "200": {
             "description": "Dữ liệu canonical từ SQL Server.",
@@ -2275,7 +2275,7 @@
           }
         },
         "operationId": "getApiAdminOverview",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "matched-to-source",
         "x-owner": "vuong",
         "externalDocs": {
@@ -2296,7 +2296,7 @@
           "Overview and Audit"
         ],
         "summary": "Nhật ký quản trị được lọc",
-        "description": "ADMIN hiện tại. createdAt DESC,id DESC; metadata chỉ scalar allowlist. Query trùng hoặc value trên200 ký tự bị từ chối. Organization/event filters resolve settlement and transfer ownership through SQL relationships; an event intersection excludes organization-wide rule history. Organization/event filters resolve settlement and transfer ownership through SQL relationships; an event intersection excludes organization-wide rule history.",
+        "description": "ADMIN hiện tại. createdAt DESC,id DESC; metadata chỉ scalar allowlist. Query trùng hoặc value trên200 ký tự bị từ chối. Organization/event filters resolve settlement and transfer ownership through SQL relationships; an event intersection excludes organization-wide rule history.",
         "responses": {
           "200": {
             "description": "Dữ liệu canonical từ SQL Server.",
@@ -2365,7 +2365,7 @@
           }
         },
         "operationId": "getApiAdminAuditLogs",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "matched-to-source",
         "x-owner": "vuong",
         "externalDocs": {
@@ -2576,7 +2576,7 @@
           }
         },
         "operationId": "getApiAdminAuditLogsAuditId",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "matched-to-source",
         "x-owner": "vuong",
         "externalDocs": {
@@ -7351,7 +7351,9 @@
             "$ref": "#/components/schemas/Money"
           },
           "ratePercent": {
-            "$ref": "#/components/schemas/Money"
+            "type": "string",
+            "pattern": "^(?:100\\.0000|(?:[0-9]|[1-9][0-9])\\.[0-9]{4})$",
+            "description": "Tỷ lệ phần trăm 0..100 với 4 chữ số thập phân; không phải tiền VND."
           },
           "fixedFee": {
             "$ref": "#/components/schemas/Money"

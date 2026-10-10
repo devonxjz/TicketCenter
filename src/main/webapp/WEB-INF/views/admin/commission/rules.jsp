@@ -2,7 +2,7 @@
 <%@ page import="vn.ticketscenter.settlement.controller.FinanceHtml" %>
 <!doctype html><html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Chính sách hoa hồng · TicketCenter</title><link rel="stylesheet" href="<%= FinanceHtml.escape(request.getContextPath()) %>/assets/css/finance.css"></head>
 <body><main id="finance-app" data-context="<%= FinanceHtml.escape(request.getContextPath()) %>" data-page="commission" data-csrf="<%= FinanceHtml.escape(request.getAttribute("csrf")) %>">
-<nav> <a href="<%= FinanceHtml.escape(request.getContextPath()) %>/finance/settlements">Quyết toán</a>  </nav>
+<nav aria-label="Tài chính"><a href="<%= FinanceHtml.escape(request.getContextPath()) %>/finance/overview">Tổng quan</a><a href="<%= FinanceHtml.escape(request.getContextPath()) %>/finance/audit">Nhật ký</a><a href="<%= FinanceHtml.escape(request.getContextPath()) %>/finance/reports">Báo cáo</a><a href="<%= FinanceHtml.escape(request.getContextPath()) %>/finance/settlements">Quyết toán</a></nav>
 <h1>Chính sách hoa hồng</h1><p>Chọn tổ chức để xem lịch sử và thiết lập chính sách. Chính sách đã gắn với sự kiện được khóa sửa.</p>
 <label>Tổ chức <select id="organization" required><option value="">Chọn tổ chức</option><%= FinanceHtml.options(request.getAttribute("organizations"),"name") %></select></label>
 <p id="notice" role="status" aria-live="polite"></p><div class="scroll"><table><thead><tr><th>Tỷ lệ (%)</th><th>Phí cố định (VND)</th><th>Từ ngày</th><th>Đến ngày</th><th>Sự kiện áp dụng</th><th>Thao tác</th></tr></thead><tbody id="rules"></tbody></table></div>

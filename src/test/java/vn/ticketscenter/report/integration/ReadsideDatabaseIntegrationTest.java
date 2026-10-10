@@ -108,6 +108,20 @@ class ReadsideDatabaseIntegrationTest {
         var result=new DashboardRepository().overview(connection,null,Instant.parse("2026-10-01T14:00:00Z"));
         assertEquals(users+1,result.get("totalUsers"));assertEquals(approved-1,result.get("activeOrganizations"));
     }
+    @Test void cachedOverviewStillRejectsRevokedRoleAndStaleAuthVersionUsingActualDatabase()throws Exception{
+        String[] value={null};int[] reads={0};
+        var cache=new vn.ticketscenter.dashboard.service.DashboardCache(new vn.ticketscenter.dashboard.service.DashboardCache.Backend(){
+            public String get(String key){reads[0]++;return value[0];}
+            public void set(String key,String json,int ttl){assertEquals(60,ttl);value[0]=json;}
+            public void delete(String key){value[0]=null;}
+        });
+        var service=new DashboardService(database,cache,Clock.fixed(Instant.parse("2026-10-01T14:00:00Z"),ZoneOffset.UTC));
+        String first=service.admin(adminActor());assertEquals(first,service.admin(adminActor()));assertEquals(2,reads[0]);
+        sql("UPDATE dbo.tc_users SET platform_role='CUSTOMER' WHERE id=?",admin);
+        assertEquals(403,assertThrows(FinanceException.class,()->service.admin(adminActor())).status());assertEquals(2,reads[0]);
+        sql("UPDATE dbo.tc_users SET platform_role='ADMIN',auth_version=1 WHERE id=?",admin);
+        assertEquals(401,assertThrows(FinanceException.class,()->service.admin(adminActor())).status());assertEquals(2,reads[0]);
+    }
     @Test void reportSummaryAndTopEventsUseWholeFilteredSetInsteadOfPage()throws Exception{
         var p=new HashMap<>(Map.of("metric","COHORT_REVENUE","from","2026-10-01T00:00:00Z","to","2026-10-02T00:00:00Z","pageSize","1"));
         var data=new vn.ticketscenter.report.repository.ReportRepository().page(connection,ReportFilter.parse(p,orgA));
