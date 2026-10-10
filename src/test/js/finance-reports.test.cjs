@@ -1,6 +1,25 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const ui = require('../../main/webapp/assets/js/finance-reports.js');
+const vm=require('node:vm'),fs=require('node:fs');
+const tick=()=>new Promise(resolve=>setImmediate(resolve));
+function harness(){
+ class Element{constructor(value=''){this.value=value;this.children=[];this.handlers={};this.textContent='';this.dataset={};}append(...children){this.children.push(...children);}replaceChildren(...children){this.children=[...children];this.textContent='';}addEventListener(event,handler){this.handlers[event]=handler;}click(){downloads++;}remove(){} }
+ const ids=Object.fromEntries(['finance-readside','filters','organization','event','notice','rows','columns','previous','next','pagination','summary','top-events','basis','export'].map(x=>[x,new Element()]));
+ const form=ids.filters;form.elements={from:new Element(),to:new Element(),metric:new Element('COHORT_REVENUE'),pageSize:new Element('20')};ids['finance-readside'].dataset={context:'/ticketscenter',admin:'true'};
+ const requests=[];let downloads=0;const document={getElementById:id=>ids[id],createElement:()=>new Element(),body:new Element()};
+ const network=url=>new Promise(resolve=>requests.push({url,resolve}));
+ const response=data=>new Response(JSON.stringify({data}),{headers:{'Content-Type':'application/json'}});
+ vm.runInNewContext(fs.readFileSync(require.resolve('../../main/webapp/assets/js/finance-reports.js'),'utf8'),{document,fetch:network,URLSearchParams,URL:{createObjectURL:()=> 'blob:test',revokeObjectURL(){}},Option:class extends Element{constructor(text,value){super(value);this.textContent=text;}},FormData:class{entries(){return Object.entries({...Object.fromEntries(Object.entries(form.elements).map(([key,input])=>[key,input.value])),organizationId:ids.organization.value,eventId:ids.event.value})[Symbol.iterator]();}},Date,Intl,BigInt,setTimeout:()=>0});
+ return {ids,requests,response,get downloads(){return downloads;},async ready(){requests[0].resolve(response({organizations:[],events:[]}));await tick();await tick();},result(metric='COHORT_REVENUE'){return response({metric,rows:[{eventId:'Old report'}],summary:{totalEvents:1},topEvents:[],pageSize:20,total:1,timeBasis:''});},change(name,value){const target=form.elements[name]||ids[name];target.value=value;form.handlers.change?.({target});}};
+}
+
+for(const [name,value]of Object.entries({metric:'CASH_FLOW',event:'10000000-0000-0000-0000-000000000001',from:'2026-10-01T00:00',to:'2026-10-02T00:00',pageSize:'50'}))test('editing '+name+' rejects an in-flight report from the previous selection',async()=>{
+ const h=harness();await h.ready();h.change(name,value);h.requests[1].resolve(h.result());await tick();await tick();assert.equal(h.ids.rows.children.length,0);assert.match(h.ids.notice.textContent,/Bộ lọc/);
+});
+test('editing filters during CSV preparation cancels download for the obsolete selection',async()=>{
+ const h=harness();await h.ready();h.requests[1].resolve(h.result());await tick();await tick();const pending=h.ids.export.handlers.click();h.change('metric','CASH_FLOW');h.requests.at(-1).resolve(new Response('old csv',{headers:{'Content-Type':'text/csv'}}));await pending;assert.equal(h.downloads,0);assert.match(h.ids.notice.textContent,/Bộ lọc/);
+});
 
 test('report query preserves exact tenant, metric and UTC half-open bounds for CSV', () => {
   const values = { organizationId: '10000000-0000-0000-0000-000000000001', eventId: '',

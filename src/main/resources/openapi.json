@@ -7047,7 +7047,7 @@
           "ticketsCheckedInCount": {
             "type": "integer",
             "format": "int64",
-            "description": "Tickets with used_at recorded, including tickets refunded after use; current count, not period activity."
+            "description": "Distinct successfully checked-in tickets, including tickets refunded after use; current count, not period activity."
           }
         }
       },
@@ -7591,7 +7591,7 @@
           "ticketsCheckedInCount": {
             "type": "integer",
             "format": "int64",
-            "description": "Tickets with used_at recorded, including tickets refunded after use; current count, not period activity."
+            "description": "Distinct successfully checked-in tickets, including tickets refunded after use; current count, not period activity."
           },
           "paidAmount": {
             "$ref": "#/components/schemas/Money"
