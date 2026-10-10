@@ -68,3 +68,17 @@ Các hành vi reviewer không đánh giá được đã được executor quyế
 8. **Ruling:** Full-suite/CI và hoàn tất #32 chưa được xác nhận — nhóm test an toàn không thay các gate này — nếu coi đã đạt: tích hợp chưa kiểm hoặc kích hoạt DB/SMTP chung.
 
 Deferred minors: không có. Giữ nhánh local; thư mục chính được chuyển về nhánh này, worktree bảo toàn WAR, reports và fixture. Không push/PR/merge hoặc đóng issue trong phiên.
+
+## Bàn giao Draft PR — 10/10/2026
+
+Người dùng yêu cầu tiếp tục bước push/mở Draft PR vào `dev` sau khi phần utility hoàn tất. Giữ #32 mở; không merge hoặc chuyển PR sang ready-for-review khi các gate chưa đạt.
+
+Đã fetch và merge `origin/dev` tại `8d5828a` (PR #39 của đồng đội) vào feature, không có conflict. TestedRevision mới: `208469448a75cab7f1ead95827fb025f50a4ccfe`. Không sửa code của đồng đội để đồng bộ; diff feature so với dev vẫn chỉ bảy file report CSV/spec/plan/evidence. Source CSV và test CSV không đổi so với revision đã review `24538c8`.
+
+Chạy lại đúng lệnh nhóm an toàn trong mục TDD trên revision mới: **102 tests, 0 failures/errors/skips, exit 0** (56 CSV + 46 baseline; IdentityWebFlowTest tăng 16 → 19 do thay đổi dev). `mvn -B -DskipTests package` exit 0, WAR tạo lại thành công. `git diff --check` exit 0. Logs `target/vuong-05-pr-regression.log`, `target/vuong-05-pr-package.log` và reports giữ ở worktree CSV. Commit sau revision này chỉ cập nhật tài liệu.
+
+Đích PR `dev` và tên `feat/vuong/vuong-05-reports-csv-cache` theo yêu cầu người dùng và convention của live #32/#34; tài liệu GIT-WORKFLOW dùng tên generic `develop`/`feature` nên không tự đổi nhánh đang được giao. Đồng bộ bằng merge, không rewrite/force-push.
+
+Commit HEAD giữ `[skip ci]` để không kích hoạt pipeline push/pull_request đang chạy bare `mvn -B test` và có DB/SMTP chung. Đây là trạng thái **CI gate chưa đạt**, không phải CI xanh. [GitHub hướng dẫn skip workflows](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/skip-workflow-runs) nêu required checks có thể pending khi skip. Không đổi workflow hoặc branch protection. App acceptance vẫn chưa chạy.
+
+Draft PR sẽ yêu cầu reviewer xác nhận TAB profile, raw-cell/quoted-field API, ownership/partial-output behavior. Merge gate vẫn cần app/contract/integration theo phạm vi ghép và CI được cô lập, chạy xanh cùng ít nhất một review phê duyệt.
