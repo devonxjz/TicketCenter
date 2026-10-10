@@ -6,7 +6,7 @@ import vn.ticketscenter.settlement.infrastructure.FinanceException;
 
 public final class FinanceJdbc {
     private FinanceJdbc() {}
-    private static final Set<String> PUBLIC_CODES=Set.of("ADMIN_REQUIRED","UNAUTHENTICATED","IDEMPOTENCY_CONFLICT","RULE_ALREADY_ATTACHED_TO_EVENTS","SETTLEMENT_BLOCKED","SETTLEMENT_NOT_DRAFT","PAYOUT_TERMS_CONFLICT","PAYOUT_RESULT_CONFLICT","PAYOUT_EXCEEDS_BALANCE","SETTLEMENT_NOT_CONFIRMED","EVENT_NOT_ENDED","COMMISSION_RULE_INVALID","PAYOUT_INVALID","NOT_FOUND");
+    private static final Set<String> PUBLIC_CODES=Set.of("ADMIN_REQUIRED","UNAUTHENTICATED","IDEMPOTENCY_CONFLICT","RULE_ALREADY_ATTACHED_TO_EVENTS","SETTLEMENT_BLOCKED","SETTLEMENT_NOT_DRAFT","PAYOUT_TERMS_CONFLICT","PAYOUT_RESULT_CONFLICT","PAYOUT_EXCEEDS_BALANCE","PAYOUT_RECONCILIATION_REQUIRED","SETTLEMENT_NOT_CONFIRMED","EVENT_NOT_ENDED","COMMISSION_RULE_INVALID","PAYOUT_INVALID","NOT_FOUND");
     public static FinanceException error(SQLException failure) {
         for(var current=failure;current!=null;current=current.getNextException()) {
             int n=current.getErrorCode();
@@ -32,7 +32,10 @@ public final class FinanceJdbc {
             int type=metadata.getColumnType(i);
             if(type==Types.TIMESTAMP || type==Types.TIMESTAMP_WITH_TIMEZONE) { var at=row.getTimestamp(i,utc()); value=at==null?null:at.toInstant(); }
             else value=row.getObject(i);
-            result.put(camel(metadata.getColumnLabel(i)),value);
+            String column=metadata.getColumnLabel(i);
+            if((column.equals("id") || column.endsWith("_id")) && value instanceof String id
+                    && id.matches("[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}"))value=UUID.fromString(id).toString();
+            result.put(camel(column),value);
         }
         return result;
     }

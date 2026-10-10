@@ -28,11 +28,12 @@ Owner tích hợp: Vương. Nguồn: [#28](https://github.com/devonxjz/TicketCen
 | `tc:checkin:events:v1:<actorId>:<orgId>` | Khánh | Event được phép check-in | 60 | Membership/time/event đổi; dự kiến #21 |
 | `tc:checkin:window:v1:<eventId>` | Khánh | Khung giờ projection | 30 | Edit/cancel; mutation vẫn kiểm DB/time; dự kiến #21 |
 | `tc:event:cancel-progress:<eventId>` | Khánh | Progress projection | 10 | Batch hoàn tất/retry; dự kiến #26 |
-| `tc:commission:rules:v1:<organizationId>` | Vương | Rule DTO list | 300 | Rule create/edit, Thái approve initialPolicy thông báo invalidate; dự kiến #29 |
-| `tc:settlement:summary:v1:<eventId>` | Vương | Settlement projection | 60 | Recalculate/confirm/payout/refund; dự kiến #30/#31, scope chính xác là **eventId** |
-| `tc:settlement:blockers:v1:<eventId>` | Vương | Blocker list | 30 | Order/payment/refund/cancel đổi; confirm kiểm DB lại; dự kiến #30 |
-| `tc:report:v1:<scope>:<filterHash>` | Vương | `admin` hoặc `org_<orgId>`, cùng filter JSON/CSV | 60 | Payment/refund/settlement/payout; dự kiến #32 |
-| `tc:admin:overview:v1` | Vương | Admin KPI | 60 | Approval/payment/refund/settlement; dự kiến #33 |
+| `tc:commission:rules:v1:<organizationId>` | Vương | Rule DTO list; current ADMIN và org tồn tại được kiểm trước hit | 300 | **Hiện có:** CommissionRuleCache; create/edit invalidate sau SP commit. InitialPolicy từ Thái cần thông báo sau commit |
+| `tc:finance:report:v1:<scope>:<generation>:<filterHash>` | Vương | scope `global` hoặc `org:<UUID>`; SHA256 actor/authVersion + metric/org/event/UTC/page/pageSize | 60 | **Hiện có:** ReportCache; current authority/event scope trước hit; mutation finance tăng global và org generation sau commit |
+| `tc:finance:report:g:global` / `tc:finance:report:g:org:<UUID>` | Vương | Counter generation, không chứa DTO | Không TTL | **Hiện có:** ReportCache.key / invalidateAfterCommit; chỉ INCR, không wildcard DEL |
+| `tc:settlement:summary:v1:<eventId>` / `tc:settlement:blockers:v1:<eventId>` | Vương | Summary/blockers DTO; current ADMIN và event tồn tại trước hit | 60 / 30 | **Hiện có:** SettlementReadCache; recalc/confirm/reserve/result invalidate sau SP commit. Payment/Refund owner cần thông báo sau commit |
+| `tc:report:v1:<scope>:<filterHash>` | Vương | Namespace cũ dự kiến trong issue | Chưa bật | Implementation dùng namespace finance có generation và actor/authVersion ở trên; không có producer tên cũ |
+| `tc:admin:overview:v1` | Vương | Admin KPI và bảy ngày UTC; current ADMIN trước hit | 60 | **Hiện có:** DashboardCache; finance writes invalidate sau commit. Org overview đọc SQL trực tiếp. User/organization/event/refund owner cần thông báo sau commit |
 | `tc:ticket:detail:v1:<ticketId>` / `tc:user:tickets:v1:<actorId>:<filterHash>` | Liêm | Ticket projection | Chưa chốt | Issue/refund/check-in; chỉ mới được nhắc ở invalidation #23/#24 |
 | `tc:refund:detail:v1:<refundId>` / `tc:admin:pending_refunds_count` | Khánh | Refund/admin projection | Chưa chốt | Request/decision/worker result; chỉ mới được nhắc ở invalidation #24 |
 
@@ -48,18 +49,20 @@ Owner tích hợp: Vương. Nguồn: [#28](https://github.com/devonxjz/TicketCen
 | `tc:idem:refund-request:<actorId>:<key>` | Khánh | 86400 | #23, dự kiến |
 | `tc:idem:refund-decision:<adminId>:<key>` | Khánh | 86400 | #24, dự kiến |
 | `tc:idem:refund-attempt:<attemptId>` | Khánh | 86400 | #28; khóa đúng attemptId, cần xác nhận với #25 |
-| `tc:idem:payout:<adminId>:<key>` | Vương | 86400 | #31, dự kiến |
+| `tc:idem:payout:<adminId>:<key>` | Vương | Chưa bật | Payout hiện dedupe bền bằng payout UUID + SHA256 immutable terms ở SQL; chưa có Redis producer |
 | `tc:lease:refund:<refundId>` | Khánh | 120 | #25, token lease riêng cho mỗi lần claim |
 | `tc:lock:order-payment:<orderId>` | Liêm | 10 | #16, token owner; DB khóa Order giữ invariant |
 | `tc:lock:ticket-checkin:<ticketId>` | Khánh | 5 | #22; DB quyết định kết quả soát vé |
 | `tc:lock:refund-tickets:<sortedTicketIds>` | Khánh | 10 | #23; chuẩn hóa tập vé/sort trước hash, tránh A_B khác B_A |
-| `tc:lock:settlement-payout:<settlementId>` | Vương | 30 | #31; DB giữ paid + pending <= netPayable |
+| `tc:lock:settlement-payout:<settlementId>` | Vương | Chưa bật | SP16 giữ khóa SQL và paid + pending <= netPayable; mọi PENDING chặn ID mới, cùng ID replay/reconcile được phép |
 
 Idempotency lưu fingerprint của operation + actor/scope + payload chuẩn hóa, trạng thái và kết quả đã lọc. Cùng key/cùng fingerprint trả kết quả đã lưu; khác fingerprint trả 409. Không tái thực thi chỉ vì Redis key hết TTL: tra identity nghiệp vụ đã lưu trong DB, đặc biệt Payment/Refund/Payout. Caller giữ key và payload khi replay; Swagger không tự tạo key mới.
 
 Lease dùng atomic `SET NX EX/PX` với token duy nhất; renew/release phải so sánh token trong thao tác atomic, không `DEL` mù. Lease hết hạn hoặc process crash không được cho phép ghi trùng; DB transaction/unique identity và kiểm fencing/claim hiện tại cần được owner chứng minh.
 
 ## Những điểm cần owner xác nhận
+
+Các producer Vương cập nhật ngày 10/10/2026 theo schema UUID/tc_* đã được duyệt. `finance.redis.enabled=false` tắt toàn bộ cache đọc tài chính. Redis outage fallback SQL; invalidation là best effort, nên cache cũ có thể tồn tại đến TTL nếu outage xảy ra đúng sau commit. Quyền hiện tại và mọi quyết định ghi vẫn kiểm SQL trực tiếp. CSV không đọc cache. Unit/SQL tests đã kiểm quyền trước cache và invalidate sau commit. FinanceRedisRuntimeTest đã chạy với Redis thật 7.4.2 biệt lập: hit, TTL300/60/30, generation invalidation, xóa overview và fallback khi shutdown server đều đạt. Test opt-in yêu cầu loopback/port riêng/fixture marker, không chạy mặc định. Thông báo invalidation của owner Payment/Refund/InitialPolicy và các writer KPI khác còn là gate ghép nhóm.
 
 1. Auth namespace/TTL: hiện tại `auth:user`/180s; #28 đề xuất `tc:user:auth-version`/86400s. PR này chỉ ghi hiện trạng, không sửa identity.
 2. QR: #18/#28 đề xuất cache PNG tại `tc:ticket:qr:v1:<ticketId>:<version>`/3600s, trong khi contract chung cấm raw QR. **Chưa cho phép producer lưu PNG/token QR** cho tới khi Liêm/Khánh thống nhất chính sách; giải mã/check-in vẫn phải kiểm DB, xóa cache không thu hồi được ảnh QR đã tải.

@@ -6,11 +6,22 @@ import vn.ticketscenter.settlement.commission.dto.CommissionRuleCreateDto;
 import vn.ticketscenter.settlement.infrastructure.FinanceException;
 import vn.ticketscenter.settlement.payout.*;
 import vn.ticketscenter.settlement.repository.FinanceRepository;
+import vn.ticketscenter.settlement.commission.service.CommissionRuleCache;
+import vn.ticketscenter.settlement.infrastructure.FinanceJson;
 
 public final class FinanceMutationService {
     private final FinanceRepository repository;
     private final PayoutAdapter adapter;
-    public FinanceMutationService(FinanceRepository repository,PayoutAdapter adapter) { this.repository=repository; this.adapter=adapter; }
+    private final CommissionRuleCache cache;
+    private final SettlementReadCache settlementCache;
+    public FinanceMutationService(FinanceRepository repository,PayoutAdapter adapter) { this(repository,adapter,CommissionRuleCache.none()); }
+    public FinanceMutationService(FinanceRepository repository,PayoutAdapter adapter,CommissionRuleCache cache) { this(repository,adapter,cache,SettlementReadCache.none()); }
+    public FinanceMutationService(FinanceRepository repository,PayoutAdapter adapter,CommissionRuleCache cache,SettlementReadCache settlementCache) { this.repository=repository; this.adapter=adapter; this.cache=cache;this.settlementCache=settlementCache; }
+    public String readJson(UserPrincipal actor,String kind,UUID id) {
+        if(kind.equals("rules")) { repository.requireRuleRead(actor,id); return cache.read(id,()->FinanceJson.write(repository.rules(actor,id))); }
+        if(kind.equals("summary") || kind.equals("blockers")) { repository.requireEventRead(actor,id);return settlementCache.read(id,kind.equals("summary")?SettlementReadCache.Kind.SUMMARY:SettlementReadCache.Kind.BLOCKERS,()->FinanceJson.write(read(actor,kind,id))); }
+        return FinanceJson.write(read(actor,kind,id));
+    }
     public Object read(UserPrincipal actor,String kind,UUID id) {
         return switch(kind) {
             case "rules" -> repository.rules(actor,id);
@@ -34,12 +45,12 @@ public final class FinanceMutationService {
     }
     public Map<String,Object> reconcile(UserPrincipal actor,UUID settlement,UUID payout,PayoutRequestDto terms) throws java.sql.SQLException {
         repository.requireAdministrator(actor);
-        var existing=repository.existing(actor,settlement,payout,terms);
+        var existing=terms==null?repository.payoutForReconciliation(actor,settlement,payout):repository.existing(actor,settlement,payout,terms);
         if(existing==null) throw new FinanceException("NOT_FOUND",404);
         if(!"PENDING".equals(existing.get("status"))) return existing;
         PayoutAdapter.Result verified;
         try { verified=adapter.lookup(payout); }
         catch(Exception unavailable) { throw new FinanceException("PAYOUT_RECONCILIATION_UNAVAILABLE",503); }
-        return repository.record(actor,settlement,payout,terms,verified);
+        return repository.recordStored(actor,settlement,payout,verified);
     }
 }

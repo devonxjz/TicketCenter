@@ -6,7 +6,7 @@ The registry covers existing untagged DB suites (DemoAccountSeeder, OtpRepositor
 
 ## Safe local run
 
-Select JDK 25, then run `./src/test/scripts/platform-safe-tests.ps1 -JavaHome '<JDK25 directory>'`. This launcher explicitly turns both external flags off, runs a clean Java suite, reports actual totals and named skipped cases, then runs Node initializer/report tests. Bare `mvn test` is safe when opt-in flags are absent. The launcher also prevents stale report files from inflating totals.
+Select JDK 25, then run `./src/test/scripts/platform-safe-tests.ps1 -JavaHome '<JDK25 directory>'`. This launcher explicitly turns DB/SMTP/Redis flags off, runs a clean Java suite, reports actual totals and named skipped cases, then runs Node initializer/report-summary/finance UI behavior tests. Bare `mvn test` is safe when opt-in flags are absent. The launcher also prevents stale report files from inflating totals. Keep private fixture configuration and redirected logs outside `target`: Maven clean deletes build outputs, and Windows cannot delete an actively written log.
 
 ## Explicit DB opt-in
 
@@ -20,6 +20,10 @@ DB tests are allowed only with explicit opt-in and a dedicated runtime target:
 Only a small JDBC option allowlist is accepted; remote targets, duplicate databaseName, failover/redirection options and missing timeouts fail before setup. The condition then performs a bounded read-only preflight requiring `dbo.tc_vuong_test_fixture` with `fixture_key='vuong-finance-v1'`. SQL exceptions are replaced with a fixed message without exception causes. The table is supplied by `database/tests/vuong/001_uuid_test_schema.sql`; production migration 027 does not create the owner schema. The preflight establishes target identity, not permission to reuse someone else's test database. Use a newly created dedicated fixture.
 
 Missing target/marker/configuration after opt-in fails the test container, never becomes a successful skip. The CI DB job additionally fails if any selected test is skipped. It requires both finance and read-side JDBC test sources to exist before execution rather than silently selecting absent DayXXIT suites. It applies fixture 001 and migration 027 in a disposable SQL Server service, and never enables SMTP. Older owners' JPA/seed suites are separately pending their compatible base schema; the finance fixture is not full owner acceptance. Fixture compatibility, permissions/concurrency and real JDBC assertions remain acceptance gates until that job is actually executed successfully.
+
+## Explicit standalone Redis acceptance
+
+`FinanceRedisRuntimeTest` is disabled unless `-Dtc.tests.redis=true`. Use a fresh dedicated Redis process, loopback127.0.0.1, unprivileged port, no persistence; set `tc:fixture:vuong-finance-v1` to `vuong-finance-v1`. Bind `TC_REDIS_TEST_PORT` and explicit `-Dredis.host=127.0.0.1 -Dredis.port=<same port> -Dredis.password= -Dredis.timeout=250 -Dfinance.redis.enabled=true`, then select `-Dtest=FinanceRedisRuntimeTest`. It checks the marker before writes, verifies actual cache keys/TTLs/invalidation, shuts down that standalone server and verifies outage fallback. Never point it at a shared Redis. The manual CI Redis job supplies a disposable service and requires this case to execute without skips.
 
 ## SMTP boundary
 

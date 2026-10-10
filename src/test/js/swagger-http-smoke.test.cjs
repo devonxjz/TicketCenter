@@ -70,8 +70,12 @@ for (const context of ['', '/ticketscenter']) {
     const me = await call(base + '/api/me');
     assert.equal(me.status, 401);
     const noCsrf = await call(base + '/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-    assert.equal(noCsrf.status, 403);
-    assert.equal((await noCsrf.json()).error.code, 'CSRF_TOKEN_INVALID');
+    // Login is explicitly public in the owner's CsrfFilter; absent service returns503.
+    assert.equal(noCsrf.status, 503);
+    assert.equal((await noCsrf.json()).error.code, 'DATABASE_UNAVAILABLE');
+    const protectedMutation = await call(base + '/api/__smoke/protected', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    assert.equal(protectedMutation.status, 403);
+    assert.equal((await protectedMutation.json()).error.code, 'CSRF_TOKEN_INVALID');
     const wrongType = await call(base + '/api/auth/login', { method: 'POST', body: '{}' });
     assert.equal(wrongType.status, 415);
     assert.equal((await wrongType.json()).error.code, 'CONTENT_TYPE_INVALID');
@@ -88,8 +92,10 @@ for (const context of ['', '/ticketscenter']) {
     assert.match(csrf.headers.get('cache-control') || '', /no-store/i);
     const token = (await csrf.json()).data.token;
     assert.ok(typeof token === 'string' && token.length > 0, 'Runtime token required; value omitted from evidence');
-    const foreign = await session()(base + '/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token }, body: '{}' });
+    const foreign = await session()(base + '/api/__smoke/protected', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token }, body: '{}' });
     assert.equal(foreign.status, 403);
+    const passed = await call(base + '/api/__smoke/protected', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token }, body: '{}' });
+    assert.equal(passed.status,404,'Valid CSRF passes the real filter to an unmapped protected route');
     const valid = await call(base + '/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token }, body: '{}' });
     assert.equal(valid.status, 503);
     assert.equal((await valid.json()).error.code, 'DATABASE_UNAVAILABLE');

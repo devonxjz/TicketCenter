@@ -14,9 +14,13 @@ import vn.ticketscenter.settlement.payout.*;
 public final class FinanceRepository implements PayoutStore {
     private final FinanceDatabase database;
     private final Consumer<UUID> invalidation;
+    private final Consumer<UUID> eventInvalidation;
     public FinanceRepository(FinanceDatabase database) { this(database,id -> {}); }
-    public FinanceRepository(FinanceDatabase database,Consumer<UUID> invalidation) { this.database=Objects.requireNonNull(database); this.invalidation=Objects.requireNonNull(invalidation); }
+    public FinanceRepository(FinanceDatabase database,Consumer<UUID> invalidation) { this(database,invalidation,id->{}); }
+    public FinanceRepository(FinanceDatabase database,Consumer<UUID> invalidation,Consumer<UUID> eventInvalidation) { this.database=Objects.requireNonNull(database); this.invalidation=Objects.requireNonNull(invalidation);this.eventInvalidation=Objects.requireNonNull(eventInvalidation); }
     public void requireAdministrator(UserPrincipal actor) { admin(actor,c -> null); }
+    public void requireRuleRead(UserPrincipal actor,UUID organizationId) { admin(actor,c -> { require(c,"dbo.tc_organizations",organizationId); return null; }); }
+    public void requireEventRead(UserPrincipal actor,UUID eventId) { admin(actor,c -> { require(c,"dbo.tc_events",eventId); return null; }); }
     public Map<String,Object> options(UserPrincipal actor) {
         return admin(actor,c -> {
             List<Map<String,Object>> orgs,events;
@@ -74,6 +78,34 @@ public final class FinanceRepository implements PayoutStore {
             try(var q=c.prepareStatement("SELECT id payout_id,settlement_id,amount,status,verification_state,provider_reference,processed_at FROM dbo.tc_settlement_transfer_logs WHERE settlement_id=? ORDER BY created_at DESC,id DESC")) { FinanceJdbc.bind(q,settlement); return FinanceJdbc.list(q); }
         });
     }
+    public Map<String,Object> payoutForReconciliation(UserPrincipal actor,UUID settlement,UUID payout) {
+        return admin(actor,c -> {
+            try(var q=c.prepareStatement("SELECT l.id payout_id,l.settlement_id,l.amount,l.status,l.verification_state,l.provider_reference,l.processed_at,s.status settlement_status,s.net_payable,s.paid_amount,s.pending_amount,CAST(s.net_payable-s.paid_amount-s.pending_amount AS decimal(19,0)) available_to_pay FROM dbo.tc_settlement_transfer_logs l JOIN dbo.tc_settlements s ON s.id=l.settlement_id WHERE l.id=? AND l.settlement_id=?")) {
+                FinanceJdbc.bind(q,payout,settlement);var rows=FinanceJdbc.list(q);
+                if(rows.isEmpty())throw new FinanceException("NOT_FOUND",404);
+                var result=rows.getFirst();result.put("isReplay",true);return result;
+            }
+        });
+    }
+    /** Uses immutable reservation terms; recovery never requires retaining bank details. */
+    public Map<String,Object> recordStored(UserPrincipal actor,UUID settlement,UUID payout,PayoutAdapter.Result verified) {
+        UUID[] org={null},event={null};
+        var result=admin(actor,c -> {
+            org[0]=organization(c,settlementOrg(),settlement);
+            event[0]=organization(c,"SELECT event_id FROM dbo.tc_settlements WHERE id=?",settlement);
+            BigDecimal amount; byte[] fingerprint;
+            try(var q=c.prepareStatement("SELECT amount,request_fingerprint FROM dbo.tc_settlement_transfer_logs WHERE id=? AND settlement_id=?")) {
+                FinanceJdbc.bind(q,payout,settlement);
+                try(var rows=q.executeQuery()) {
+                    if(!rows.next())throw new FinanceException("NOT_FOUND",404);
+                    amount=rows.getBigDecimal(1); fingerprint=rows.getBytes(2);
+                }
+            }
+            return FinanceJdbc.call(c,"{call dbo.usp_RecordPayout(?,?,?,?,?,?,?,?)}",settlement,payout,actor.actorId(),amount,
+                    verified.reference(),verified.status(),fingerprint,actor.authVersion());
+        });
+        invalidate(org[0]);invalidateEvent(event[0]);return result;
+    }
     @Override public Map<String,Object> reserve(UserPrincipal actor,UUID settlement,UUID key,PayoutRequestDto terms) {
         return payout(actor,settlement,key,terms,null,null);
     }
@@ -97,10 +129,15 @@ public final class FinanceRepository implements PayoutStore {
     }
     private static String settlementOrg() { return "SELECT e.organization_id FROM dbo.tc_settlements s JOIN dbo.tc_events e ON e.id=s.event_id WHERE s.id=?"; }
     private Map<String,Object> mutate(UserPrincipal actor,String lookup,UUID id,String call,Object... values) {
-        UUID[] org={null}; var result=admin(actor,c -> { org[0]=organization(c,lookup,id); return FinanceJdbc.call(c,call,values); });
-        invalidate(org[0]); return result;
+        UUID[] org={null},event={null}; var result=admin(actor,c -> {
+            org[0]=organization(c,lookup,id);var response=FinanceJdbc.call(c,call,values);
+            event[0]=response.get("eventId")!=null?UUID.fromString(response.get("eventId").toString()):organization(c,"SELECT event_id FROM dbo.tc_settlements WHERE id=?",id);
+            return response;
+        });
+        invalidate(org[0]);invalidateEvent(event[0]); return result;
     }
     private void invalidate(UUID org) { try { invalidation.accept(org); } catch(RuntimeException cacheOutage) { /* Commit is authoritative; cache is expendable. */ } }
+    private void invalidateEvent(UUID event) { try { eventInvalidation.accept(event); } catch(RuntimeException cacheOutage) { /* Bounded read TTL. */ } }
     private static UUID organization(Connection c,String sql,UUID id) throws SQLException {
         try(var q=c.prepareStatement(sql)) { FinanceJdbc.bind(q,id); try(var rows=q.executeQuery()) { if(!rows.next()) throw new FinanceException("NOT_FOUND",404); return UUID.fromString(rows.getString(1)); } }
     }

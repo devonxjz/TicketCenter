@@ -94,6 +94,7 @@ class ReadsideDatabaseIntegrationTest {
         assertEquals(new java.math.BigDecimal("9007199254740993"),days.get(4).get("cohortGrossRevenue"));
         assertEquals(new java.math.BigDecimal("9007199254740993"),days.get(4).get("netCashFlow"));
         assertEquals(new java.math.BigDecimal("100"),days.get(6).get("cohortGrossRevenue"));
+        assertEquals(new java.math.BigDecimal("100"),result.get("todayCohortGrossRevenue"));
         assertEquals(new java.math.BigDecimal("90"),days.get(6).get("netCashFlow"));
         String json=new DashboardService(database,Clock.fixed(Instant.parse("2026-10-01T14:00:00Z"),ZoneOffset.UTC)).organization(managerActor(),orgA);
         assertTrue(json.contains("\"cohortGrossRevenue\":\"9007199254740993\""),json);

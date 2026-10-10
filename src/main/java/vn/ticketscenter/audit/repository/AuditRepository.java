@@ -11,9 +11,20 @@ public final class AuditRepository {
     public Map<String,Object> list(Connection db,AuditFilter f)throws SQLException{
         var params=new ArrayList<Object>();params.add(f.from());params.add(f.to());String where=" FROM dbo.tc_audit_logs a WHERE created_at>=? AND created_at<?";
         if(f.action()!=null){where+=" AND action=?";params.add(f.action());}if(f.entityType()!=null){where+=" AND entity_type=?";params.add(f.entityType());}if(f.entityId()!=null){where+=" AND entity_id=?";params.add(f.entityId());}
-        String json="CASE WHEN ISJSON(metadata_json)=1 THEN metadata_json ELSE N'{}' END";
-        if(f.eventId()!=null){where+=" AND ((entity_type='Event' AND TRY_CONVERT(uniqueidentifier,entity_id)=?) OR TRY_CONVERT(uniqueidentifier,JSON_VALUE("+json+",'$.eventId'))=?)";params.add(f.eventId());params.add(f.eventId());}
-        if(f.organizationId()!=null){where+=" AND ((entity_type='Organization' AND TRY_CONVERT(uniqueidentifier,entity_id)=?) OR TRY_CONVERT(uniqueidentifier,JSON_VALUE("+json+",'$.organizationId'))=? OR EXISTS (SELECT 1 FROM dbo.tc_events e WHERE e.organization_id=? AND entity_type='Event' AND TRY_CONVERT(uniqueidentifier,entity_id)=e.id))";params.add(f.organizationId());params.add(f.organizationId());params.add(f.organizationId());}
+        if(f.actorId()!=null){where+=" AND actor_id=?";params.add(f.actorId());}
+        String json="CASE WHEN ISJSON(a.metadata_json)=1 THEN a.metadata_json ELSE N'{}' END";
+        String entityId="TRY_CONVERT(uniqueidentifier,a.entity_id)";
+        String relatedEvent="((a.entity_type='Event' AND "+entityId+"=e.id) OR TRY_CONVERT(uniqueidentifier,JSON_VALUE("+json+",'$.eventId'))=e.id"
+            +" OR EXISTS (SELECT 1 FROM dbo.tc_settlements s WHERE s.event_id=e.id AND ((a.entity_type='Settlement' AND "+entityId+"=s.id)"
+            +" OR TRY_CONVERT(uniqueidentifier,JSON_VALUE("+json+",'$.settlementId'))=s.id"
+            +" OR EXISTS (SELECT 1 FROM dbo.tc_settlement_transfer_logs l WHERE l.settlement_id=s.id AND a.entity_type='SettlementTransferLog' AND "+entityId+"=l.id))))";
+        if(f.eventId()!=null){where+=" AND EXISTS (SELECT 1 FROM dbo.tc_events e WHERE e.id=? AND "+relatedEvent+")";params.add(f.eventId());}
+        if(f.organizationId()!=null){
+            where+=" AND ((a.entity_type='Organization' AND "+entityId+"=?) OR TRY_CONVERT(uniqueidentifier,JSON_VALUE("+json+",'$.organizationId'))=?"
+                +" OR EXISTS (SELECT 1 FROM dbo.tc_events e WHERE e.organization_id=? AND "+relatedEvent+")"
+                +" OR EXISTS (SELECT 1 FROM dbo.tc_commission_rules c WHERE c.organization_id=? AND a.entity_type='CommissionRule' AND "+entityId+"=c.id))";
+            params.add(f.organizationId());params.add(f.organizationId());params.add(f.organizationId());params.add(f.organizationId());
+        }
         long total;try(var query=db.prepareStatement("SELECT COUNT_BIG(*)"+where)){ReadProjection.bind(query,params);try(var row=query.executeQuery()){row.next();total=row.getLong(1);}}
         var rows=new ArrayList<Map<String,Object>>();try(var query=db.prepareStatement("SELECT "+COLUMNS+where+" ORDER BY created_at DESC,id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY")){var all=new ArrayList<>(params);all.add(f.offset());all.add(f.pageSize());ReadProjection.bind(query,all);try(var row=query.executeQuery()){while(row.next())rows.add(project(row));}}
         return Map.of("rows",rows,"page",f.page(),"pageSize",f.pageSize(),"total",total,"from",f.from(),"to",f.to(),"timezone","UTC");

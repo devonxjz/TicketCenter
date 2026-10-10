@@ -11,6 +11,10 @@ import vn.ticketscenter.settlement.infrastructure.*;
 import vn.ticketscenter.settlement.payout.*;
 import vn.ticketscenter.settlement.repository.FinanceRepository;
 import vn.ticketscenter.settlement.service.FinanceMutationService;
+import vn.ticketscenter.settlement.commission.service.CommissionRuleCache;
+import vn.ticketscenter.report.service.ReportCache;
+import vn.ticketscenter.dashboard.service.DashboardCache;
+import vn.ticketscenter.settlement.service.SettlementReadCache;
 
 @WebServlet(name="AdminFinanceServlet",urlPatterns={"/api/admin/organizations/*","/api/admin/commission-rules/*","/api/admin/commission-rules","/api/admin/events/*","/api/admin/settlements/*"})
 public final class AdminFinanceServlet extends HttpServlet {
@@ -24,7 +28,13 @@ public final class AdminFinanceServlet extends HttpServlet {
                 PayoutAdapter adapter=PayoutAdapter.unavailable();
                 if("fixture-simulated".equals(AppConfig.get("payout.adapter","unavailable")))
                     adapter=new SimulatedPayoutAdapter(database,AppConfig.get("payout.simulated.outcome","SUCCEEDED"),AppConfig.getBoolean("payout.simulated.timeoutAfterSideEffect",false));
-                service=new FinanceMutationService(new FinanceRepository(database),adapter);
+                boolean caching=AppConfig.getBoolean("finance.redis.enabled",true);
+                var cache=caching?CommissionRuleCache.redis():CommissionRuleCache.none();
+                var settlementCache=caching?SettlementReadCache.redis():SettlementReadCache.none();
+                var repository=new FinanceRepository(database,org -> {
+                    if(caching) { cache.invalidate(org); ReportCache.invalidateAfterCommit(org); DashboardCache.invalidateAdminAfterCommit(); }
+                },settlementCache::invalidate);
+                service=new FinanceMutationService(repository,adapter,cache,settlementCache);
             }
         }
         return service;
@@ -50,7 +60,7 @@ public final class AdminFinanceServlet extends HttpServlet {
                 String kind=rules || globalRules?"rules":event && p.length==5?(p[4].equals("settlement")?"summary":"blockers"):settlement && p[4].equals("payouts")?"payouts":null;
                 if(kind==null) throw new FinanceException("METHOD_NOT_ALLOWED",405);
                 if(globalRules) id=FinanceRequest.id(request.getParameter("organizationId"));
-                result=finance().read(actor,kind,id);
+                HttpResponses.data(response,finance().readJson(actor,kind,id)); return;
             } else {
                 UUID key=FinanceRequest.id(request.getHeader("Idempotency-Key"));
                 if(rules || edit || globalRules) {
@@ -63,7 +73,8 @@ public final class AdminFinanceServlet extends HttpServlet {
                 else if(settlement && p[4].equals("payouts")) result=finance().payout(actor,id,key,FinanceRequest.payout(FinanceRequest.body(request.getReader())));
                 else if(reconcile) {
                     UUID payout=FinanceRequest.id(p[5]); if(!payout.equals(key)) throw new FinanceException("REQUEST_INVALID",400);
-                    result=finance().reconcile(actor,id,payout,FinanceRequest.payout(FinanceRequest.body(request.getReader())));
+                    var body=FinanceRequest.body(request.getReader());
+                    result=finance().reconcile(actor,id,payout,body.isEmpty()?null:FinanceRequest.payout(body));
                 }
                 else throw new FinanceException("METHOD_NOT_ALLOWED",405);
             }

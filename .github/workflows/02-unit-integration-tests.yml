@@ -28,8 +28,8 @@ jobs:
           node-version: '22'
       - name: Safe default Java tests
         run: mvn -B clean test
-      - name: Swagger and report-summary tests
-        run: node --test src/test/js/swagger-initializer.test.cjs src/test/scripts/test-report-summary.test.cjs
+      - name: Swagger finance UI and report-summary tests
+        run: node --test src/test/js/swagger-initializer.test.cjs src/test/scripts/test-report-summary.test.cjs src/test/js/finance-readside.test.cjs src/test/js/finance-workbench.test.cjs
       - name: Actual Java test totals
         if: always()
         run: node src/test/scripts/test-report-summary.cjs target/surefire-reports --summary="$GITHUB_STEP_SUMMARY"
@@ -37,6 +37,44 @@ jobs:
         if: always()
         with:
           name: surefire-safe-unit-reports
+          path: target/surefire-reports/
+          retention-days: 7
+  redis-tests:
+    if: github.event_name == 'workflow_dispatch' && inputs.run_db_tests == true
+    runs-on: ubuntu-latest
+    env:
+      TC_REDIS_TEST_PORT: '16379'
+    services:
+      redis:
+        image: redis:7.4
+        ports:
+          - 16379:6379
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: oracle
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Mark standalone disposable Redis fixture
+        run: |
+          set -euo pipefail
+          container=$(docker ps -q --filter ancestor=redis:7.4)
+          test -n "$container"
+          docker exec "$container" redis-cli SET tc:fixture:vuong-finance-v1 vuong-finance-v1
+      - name: Verify actual cache TTL invalidation and server outage
+        run: mvn -B test -Dtest=FinanceRedisRuntimeTest -Dtc.tests.redis=true -Dredis.host=127.0.0.1 -Dredis.port=16379 -Dredis.password= -Dredis.timeout=250 -Dfinance.redis.enabled=true
+      - name: Require the actual Redis case without skips
+        if: always()
+        run: node src/test/scripts/test-report-summary.cjs target/surefire-reports --require-no-skips --require-suite=vn.ticketscenter.settlement.service.FinanceRedisRuntimeTest --summary="$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: surefire-opt-in-redis-reports
           path: target/surefire-reports/
           retention-days: 7
   database-tests:
@@ -86,27 +124,75 @@ jobs:
           docker cp database/migrations/027_vuong_finance.sql "$container":/tmp/vuong_finance.sql
           docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$TC_TEST_SQL_PASSWORD" -C -b -d "$database" -i /tmp/vuong_fixture.sql
           docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$TC_TEST_SQL_PASSWORD" -C -b -d "$database" -i /tmp/vuong_finance.sql
+      - name: Run financial contract guardrail temporal and permission assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          container=$(docker ps -q --filter ancestor=mcr.microsoft.com/mssql/server:2022-latest)
+          test -n "$container"
+          database="TC_Vuong_Test_CI_${GITHUB_RUN_ID}"
+          mkdir -p target/finance-sql
+          for suite in finance_contract finance_guardrails finance_evidence_guardrails finance_temporal finance_permissions; do
+            docker cp "database/tests/vuong/$suite.sql" "$container":/tmp/finance_assertions.sql
+            docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$TC_TEST_SQL_PASSWORD" -C -b -I -d "$database" -i /tmp/finance_assertions.sql -v Case=ALL >"target/finance-sql/$suite.log"
+          done
+      - name: Run six actual concurrent SQL sessions
+        shell: bash
+        run: |
+          set -euo pipefail
+          container=$(docker ps -q --filter ancestor=mcr.microsoft.com/mssql/server:2022-latest)
+          test -n "$container"
+          database="TC_Vuong_Test_CI_${GITHUB_RUN_ID}"
+          run_id=$(cat /proc/sys/kernel/random/uuid)
+          mkdir -p target/finance-sql
+          docker cp database/tests/vuong/finance_concurrency.sql "$container":/tmp/finance_concurrency.sql
+          sql_mode() {
+            docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$TC_TEST_SQL_PASSWORD" -C -b -I -d "$database" -i /tmp/finance_concurrency.sql -v "RunId=$run_id" "Mode=$1" >"target/finance-sql/$1.log"
+          }
+          sql_mode SETUP
+          for pair in 'CAPACITY_A CAPACITY_B' 'REPLAY_A REPLAY_B' 'REFUND_A CONFIRM_B' 'PUBLISH_A EDIT_B' 'EVIDENCE_A EVIDENCE_CONFIRM_B' 'EVIDENCE_CONFIRM_A EVIDENCE_WRITE_B'; do
+            read -r first second <<<"$pair"
+            sql_mode "$first" &
+            contender=$!
+            ready=false
+            for attempt in $(seq 1 100); do
+              if grep -q 'LOCKED:' "target/finance-sql/$first.log"; then ready=true; break; fi
+              if ! kill -0 "$contender" 2>/dev/null; then break; fi
+              sleep 0.1
+            done
+            if [ "$ready" != true ]; then wait "$contender" || true; exit 1; fi
+            sql_mode "$second"
+            wait "$contender"
+          done
+          sql_mode ASSERT
       - name: Run finance JDBC cases with explicit opt-in and no SMTP
         shell: bash
         run: |
           set -euo pipefail
           test -f src/test/java/vn/ticketscenter/settlement/repository/FinanceRepositoryIntegrationTest.java
           test -f src/test/java/vn/ticketscenter/report/integration/ReadsideDatabaseIntegrationTest.java
+          test -f src/test/java/vn/ticketscenter/audit/repository/AuditDatabaseScopeIntegrationTest.java
           database="TC_Vuong_Test_CI_${GITHUB_RUN_ID}"
           export DB_NAME="$database"
           export DB_URL="jdbc:sqlserver://127.0.0.1:1433;databaseName=$database;loginTimeout=5;encrypt=false;trustServerCertificate=true"
           export DB_USER=sa
           export DB_PASSWORD="$TC_TEST_SQL_PASSWORD"
           export DB_ADMIN_USER="$DB_USER" DB_ADMIN_PASSWORD="$DB_PASSWORD"
-          mvn -B clean test -Dtc.tests.db=true -Dtc.tests.smtp=false \
+          mvn -B test -Dtc.tests.db=true -Dtc.tests.smtp=false \
             -Dtc.tests.db.name="$database" \
-            -Dtest='FinanceRepositoryIntegrationTest,ReadsideDatabaseIntegrationTest'
+            -Dtest='FinanceRepositoryIntegrationTest,ReadsideDatabaseIntegrationTest,AuditDatabaseScopeIntegrationTest'
       - name: Require actual executed DB cases without skips
         if: always()
-        run: node src/test/scripts/test-report-summary.cjs target/surefire-reports --require-no-skips --require-suite=vn.ticketscenter.settlement.repository.FinanceRepositoryIntegrationTest --require-suite=vn.ticketscenter.report.integration.ReadsideDatabaseIntegrationTest --summary="$GITHUB_STEP_SUMMARY"
+        run: node src/test/scripts/test-report-summary.cjs target/surefire-reports --require-no-skips --require-suite=vn.ticketscenter.settlement.repository.FinanceRepositoryIntegrationTest --require-suite=vn.ticketscenter.report.integration.ReadsideDatabaseIntegrationTest --require-suite=vn.ticketscenter.audit.repository.AuditDatabaseScopeIntegrationTest --summary="$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: surefire-opt-in-db-reports
           path: target/surefire-reports/
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: finance-sql-assertions
+          path: target/finance-sql/
           retention-days: 7

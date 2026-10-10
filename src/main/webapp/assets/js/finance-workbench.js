@@ -81,55 +81,100 @@
     const select = document.getElementById('event');
     const form = document.getElementById('payout-form');
     const recalc = document.getElementById('recalculate'), confirm = document.getElementById('confirm'), pay = document.getElementById('payout-submit'), reconcile = document.getElementById('reconcile');
-    let summary = null, generation = 0, payoutKey = null, pendingTerms = null;
-    const updateButtons = blockers => {
-      recalc.disabled = !summary || summary.status !== 'DRAFT';
-      confirm.disabled = !summary?.settlementId || summary.status !== 'DRAFT' || blockers.length > 0 || !summary.endTime || new Date(summary.endTime) > new Date();
-      pay.disabled = app.dataset.payoutMode !== 'fixture-simulated' || !summary?.settlementId || summary.status !== 'CONFIRMED' || BigInt(summary.availableToPay || '0') <= 0n || BigInt(summary.pendingAmount || '0') > 0n;
+    let summary = null, generation = 0, payoutKey = null, blockers = [], busy = false, loading = false, mutationEvent = null;
+    let historyButtons = [];
+    const updateButtons = () => {
+      select.disabled = busy;
+      for (const input of form.querySelectorAll('input')) input.disabled = busy;
+      recalc.disabled = busy || loading || !summary || summary.status !== 'DRAFT';
+      confirm.disabled = busy || loading || !summary?.settlementId || summary.status !== 'DRAFT' || blockers.length > 0 || !summary.endTime || new Date(summary.endTime) > new Date();
+      pay.disabled = busy || loading || app.dataset.payoutMode !== 'fixture-simulated' || !summary?.settlementId || summary.status !== 'CONFIRMED' || BigInt(summary.availableToPay || '0') <= 0n || BigInt(summary.pendingAmount || '0') > 0n;
+      reconcile.disabled = busy || loading || !payoutKey || !summary?.settlementId;
+      for (const button of historyButtons) button.disabled = busy || loading;
     };
     async function load() {
       const own = ++generation, eventId = select.value;
-      summary = null; updateButtons([]); document.getElementById('summary').replaceChildren(); document.getElementById('blockers').replaceChildren(); document.getElementById('payouts').replaceChildren();
-      if (!eventId) return;
+      loading = true; summary = null; blockers = []; historyButtons = []; updateButtons(); document.getElementById('summary').replaceChildren(); document.getElementById('blockers').replaceChildren(); document.getElementById('payouts').replaceChildren();
+      if (!eventId) { loading = false; updateButtons(); return true; }
       try {
         const [next, blocked] = await Promise.all([api('/api/admin/events/' + eventId + '/settlement'), api('/api/admin/events/' + eventId + '/settlement-blockers')]);
-        if (own !== generation) return; summary = next;
+        if (own !== generation) return false; summary = next; blockers = blocked.items;
         for (const [label, value] of [['Trạng thái',next.status],['Doanh thu',money(next.grossRevenue)],['Đã hoàn vé',money(next.totalRefund)],['Hoa hồng',money(next.totalCommission)],['Thực trả',money(next.netPayable)],['Đã chi trả',money(next.paidAmount)],['Đang chờ',money(next.pendingAmount)],['Có thể chi trả',money(next.availableToPay)]]) {
           const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = label; dd.textContent = value; document.getElementById('summary').append(dt, dd);
         }
         for (const item of blocked.items) { const li = document.createElement('li'); li.textContent = item.detail; document.getElementById('blockers').appendChild(li); }
         if (!blocked.items.length) { const li = document.createElement('li'); li.textContent = 'Không còn giao dịch cần giải quyết.'; document.getElementById('blockers').appendChild(li); }
-        updateButtons(blocked.items);
         if (next.settlementId) {
           const history = await api('/api/admin/settlements/' + next.settlementId + '/payouts');
-          if (own !== generation) return;
-          for (const item of history) { const tr = document.createElement('tr'); [date(item.processedAt),money(item.amount),item.verificationState === 'UNKNOWN' ? 'Đang xác minh' : item.status,item.providerReference].forEach(value => cell(tr, value)); document.getElementById('payouts').appendChild(tr); }
+          if (own !== generation) return false;
+          reconcile.hidden = !history.some(item => item.payoutId === payoutKey && item.status === 'PENDING');
+          for (const item of history) {
+            const tr = document.createElement('tr'); [date(item.processedAt),money(item.amount),item.verificationState === 'UNKNOWN' ? 'Đang xác minh' : item.status,item.providerReference].forEach(value => cell(tr, value));
+            if (item.status === 'PENDING') {
+              const button = document.createElement('button'); button.type = 'button'; button.textContent = 'Xác minh lại kết quả đang chờ';
+              button.addEventListener('click', () => {
+                if (button.disabled || select.value !== eventId || summary?.settlementId !== next.settlementId) return;
+                reconcilePayout(next.settlementId,item.payoutId);
+              });
+              historyButtons.push(button); tr.lastElementChild.appendChild(button);
+            }
+            document.getElementById('payouts').appendChild(tr);
+          }
         }
-      } catch (error) { if (own === generation) tell(error.message); }
+        return true;
+      } catch (error) { if (own === generation) { summary = null; tell(error.message); } return false; }
+      finally { if (own === generation) { loading = false; updateButtons(); } }
     }
-    select.addEventListener('change', () => { payoutKey = null; pendingTerms = null; reconcile.hidden = true; tell(''); load(); });
-    recalc.addEventListener('click', () => withBusy(recalc, async () => { await api('/api/admin/events/' + select.value + '/settlement/recalculate',{},crypto.randomUUID()); await load(); tell('Đã tính lại bảng kê.'); }));
-    confirm.addEventListener('click', () => withBusy(confirm, async () => { await api('/api/admin/settlements/' + summary.settlementId + '/confirm',{},crypto.randomUUID()); await load(); tell('Đã chốt và đóng băng bảng kê.'); }));
-    form.addEventListener('input', () => { if (!pendingTerms) payoutKey = null; });
+    async function mutate(action) {
+      if (busy) return;
+      busy = true; mutationEvent = select.value; updateButtons();
+      let message;
+      try { message = await action(); } catch (error) { message = error.message; }
+      finally {
+        // A lost response may still have committed a reservation. Reload its durable history before unlocking.
+        const refreshed = await load();
+        busy = false; mutationEvent = null; updateButtons();
+        if (refreshed && message) tell(message);
+      }
+    }
+    function reconcilePayout(settlementId,key) {
+      return mutate(async () => {
+        const result = await api('/api/admin/settlements/' + settlementId + '/payouts/' + key + '/reconcile',{},key);
+        if (result.status !== 'PENDING' && payoutKey === key) { payoutKey = null; reconcile.hidden = true; }
+        return result.status === 'PENDING' ? 'Kết quả vẫn đang chờ xác minh.' : 'Đã xác minh và cập nhật kết quả chi trả.';
+      });
+    }
+    select.addEventListener('change', () => {
+      if (busy) { select.value = mutationEvent; return; }
+      payoutKey = null; reconcile.hidden = true; tell(''); load();
+    });
+    recalc.addEventListener('click', () => {
+      if (recalc.disabled) return;
+      const eventId = select.value;
+      mutate(async () => { await api('/api/admin/events/' + eventId + '/settlement/recalculate',{},crypto.randomUUID()); return 'Đã tính lại bảng kê.'; });
+    });
+    confirm.addEventListener('click', () => {
+      if (confirm.disabled) return;
+      const settlementId = summary.settlementId;
+      mutate(async () => { await api('/api/admin/settlements/' + settlementId + '/confirm',{},crypto.randomUUID()); return 'Đã chốt và đóng băng bảng kê.'; });
+    });
+    form.addEventListener('input', () => { if (!busy) payoutKey = null; });
     form.addEventListener('submit', event => {
       event.preventDefault();
-      if (pay.disabled || !summary?.settlementId) return;
-      withBusy(pay, async () => {
+      if (busy || pay.disabled || !summary?.settlementId) return;
+      const settlementId = summary.settlementId;
+      const payload = Object.fromEntries(['amount','bankAccountNumber','bankName','accountHolderName','note'].map(name => [name,form.elements[name].value]));
+      mutate(async () => {
         payoutKey ||= crypto.randomUUID();
-        const payload = pendingTerms || Object.fromEntries(['amount','bankAccountNumber','bankName','accountHolderName','note'].map(name => [name,form.elements[name].value]));
-        pendingTerms = payload;
-        reconcile.hidden = false;
-        const result = await api('/api/admin/settlements/' + summary.settlementId + '/payouts',payload,payoutKey);
-        if (result.status === 'PENDING') { pendingTerms = payload; reconcile.hidden = false; tell('Kết quả chi trả chưa xác định. Giữ nguyên lệnh để xác minh; không tạo lệnh thay thế.'); }
-        else { pendingTerms = null; payoutKey = null; reconcile.hidden = true; tell(result.status === 'SUCCEEDED' ? 'Đã ghi nhận chi trả mô phỏng.' : 'Lệnh chi trả thất bại; số dư đã được giải phóng.'); }
-        await load();
+        const result = await api('/api/admin/settlements/' + settlementId + '/payouts',payload,payoutKey);
+        if (result.status === 'PENDING') { reconcile.hidden = false; return 'Kết quả chi trả chưa xác định. Giữ nguyên lệnh để xác minh; không tạo lệnh thay thế.'; }
+        payoutKey = null; reconcile.hidden = true;
+        return result.status === 'SUCCEEDED' ? 'Đã ghi nhận chi trả mô phỏng.' : 'Lệnh chi trả thất bại; số dư đã được giải phóng.';
       });
     });
-    reconcile.addEventListener('click', () => withBusy(reconcile, async () => {
-      if (!pendingTerms || !payoutKey || !summary?.settlementId) return;
-      const result = await api('/api/admin/settlements/' + summary.settlementId + '/payouts/' + payoutKey + '/reconcile',pendingTerms,payoutKey);
-      if (result.status !== 'PENDING') { pendingTerms = null; payoutKey = null; reconcile.hidden = true; }
-      await load(); tell(result.status === 'PENDING' ? 'Kết quả vẫn đang chờ xác minh.' : 'Đã xác minh và cập nhật kết quả chi trả.');
-    }));
+    reconcile.addEventListener('click', () => {
+      if (reconcile.disabled || !payoutKey || !summary?.settlementId) return;
+      reconcilePayout(summary.settlementId,payoutKey);
+    });
   }
 })();

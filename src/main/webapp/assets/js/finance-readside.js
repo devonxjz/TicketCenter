@@ -194,6 +194,7 @@
     }
     dl.append(node('dt', 'Dòng tiền hôm nay (UTC)'), node('dd', ''));
     for (const [key, value] of Object.entries(result.todayCashFlow || {})) dl.append(node('dt', labels[key] || key), node('dd', display(key, value)));
+    dl.append(node('dt', 'Doanh thu gộp của đơn thanh toán hôm nay'), node('dd', formatVnd(result.todayCohortGrossRevenue)));
     dl.append(node('dt', labels.todayCohortCommission), node('dd', formatVnd(result.todayCohortCommission)));
     document.getElementById('basis').textContent = 'Ngày UTC [' + display('from', result.from) + ', ' + display('to', result.to) + '). ' + basis[result.commissionTimeBasis] + ' Cập nhật: ' + display('asOf', result.asOf) + '.';
     drawDailyChart(result.dailyMetrics || []);

@@ -10,7 +10,7 @@ function Invoke-Mode([string]$Mode) {
  if ($LASTEXITCODE -ne 0) { Get-Content -LiteralPath (Join-Path $logRoot ($Mode+'.txt')) -Tail 15; throw "SQL mode $Mode failed: $LASTEXITCODE" }
 }
 Invoke-Mode 'SETUP'
-foreach ($pair in @(@('CAPACITY_A','CAPACITY_B'),@('REPLAY_A','REPLAY_B'),@('REFUND_A','CONFIRM_B'),@('PUBLISH_A','EDIT_B'))) {
+foreach ($pair in @(@('CAPACITY_A','CAPACITY_B'),@('REPLAY_A','REPLAY_B'),@('REFUND_A','CONFIRM_B'),@('PUBLISH_A','EDIT_B'),@('EVIDENCE_A','EVIDENCE_CONFIRM_B'),@('EVIDENCE_CONFIRM_A','EVIDENCE_WRITE_B'))) {
  $aLog=Join-Path $logRoot ($pair[0]+'.txt')
  $arguments=@('-S',$Server,'-E','-C','-b','-I','-d',$DatabaseName,'-i',('"'+$source+'"'),'-v',"RunId=$runId",('Mode='+$pair[0]),'-o',('"'+$aLog+'"'))
  $process=Start-Process -FilePath $SqlCmd -ArgumentList $arguments -WindowStyle Hidden -PassThru

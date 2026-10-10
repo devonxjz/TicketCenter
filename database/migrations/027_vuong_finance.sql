@@ -58,6 +58,8 @@ IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name='IX_Vuong_Refund_Order' AND o
  CREATE INDEX IX_Vuong_Refund_Order ON dbo.tc_refunds(order_id,status,purpose,id) INCLUDE(amount,processed_at);
 IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name='IX_Vuong_Payment_Order' AND object_id=OBJECT_ID('dbo.tc_payments'))
  CREATE INDEX IX_Vuong_Payment_Order ON dbo.tc_payments(order_id,status,id) INCLUDE(amount,paid_at);
+IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name='IX_Vuong_RefundEvidence_Refund' AND object_id=OBJECT_ID('dbo.tc_refund_transfer_logs'))
+ CREATE INDEX IX_Vuong_RefundEvidence_Refund ON dbo.tc_refund_transfer_logs(refund_id,id) INCLUDE(result,processed_at);
 IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name='UX_Vuong_Settlement_Event' AND object_id=OBJECT_ID('dbo.tc_settlements'))
  CREATE UNIQUE INDEX UX_Vuong_Settlement_Event ON dbo.tc_settlements(event_id);
 IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name='UX_Vuong_Snapshot_Order' AND object_id=OBJECT_ID('dbo.tc_settlement_order_snapshots'))
@@ -225,6 +227,7 @@ AS BEGIN
  SELECT @lock_count=COUNT_BIG(*) FROM dbo.tc_orders WITH(UPDLOCK,HOLDLOCK) WHERE event_id=@event_id;
  SELECT @lock_count=COUNT_BIG(*) FROM dbo.tc_payments p WITH(UPDLOCK,HOLDLOCK) JOIN dbo.tc_orders o ON o.id=p.order_id WHERE o.event_id=@event_id;
  SELECT @lock_count=COUNT_BIG(*) FROM dbo.tc_refunds r WITH(UPDLOCK,HOLDLOCK) JOIN dbo.tc_orders o ON o.id=r.order_id WHERE o.event_id=@event_id;
+ SELECT @lock_count=COUNT_BIG(*) FROM dbo.tc_refund_transfer_logs l WITH(UPDLOCK,HOLDLOCK) JOIN dbo.tc_refunds r ON r.id=l.refund_id JOIN dbo.tc_orders o ON o.id=r.order_id WHERE o.event_id=@event_id;
  IF EXISTS(SELECT 1 FROM dbo.vw_OrderFinancialSummary WHERE event_id=@event_id AND status='PAID' AND (commission_amount IS NULL OR remaining_amount<0 OR (total_amount>0 AND ticket_revenue=0))) THROW 52702,'INVALID_FINANCIALS',1;
  IF EXISTS(SELECT 1 FROM dbo.vw_OrderFinancialSummary WHERE event_id=@event_id AND status='PAID') BEGIN
  IF @settlement_id IS NULL BEGIN SET @settlement_id=NEWID(); INSERT dbo.tc_settlements(id,event_id,status,gross_revenue,total_refund,total_commission,paid_amount,pending_amount,created_at,updated_at) VALUES(@settlement_id,@event_id,'DRAFT',0,0,0,0,0,SYSUTCDATETIME(),SYSUTCDATETIME()); END;
@@ -292,7 +295,9 @@ AS BEGIN
  END ELSE BEGIN
  IF @verified_result IS NOT NULL THROW 52709,'PAYOUT_RESERVATION_REQUIRED',1;
  IF @state<>'CONFIRMED' THROW 52709,'SETTLEMENT_NOT_CONFIRMED',1;
- IF EXISTS(SELECT 1 FROM dbo.tc_settlement_transfer_logs WHERE settlement_id=@settlement_id AND status='PENDING' AND verification_state='UNKNOWN') THROW 52709,'PAYOUT_RECONCILIATION_REQUIRED',1;
+ -- PENDING can mean the provider already transferred money but its result was not committed.
+ -- Reconcile/replay that same ID before allowing a second provider attempt.
+ IF EXISTS(SELECT 1 FROM dbo.tc_settlement_transfer_logs WHERE settlement_id=@settlement_id AND status='PENDING') THROW 52709,'PAYOUT_RECONCILIATION_REQUIRED',1;
  IF @net-@paid-@pending<@amount THROW 52709,'PAYOUT_EXCEEDS_BALANCE',1;
  INSERT dbo.tc_settlement_transfer_logs(id,settlement_id,amount,status,result,request_fingerprint,requested_reference,verification_state,created_at)
  VALUES(@payout_id,@settlement_id,@amount,'PENDING','PENDING',@fingerprint,@reference,'PENDING',SYSUTCDATETIME());
@@ -366,7 +371,17 @@ BEGIN
  IF EXISTS(SELECT 1 FROM inserted i FULL JOIN deleted d ON d.id=i.id
  CROSS APPLY(SELECT i.order_id order_id UNION SELECT d.order_id) a JOIN dbo.tc_orders o ON o.id=a.order_id JOIN dbo.tc_events e WITH(UPDLOCK,HOLDLOCK) ON e.id=o.event_id JOIN dbo.tc_settlements s ON s.event_id=e.id
  WHERE s.status IN('CONFIRMED','PAID') AND (i.purpose='CUSTOMER_REFUND' OR d.purpose='CUSTOMER_REFUND')
- AND (i.id IS NULL OR d.id IS NULL OR EXISTS(SELECT i.order_id,i.amount,i.purpose,i.status,i.processed_at EXCEPT SELECT d.order_id,d.amount,d.purpose,d.status,d.processed_at)))
+ AND (i.id IS NULL OR d.id IS NULL OR EXISTS(SELECT i.order_id,i.amount,i.purpose,i.status,i.current_attempt_id,i.processed_at EXCEPT SELECT d.order_id,d.amount,d.purpose,d.status,d.current_attempt_id,d.processed_at)))
+ THROW 52709,'CONFIRMED_FINANCIAL_SOURCE_IMMUTABLE',1;
+END;
+GO
+CREATE OR ALTER TRIGGER dbo.trg_VuongRefundEvidenceFreeze ON dbo.tc_refund_transfer_logs AFTER INSERT,UPDATE,DELETE AS
+BEGIN
+ SET NOCOUNT ON;
+ IF EXISTS(SELECT 1 FROM inserted i FULL JOIN deleted d ON d.id=i.id
+ CROSS APPLY(SELECT i.refund_id refund_id UNION SELECT d.refund_id) a JOIN dbo.tc_refunds r ON r.id=a.refund_id
+ JOIN dbo.tc_orders o ON o.id=r.order_id JOIN dbo.tc_events e WITH(UPDLOCK,HOLDLOCK) ON e.id=o.event_id JOIN dbo.tc_settlements s ON s.event_id=e.id
+ WHERE s.status IN('CONFIRMED','PAID') AND r.purpose='CUSTOMER_REFUND')
  THROW 52709,'CONFIRMED_FINANCIAL_SOURCE_IMMUTABLE',1;
 END;
 GO

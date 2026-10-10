@@ -1259,23 +1259,98 @@
     "/api/admin/organizations/{organizationId}/commission-rules": {
       "get": {
         "tags": [
-          "Organizations"
+          "Commission"
         ],
-        "summary": "Chờ triển khai · Danh sách chính sách hoa hồng",
+        "summary": "Danh sách chính sách hoa hồng",
         "responses": {
           "200": {
-            "description": "Danh sách chính sách"
+            "description": "Dữ liệu canonical từ backend; mô phỏng payout chỉ trong fixture cấu hình rõ.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CommissionRule"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dữ liệu không hợp lệ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Phiên không còn hiệu lực",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Không đủ quyền hoặc CSRF sai",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy tài nguyên",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Xung đột trạng thái/idempotency/blocker/số dư",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dữ liệu hoặc provider chưa sẵn sàng",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "operationId": "getApiAdminOrganizationsOrganizationIdCommissionRules",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
         "x-owner": "vuong",
         "externalDocs": {
-          "description": "Issue giao việc và contract dự kiến",
+          "description": "Issue giao việc",
           "url": "https://github.com/devonxjz/TicketCenter/issues/29"
         },
-        "description": "\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "description": "ADMIN hiện tại, UUID/tc_*, tiền VND nguyên dạng chuỗi, UTC độ chính xác millisecond. Mã nguồn AdminFinanceServlet/FinanceRepository; SQL Server fixture đã kiểm qua JDBC. Chưa phải nghiệm thu provider ngân hàng thật hay E2E liên miền.",
         "parameters": [
           {
             "name": "organizationId",
@@ -1295,26 +1370,110 @@
       },
       "post": {
         "tags": [
-          "Organizations"
+          "Commission"
         ],
-        "summary": "Chờ triển khai · Tạo chính sách hoa hồng",
+        "summary": "Tạo chính sách hoa hồng",
         "responses": {
           "200": {
-            "description": "Đã tạo"
+            "description": "Dữ liệu canonical từ backend; mô phỏng payout chỉ trong fixture cấu hình rõ.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CommissionRule"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Rule mới được tạo. Replay cùng key trả200.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CommissionRule"
+                    }
+                  }
+                }
+              }
+            }
           },
           "400": {
-            "description": "Điều khoản không hợp lệ"
+            "description": "Dữ liệu không hợp lệ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Phiên không còn hiệu lực",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Không đủ quyền hoặc CSRF sai",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy tài nguyên",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Xung đột trạng thái/idempotency/blocker/số dư",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dữ liệu hoặc provider chưa sẵn sàng",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "operationId": "postApiAdminOrganizationsOrganizationIdCommissionRules",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
         "x-owner": "vuong",
         "externalDocs": {
-          "description": "Issue giao việc và contract dự kiến",
+          "description": "Issue giao việc",
           "url": "https://github.com/devonxjz/TicketCenter/issues/29"
         },
-        "description": "\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "description": "ADMIN hiện tại, UUID/tc_*, tiền VND nguyên dạng chuỗi, UTC độ chính xác millisecond. Mã nguồn AdminFinanceServlet/FinanceRepository; SQL Server fixture đã kiểm qua JDBC. Chưa phải nghiệm thu provider ngân hàng thật hay E2E liên miền.",
         "parameters": [
           {
             "name": "organizationId",
@@ -1324,6 +1483,16 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID ổn định cho cùng thao tác. Payout dùng UUID này làm payoutId; confirm/recalculate kiểm tra header và idempotent theo trạng thái tài nguyên."
           }
         ],
         "security": [
@@ -1332,7 +1501,17 @@
             "csrfToken": [],
             "idempotencyKey": []
           }
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommissionRuleRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/organizations/{organizationId}/events": {
@@ -2127,53 +2306,300 @@
     "/api/admin/overview": {
       "get": {
         "tags": [
-          "Dashboard & Audit"
+          "Overview and Audit"
         ],
-        "summary": "Chờ triển khai · Admin dashboard, Audit và final integration — GET /api/admin/overview",
-        "description": "Contract dự kiến từ issue #33. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "summary": "Tổng quan quản trị",
+        "description": "ADMIN hiện tại; counter live và dòng tiền ngày UTC hiện tại, không fake data.",
         "responses": {
           "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+            "description": "Dữ liệu canonical từ SQL Server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/FinanceOverview"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "operationId": "getApiAdminOverview",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
         "x-owner": "vuong",
         "externalDocs": {
-          "description": "Issue giao việc và contract dự kiến",
+          "description": "Issue giao việc",
           "url": "https://github.com/devonxjz/TicketCenter/issues/33"
         },
         "security": [
           {
             "cookieAuth": []
           }
-        ]
+        ],
+        "parameters": []
       }
     },
     "/api/admin/audit-logs": {
       "get": {
         "tags": [
-          "Dashboard & Audit"
+          "Overview and Audit"
         ],
-        "summary": "Chờ triển khai · Admin dashboard, Audit và final integration — GET /api/admin/audit-logs",
-        "description": "Contract dự kiến từ issue #33. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "summary": "Nhật ký quản trị được lọc",
+        "description": "ADMIN hiện tại. createdAt DESC,id DESC; metadata chỉ scalar allowlist. Query trùng hoặc value trên200 ký tự bị từ chối. Organization/event filters resolve settlement and transfer ownership through SQL relationships; an event intersection excludes organization-wide rule history. Organization/event filters resolve settlement and transfer ownership through SQL relationships; an event intersection excludes organization-wide rule history.",
         "responses": {
           "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+            "description": "Dữ liệu canonical từ SQL Server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/FinanceAuditPage"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "operationId": "getApiAdminAuditLogs",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
         "x-owner": "vuong",
         "externalDocs": {
-          "description": "Issue giao việc và contract dự kiến",
+          "description": "Issue giao việc",
           "url": "https://github.com/devonxjz/TicketCenter/issues/33"
         },
         "security": [
           {
             "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "UTC instant, millisecond; khoảng [from,to)."
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "UTC instant, millisecond; from < to."
+          },
+          {
+            "name": "organizationId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "eventId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_]{0,99}$"
+            }
+          },
+          {
+            "name": "entityType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_]{0,99}$"
+            }
+          },
+          {
+            "name": "entityId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,100}$"
+            }
+          },
+          {
+            "name": "actorId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "targetTable",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "tc_users",
+                "tc_organizations",
+                "tc_organization_memberships",
+                "tc_events",
+                "tc_commission_rules",
+                "tc_settlements",
+                "tc_settlement_transfer_logs",
+                "tc_orders",
+                "tc_order_items",
+                "tc_payments",
+                "tc_refunds",
+                "tc_refund_transfer_logs",
+                "tc_tickets",
+                "tc_ticket_holds"
+              ]
+            },
+            "description": "Allowlisted table alias maps to entityType; optional dbo. prefix accepted. Conflicting entityType is rejected."
           }
         ]
       }
@@ -2181,21 +2607,83 @@
     "/api/admin/audit-logs/{auditId}": {
       "get": {
         "tags": [
-          "Dashboard & Audit"
+          "Overview and Audit"
         ],
-        "summary": "Chờ triển khai · Admin dashboard, Audit và final integration — GET /api/admin/audit-logs/{auditId}",
-        "description": "Contract dự kiến từ issue #33. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "summary": "Chi tiết nhật ký an toàn",
+        "description": "ADMIN hiện tại. Không trả metadataJson gốc.",
         "responses": {
           "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+            "description": "Dữ liệu canonical từ SQL Server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/FinanceAudit"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "operationId": "getApiAdminAuditLogsAuditId",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
         "x-owner": "vuong",
         "externalDocs": {
-          "description": "Issue giao việc và contract dự kiến",
+          "description": "Issue giao việc",
           "url": "https://github.com/devonxjz/TicketCenter/issues/33"
         },
         "parameters": [
@@ -2221,19 +2709,81 @@
         "tags": [
           "Reports"
         ],
-        "summary": "Chờ triển khai · Organization/Admin reports và safe CSV — GET /api/organizations/{organizationId}/reports",
-        "description": "Contract dự kiến từ issue #32. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "summary": "Báo cáo tổ chức",
+        "description": "Session hiện tại được kiểm ACTIVE/authVersion và ADMIN hoặc MANAGER đúng tổ chức trước cache/bytes. UUID/tc_*, VND nguyên dạng chuỗi, UTC [from,to). COHORT_REVENUE chọn order.paid_at và refund hoàn tất trước to; CASH_FLOW chọn payment.paid_at/refund.processed_at, tách compensation. EVENT_SALES/SETTLEMENT_BALANCE chọn event.end_time và totals hiện tại/đã chốt, không thay bằng lịch sử dòng tiền. JSON phân trang, CSV cùng filter xuất toàn bộ. organizationId query nếu có phải bằng path.",
         "responses": {
           "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+            "description": "Dữ liệu canonical từ SQL Server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/FinanceReport"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "operationId": "getApiOrganizationsOrganizationIdReports",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
         "x-owner": "vuong",
         "externalDocs": {
-          "description": "Issue giao việc và contract dự kiến",
+          "description": "Issue giao việc",
           "url": "https://github.com/devonxjz/TicketCenter/issues/32"
         },
         "parameters": [
@@ -2244,6 +2794,80 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "metric",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "COHORT_REVENUE",
+                "CASH_FLOW",
+                "EVENT_SALES",
+                "SETTLEMENT_BALANCE"
+              ],
+              "default": "COHORT_REVENUE"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "UTC instant, millisecond; khoảng [from,to)."
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "UTC instant, millisecond; from < to."
+          },
+          {
+            "name": "organizationId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "eventId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
             }
           }
         ],
@@ -2259,24 +2883,162 @@
         "tags": [
           "Reports"
         ],
-        "summary": "Chờ triển khai · Organization/Admin reports và safe CSV — GET /api/admin/reports",
-        "description": "Contract dự kiến từ issue #32. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "summary": "Báo cáo quản trị",
+        "description": "ADMIN hiện tại. Session hiện tại được kiểm ACTIVE/authVersion và ADMIN hoặc MANAGER đúng tổ chức trước cache/bytes. UUID/tc_*, VND nguyên dạng chuỗi, UTC [from,to). COHORT_REVENUE chọn order.paid_at và refund hoàn tất trước to; CASH_FLOW chọn payment.paid_at/refund.processed_at, tách compensation. EVENT_SALES/SETTLEMENT_BALANCE chọn event.end_time và totals hiện tại/đã chốt, không thay bằng lịch sử dòng tiền. JSON phân trang, CSV cùng filter xuất toàn bộ.",
         "responses": {
           "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+            "description": "Dữ liệu canonical từ SQL Server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/FinanceReport"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "operationId": "getApiAdminReports",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
         "x-owner": "vuong",
         "externalDocs": {
-          "description": "Issue giao việc và contract dự kiến",
+          "description": "Issue giao việc",
           "url": "https://github.com/devonxjz/TicketCenter/issues/32"
         },
         "security": [
           {
             "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "metric",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "COHORT_REVENUE",
+                "CASH_FLOW",
+                "EVENT_SALES",
+                "SETTLEMENT_BALANCE"
+              ],
+              "default": "COHORT_REVENUE"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "UTC instant, millisecond; khoảng [from,to)."
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "UTC instant, millisecond; from < to."
+          },
+          {
+            "name": "organizationId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "eventId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
           }
         ]
       }
@@ -2286,24 +3048,174 @@
         "tags": [
           "Reports"
         ],
-        "summary": "Chờ triển khai · Organization/Admin reports và safe CSV — GET /api/reports/export",
-        "description": "Contract dự kiến từ issue #32. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "summary": "Xuất CSV có filter",
+        "description": "Session hiện tại được kiểm ACTIVE/authVersion và ADMIN hoặc MANAGER đúng tổ chức trước cache/bytes. UUID/tc_*, VND nguyên dạng chuỗi, UTC [from,to). COHORT_REVENUE chọn order.paid_at và refund hoàn tất trước to; CASH_FLOW chọn payment.paid_at/refund.processed_at, tách compensation. EVENT_SALES/SETTLEMENT_BALANCE chọn event.end_time và totals hiện tại/đã chốt, không thay bằng lịch sử dòng tiền. JSON phân trang, CSV cùng filter xuất toàn bộ. UTF-8 BOM, CRLF, quote/escape RFC4180, ô nguy hiểm thêm TAB bên trong quote theo quyết định ưu tiên Excel; đây là thay đổi hợp đồng so với apostrophe của issue. Chưa nghiệm thu Native Excel mở-lưu-mở. Stream ResultSet, cleanup khi disconnect; không dùng report cache.",
         "responses": {
           "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+            "description": "CSV streaming chưa commit bytes trước authorize.",
+            "headers": {
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "attachment; filename=\"ticketscenter-{metric}.csv\""
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no-store"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "operationId": "getApiReportsExport",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
         "x-owner": "vuong",
         "externalDocs": {
-          "description": "Issue giao việc và contract dự kiến",
+          "description": "Issue giao việc",
           "url": "https://github.com/devonxjz/TicketCenter/issues/32"
         },
         "security": [
           {
             "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "metric",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "COHORT_REVENUE",
+                "CASH_FLOW",
+                "EVENT_SALES",
+                "SETTLEMENT_BALANCE"
+              ],
+              "default": "COHORT_REVENUE"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "UTC instant, millisecond; khoảng [from,to)."
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "UTC instant, millisecond; from < to."
+          },
+          {
+            "name": "organizationId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "eventId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
           }
         ]
       }
@@ -2313,19 +3225,91 @@
         "tags": [
           "Settlement"
         ],
-        "summary": "Chờ triển khai · Settlement confirm và idempotent payout — POST /api/admin/settlements/{settlementId}/confirm",
-        "description": "Contract dự kiến từ issue #31. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "summary": "Chốt bảng kê đã kết thúc và không còn blocker",
+        "description": "ADMIN hiện tại, UUID/tc_*, tiền VND nguyên dạng chuỗi, UTC độ chính xác millisecond. Mã nguồn AdminFinanceServlet/FinanceRepository; SQL Server fixture đã kiểm qua JDBC. Chưa phải nghiệm thu provider ngân hàng thật hay E2E liên miền.",
         "responses": {
           "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+            "description": "Dữ liệu canonical từ backend; mô phỏng payout chỉ trong fixture cấu hình rõ.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/SettlementSummary"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dữ liệu không hợp lệ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Phiên không còn hiệu lực",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Không đủ quyền hoặc CSRF sai",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy tài nguyên",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Xung đột trạng thái/idempotency/blocker/số dư",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dữ liệu hoặc provider chưa sẵn sàng",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "operationId": "postApiAdminSettlementsSettlementIdConfirm",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
         "x-owner": "vuong",
         "externalDocs": {
-          "description": "Issue giao việc và contract dự kiến",
+          "description": "Issue giao việc",
           "url": "https://github.com/devonxjz/TicketCenter/issues/31"
         },
         "parameters": [
@@ -2337,6 +3321,16 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID ổn định cho cùng thao tác. Payout dùng UUID này làm payoutId; confirm/recalculate kiểm tra header và idempotent theo trạng thái tài nguyên."
           }
         ],
         "security": [
@@ -2353,19 +3347,91 @@
         "tags": [
           "Settlement"
         ],
-        "summary": "Chờ triển khai · Settlement confirm và idempotent payout — POST /api/admin/settlements/{settlementId}/payouts",
-        "description": "Contract dự kiến từ issue #31. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "summary": "Tạo hoặc đọc lại lệnh chi trả",
+        "description": "ADMIN hiện tại, UUID/tc_*, tiền VND nguyên dạng chuỗi, UTC độ chính xác millisecond. Mã nguồn AdminFinanceServlet/FinanceRepository; SQL Server fixture đã kiểm qua JDBC. Chưa phải nghiệm thu provider ngân hàng thật hay E2E liên miền.",
         "responses": {
           "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+            "description": "Dữ liệu canonical từ backend; mô phỏng payout chỉ trong fixture cấu hình rõ.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PayoutResult"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dữ liệu không hợp lệ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Phiên không còn hiệu lực",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Không đủ quyền hoặc CSRF sai",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy tài nguyên",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Xung đột trạng thái/idempotency/blocker/số dư",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dữ liệu hoặc provider chưa sẵn sàng",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "operationId": "postApiAdminSettlementsSettlementIdPayouts",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
         "x-owner": "vuong",
         "externalDocs": {
-          "description": "Issue giao việc và contract dự kiến",
+          "description": "Issue giao việc",
           "url": "https://github.com/devonxjz/TicketCenter/issues/31"
         },
         "parameters": [
@@ -2377,6 +3443,16 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID ổn định cho cùng thao tác. Payout dùng UUID này làm payoutId; confirm/recalculate kiểm tra header và idempotent theo trạng thái tài nguyên."
           }
         ],
         "security": [
@@ -2385,25 +3461,110 @@
             "csrfToken": [],
             "idempotencyKey": []
           }
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayoutRequest"
+              }
+            }
+          }
+        }
       },
       "get": {
         "tags": [
           "Settlement"
         ],
-        "summary": "Chờ triển khai · Settlement confirm và idempotent payout — GET /api/admin/settlements/{settlementId}/payouts",
-        "description": "Contract dự kiến từ issue #31. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "summary": "Lịch sử chi trả",
+        "description": "ADMIN hiện tại, UUID/tc_*, tiền VND nguyên dạng chuỗi, UTC độ chính xác millisecond. Mã nguồn AdminFinanceServlet/FinanceRepository; SQL Server fixture đã kiểm qua JDBC. Chưa phải nghiệm thu provider ngân hàng thật hay E2E liên miền.",
         "responses": {
           "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+            "description": "Dữ liệu canonical từ backend; mô phỏng payout chỉ trong fixture cấu hình rõ.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PayoutResult"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dữ liệu không hợp lệ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Phiên không còn hiệu lực",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Không đủ quyền hoặc CSRF sai",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy tài nguyên",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Xung đột trạng thái/idempotency/blocker/số dư",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dữ liệu hoặc provider chưa sẵn sàng",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "operationId": "getApiAdminSettlementsSettlementIdPayouts",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
         "x-owner": "vuong",
         "externalDocs": {
-          "description": "Issue giao việc và contract dự kiến",
+          "description": "Issue giao việc",
           "url": "https://github.com/devonxjz/TicketCenter/issues/31"
         },
         "parameters": [
@@ -2429,19 +3590,91 @@
         "tags": [
           "Settlement"
         ],
-        "summary": "Chờ triển khai · Settlement recalculate và blocker detection — GET /api/admin/events/{eventId}/settlement",
-        "description": "Contract dự kiến từ issue #30. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "summary": "Bảng kê quyết toán hiện tại",
+        "description": "ADMIN hiện tại, UUID/tc_*, tiền VND nguyên dạng chuỗi, UTC độ chính xác millisecond. Mã nguồn AdminFinanceServlet/FinanceRepository; SQL Server fixture đã kiểm qua JDBC. Chưa phải nghiệm thu provider ngân hàng thật hay E2E liên miền.",
         "responses": {
           "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+            "description": "Dữ liệu canonical từ backend; mô phỏng payout chỉ trong fixture cấu hình rõ.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/SettlementSummary"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dữ liệu không hợp lệ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Phiên không còn hiệu lực",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Không đủ quyền hoặc CSRF sai",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy tài nguyên",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Xung đột trạng thái/idempotency/blocker/số dư",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dữ liệu hoặc provider chưa sẵn sàng",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "operationId": "getApiAdminEventsEventIdSettlement",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
         "x-owner": "vuong",
         "externalDocs": {
-          "description": "Issue giao việc và contract dự kiến",
+          "description": "Issue giao việc",
           "url": "https://github.com/devonxjz/TicketCenter/issues/30"
         },
         "parameters": [
@@ -2467,19 +3700,91 @@
         "tags": [
           "Settlement"
         ],
-        "summary": "Chờ triển khai · Settlement recalculate và blocker detection — GET /api/admin/events/{eventId}/settlement-blockers",
-        "description": "Contract dự kiến từ issue #30. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "summary": "Giao dịch cản trở chốt quyết toán",
+        "description": "ADMIN hiện tại, UUID/tc_*, tiền VND nguyên dạng chuỗi, UTC độ chính xác millisecond. Mã nguồn AdminFinanceServlet/FinanceRepository; SQL Server fixture đã kiểm qua JDBC. Chưa phải nghiệm thu provider ngân hàng thật hay E2E liên miền.",
         "responses": {
           "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+            "description": "Dữ liệu canonical từ backend; mô phỏng payout chỉ trong fixture cấu hình rõ.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/SettlementBlockers"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dữ liệu không hợp lệ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Phiên không còn hiệu lực",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Không đủ quyền hoặc CSRF sai",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy tài nguyên",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Xung đột trạng thái/idempotency/blocker/số dư",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dữ liệu hoặc provider chưa sẵn sàng",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "operationId": "getApiAdminEventsEventIdSettlementBlockers",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
         "x-owner": "vuong",
         "externalDocs": {
-          "description": "Issue giao việc và contract dự kiến",
+          "description": "Issue giao việc",
           "url": "https://github.com/devonxjz/TicketCenter/issues/30"
         },
         "parameters": [
@@ -2505,19 +3810,91 @@
         "tags": [
           "Settlement"
         ],
-        "summary": "Chờ triển khai · Settlement recalculate và blocker detection — POST /api/admin/events/{eventId}/settlement/recalculate",
-        "description": "Contract dự kiến từ issue #30. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "summary": "Tính lại bảng kê DRAFT",
+        "description": "ADMIN hiện tại, UUID/tc_*, tiền VND nguyên dạng chuỗi, UTC độ chính xác millisecond. Mã nguồn AdminFinanceServlet/FinanceRepository; SQL Server fixture đã kiểm qua JDBC. Chưa phải nghiệm thu provider ngân hàng thật hay E2E liên miền.",
         "responses": {
           "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+            "description": "Dữ liệu canonical từ backend; mô phỏng payout chỉ trong fixture cấu hình rõ.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/SettlementSummary"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dữ liệu không hợp lệ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Phiên không còn hiệu lực",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Không đủ quyền hoặc CSRF sai",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy tài nguyên",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Xung đột trạng thái/idempotency/blocker/số dư",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dữ liệu hoặc provider chưa sẵn sàng",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "operationId": "postApiAdminEventsEventIdSettlementRecalculate",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
         "x-owner": "vuong",
         "externalDocs": {
-          "description": "Issue giao việc và contract dự kiến",
+          "description": "Issue giao việc",
           "url": "https://github.com/devonxjz/TicketCenter/issues/30"
         },
         "parameters": [
@@ -2529,6 +3906,16 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID ổn định cho cùng thao tác. Payout dùng UUID này làm payoutId; confirm/recalculate kiểm tra header và idempotent theo trạng thái tài nguyên."
           }
         ],
         "security": [
@@ -2545,19 +3932,91 @@
         "tags": [
           "Commission"
         ],
-        "summary": "Chờ triển khai · Commission Rule administration — POST /api/admin/commission-rules/{ruleId}/edit",
-        "description": "Contract dự kiến từ issue #29. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "summary": "Sửa chính sách chưa gắn với sự kiện",
+        "description": "ADMIN hiện tại, UUID/tc_*, tiền VND nguyên dạng chuỗi, UTC độ chính xác millisecond. Mã nguồn AdminFinanceServlet/FinanceRepository; SQL Server fixture đã kiểm qua JDBC. Chưa phải nghiệm thu provider ngân hàng thật hay E2E liên miền.",
         "responses": {
           "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+            "description": "Dữ liệu canonical từ backend; mô phỏng payout chỉ trong fixture cấu hình rõ.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CommissionRule"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dữ liệu không hợp lệ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Phiên không còn hiệu lực",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Không đủ quyền hoặc CSRF sai",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy tài nguyên",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Xung đột trạng thái/idempotency/blocker/số dư",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dữ liệu hoặc provider chưa sẵn sàng",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "operationId": "postApiAdminCommissionRulesRuleIdEdit",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
         "x-owner": "vuong",
         "externalDocs": {
-          "description": "Issue giao việc và contract dự kiến",
+          "description": "Issue giao việc",
           "url": "https://github.com/devonxjz/TicketCenter/issues/29"
         },
         "parameters": [
@@ -2569,6 +4028,16 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID ổn định cho cùng thao tác. Payout dùng UUID này làm payoutId; confirm/recalculate kiểm tra header và idempotent theo trạng thái tài nguyên."
           }
         ],
         "security": [
@@ -2577,7 +4046,17 @@
             "csrfToken": [],
             "idempotencyKey": []
           }
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommissionRuleRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/admin/refund-requests": {
@@ -4301,6 +5780,605 @@
           }
         ]
       }
+    },
+    "/api/admin/settlements/{settlementId}/payouts/{payoutId}/reconcile": {
+      "post": {
+        "tags": [
+          "Settlement"
+        ],
+        "summary": "Xác minh kết quả chi trả đang chờ",
+        "description": "ADMIN hiện tại; Idempotency-Key bằng payoutId. Gửi {} để xác minh lệnh đã lưu theo đúng settlementId+payoutId: backend lấy số tiền và fingerprint bất biến, chỉ lookup provider rồi ghi kết quả, không gọi transfer. Body PayoutRequest cũ vẫn được kiểm fingerprint nếu cung cấp. Không cần lưu thông tin ngân hàng trên trình duyệt. Mọi PENDING phải được xác minh trước khi tạo payoutId mới.",
+        "operationId": "postApiAdminSettlementsSettlementIdPayoutsPayoutIdReconcile",
+        "x-owner": "vuong",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
+        "parameters": [
+          {
+            "name": "settlementId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "payoutId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID ổn định cho cùng thao tác. Payout dùng UUID này làm payoutId; confirm/recalculate kiểm tra header và idempotent theo trạng thái tài nguyên."
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": [],
+            "csrfToken": [],
+            "idempotencyKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dữ liệu canonical từ backend; mô phỏng payout chỉ trong fixture cấu hình rõ.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PayoutResult"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dữ liệu không hợp lệ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Phiên không còn hiệu lực",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Không đủ quyền hoặc CSRF sai",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy tài nguyên",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Xung đột trạng thái/idempotency/blocker/số dư",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dữ liệu hoặc provider chưa sẵn sàng",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "externalDocs": {
+          "description": "Issue giao việc",
+          "url": "https://github.com/devonxjz/TicketCenter/issues/31"
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "maxProperties": 0
+                  },
+                  {
+                    "$ref": "#/components/schemas/PayoutRequest"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/commission-rules": {
+      "get": {
+        "tags": [
+          "Commission"
+        ],
+        "summary": "Danh sách chính sách hoa hồng",
+        "responses": {
+          "200": {
+            "description": "Dữ liệu canonical từ backend; mô phỏng payout chỉ trong fixture cấu hình rõ.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CommissionRule"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dữ liệu không hợp lệ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Phiên không còn hiệu lực",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Không đủ quyền hoặc CSRF sai",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy tài nguyên",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Xung đột trạng thái/idempotency/blocker/số dư",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dữ liệu hoặc provider chưa sẵn sàng",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getApiAdminCommissionRules",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
+        "x-owner": "vuong",
+        "externalDocs": {
+          "description": "Issue giao việc",
+          "url": "https://github.com/devonxjz/TicketCenter/issues/29"
+        },
+        "description": "ADMIN hiện tại, UUID/tc_*, tiền VND nguyên dạng chuỗi, UTC độ chính xác millisecond. Mã nguồn AdminFinanceServlet/FinanceRepository; SQL Server fixture đã kiểm qua JDBC. Chưa phải nghiệm thu provider ngân hàng thật hay E2E liên miền.",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Commission"
+        ],
+        "summary": "Tạo chính sách hoa hồng",
+        "responses": {
+          "200": {
+            "description": "Dữ liệu canonical từ backend; mô phỏng payout chỉ trong fixture cấu hình rõ.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CommissionRule"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Rule mới được tạo. Replay cùng key trả200.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CommissionRule"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dữ liệu không hợp lệ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Phiên không còn hiệu lực",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Không đủ quyền hoặc CSRF sai",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Không tìm thấy tài nguyên",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Xung đột trạng thái/idempotency/blocker/số dư",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dữ liệu hoặc provider chưa sẵn sàng",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postApiAdminCommissionRules",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
+        "x-owner": "vuong",
+        "externalDocs": {
+          "description": "Issue giao việc",
+          "url": "https://github.com/devonxjz/TicketCenter/issues/29"
+        },
+        "description": "ADMIN hiện tại, UUID/tc_*, tiền VND nguyên dạng chuỗi, UTC độ chính xác millisecond. Mã nguồn AdminFinanceServlet/FinanceRepository; SQL Server fixture đã kiểm qua JDBC. Chưa phải nghiệm thu provider ngân hàng thật hay E2E liên miền.",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID ổn định cho cùng thao tác. Payout dùng UUID này làm payoutId; confirm/recalculate kiểm tra header và idempotent theo trạng thái tài nguyên."
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": [],
+            "csrfToken": [],
+            "idempotencyKey": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GlobalCommissionRuleRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reports/options": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Tổ chức và sự kiện được phép xem",
+        "description": "ADMIN xem tất cả tổ chức; MANAGER chỉ active memberships. Khi chọn organizationId, kiểm đúng quyền trước lấy events.",
+        "operationId": "getApiReportsOptions",
+        "x-owner": "vuong",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dữ liệu canonical từ SQL Server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ReportOptions"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "externalDocs": {
+          "description": "Issue giao việc",
+          "url": "https://github.com/devonxjz/TicketCenter/issues/32"
+        }
+      }
+    },
+    "/api/organizations/{organizationId}/overview": {
+      "get": {
+        "tags": [
+          "Overview and Audit"
+        ],
+        "summary": "Tổng quan tổ chức",
+        "description": "ADMIN hoặc MANAGER active của đúng tổ chức; counter live và dòng tiền ngày UTC hiện tại.",
+        "operationId": "getApiOrganizationsOrganizationIdOverview",
+        "x-owner": "vuong",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dữ liệu canonical từ SQL Server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/FinanceOverview"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "externalDocs": {
+          "description": "Issue giao việc",
+          "url": "https://github.com/devonxjz/TicketCenter/issues/33"
+        }
+      }
     }
   },
   "components": {
@@ -4532,6 +6610,881 @@
         "pattern": "^[0-9]+$",
         "description": "VND nguyên, không phần lẻ; SQL decimal(19,0). Ví dụ 300000.",
         "example": "300000"
+      },
+      "CommissionRuleRequest": {
+        "type": "object",
+        "properties": {
+          "ratePercent": {
+            "type": "string",
+            "pattern": "^(?:[0-9]{1,3})(?:\\.[0-9]{1,4})?$",
+            "description": "0..100, tối đa 4 chữ số thập phân"
+          },
+          "fixedFee": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "effectiveFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "effectiveTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "ratePercent",
+          "fixedFee",
+          "effectiveFrom",
+          "effectiveTo"
+        ],
+        "additionalProperties": false
+      },
+      "CommissionRule": {
+        "type": "object",
+        "properties": {
+          "ruleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ratePercent": {
+            "type": "string"
+          },
+          "fixedFee": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "effectiveFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "effectiveTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "associatedEventsCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "isReplay": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SettlementSummary": {
+        "type": "object",
+        "properties": {
+          "settlementId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "endTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "CONFIRMED",
+              "PAID"
+            ]
+          },
+          "grossRevenue": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "totalRefund": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "totalCommission": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "netPayable": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "paidAmount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "pendingAmount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "availableToPay": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "confirmedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "isReplay": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SettlementBlockers": {
+        "type": "object",
+        "properties": {
+          "blockerCount": {
+            "type": "integer"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "blockerType": {
+                  "type": "string"
+                },
+                "objectId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "detail": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "PayoutRequest": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "bankAccountNumber": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "bankName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "accountHolderName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "amount",
+          "bankAccountNumber",
+          "bankName",
+          "accountHolderName"
+        ],
+        "additionalProperties": false
+      },
+      "PayoutResult": {
+        "type": "object",
+        "properties": {
+          "payoutId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "settlementId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "SUCCEEDED",
+              "FAILED"
+            ]
+          },
+          "verificationState": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "UNKNOWN",
+              "SUCCEEDED",
+              "FAILED"
+            ]
+          },
+          "providerReference": {
+            "type": "string",
+            "nullable": true
+          },
+          "processedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "isReplay": {
+            "type": "boolean"
+          },
+          "settlementStatus": {
+            "type": "string",
+            "enum": [
+              "CONFIRMED",
+              "PAID"
+            ]
+          },
+          "netPayable": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "paidAmount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "pendingAmount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "availableToPay": {
+            "$ref": "#/components/schemas/Money"
+          }
+        }
+      },
+      "SignedMoney": {
+        "type": "string",
+        "pattern": "^-?[0-9]+$",
+        "description": "Dòng tiền thuần VND nguyên có thể âm."
+      },
+      "GlobalCommissionRuleRequest": {
+        "type": "object",
+        "properties": {
+          "ratePercent": {
+            "type": "string",
+            "pattern": "^(?:[0-9]{1,3})(?:\\.[0-9]{1,4})?$",
+            "description": "0..100, tối đa 4 chữ số thập phân"
+          },
+          "fixedFee": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "effectiveFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "effectiveTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "ratePercent",
+          "fixedFee",
+          "effectiveFrom",
+          "effectiveTo",
+          "organizationId"
+        ],
+        "additionalProperties": false
+      },
+      "CohortRevenueRow": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "paidOrderCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "grossRevenue": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "totalRefund": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "remainingAmount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "totalCommission": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "netPayable": {
+            "$ref": "#/components/schemas/Money"
+          }
+        }
+      },
+      "CashFlowRow": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ticketCaptured": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "compensationCaptured": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "ticketRefund": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "compensationRefund": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "netCashFlow": {
+            "$ref": "#/components/schemas/SignedMoney"
+          }
+        }
+      },
+      "EventSalesRow": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "eventTitle": {
+            "type": "string"
+          },
+          "eventStatus": {
+            "type": "string"
+          },
+          "endTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "paidOrderCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ticketCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "validTicketCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "refundedTicketCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "grossRevenue": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "totalRefund": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "totalCommission": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "netPayable": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "settlementId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "settlementStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "isConfirmed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SettlementBalanceRow": {
+        "type": "object",
+        "properties": {
+          "settlementId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string"
+          },
+          "grossRevenue": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "totalRefund": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "totalCommission": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "netPayable": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "paidAmount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "pendingAmount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "availableToPay": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "confirmedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "FinanceReport": {
+        "type": "object",
+        "properties": {
+          "metric": {
+            "type": "string",
+            "enum": [
+              "COHORT_REVENUE",
+              "CASH_FLOW",
+              "EVENT_SALES",
+              "SETTLEMENT_BALANCE"
+            ]
+          },
+          "timeBasis": {
+            "type": "string",
+            "enum": [
+              "ORDER_PAID_AT_WITH_REFUNDS_BEFORE_TO",
+              "PAYMENT_PAID_AT_AND_REFUND_PROCESSED_AT",
+              "EVENT_END_TIME_CURRENT_OR_CONFIRMED_TOTALS"
+            ]
+          },
+          "timezone": {
+            "type": "string",
+            "enum": [
+              "UTC"
+            ]
+          },
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "eventId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/CohortRevenueRow"
+                },
+                {
+                  "$ref": "#/components/schemas/CashFlowRow"
+                },
+                {
+                  "$ref": "#/components/schemas/EventSalesRow"
+                },
+                {
+                  "$ref": "#/components/schemas/SettlementBalanceRow"
+                }
+              ]
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ReportOptions": {
+        "type": "object",
+        "properties": {
+          "isAdmin": {
+            "type": "boolean"
+          },
+          "organizations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "name": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "title": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "SafeAuditMetadata": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "orderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "settlementId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "refundId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "commissionRuleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "payoutId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "grossRevenue": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "totalRefund": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "totalCommission": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "netPayable": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "paidAmount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "pendingAmount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "ratePercent": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "fixedFee": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "previousStatus": {
+            "type": "string"
+          },
+          "newStatus": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "result": {
+            "type": "string"
+          },
+          "processedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "confirmedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "effectiveFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "effectiveTo": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Chỉ các trường scalar allowlist hợp lệ; JSON sai/duplicate/oversize trả {}. Không trả credential, OTP, ngân hàng hoặc metadataJson gốc."
+      },
+      "FinanceAudit": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "actorId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "action": {
+            "type": "string"
+          },
+          "entityType": {
+            "type": "string"
+          },
+          "entityId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/SafeAuditMetadata"
+          }
+        }
+      },
+      "FinanceAuditPage": {
+        "type": "object",
+        "properties": {
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FinanceAudit"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "timezone": {
+            "type": "string",
+            "enum": [
+              "UTC"
+            ]
+          }
+        }
+      },
+      "FinanceOverview": {
+        "type": "object",
+        "properties": {
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "timezone": {
+            "type": "string",
+            "enum": [
+              "UTC"
+            ]
+          },
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "pendingOrganizations": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pendingEvents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pendingRefunds": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "draftSettlements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "eventCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "paidOrders": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "todayCashFlow": {
+            "type": "object",
+            "properties": {
+              "ticketCaptured": {
+                "$ref": "#/components/schemas/Money"
+              },
+              "compensationCaptured": {
+                "$ref": "#/components/schemas/Money"
+              },
+              "ticketRefund": {
+                "$ref": "#/components/schemas/Money"
+              },
+              "compensationRefund": {
+                "$ref": "#/components/schemas/Money"
+              },
+              "netCashFlow": {
+                "$ref": "#/components/schemas/SignedMoney"
+              }
+            }
+          },
+          "todayCohortCommission": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "commissionTimeBasis": {
+            "type": "string"
+          },
+          "totalUsers": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Admin only: actual total number of users."
+          },
+          "activeOrganizations": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Admin only: organizations in canonical APPROVED state."
+          },
+          "dailyMetrics": {
+            "type": "array",
+            "minItems": 7,
+            "maxItems": 7,
+            "items": {
+              "$ref": "#/components/schemas/FinanceDailyMetric"
+            },
+            "description": "Seven consecutive UTC days, including today; real zero days included. Cohort revenue and cash flow retain separate time bases."
+          },
+          "dailyMetricTimeBasis": {
+            "type": "object",
+            "properties": {
+              "cohortGrossRevenue": {
+                "type": "string",
+                "enum": [
+                  "ORDER_PAID_AT"
+                ]
+              },
+              "netCashFlow": {
+                "type": "string",
+                "enum": [
+                  "PAYMENT_PAID_AT_AND_REFUND_PROCESSED_AT"
+                ]
+              }
+            }
+          },
+          "todayCohortGrossRevenue": {
+            "$ref": "#/components/schemas/Money"
+          }
+        }
+      },
+      "FinanceDailyMetric": {
+        "type": "object",
+        "required": [
+          "date",
+          "from",
+          "to",
+          "cohortGrossRevenue",
+          "netCashFlow"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cohortGrossRevenue": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "netCashFlow": {
+            "$ref": "#/components/schemas/SignedMoney"
+          }
+        }
       }
     }
   }

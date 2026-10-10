@@ -20,7 +20,7 @@ public final class ReportCache {
     });}
     public String key(UserPrincipal actor,ReportFilter filter){try{
         String scope=filter.organizationId()==null?"global":"org:"+filter.organizationId();String generation=backend.get("tc:finance:report:g:"+scope);
-        // New random namespace when Redis lacks a generation avoids stale values after outages.
+        // Initialize the counter; cached payloads remain bounded by their 60-second TTL.
         if(generation==null){backend.increment("tc:finance:report:g:"+scope);generation=backend.get("tc:finance:report:g:"+scope);}
         if(generation==null)return null;
         String identity=actor.actorId()+"|"+actor.authVersion()+"|"+filter.cacheIdentity();String hash=HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(identity.getBytes(StandardCharsets.UTF_8)));

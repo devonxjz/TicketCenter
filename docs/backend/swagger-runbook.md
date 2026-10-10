@@ -40,9 +40,17 @@ mvn -B -DskipTests package
 ./src/test/scripts/swagger-smoke.ps1 -TomcatHome 'E:/apache-tomcat-11.0.25/apache-tomcat-11.0.25'
 ```
 
-Node dùng module test có sẵn, không cần npm install. Nhóm test trên không mở DB hoặc gửi email. Full `mvn test` của baseline có test dùng DB và test gửi SMTP thật; chỉ chạy trong môi trường fixture đã được chủ môi trường chuẩn bị. Nhóm test này không thay yêu cầu CI toàn hệ thống xanh trước merge.
+Node dùng module test có sẵn, không cần npm install. Nhóm test trên không mở DB hoặc gửi email. Default `mvn test` hiện dùng ExternalTestCondition để bỏ qua các ca DB/SMTP có tên và lý do; opt-in phải chỉ đúng fixture riêng và marker. Xem [test isolation](platform-test-isolation.md). Nhóm test này không thay yêu cầu CI toàn hệ thống xanh trước merge.
 
 Script smoke dành cho PowerShell 7/Windows, nhận thư mục Tomcat 11 và JDK 25 trên máy. Mỗi lần chạy giải nén WAR vừa build vào thư mục mới trong `target/swagger-smoke`, tạo cấu hình server riêng với một connector loopback và port tự chọn, rồi chạy 10 test HTTP cho ROOT và `/ticketscenter`. Script không kế thừa ứng dụng/listener/resource của Tomcat đã cài. Nó dùng class/resource thật của WAR và ba filter Validation/CSRF/Session nhưng giới hạn servlet mapping, không khởi tạo persistence/seed/worker/SMTP. JVM được dừng trong `finally`, log giữ trong thư mục của lượt chạy. Đây là kiểm thử HTTP boundary; không thay full-app/SQL integration. Đừng chạy riêng file `swagger-http-smoke.test.cjs` vào môi trường đang có dữ liệu.
+
+## Phần tài chính đã tích hợp
+
+Owned commission/settlement/payout/report/audit/overview routes đã chuyển `implemented`/`matched-to-source`; DTO tiền là chuỗi VND nguyên, UUID canonical, UTC. Các route owner khác chưa có servlet vẫn `planned`. Các trang thật: `/finance/commission`, `/finance/settlements`, `/finance/reports`, `/finance/audit`, `/finance/overview`; từng trang kiểm quyền hiện tại.
+
+Reconcile payout nhận body `{}` với Idempotency-Key bằng payoutId, lấy amount/fingerprint từ reservation bền và chỉ lookup provider. Mọi reservation PENDING chặn payoutId mới cho đến khi có kết quả cuối. Provider production mặc định chưa sẵn sàng; `fixture-simulated` chỉ hoạt động với loopback DB `TC_Vuong_Test_*` có marker, không đại diện ngân hàng thật.
+
+Sau khi build và nạp DB_URL/DB_NAME/DB_USER/DB_PASSWORD cùng DB_ADMIN_* từ cấu hình riêng ngoài build cache, dùng `./src/test/scripts/finance-http-smoke.ps1 -TomcatHome '<Tomcat11>' -SqlcmdPath '<sqlcmd>'`. Script giới hạn dedicated loopback fixture, seed UUID ngẫu nhiên, kiểm actual JDBC/servlets/JSP/CSV và dừng JVM riêng khi xong. Nó dùng test-only session bridge với control token riêng; bridge không nằm trong WAR sản phẩm. Xem [bằng chứng tích hợp](../evidence/vuong/VUONG-EPIC.md) cho số ca và giới hạn. Chưa chứng minh login flow/full WAR/worker của owner khác.
 
 ## Nhánh và bàn giao
 
