@@ -13,7 +13,7 @@ public final class ReadProjection {
             else if(column.equals("is_confirmed")){value=row.getBoolean(column);}
             else if(column.endsWith("_count")){value=row.getLong(column);}
             else if(isMoney(column)){value=row.getBigDecimal(column);}
-            else {value=row.getString(column);}
+            else {value=row.getString(column);if(value instanceof String text && (column.equals("id") || column.endsWith("_id")) && text.matches("[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}"))value=UUID.fromString(text).toString();}
             result.put(camel(column),value);
         }return result;
     }
