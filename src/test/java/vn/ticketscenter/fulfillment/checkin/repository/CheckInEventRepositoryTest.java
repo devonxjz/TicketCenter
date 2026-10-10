@@ -66,6 +66,24 @@ class CheckInEventRepositoryTest {
         Query query=queries.getLast();assertFalse(query.sql.contains("paid_amount"));assertFalse(query.sql.contains("price"));
         assertEquals(EVENT.toString(),query.bindings.get(1));
     }
+    @Test void warmWindowGuardBindsActorAndCachedScheduleWithoutReloadingEventLabels(){
+        var cached=new CheckInEventRepository.EventInfo(EVENT,ORG,"Title","Venue",Instant.EPOCH,Instant.EPOCH.plusSeconds(7200),"PUBLISHED",0,0);
+        results.add(Collections.singletonList(new Object[]{true,true}));
+        assertTrue(repository.isCachedWindowCurrent(ACTOR,EVENT,cached));
+        Query query=queries.getFirst();assertEquals(1,queries.size());
+        assertEquals(ACTOR.toString(),query.bindings.get(1));assertEquals(ORG.toString(),query.bindings.get(2));
+        assertEquals(LocalDateTime.ofInstant(cached.startTime(),ZoneOffset.UTC),query.bindings.get(3));
+        assertEquals(EVENT.toString(),query.bindings.get(6));
+        assertTrue(query.sql.contains("u.status='ACTIVE'"));assertTrue(query.sql.contains("m.active=1"));
+        assertFalse(query.sql.contains("e.title"));assertFalse(query.sql.contains("price"));
+    }
+    @Test void warmWindowGuardCannotAuthorizeRevokedMembershipOrDeletedEvent(){
+        var cached=new CheckInEventRepository.EventInfo(EVENT,ORG,"Title","Venue",Instant.EPOCH,Instant.EPOCH.plusSeconds(7200),"PUBLISHED",0,0);
+        results.add(Collections.singletonList(new Object[]{false,true}));
+        assertEquals(403,assertThrows(CheckInException.class,()->repository.isCachedWindowCurrent(ACTOR,EVENT,cached)).httpStatus());
+        results.add(List.of());
+        assertEquals(404,assertThrows(CheckInException.class,()->repository.isCachedWindowCurrent(ACTOR,EVENT,cached)).httpStatus());
+    }
     @Test void datetimeoffsetPreservesTheActualInstant(){
         var data=eventRow();data[4]=OffsetDateTime.parse("2026-10-10T02:00:00+07:00");
         data[5]=OffsetDateTime.parse("2026-10-10T05:00:00+07:00");

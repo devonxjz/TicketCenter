@@ -61,8 +61,10 @@ public class CheckInEventService {
     public CheckInWindowStatusDto window(UUID actorId, UUID eventId) {
         requireActor(actorId);
         Objects.requireNonNull(eventId, "eventId");
-        EventInfo current = repository.accessibleEvent(actorId, eventId);
         EventInfo cached = cache.window(eventId).orElse(null);
+        // Cache never grants access: DB checks current membership/User/schedule on every hit.
+        EventInfo current = cached != null && repository.isCachedWindowCurrent(actorId, eventId, cached)
+                ? cached : repository.accessibleEvent(actorId, eventId);
         if (!sameMetadata(current, cached)) {
             if (cached != null) cache.invalidate(eventId, current.organizationId());
             cache.putWindow(current);

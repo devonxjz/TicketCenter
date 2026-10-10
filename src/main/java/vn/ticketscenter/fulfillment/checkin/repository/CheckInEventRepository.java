@@ -110,6 +110,26 @@ public class CheckInEventRepository {
         });
     }
 
+    /** One indexed guard on a warm cache, instead of separate Event and membership projections. */
+    public boolean isCachedWindowCurrent(UUID actorId, UUID eventId, EventInfo cached) {
+        return read(connection -> {
+            String sql = "SELECT CASE WHEN EXISTS (SELECT 1 " + MEMBERSHIP
+                    + " AND m.organization_id=e.organization_id) THEN 1 ELSE 0 END,"
+                    + " CASE WHEN e.organization_id=? AND e.start_time=? AND e.end_time=? AND e.status=? THEN 1 ELSE 0 END"
+                    + " FROM dbo.tc_events e WHERE e.id=?";
+            try (PreparedStatement query = prepare(connection, sql)) {
+                query.setString(1, actorId.toString()); query.setString(2, cached.organizationId().toString());
+                utc(query, 3, cached.startTime()); utc(query, 4, cached.endTime());
+                query.setString(5, cached.status()); query.setString(6, eventId.toString());
+                try (ResultSet rows = query.executeQuery()) {
+                    if (!rows.next()) throw new CheckInException(404, "EVENT_NOT_FOUND", "Sự kiện không tồn tại.");
+                    if (!rows.getBoolean(1)) throw new CheckInException(403, "CHECK_IN_FORBIDDEN", "Bạn không có quyền soát vé tại sự kiện này.");
+                    return cached.eventId().equals(eventId) && rows.getBoolean(2);
+                }
+            }
+        });
+    }
+
     public boolean isCheckInOpen(UUID eventId, Instant now) {
         return read(connection -> {
             try (PreparedStatement query = prepare(connection, "SELECT dbo.fn_event_is_check_in_open(?,?)")) {

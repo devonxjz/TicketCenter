@@ -6,7 +6,7 @@ import vn.ticketscenter.config.AppConfig;
 import vn.ticketscenter.config.DatabaseConfig;
 import vn.ticketscenter.config.persistence.*;
 import vn.ticketscenter.fulfillment.checkin.CheckInException;
-import vn.ticketscenter.fulfillment.checkin.cache.RedisCheckInEventCache;
+import vn.ticketscenter.fulfillment.checkin.cache.CheckInEventCache;
 import vn.ticketscenter.fulfillment.checkin.repository.CheckInEventRepository;
 import vn.ticketscenter.fulfillment.checkin.service.CheckInEventService;
 import javax.sql.DataSource;
@@ -53,7 +53,14 @@ class CheckInEventAzureReadOnlyIT {
         try (var factory = Persistence.createEntityManagerFactory("ticketscenter", Map.of("jakarta.persistence.nonJtaDataSource", dataSource))) {
             var repository = new CheckInEventRepository(new TransactionManager(Map.of(DatabasePrincipal.CHECK_IN, factory)));
             var info = repository.accessibleEvent(actor, event);
-            var cache = new RedisCheckInEventCache(() -> { throw new IllegalStateException("Read-only acceptance: cache unavailable"); });
+            var cache = new CheckInEventCache() {
+                final Map<UUID,CheckInEventRepository.EventInfo> windows=new HashMap<>();
+                public Optional<List<CheckInEventRepository.EventInfo>> events(UUID actorId,UUID orgId){return Optional.empty();}
+                public void putEvents(UUID actorId,UUID orgId,List<CheckInEventRepository.EventInfo> events){}
+                public Optional<CheckInEventRepository.EventInfo> window(UUID eventId){return Optional.ofNullable(windows.get(eventId));}
+                public void putWindow(CheckInEventRepository.EventInfo eventInfo){windows.put(eventInfo.eventId(),eventInfo);}
+                public void invalidate(UUID eventId,UUID orgId){windows.remove(eventId);}
+            };
             var open = new CheckInEventService(repository, cache, Clock.fixed(info.windowStart(), ZoneOffset.UTC));
             assertTrue(open.window(actor, event).isOpen());
             assertFalse(new CheckInEventService(repository, cache, Clock.fixed(info.windowStart().minusSeconds(60), ZoneOffset.UTC)).window(actor, event).isOpen());
