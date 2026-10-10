@@ -1,0 +1,81 @@
+name: KHANH-03 refund acceptance
+on:
+  push:
+    branches: [feat/khanh/khanh-03-refund-request]
+  pull_request:
+    branches: [dev]
+    paths: ['src/main/java/vn/ticketscenter/fulfillment/refund/**', 'src/main/java/vn/ticketscenter/config/web/OrganizationApiRoutesFilter.java', 'src/main/webapp/WEB-INF/web.xml', 'src/main/webapp/WEB-INF/views/refund/**', 'src/test/**/refund/**', 'database/migrations/029_khanh03_refund_request.sql', '.github/workflows/khanh03-refund.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    services:
+      sql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: 'Y'
+          MSSQL_SA_PASSWORD: ${{ format('Khanh03_{0}_Aa!', github.run_id) }}
+        ports: ['1433:1433']
+      redis:
+        image: redis:7.4
+        ports: ['16379:6379']
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      TC_REFUND_TESTS: 'true'
+      TC_REFUND_TEST_URL: 'jdbc:sqlserver://127.0.0.1:1433;databaseName=TicketCenter_Khanh03_Test;encrypt=true;trustServerCertificate=true;loginTimeout=5'
+      TC_REFUND_OWNER_USER: sa
+      TC_REFUND_OWNER_PASSWORD: ${{ format('Khanh03_{0}_Aa!', github.run_id) }}
+      TC_REFUND_BUYER_USER: khanh03_buyer
+      TC_REFUND_BUYER_PASSWORD: ${{ format('Khanh03_buyer_{0}_Aa!', github.run_id) }}
+      TC_REFUND_ADMIN_USER: khanh03_admin
+      TC_REFUND_ADMIN_PASSWORD: ${{ format('Khanh03_admin_{0}_Aa!', github.run_id) }}
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: '16379'
+      REDIS_PASSWORD: ''
+      TC_REFUND_REDIS_TESTS: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: oracle
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare test classes and JDBC classpath
+        run: mvn -B -DskipTests test-compile dependency:build-classpath -Dmdep.outputFile=target/refund-classpath.txt -Dmdep.includeScope=test
+      - name: Wait for isolated SQL Server
+        run: |
+          set -euo pipefail
+          echo "::add-mask::$TC_REFUND_OWNER_PASSWORD"
+          echo "::add-mask::$TC_REFUND_BUYER_PASSWORD"
+          echo "::add-mask::$TC_REFUND_ADMIN_PASSWORD"
+          container=$(docker ps -q --filter ancestor=mcr.microsoft.com/mssql/server:2022-latest)
+          ready=false
+          for attempt in $(seq 1 30); do
+            if docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$TC_REFUND_OWNER_PASSWORD" -C -b -Q 'SELECT 1' >/dev/null 2>&1; then ready=true; break; fi
+            sleep 2
+          done
+          test "$ready" = true
+      - name: Initialize isolated fixture
+        run: java -cp "target/test-classes:target/classes:$(cat target/refund-classpath.txt)" vn.ticketscenter.fulfillment.refund.integration.RefundCiSetup
+      - name: Test the customer refund contract
+        run: mvn -B test -Dtest=RefundApplicationRoutingTest,RefundRequestServiceTest,RefundRequestServletsTest,RefundRequestSqlServerTest,RefundRequestRedisTest
+      - name: Require SQL and Redis cases without skips
+        if: always()
+        run: node src/test/scripts/test-report-summary.cjs target/surefire-reports --require-no-skips --require-suite=vn.ticketscenter.fulfillment.refund.integration.RefundRequestSqlServerTest --require-suite=vn.ticketscenter.fulfillment.refund.integration.RefundRequestRedisTest --summary="$GITHUB_STEP_SUMMARY"
+      - name: Package JSP application
+        run: mvn -B -DskipTests package
+      - name: Accept the full production WAR on Tomcat
+        run: python3 src/test/resources/refund/ci-web-acceptance.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: khanh03-refund-acceptance
+          path: |
+            target/surefire-reports/
+            target/khanh03-web-acceptance.json
+            target/khanh03-ci-tomcat.log
