@@ -233,6 +233,8 @@ public class IdentityWebFlowTest {
     void testCsrfFilterAllowsPublicAuthApis() throws Exception {
         CsrfFilter filter = new CsrfFilter();
         java.util.List<String> publicApis = java.util.List.of(
+                "/api/auth/login",
+                "/api/auth/register",
                 "/api/auth/otp/send",
                 "/api/auth/otp/verify",
                 "/api/auth/password/forgot",
@@ -348,6 +350,7 @@ public class IdentityWebFlowTest {
         servlet.doGet(req, resp);
 
         assertEquals("/WEB-INF/views/auth/login.jsp", requestAttributes.get("FORWARDED_TO"));
+        assertNotNull(requestAttributes.get("csrfToken"));
     }
 
     @Test
@@ -360,6 +363,7 @@ public class IdentityWebFlowTest {
         servlet.doGet(req, resp);
 
         assertEquals("/WEB-INF/views/auth/register.jsp", requestAttributes.get("FORWARDED_TO"));
+        assertNotNull(requestAttributes.get("csrfToken"));
     }
 
     @Test
@@ -387,8 +391,94 @@ public class IdentityWebFlowTest {
 
         assertEquals(200, responseStatus.get());
         assertTrue(responseBuffer.toString().contains("\"authenticated\":true"));
+        assertTrue(responseBuffer.toString().contains("\"redirect\":\"/\""));
+        assertTrue(responseBuffer.toString().contains("\"role\":\"CUSTOMER\""));
         assertNotNull(responseHeaders.get("X-CSRF-Token"), "Response must expose X-CSRF-Token header");
         assertEquals(principal, sessionAttributes.get(SecurityContext.SESSION_USER_ATTRIBUTE));
+    }
+
+    @Test
+    @DisplayName("LoginServlet: Admin đăng nhập điều hướng đến /admin/dashboard")
+    void testLoginServletAdminRedirectsToDashboard() throws Exception {
+        UUID actorId = UUID.randomUUID();
+        UserPrincipal admin = new UserPrincipal(actorId, PlatformRole.ADMIN, 0);
+
+        AuthService mockAuthService = new AuthService(
+                new TransactionManager(Map.of()), new UserRepository(), new PasswordHasher()) {
+            @Override
+            public UserPrincipal login(LoginRequestDto request) {
+                return admin;
+            }
+        };
+
+        LoginServlet servlet = new LoginServlet(mockAuthService);
+        requestParams.put("identifier", "admin@test.vn");
+        requestParams.put("password", "Pass12345678!");
+
+        HttpServletRequest req = createMockRequest("POST", "/api/auth/login", true);
+        HttpServletResponse resp = createMockResponse();
+
+        servlet.doPost(req, resp);
+
+        assertEquals(200, responseStatus.get());
+        assertTrue(responseBuffer.toString().contains("\"redirect\":\"/admin/dashboard\""));
+        assertTrue(responseBuffer.toString().contains("\"role\":\"ADMIN\""));
+    }
+
+    @Test
+    @DisplayName("LoginServlet: Staff đăng nhập điều hướng đến /organizer/checkin-select")
+    void testLoginServletStaffRedirectsToCheckin() throws Exception {
+        UUID actorId = UUID.randomUUID();
+        UserPrincipal staff = new UserPrincipal(actorId, PlatformRole.CUSTOMER, 0, vn.ticketscenter.identity.model.OrganizationRole.CHECK_IN_STAFF);
+
+        AuthService mockAuthService = new AuthService(
+                new TransactionManager(Map.of()), new UserRepository(), new PasswordHasher()) {
+            @Override
+            public UserPrincipal login(LoginRequestDto request) {
+                return staff;
+            }
+        };
+
+        LoginServlet servlet = new LoginServlet(mockAuthService);
+        requestParams.put("identifier", "staff@test.vn");
+        requestParams.put("password", "Pass12345678!");
+
+        HttpServletRequest req = createMockRequest("POST", "/api/auth/login", true);
+        HttpServletResponse resp = createMockResponse();
+
+        servlet.doPost(req, resp);
+
+        assertEquals(200, responseStatus.get());
+        assertTrue(responseBuffer.toString().contains("\"redirect\":\"/organizer/checkin-select\""));
+        assertTrue(responseBuffer.toString().contains("\"role\":\"STAFF\""));
+    }
+
+    @Test
+    @DisplayName("LoginServlet: Manager đăng nhập điều hướng đến /organizer/dashboard")
+    void testLoginServletManagerRedirectsToOrganizerDashboard() throws Exception {
+        UUID actorId = UUID.randomUUID();
+        UserPrincipal manager = new UserPrincipal(actorId, PlatformRole.CUSTOMER, 0, vn.ticketscenter.identity.model.OrganizationRole.MANAGER);
+
+        AuthService mockAuthService = new AuthService(
+                new TransactionManager(Map.of()), new UserRepository(), new PasswordHasher()) {
+            @Override
+            public UserPrincipal login(LoginRequestDto request) {
+                return manager;
+            }
+        };
+
+        LoginServlet servlet = new LoginServlet(mockAuthService);
+        requestParams.put("identifier", "manager@test.vn");
+        requestParams.put("password", "Pass12345678!");
+
+        HttpServletRequest req = createMockRequest("POST", "/api/auth/login", true);
+        HttpServletResponse resp = createMockResponse();
+
+        servlet.doPost(req, resp);
+
+        assertEquals(200, responseStatus.get());
+        assertTrue(responseBuffer.toString().contains("\"redirect\":\"/organizer/dashboard\""));
+        assertTrue(responseBuffer.toString().contains("\"role\":\"MANAGER\""));
     }
 
     @Test
