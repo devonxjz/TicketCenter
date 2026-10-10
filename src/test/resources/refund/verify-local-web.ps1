@@ -10,6 +10,9 @@ function Login($user){
  $login=Invoke-WebRequest "$base/api/auth/login" -Method Post -ContentType application/json -Body $body -WebSession $session -Headers @{'X-CSRF-Token'=$csrf.data.token} -SkipHttpErrorCheck
  Check 'fixture login' $login 200;return $session
 }
+$loginPage=Invoke-WebRequest "$base/auth/login" -SkipHttpErrorCheck
+Check 'shared login JSP compiled with JSTL' $loginPage 200
+if(!$loginPage.Content.Contains('Chào mừng trở lại')){throw 'Wrong login page'}
 Check 'anonymous denied' (Invoke-WebRequest "$base/api/me/refund-requests" -SkipHttpErrorCheck) 401
 $buyer=Login $fixture.buyer;$other=Login $fixture.other
 $orgRoute="$base/api/organizations/$($fixture.order)"

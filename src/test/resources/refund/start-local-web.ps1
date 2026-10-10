@@ -14,7 +14,8 @@ $env:MAIL_SMTP_HOST='127.0.0.1';$env:MAIL_SMTP_PORT='18825'
 $tomcat=(Resolve-Path -LiteralPath target/khanh01-runtime/apache-tomcat-11.0.25).Path
 if(Get-NetTCPConnection -LocalPort 18081 -State Listen -ErrorAction SilentlyContinue){throw 'Isolated web port is already in use'}
 $runtimeRoot=[IO.Path]::GetFullPath($tomcat)+[IO.Path]::DirectorySeparatorChar
-foreach($old in @('webapps/ticketscenter.war','webapps/ticketscenter')){
+# Reproducible WAR entries have fixed timestamps; archive this app's generated JSP classes too.
+foreach($old in @('webapps/ticketscenter.war','webapps/ticketscenter','work/Catalina/localhost/ticketscenter')){
  $source=[IO.Path]::GetFullPath((Join-Path $tomcat $old));$backup=[IO.Path]::GetFullPath((Join-Path $tomcat ('temp/previous-'+[guid]::NewGuid().ToString())))
  if(!$source.StartsWith($runtimeRoot,[StringComparison]::OrdinalIgnoreCase) -or !$backup.StartsWith($runtimeRoot,[StringComparison]::OrdinalIgnoreCase)){throw 'Deployment path escaped isolated runtime'}
  if(Test-Path -LiteralPath $source){Move-Item -LiteralPath $source -Destination $backup}
