@@ -106,6 +106,7 @@ jobs:
           set -euo pipefail
           echo "::add-mask::$TC_TEST_SQL_PASSWORD"
           test -f database/tests/vuong/001_uuid_test_schema.sql
+          test -f database/migrations/027_team_schema_adapter.sql
           test -f database/migrations/027_vuong_finance.sql
           container=$(docker ps -q --filter ancestor=mcr.microsoft.com/mssql/server:2022-latest)
           test -n "$container"
@@ -121,8 +122,10 @@ jobs:
           database="TC_Vuong_Test_CI_${GITHUB_RUN_ID}"
           docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$TC_TEST_SQL_PASSWORD" -C -b -Q "CREATE DATABASE [$database];"
           docker cp database/tests/vuong/001_uuid_test_schema.sql "$container":/tmp/vuong_fixture.sql
+          docker cp database/migrations/027_team_schema_adapter.sql "$container":/tmp/vuong_adapter.sql
           docker cp database/migrations/027_vuong_finance.sql "$container":/tmp/vuong_finance.sql
           docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$TC_TEST_SQL_PASSWORD" -C -b -d "$database" -i /tmp/vuong_fixture.sql
+          docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$TC_TEST_SQL_PASSWORD" -C -b -d "$database" -i /tmp/vuong_adapter.sql
           docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$TC_TEST_SQL_PASSWORD" -C -b -d "$database" -i /tmp/vuong_finance.sql
       - name: Run financial contract guardrail temporal and permission assertions
         shell: bash
@@ -184,6 +187,33 @@ jobs:
       - name: Require actual executed DB cases without skips
         if: always()
         run: node src/test/scripts/test-report-summary.cjs target/surefire-reports --require-no-skips --require-suite=vn.ticketscenter.settlement.repository.FinanceRepositoryIntegrationTest --require-suite=vn.ticketscenter.report.integration.ReadsideDatabaseIntegrationTest --require-suite=vn.ticketscenter.audit.repository.AuditDatabaseScopeIntegrationTest --summary="$GITHUB_STEP_SUMMARY"
+      - name: Initialize schema-only team snapshot in a second disposable database
+        shell: bash
+        run: |
+          set -euo pipefail
+          container=$(docker ps -q --filter ancestor=mcr.microsoft.com/mssql/server:2022-latest)
+          test -n "$container"
+          database="TC_Vuong_Test_TeamSchema_${GITHUB_RUN_ID}"
+          docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$TC_TEST_SQL_PASSWORD" -C -b -Q "CREATE DATABASE [$database];"
+          docker cp database/tests/vuong/002_team_schema_snapshot.sql "$container":/tmp/team_schema.sql
+          docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$TC_TEST_SQL_PASSWORD" -C -b -d "$database" -i /tmp/team_schema.sql
+          docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$TC_TEST_SQL_PASSWORD" -C -b -d "$database" -i /tmp/vuong_adapter.sql
+          docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$TC_TEST_SQL_PASSWORD" -C -b -d "$database" -i /tmp/vuong_finance.sql
+      - name: Run actual team-schema JDBC and ten-thousand-order CSV acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          database="TC_Vuong_Test_TeamSchema_${GITHUB_RUN_ID}"
+          export DB_NAME="$database"
+          export DB_URL="jdbc:sqlserver://127.0.0.1:1433;databaseName=$database;loginTimeout=5;encrypt=false;trustServerCertificate=true"
+          export DB_USER=sa DB_PASSWORD="$TC_TEST_SQL_PASSWORD"
+          export DB_ADMIN_USER="$DB_USER" DB_ADMIN_PASSWORD="$DB_PASSWORD"
+          mvn -B test -Dtc.tests.db=true -Dtc.tests.smtp=false \
+            -Dtc.tests.db.name="$database" -DargLine=-Xmx128m \
+            -Dtest=FinanceTeamSchemaIntegrationTest
+      - name: Require actual team-schema cases without skips
+        if: always()
+        run: node src/test/scripts/test-report-summary.cjs target/surefire-reports --require-no-skips --require-suite=vn.ticketscenter.settlement.repository.FinanceTeamSchemaIntegrationTest --summary="$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -6,6 +6,8 @@ Handoff: draft [PR #42](https://github.com/devonxjz/TicketCenter/pull/42), attac
 
 The user approved UUID/tc_* and whole VND, isolated test schema/additive migration, continuing without peer-review waits, and local SQL Server TCP enable/restart. Team merge gates and missing other-owner acceptance remain separate.
 
+Continuation after team database inspection: [team-schema evidence](VUONG-TEAM-SCHEMA.md) documents the schema-only clone, finance adapter, nine actual JDBC cases and compensation retry repair. Install the adapter before finance027. Source Azure data was only read; the compatibility checks use synthetic local data. Earlier revision hashes/check counts below remain historical evidence; the PR's latest head and its own Actions results govern this continuation.
+
 ## Delivered owned scope
 
 | Issue | Delivered | External acceptance still required |
