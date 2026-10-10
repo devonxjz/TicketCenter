@@ -7,7 +7,7 @@ Issue [#32](https://github.com/devonxjz/TicketCenter/issues/32) vẫn mở. Ngư
 - Base `origin/dev`: `cfd77c60ce539f145a6af7749ba050561be6dd3f`.
 - Approved design/plan: `cd10a713b4e4693d4ee87da8f6f73f69ad6162d4`.
 - Sanitizer: `a71afec492e03b59d1e92b32d17141b264f1d029`.
-- TestedRevision Task 2: `a71afec` + hai file exporter/test và evidence ở commit chứa tài liệu này. Cả hai class production nằm trong WAR đã tạo từ source đó. Commit Task 2 có thể tra bằng subject `feat(report): stream UTF-8 CSV with explicit IO failures`.
+- TestedRevision Task 2: `24538c8ec64dc9ffbbd0ebb33522c729ddc3a7d6` (Task 2 thêm exporter/test lên `a71afec`). Task-done chạy lại nhóm 99 ca trên đúng commit này và đạt. Cả hai class production nằm trong WAR đã tạo từ cùng source. Commit bàn giao sau đó chỉ cập nhật tài liệu.
 - Windows, OpenJDK 25, Maven 3.9.16. Worktree `C:/Users/Le Vuong/.codex/worktrees/vuong-05-safe-csv/TicketCenter` giữ artifact và reports; không thay target của checkout chính đang có preview.
 
 ## TDD và kiểm thử
@@ -54,4 +54,17 @@ Fixture chỉ có phép tính vô hại, các prefix spaces/NBSP/BOM/zero-width/
 
 ## Review và bàn giao
 
-Review độc lập toàn nhánh đang chờ sau commit Task 2. Không xác nhận merge-ready cho toàn #32. Thiết kế và plan sẽ được cập nhật cùng kết quả review cuối.
+Reviewer độc lập fresh-context kiểm toàn range `cfd77c6..24538c8`, dùng model `gpt-6-astra`, không sửa file hoặc chạy build/tests. Reviewer đọc source, tests, spec/plan, evidence, persisted reports và kiểm hash fixture; cả năm Review Focus phù hợp. **Critical: 0; Important: 0; Minor: 0.** Verdict: phần utility được thông qua, không cần sửa code; whole #32 merge readiness chưa được xác lập. Executor đối chiếu lại và giữ kết luận này. Bàn giao tài liệu ngày 10/10/2026, không thêm code sau review.
+
+Các hành vi reviewer không đánh giá được đã được executor quyết định giữ làm gate riêng theo phạm vi đã duyệt, không bỏ ngầm:
+
+1. **Ruling:** Chưa xác nhận công thức trên Excel/Sheets sau mở/lưu/mở lại — app control được hỗ trợ chưa có; giữ app acceptance mở — nếu bỏ qua gate: ô nguy cơ có thể bị diễn giải thành công thức trên app đích.
+2. **Ruling:** Chưa xác nhận delimiter/Unicode hiển thị theo locale — byte tests không thay app test; kiểm trên locale đích trước expose — nếu bỏ qua gate: sai cột hoặc hiển thị.
+3. **Ruling:** Chưa xác nhận app giữ số lớn — utility giữ String/bytes, owner chốt import/column policy — nếu bỏ qua gate: app có thể làm tròn tiền/ID.
+4. **Ruling:** Aggregation/format tiền/chuyển timezone thuộc adapter — utility không suy diễn nghiệp vụ — nếu adapter sai: báo cáo sai tổng/định dạng/thời điểm.
+5. **Ruling:** HTTP headers, authorization/tenancy, disconnect thuộc tích hợp endpoint — chưa có endpoint trong scope — nếu bỏ qua gate: lộ dữ liệu hoặc xử lý export lỗi sai.
+6. **Ruling:** Đóng cursor/transaction và bộ nhớ pipeline thuộc caller — utility chỉ chứng minh streaming của nó — nếu caller sai: rò tài nguyên hoặc tăng bộ nhớ.
+7. **Ruling:** Cache scope/invalidation/consistency giữ chờ tích hợp — chưa có cache trong utility — nếu bỏ qua gate: dữ liệu cũ hoặc sai phạm vi.
+8. **Ruling:** Full-suite/CI và hoàn tất #32 chưa được xác nhận — nhóm test an toàn không thay các gate này — nếu coi đã đạt: tích hợp chưa kiểm hoặc kích hoạt DB/SMTP chung.
+
+Deferred minors: không có. Giữ nhánh local; thư mục chính được chuyển về nhánh này, worktree bảo toàn WAR, reports và fixture. Không push/PR/merge hoặc đóng issue trong phiên.

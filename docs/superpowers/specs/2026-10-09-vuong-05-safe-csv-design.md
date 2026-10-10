@@ -1,6 +1,6 @@
 # VUONG-05 — thiết kế phần CSV độc lập
 
-Issue: [#32](https://github.com/devonxjz/TicketCenter/issues/32). Nhánh `feat/vuong/vuong-05-reports-csv-cache`, rẽ từ `origin/dev` tại `cfd77c60ce539f145a6af7749ba050561be6dd3f`. Tài liệu thiết kế và kế hoạch được lập theo yêu cầu người dùng ngày 09/10/2026; chưa phê duyệt triển khai.
+Issue: [#32](https://github.com/devonxjz/TicketCenter/issues/32). Nhánh `feat/vuong/vuong-05-reports-csv-cache`, rẽ từ `origin/dev` tại `cfd77c60ce539f145a6af7749ba050561be6dd3f`. Người dùng duyệt thiết kế/kế hoạch ngày 09/10/2026, thực thi Native. Phần CSV độc lập đã triển khai tại `24538c8ec64dc9ffbbd0ebb33522c729ddc3a7d6`; 99 ca unit được chọn đạt, WAR đóng gói thành công, review độc lập không có finding. Bàn giao tài liệu ngày 10/10/2026; [evidence](../../evidence/vuong/VUONG-05.md) ghi kết quả và các gate còn mở. #32 chưa hoàn tất tích hợp.
 
 ## 1. Mục tiêu và phạm vi
 

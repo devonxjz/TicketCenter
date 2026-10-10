@@ -1,6 +1,6 @@
 # VUONG-05 Safe CSV Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Tạo sanitizer và exporter CSV thuần Java cho phần độc lập của #32, ưu tiên Excel và được kiểm thử byte/stream/error.
 
@@ -8,7 +8,7 @@
 
 **Tech Stack:** JDK 25, Maven 3.9.16, JUnit Jupiter 5.12.0 hiện có, java.io/java.nio.charset; không thêm dependency.
 
-**Spec:** [2026-10-09-vuong-05-safe-csv-design.md](../specs/2026-10-09-vuong-05-safe-csv-design.md). Hai tài liệu lập theo yêu cầu lên kế hoạch; chưa bắt đầu implementation. Lựa chọn tab/Excel được người dùng xác nhận ngày 09/10/2026.
+**Spec:** [2026-10-09-vuong-05-safe-csv-design.md](../specs/2026-10-09-vuong-05-safe-csv-design.md). Người dùng duyệt hai tài liệu và thực thi Native ngày 09/10/2026. Lựa chọn tab/Excel đã được xác nhận. Hai task hoàn tất local tại `24538c8ec64dc9ffbbd0ebb33522c729ddc3a7d6`; review cuối thông qua phần utility. Bàn giao ngày 10/10/2026; [evidence](../../evidence/vuong/VUONG-05.md) ghi 99 tests được chọn đạt, WAR thành công và app/integration gates chưa đạt.
 
 ## Global Constraints
 
@@ -40,8 +40,8 @@
 
 ## Chuẩn bị khi thực thi
 
-- [ ] Dùng using-git-worktrees chuẩn bị checkout cách ly từ nhánh này; giữ worktree/WAR/preview #28/#29. Dùng executing-plans nếu Native được duyệt và ledger theo plan.
-- [ ] Chọn JDK 25 và Maven trong terminal, không đổi môi trường máy toàn cục. Chạy nhóm regression an toàn 43 ca bên dưới trước khi viết test mới; expected exit 0, failures/errors/skips đều 0.
+- [x] Dùng using-git-worktrees chuẩn bị checkout cách ly từ nhánh này; giữ worktree/WAR/preview #28/#29. Dùng executing-plans nếu Native được duyệt và ledger theo plan.
+- [x] Chọn JDK 25 và Maven trong terminal, không đổi môi trường máy toàn cục. Chạy nhóm regression an toàn 43 ca bên dưới trước khi viết test mới; expected exit 0, failures/errors/skips đều 0.
 
 ```powershell
 $env:JAVA_HOME = 'C:\Users\Le Vuong\.jdks\openjdk-25'
@@ -55,7 +55,7 @@ mvn -B '-Dtest=FeaturePackageStructureTest,AuthOtpServletsTest,IdentityWebFlowTe
 
 **Interfaces:** Consumes raw String, có thể null. Produces `public static String CsvSanitizer.escapeCsvCell(String value)`, utility final/constructor private; luôn trả quoted field hoàn chỉnh hoặc IllegalArgumentException theo spec.
 
-- [ ] **Step 1: Viết test đỏ.** `quotesOrdinaryValues` có fixture null/empty/`Đêm nhạc 🎵`/`  Hà Nội  `, các kỳ vọng quoted literal. `neutralizesFormulaPrefixes` tham số hóa tám starter ASCII/full-width, thêm spaces, NBSP U+00A0, zero-width U+200B, BOM U+FEFF trước `=1+1`; expected quoted value có tab đầu và giữ toàn bộ input. `neutralizesControlPrefixes` dùng tab/CR/LF và SPACE + tab + text thường; expected tab bảo vệ + raw. `escapesSeparatorsQuotesAndMultiline` dùng `a,b"c`, `a;b`, `a\nb`, `a\rb`, `a\r\nb` và `=1+1";,=1+1`; literal kỳ vọng không có field mới. `rejectsInvalidUnicodeOrNul` gồm lone high/low surrogate và NUL đầu/giữa/cuối. Empty/spaces không bị thêm tab. Test names bắt guard/escape mất, không kiểm private structure.
+- [x] **Step 1: Viết test đỏ.** `quotesOrdinaryValues` có fixture null/empty/`Đêm nhạc 🎵`/`  Hà Nội  `, các kỳ vọng quoted literal. `neutralizesFormulaPrefixes` tham số hóa tám starter ASCII/full-width, thêm spaces, NBSP U+00A0, zero-width U+200B, BOM U+FEFF trước `=1+1`; expected quoted value có tab đầu và giữ toàn bộ input. `neutralizesControlPrefixes` dùng tab/CR/LF và SPACE + tab + text thường; expected tab bảo vệ + raw. `escapesSeparatorsQuotesAndMultiline` dùng `a,b"c`, `a;b`, `a\nb`, `a\rb`, `a\r\nb` và `=1+1";,=1+1`; literal kỳ vọng không có field mới. `rejectsInvalidUnicodeOrNul` gồm lone high/low surrogate và NUL đầu/giữa/cuối. Empty/spaces không bị thêm tab. Test names bắt guard/escape mất, không kiểm private structure.
 
 ```java
 assertEquals("\"\"", CsvSanitizer.escapeCsvCell(null));
@@ -67,10 +67,10 @@ assertEquals("\"a,b\"\"c\"", CsvSanitizer.escapeCsvCell("a,b\"c"));
 assertThrows(IllegalArgumentException.class, () -> CsvSanitizer.escapeCsvCell("a\u0000b"));
 ```
 
-- [ ] **Step 2: Chạy** `mvn -B '-Dtest=CsvSanitizerTest' test`. Expected RED ở testCompile vì API chưa tồn tại; ghi đúng nguyên nhân, không gọi đây là assertion failure. Không viết production trước lần RED.
-- [ ] **Step 3: Triển khai** signature trong đúng file. Kiểm Unicode/NUL; xét prefix theo code point/character categories ở spec §3, thêm tab nếu nguy cơ, nhân đôi quote, bọc mọi field. Không trim/NFKC, không echo dữ liệu lỗi.
-- [ ] **Step 4: Chạy lại** cùng lệnh. Expected exit 0, tất cả fixture chạy, failures/errors/skips=0; đọc output thật.
-- [ ] **Step 5: Commit** đúng sanitizer/test: `feat(report): encode spreadsheet CSV cells safely`; body Task-Id VUONG-05, Refs #32, Validation và Evidence theo quy ước.
+- [x] **Step 2: Chạy** `mvn -B '-Dtest=CsvSanitizerTest' test`. Expected RED ở testCompile vì API chưa tồn tại; ghi đúng nguyên nhân, không gọi đây là assertion failure. Không viết production trước lần RED.
+- [x] **Step 3: Triển khai** signature trong đúng file. Kiểm Unicode/NUL; xét prefix theo code point/character categories ở spec §3, thêm tab nếu nguy cơ, nhân đôi quote, bọc mọi field. Không trim/NFKC, không echo dữ liệu lỗi.
+- [x] **Step 4: Chạy lại** cùng lệnh. Expected exit 0, tất cả fixture chạy, failures/errors/skips=0; đọc output thật.
+- [x] **Step 5: Commit** đúng sanitizer/test: `feat(report): encode spreadsheet CSV cells safely`; body Task-Id VUONG-05, Refs #32, Validation và Evidence theo quy ước.
 
 ### Task 2: Export tuần tự và kiểm chứng bàn giao
 
@@ -78,7 +78,7 @@ assertThrows(IllegalArgumentException.class, () -> CsvSanitizer.escapeCsvCell("a
 
 **Interfaces:** Consumes `CsvSanitizer.escapeCsvCell(String)` từ Task 1. Produces `public static void StreamingCsvExporter.write(OutputStream output, List<String> headers, Iterable<? extends List<String>> rows) throws IOException`; utility final/constructor private, không đóng stream caller.
 
-- [ ] **Step 1: Viết test đỏ.** `writesUtf8BomHeaderAndExactRows` so byte[] với literal UTF-8 dưới đây; check BOM chỉ ở đầu file, CRLF cuối, Vietnamese/quote/comma/UTC/large integer không đổi. `sanitizesHeadersAndRows` header `=1+1`, cell NBSP + `=1+1`, comma/quote/newline không phá record. `writesHeaderForEmptyRows` expected BOM + quoted header + CRLF. `preservesNullCell` dùng Arrays.asList cho null, expected `""`.
+- [x] **Step 1: Viết test đỏ.** `writesUtf8BomHeaderAndExactRows` so byte[] với literal UTF-8 dưới đây; check BOM chỉ ở đầu file, CRLF cuối, Vietnamese/quote/comma/UTC/large integer không đổi. `sanitizesHeadersAndRows` header `=1+1`, cell NBSP + `=1+1`, comma/quote/newline không phá record. `writesHeaderForEmptyRows` expected BOM + quoted header + CRLF. `preservesNullCell` dùng Arrays.asList cho null, expected `""`.
 
 ```java
 String expected = "\uFEFF\"eventTitle\",\"grossRevenue\",\"paidAt\"\r\n"
@@ -92,9 +92,9 @@ assertArrayEquals(expected.getBytes(StandardCharsets.UTF_8), output.toByteArray(
 
   `propagatesOutputFailureAndStopsSource` sink fail BOM/header và fail ở data write, sentinel IOException được giữ, nguồn chưa bị đọc hết; data fixture 10.000 rows như trên. `propagatesFinalFlushFailure` sink flush lần đầu (header) thành công, lần hai ném sentinel; assertSame exception. `propagatesIteratorFailure` iterator.next() ném sentinel RuntimeException; không wrap thành success. Spy output của các ca success/failure có closeCalled=false; không thêm hooks vào production.
 
-- [ ] **Step 2: Chạy** `mvn -B '-Dtest=CsvSanitizerTest,StreamingCsvExporterTest' test`. Expected RED do StreamingCsvExporter chưa tồn tại; phân biệt compile failure với fixture lỗi.
-- [ ] **Step 3: Triển khai** signature đúng file. Snapshot/validate/sanitize header trước bytes, BOM và UTF-8 writer, comma/CRLF, flush header trước rows.iterator(), một vòng lặp ghi row, validate width/null trước row, flush cuối; IOException/RuntimeException truyền ra. Không try-with-resources đóng writer/borrowed stream, không PrintWriter, không collect rows. Nguồn DB/cursor do caller sở hữu.
-- [ ] **Step 4: Chạy lại** cùng lệnh, expected exit 0, 0 failures/errors/skips. Sau đó chạy regression và package bên dưới; đọc output và báo số ca thật, không dự đoán số mới từ plan.
+- [x] **Step 2: Chạy** `mvn -B '-Dtest=CsvSanitizerTest,StreamingCsvExporterTest' test`. Expected RED do StreamingCsvExporter chưa tồn tại; phân biệt compile failure với fixture lỗi.
+- [x] **Step 3: Triển khai** signature đúng file. Snapshot/validate/sanitize header trước bytes, BOM và UTF-8 writer, comma/CRLF, flush header trước rows.iterator(), một vòng lặp ghi row, validate width/null trước row, flush cuối; IOException/RuntimeException truyền ra. Không try-with-resources đóng writer/borrowed stream, không PrintWriter, không collect rows. Nguồn DB/cursor do caller sở hữu.
+- [x] **Step 4: Chạy lại** cùng lệnh, expected exit 0, 0 failures/errors/skips. Sau đó chạy regression và package bên dưới; đọc output và báo số ca thật, không dự đoán số mới từ plan.
 
 ```powershell
 mvn -B '-Dtest=CsvSanitizerTest,StreamingCsvExporterTest,FeaturePackageStructureTest,AuthOtpServletsTest,IdentityWebFlowTest,UserPrincipalTest,SecurityContextTest,OtpCryptoHelperTest,AuthServiceTest#testRegisterInvalidEmail+testRegisterPasswordTooShort+testLoginNullOrBlankInputs+testCurrentUserDtoSanitization,EmailSenderTest#shouldValidateEmailMessageFields+fakeEmailSenderShouldRecordMessages+fakeEmailSenderShouldThrowWhenFailureSimulated' test
@@ -102,16 +102,16 @@ mvn -B -DskipTests package
 git diff --check
 ```
 
-- [ ] **Step 5: Hồ sơ và fixture app.** Ghi red/green, testedRevision, test selection, lệnh/exit code và giới hạn trong VUONG-05.md. Tạo CSV nhỏ bằng implementation trong `target/` từ fixture vô hại ở spec §5; nếu có app thật, kiểm Excel/Sheets mở và lưu/mở lại, ghi version/locale/kết quả. Nếu không chạy app, ghi chưa kiểm và giữ RPT app acceptance mở; không thay bằng test byte. Test số lớn trên app cần phân biệt CSV bytes đúng với auto-number rounding.
-- [ ] **Step 6: Commit** exporter/test/evidence: `feat(report): stream UTF-8 CSV with explicit IO failures`, footer task/ref/validation/evidence. Task hoàn tất local khi unit/regression/build đúng; #32 vẫn mở.
+- [x] **Step 5: Hồ sơ và fixture app.** Ghi red/green, testedRevision, test selection, lệnh/exit code và giới hạn trong VUONG-05.md. Tạo CSV nhỏ bằng implementation trong `target/` từ fixture vô hại ở spec §5; nếu có app thật, kiểm Excel/Sheets mở và lưu/mở lại, ghi version/locale/kết quả. Nếu không chạy app, ghi chưa kiểm và giữ RPT app acceptance mở; không thay bằng test byte. Test số lớn trên app cần phân biệt CSV bytes đúng với auto-number rounding.
+- [x] **Step 6: Commit** exporter/test/evidence: `feat(report): stream UTF-8 CSV with explicit IO failures`, footer task/ref/validation/evidence. Task hoàn tất local khi unit/regression/build đúng; #32 vẫn mở.
 
 ## Review và bàn giao cuối
 
-- [ ] Với Native, dùng requesting-code-review cho **một reviewer độc lập toàn nhánh** theo approved spec/plan, gồm năm Review Focus; không gọi reviewer per task. Sửa finding quan trọng theo RED→GREEN, chạy lại regression/build bị ảnh hưởng, cập nhật evidence bằng kết quả thật.
-- [ ] Giữ branch/commit để bàn giao; không push/merge hoặc đóng #32 trong phạm vi yêu cầu lên kế hoạch. Khi người dùng yêu cầu Draft PR, ghi rõ Excel/tab contract change, phần tích hợp thiếu và CI gate. Không kích hoạt pipeline SMTP/DB chung; không coi skip CI là gate đạt.
+- [x] Với Native, dùng requesting-code-review cho **một reviewer độc lập toàn nhánh** theo approved spec/plan, gồm năm Review Focus; không gọi reviewer per task. Sửa finding quan trọng theo RED→GREEN, chạy lại regression/build bị ảnh hưởng, cập nhật evidence bằng kết quả thật.
+- [x] Giữ branch/commit để bàn giao; không push/merge hoặc đóng #32 trong phạm vi yêu cầu lên kế hoạch. Khi người dùng yêu cầu Draft PR, ghi rõ Excel/tab contract change, phần tích hợp thiếu và CI gate. Không kích hoạt pipeline SMTP/DB chung; không coi skip CI là gate đạt.
 
 ## Self-review và execution handoff
 
 Spec §3 → Task 1; §4 → Task 2; §5 → fixtures/bytes/liveness/errors/app evidence; §6 → integration gates giữ mở. Hai task dùng cùng `escapeCsvCell` trả quoted field, exporter không quote lần hai. Tổng byte fixture 10.000 rows được tính độc lập từ literal, không gọi production để tạo oracle. Kế hoạch không thêm endpoint, thư viện hoặc fake repository.
 
-Đề xuất **Native**: hai task nối tiếp, tự triển khai/test/commit trong phiên, reviewer độc lập cuối nhánh. Người dùng duyệt thiết kế và kế hoạch trước implementation; có thể chọn Native hoặc Subagent-driven. Không coi lựa chọn profile Excel là phê duyệt mã nguồn hoặc kết quả app acceptance.
+Đã thực thi **Native** theo phê duyệt: hai task nối tiếp, tự triển khai/test/commit trong phiên, reviewer độc lập cuối nhánh. Task 1 `a71afec`, Task 2 `24538c8`; review không có Critical/Important/Minor. Fixture app đã tạo bằng implementation; chưa chạy app vì không có native desktop control được hỗ trợ, nên app acceptance vẫn mở. Giữ branch local, chưa push/merge. Các quyết định chấp nhận giới hạn review được ghi trong evidence.
