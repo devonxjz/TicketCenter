@@ -2,12 +2,15 @@ package vn.ticketscenter.identity.service;
 
 import jakarta.persistence.PersistenceException;
 import redis.clients.jedis.Jedis;
+import vn.ticketscenter.config.AppConfig;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.identity.dto.CurrentUserDto;
 import vn.ticketscenter.identity.dto.LoginRequestDto;
 import vn.ticketscenter.identity.dto.RegisterRequestDto;
+import vn.ticketscenter.identity.model.OrganizationRole;
+import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.model.User;
 import vn.ticketscenter.identity.model.UserStatus;
 import vn.ticketscenter.identity.repository.UserRepository;
@@ -112,6 +115,16 @@ public class AuthService {
             if (found == null) {
                 found = userRepository.findByNormalizedUserName(em, identifier).orElse(null);
             }
+            if (found == null && "admin".equalsIgnoreCase(identifier)) {
+                String adminEmail = AccountService.normalizeEmail(AppConfig.get("admin.email", "adminTIcket@gmail.com"));
+                found = userRepository.findByNormalizedEmail(em, adminEmail).orElse(null);
+                if (found == null) {
+                    found = em.createQuery("SELECT u FROM User u WHERE u.platformRole = :role ORDER BY CASE WHEN LOWER(u.email) LIKE '%admin%' THEN 0 ELSE 1 END", User.class)
+                            .setParameter("role", PlatformRole.ADMIN)
+                            .setMaxResults(1)
+                            .getResultList().stream().findFirst().orElse(null);
+                }
+            }
             return found;
         });
 
@@ -128,7 +141,21 @@ public class AuthService {
             throw new SecurityException("ACCOUNT_DISABLED");
         }
 
-        return new UserPrincipal(user.getId(), user.getPlatformRole(), user.getAuthVersion());
+        OrganizationRole orgRole = transactions.execute(DatabasePrincipal.AUTH, em -> {
+            try {
+                return em.createQuery(
+                        "SELECT m.role FROM OrganizationMembership m WHERE m.user.id = :uid AND m.active = true ORDER BY CASE WHEN m.role = :mgr THEN 1 ELSE 2 END",
+                        OrganizationRole.class)
+                        .setParameter("uid", user.getId())
+                        .setParameter("mgr", OrganizationRole.MANAGER)
+                        .setMaxResults(1)
+                        .getResultList().stream().findFirst().orElse(null);
+            } catch (Exception e) {
+                return null;
+            }
+        });
+
+        return new UserPrincipal(user.getId(), user.getPlatformRole(), user.getAuthVersion(), orgRole);
     }
 
     /**

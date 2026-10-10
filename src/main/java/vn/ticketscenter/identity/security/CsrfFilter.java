@@ -19,6 +19,8 @@ public final class CsrfFilter implements Filter {
     private static final Set<String> MUTATING_METHODS = Set.of("POST", "PUT", "PATCH", "DELETE");
 
     private static final Set<String> PUBLIC_AUTH_APIS = Set.of(
+            "/api/auth/login",
+            "/api/auth/register",
             "/api/auth/otp/send",
             "/api/auth/otp/verify",
             "/api/auth/password/forgot",

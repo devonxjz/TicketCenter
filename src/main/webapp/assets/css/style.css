@@ -1,0 +1,837 @@
+/* ==========================================================================
+   TicketsCenter — Modern Flat Editorial Design System
+   Chủ đạo 3 màu: TRẮNG (#ffffff) — ĐỎ (#e50914) — ĐEN (#111111)
+   Font chữ thẳng, sắc nét, không bo góc (Inter / System Sans-serif)
+   Khoảng trắng hài hòa, tiện dụng, thanh tìm kiếm mở rộng tối đa
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap');
+
+:root {
+    --primary: #e50914;
+    --primary-hover: #c70812;
+    --black: #111111;
+    --dark: #1e1e1e;
+    --white: #ffffff;
+    --gray-bg: #f8f8f8;
+    --gray-subtle: #f2f2f2;
+    --gray-border: #e0e0e0;
+    --gray-text: #666666;
+    --gray-light: #999999;
+    
+    /* Font chữ dễ nhìn, thẳng nét, thân thiện, không bo góc */
+    --font-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-main);
+    background-color: var(--white);
+    color: var(--black);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+a:hover {
+    color: var(--primary);
+}
+
+/* ==========================================================================
+   1. NAVBAR & THANH TÌM KIẾM DÀI (Mở rộng thoải mái, cân đối hoàn hảo)
+   ========================================================================== */
+.navbar-custom {
+    background-color: var(--white);
+    border-bottom: 1px solid var(--gray-border);
+    padding: 12px 0;
+    transition: box-shadow 0.2s ease;
+}
+
+.navbar-brand-custom {
+    font-weight: 800;
+    font-size: 1.55rem;
+    color: var(--primary) !important;
+    text-transform: uppercase;
+    letter-spacing: -0.5px;
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+/* Khung tìm kiếm phẳng, chuẩn tỉ lệ ban đầu, không làm rớt dòng nút tài khoản */
+.search-wrapper {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--gray-border);
+    width: 100%;
+    max-width: 600px;
+    height: 42px;
+    background: var(--white);
+    transition: border-color 0.2s ease;
+    margin: 0 20px;
+    flex-shrink: 1;
+}
+
+.search-wrapper:focus-within {
+    border-color: var(--black);
+}
+
+.location-box {
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    height: 100%;
+    border-right: 1px solid var(--gray-border);
+    background: #fafafa;
+    font-size: 0.85rem;
+    color: var(--black);
+    font-weight: 500;
+    flex-shrink: 0;
+}
+
+.location-select {
+    border: none;
+    background: transparent;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--black);
+    padding: 4px 18px 4px 0;
+    outline: none;
+    cursor: pointer;
+    appearance: none; 
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111111' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right center;
+    background-size: 11px;
+}
+
+.search-input {
+    border: none;
+    background: transparent;
+    width: 100%;
+    height: 100%;
+    padding: 0 14px;
+    font-size: 0.9rem;
+    outline: none;
+    color: var(--black);
+}
+
+.search-input::placeholder {
+    color: #999999;
+}
+
+.search-btn {
+    background: var(--black);
+    border: none;
+    height: 100%;
+    padding: 0 24px;
+    color: var(--white);
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.search-btn:hover {
+    background: var(--primary);
+}
+
+/* ==========================================================================
+   2. BUTTONS (Chuẩn 3 màu: Trắng, Đỏ, Đen — phẳng, sắc nét)
+   ========================================================================== */
+.btn-primary-custom {
+    background: var(--primary);
+    border: 1px solid var(--primary);
+    color: var(--white) !important;
+    font-weight: 600;
+    font-size: 0.88rem;
+    padding: 9px 20px;
+    border-radius: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.btn-primary-custom:hover {
+    background: var(--primary-hover);
+    border-color: var(--primary-hover);
+}
+
+.btn-outline-custom {
+    background: transparent;
+    border: 1px solid var(--black);
+    color: var(--black);
+    font-weight: 600;
+    font-size: 0.88rem;
+    padding: 9px 20px;
+    border-radius: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.btn-outline-custom:hover {
+    background: var(--black);
+    color: var(--white) !important;
+}
+
+.btn-dark-custom {
+    background: var(--black);
+    border: 1px solid var(--black);
+    color: var(--white) !important;
+    font-weight: 600;
+    font-size: 0.88rem;
+    padding: 9px 20px;
+    border-radius: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.btn-dark-custom:hover {
+    background: #2a2a2a;
+    border-color: #2a2a2a;
+}
+
+/* ==========================================================================
+   3. CATEGORY TABS & FILTER BAR (Gọn gàng, loại bỏ khoảng trắng thừa)
+   ========================================================================== */
+.section-title {
+    font-size: 1.45rem;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    position: relative;
+    display: inline-block;
+    padding-bottom: 6px;
+}
+
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 32px;
+    height: 3px;
+    background: var(--primary);
+}
+
+.category-nav {
+    display: flex;
+    gap: 28px;
+    border-bottom: 1px solid var(--gray-border);
+    margin-bottom: 28px;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+}
+
+.category-nav::-webkit-scrollbar {
+    display: none;
+}
+
+.category-nav a {
+    color: var(--gray-text);
+    font-weight: 600;
+    font-size: 0.92rem;
+    padding: 12px 0;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.category-nav a:hover {
+    color: var(--black);
+}
+
+.category-nav a.active {
+    color: var(--black);
+    border-bottom-color: var(--primary);
+}
+
+/* Hero Banner Slider: Chuẩn chiều cao sắc nét như ban đầu (360px), không bị phóng đại */
+.hero-banner {
+    margin-top: 16px;
+    margin-bottom: 32px;
+}
+
+.hero-banner .carousel-item img {
+    height: 360px;
+    object-fit: cover;
+    width: 100%;
+}
+
+/* ==========================================================================
+   3. CATEGORY TABS & FILTER BAR (4 cột đều nhau, khoảng cách cân đối, không icon thừa)
+   ========================================================================== */
+.section-title {
+    font-size: 1.45rem;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    position: relative;
+    display: inline-block;
+    padding-bottom: 6px;
+}
+
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 32px;
+    height: 3px;
+    background: var(--primary);
+}
+
+.category-nav {
+    display: flex;
+    gap: 28px;
+    border-bottom: 1px solid var(--gray-border);
+    margin-bottom: 28px;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+}
+
+.category-nav::-webkit-scrollbar {
+    display: none;
+}
+
+.category-nav a {
+    color: var(--gray-text);
+    font-weight: 600;
+    font-size: 0.92rem;
+    padding: 12px 0;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.category-nav a:hover {
+    color: var(--black);
+}
+
+.category-nav a.active {
+    color: var(--black);
+    border-bottom-color: var(--primary);
+}
+
+/* Bộ lọc 4 cột ĐỀU NHAU (1fr x 4) — Căn chỉnh đối xứng, khoảng cách đều đặn */
+.modern-filter-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+    margin-bottom: 36px;
+    background: var(--white);
+    padding: 18px 0;
+    border-top: 1px solid var(--gray-border);
+    border-bottom: 1px solid var(--gray-border);
+}
+
+@media (max-width: 991.98px) {
+    .modern-filter-bar {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .modern-filter-bar {
+        grid-template-columns: 1fr;
+    }
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    color: var(--gray-text);
+    margin-bottom: 6px;
+}
+
+/* Ô nhập tối giản không chứa icon thừa */
+.modern-input {
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid var(--gray-border);
+    background: transparent;
+    padding: 6px 0;
+    font-size: 0.92rem;
+    color: var(--black);
+    font-weight: 500;
+    outline: none;
+    border-radius: 0;
+    transition: border-color 0.2s ease;
+}
+
+.modern-input:focus {
+    border-bottom: 2px solid var(--black);
+}
+
+select.modern-input {
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-right: 18px;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111111' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right center;
+    background-size: 11px;
+}
+
+/* Phân trang chuẩn gốc từ bản mẫu: ô vuông phẳng, không bo góc, sắc nét */
+.pagination-container {
+    margin-top: 48px;
+    border-top: 1px solid var(--gray-border);
+    padding-top: 28px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+}
+
+.page-link-custom {
+    min-width: 40px;
+    height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--gray-border);
+    color: var(--black);
+    text-decoration: none;
+    font-size: 0.92rem;
+    font-weight: 600;
+    background: var(--white);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.page-link-custom:hover {
+    background: #f4f4f4;
+    color: var(--black);
+}
+
+.page-link-custom.active {
+    background: var(--black);
+    color: var(--white);
+    border-color: var(--black);
+}
+
+.modern-input:focus {
+    border-bottom: 2px solid var(--black);
+    padding-bottom: 5px;
+}
+
+.modern-input::placeholder {
+    color: #aaaaaa;
+}
+
+select.modern-input {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111111' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 4px center;
+    background-size: 13px;
+    padding-right: 18px;
+}
+
+/* ==========================================================================
+   4. EVENT CARDS (Sắc nét, phẳng, ảnh 16:9)
+   ========================================================================== */
+.event-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--white);
+    text-decoration: none;
+    color: inherit;
+    border: 1px solid transparent;
+    transition: border-color 0.2s ease, transform 0.15s ease;
+}
+
+.event-card:hover {
+    border-color: var(--gray-border);
+    transform: translateY(-2px);
+    color: inherit;
+}
+
+.event-image {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%; /* 16:9 */
+    background: #eeeeee;
+    overflow: hidden;
+}
+
+.event-image img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.event-card:hover .event-image img {
+    transform: scale(1.03);
+}
+
+.event-category-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: var(--black);
+    color: var(--white);
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 3px 7px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-radius: 0;
+    z-index: 2;
+}
+
+.event-content {
+    padding: 14px 2px 4px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.event-title {
+    font-size: 1.02rem;
+    font-weight: 700;
+    line-height: 1.4;
+    margin-bottom: 8px;
+    color: var(--black);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.event-meta {
+    font-size: 0.82rem;
+    color: var(--gray-text);
+    margin-bottom: 4px;
+}
+
+.event-price {
+    margin-top: auto;
+    padding-top: 10px;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--primary);
+}
+
+/* ==========================================================================
+   5. BẢNG BIỂU & PANEL
+   ========================================================================== */
+.panel-box {
+    border: 1px solid var(--gray-border);
+    background: var(--white);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--gray-border);
+    padding-bottom: 14px;
+    margin-bottom: 20px;
+}
+
+.panel-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--black);
+}
+
+.table-custom {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.table-custom th {
+    background-color: #fafafa;
+    color: var(--black);
+    font-weight: 700;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--gray-border);
+    border-top: 1px solid var(--gray-border);
+}
+
+.table-custom td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--gray-border);
+    vertical-align: middle;
+}
+
+.table-custom tr:hover td {
+    background-color: #fdfdfd;
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    text-align: center;
+    padding: 3px 10px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-radius: 0;
+    border: 1px solid var(--black);
+    background: transparent;
+    color: var(--black);
+    line-height: 1.25;
+}
+
+.status-pill.status-red,
+.status-pill.status-danger {
+    border-color: #fca5a5;
+    color: #b91c1c;
+    background: #fef2f2;
+}
+
+.status-pill.status-success,
+.status-pill.status-green {
+    border-color: #86efac;
+    color: #15803d;
+    background: #f0fdf4;
+}
+
+.status-pill.status-warning,
+.status-pill.status-amber {
+    border-color: #fde68a;
+    color: #b45309;
+    background: #fffbeb;
+}
+
+.status-pill.status-dark {
+    border-color: var(--black);
+    background: var(--black);
+    color: var(--white);
+}
+
+.status-pill.status-subtle,
+.status-pill.status-neutral {
+    border-color: var(--gray-border);
+    background: #f9fafb;
+    color: #4b5563;
+}
+
+.status-circle-success {
+    width: 60px;
+    height: 60px;
+    background: #16a34a;
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+/* ==========================================================================
+   6. SAAS & ADMIN DASHBOARD (Bố trí gọn gàng, căn chỉnh chuẩn xác)
+   ========================================================================== */
+.admin-navbar {
+    background-color: var(--white);
+    border-bottom: 1px solid var(--gray-border);
+    padding: 14px 28px;
+}
+
+.dashboard-layout {
+    display: flex;
+    min-height: calc(100vh - 61px);
+    background: #f8f9fa;
+}
+
+.dashboard-sidebar {
+    width: 250px;
+    flex-shrink: 0;
+    background: var(--white);
+    border-right: 1px solid var(--gray-border);
+    padding: 24px 16px;
+}
+
+.dashboard-sidebar.sidebar-dark {
+    background: var(--white);
+    color: var(--black);
+    border-right: 1px solid var(--gray-border);
+}
+
+.sidebar-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--gray-light);
+    margin-bottom: 10px;
+    padding: 0 10px;
+}
+
+.sidebar-menu {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 24px 0;
+}
+
+.sidebar-menu li a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #374151;
+    border-left: 3px solid transparent;
+    transition: all 0.15s ease;
+}
+
+.sidebar-menu li a:hover {
+    background: #f3f4f6;
+    color: var(--black);
+}
+
+.sidebar-menu li a.active {
+    color: var(--primary);
+    border-left-color: var(--primary);
+    background: #fef2f2;
+}
+
+.dashboard-content {
+    flex: 1;
+    min-width: 0;
+    padding: 32px 36px;
+    background: #f8f9fa;
+}
+
+/* Metric / Queue Cards for Admin Dashboard */
+.admin-queue-card {
+    background: var(--white);
+    border: 1px solid var(--gray-border);
+    padding: 20px 22px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.admin-queue-card:hover {
+    border-color: var(--black);
+}
+
+.admin-queue-val {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--black);
+    line-height: 1.1;
+    margin: 10px 0;
+}
+
+/* Profile UI Styles */
+.profile-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #111111;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.form-view-input {
+    background-color: #f9fafb !important;
+    border: 1px solid #e5e7eb !important;
+    color: #111111 !important;
+    cursor: default;
+}
+
+.form-edit-input {
+    background-color: #ffffff !important;
+    border: 1px solid var(--black) !important;
+    color: #111111 !important;
+}
+
+/* ==========================================================================
+   7. FOOTER
+   ========================================================================== */
+footer {
+    border-top: 1px solid var(--gray-border);
+    margin-top: 72px;
+    padding: 56px 0 32px;
+    background: #fafafa;
+}
+
+.footer-title {
+    font-weight: 700;
+    font-size: 0.92rem;
+    margin-bottom: 18px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--black);
+}
+
+.footer-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.footer-list li {
+    margin-bottom: 10px;
+}
+
+.footer-list a {
+    color: var(--gray-text);
+    font-size: 0.88rem;
+    transition: color 0.15s ease;
+}
+
+.footer-list a:hover {
+    color: var(--black);
+}

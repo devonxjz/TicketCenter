@@ -1,5 +1,6 @@
 package vn.ticketscenter.identity.security;
 
+import vn.ticketscenter.identity.model.OrganizationRole;
 import vn.ticketscenter.identity.model.PlatformRole;
 
 import java.io.Serializable;
@@ -15,7 +16,8 @@ import java.util.UUID;
 public record UserPrincipal(
         UUID actorId,
         PlatformRole platformRole,
-        int authVersion
+        int authVersion,
+        OrganizationRole organizationRole
 ) implements Serializable {
 
     public UserPrincipal {
@@ -23,7 +25,23 @@ public record UserPrincipal(
         Objects.requireNonNull(platformRole, "platformRole must not be null");
     }
 
+    public UserPrincipal(UUID actorId, PlatformRole platformRole, int authVersion) {
+        this(actorId, platformRole, authVersion, null);
+    }
+
     public boolean isAdmin() {
         return platformRole == PlatformRole.ADMIN;
+    }
+
+    public boolean isManager() {
+        return isAdmin() || organizationRole == OrganizationRole.MANAGER;
+    }
+
+    public boolean isStaff() {
+        return isAdmin() || organizationRole == OrganizationRole.CHECK_IN_STAFF || organizationRole == OrganizationRole.MANAGER;
+    }
+
+    public boolean isCustomerOnly() {
+        return !isAdmin() && organizationRole == null;
     }
 }

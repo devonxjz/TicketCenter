@@ -5,17 +5,18 @@
 # =========================================================================
 
 # Stage 1: Build & Package WAR
-FROM eclipse-temurin:25-jdk AS builder
+FROM maven:3-eclipse-temurin-25 AS builder
 WORKDIR /app
 
-# Copy Maven descriptor
+# 1. Tận dụng Docker layer caching: tải trước dependencies khi pom.xml chưa đổi
 COPY pom.xml .
-COPY src ./src
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn -B dependency:go-offline
 
-# Build production WAR package
-RUN apt-get update && apt-get install -y maven \
-    && mvn -B clean package -DskipTests \
-    && rm -rf /var/lib/apt/lists/*
+# 2. Sao chép mã nguồn và đóng gói WAR (dùng cache mount cho .m2 để tăng tốc tối đa)
+COPY src ./src
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn -B package -DskipTests
 
 # Stage 2: Runtime with Apache Tomcat 11
 FROM eclipse-temurin:25-jre
@@ -25,14 +26,16 @@ LABEL description="TicketsCenter Event Ticketing Platform"
 ENV CATALINA_HOME=/opt/tomcat
 ENV PATH=$CATALINA_HOME/bin:$PATH
 ENV TOMCAT_VERSION=11.0.4
+ENV JAVA_OPTS="-Djava.awt.headless=true -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
 
-# Install curl for healthcheck and setup Tomcat 11
+# Cài đặt curl cho healthcheck và thiết lập Tomcat 11 với fallback mirror
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /opt/tomcat \
-    && curl -sSL --retry 3 "https://archive.apache.org/dist/tomcat/tomcat-11/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz" \
+    && (curl -sSL --retry 3 "https://archive.apache.org/dist/tomcat/tomcat-11/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz" \
+        || curl -sSL --retry 3 "https://dlcdn.apache.org/tomcat/tomcat-11/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz") \
        | tar -xz -C /opt/tomcat --strip-components=1 \
-    && rm -rf /opt/tomcat/webapps/* \
+    && rm -rf /opt/tomcat/webapps/* /opt/tomcat/temp/* /opt/tomcat/work/* \
     && chmod +x /opt/tomcat/bin/*.sh \
     && useradd -u 1001 -m -s /bin/bash tomcat \
     && chown -R tomcat:tomcat /opt/tomcat
