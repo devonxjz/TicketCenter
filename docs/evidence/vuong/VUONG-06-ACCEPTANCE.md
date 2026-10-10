@@ -1,6 +1,6 @@
 # VUONG-06 Dashboard/Audit acceptance — scoped delivery
 
-Issue [#33](https://github.com/devonxjz/TicketCenter/issues/33); base verified dev65645f1. This delivers ADMIN dashboard and audit, not the final cross-owner E2E gate. #33/#28 remain unchecked on the epic until the remaining gates pass. Human authorization permits completed-scope merge without waiting for peer review, subject to actual GitHub protections, and merged branch cleanup. No deployment/shared DB/bank/SMTP action.
+Issue [#33](https://github.com/devonxjz/TicketCenter/issues/33); started from verified dev65645f1 and synchronized with dev550deaa/PR48 event-image delivery before final checks. This delivers ADMIN dashboard and audit, not the final cross-owner E2E gate. #33/#28 remain unchecked on the epic until the remaining gates pass. Human authorization permits completed-scope merge without waiting for peer review, subject to actual GitHub protections, and merged branch cleanup. No deployment/shared DB/bank/SMTP action.
 
 ## Delivered behavior
 
@@ -12,8 +12,8 @@ Issue [#33](https://github.com/devonxjz/TicketCenter/issues/33); base verified d
 
 ## Observed local verification — 10–11 October 2026
 
-- Fresh clean package: Java359 discovered/300 executed/59 named guarded external skips, zero failures/errors. Skips are not acceptance passes.
-- Full safe Node regression45/45, including13 admin UI tests. Controller activation, 404/planned contract, dropped fractional commission rates, text-input staleness and scope-event bubbling were observed RED before fixes.
+- Fresh clean package after dev sync: Java386 discovered/327 executed/59 named guarded external skips, zero failures/errors (pre-sync359/300/59). Skips are not acceptance passes.
+- Safe Node regression after sync54/54, including13 admin UI and9 newly merged event-image tests (pre-sync45/45). Controller activation, 404/planned contract, dropped fractional commission rates, text-input staleness and scope-event bubbling were observed RED before fixes.
 - Actual canonical JDBC23/23, zero skips: current SQL authority before cached overview, exact UTC metrics, scoped/redacted audit.
 - Actual schema-only team clone JDBC11/11, zero skips under128MiB: real team overview counts/commission, revoked ADMIN denial, BIGINT audit projection, constrained grants and existing report regressions.
 - Actual isolated Tomcat/HTTP/JDBC/JSP18/18, zero skips: finance/report regression, overview JSON, audit list/detail/filter/redaction/invalid inputs, absent session and manager/staff denial, JSP rendering. Test-only session bridge; not owner login/full-WAR/worker acceptance.

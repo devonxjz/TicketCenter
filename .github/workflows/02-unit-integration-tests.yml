@@ -29,7 +29,7 @@ jobs:
       - name: Safe default Java tests
         run: mvn -B clean test
       - name: Finance mutation UI and contract-support tests
-        run: node --test src/test/js/swagger-initializer.test.cjs src/test/scripts/test-report-summary.test.cjs src/test/js/finance-workbench.test.cjs src/test/js/finance-reports.test.cjs src/test/js/finance-admin-readside.test.cjs
+        run: node --test src/test/js/swagger-initializer.test.cjs src/test/scripts/test-report-summary.test.cjs src/test/js/finance-workbench.test.cjs src/test/js/finance-reports.test.cjs src/test/js/finance-admin-readside.test.cjs src/test/js/event-images.test.cjs
       - name: Actual Java test totals
         if: always()
         run: node src/test/scripts/test-report-summary.cjs target/surefire-reports --summary="$GITHUB_STEP_SUMMARY"
