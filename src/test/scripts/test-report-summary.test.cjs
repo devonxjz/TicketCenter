@@ -44,3 +44,7 @@ test('self-closing pure testcase cannot inherit next case skip', () => {
   assert.match(result.stdout, /Skipped external case: Probe.external/);
   assert.doesNotMatch(result.stdout, /Skipped external case: Probe.pure/);
 });
+test('missing required suite fails even when another suite executed', () => {
+  const result = run('<testsuite tests="1" failures="0" errors="0" skipped="0"></testsuite>', ['--require-suite=MissingTest']);
+  assert.equal(result.status, 1);
+});
