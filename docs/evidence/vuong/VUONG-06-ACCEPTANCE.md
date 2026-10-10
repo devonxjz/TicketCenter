@@ -18,6 +18,7 @@ Issue [#33](https://github.com/devonxjz/TicketCenter/issues/33); started from ve
 - Actual canonical JDBC23/23, zero skips: current SQL authority before cached overview, exact UTC metrics, scoped/redacted audit.
 - Actual schema-only team clone JDBC11/11, zero skips under128MiB: real team overview counts/commission, revoked ADMIN denial, BIGINT audit projection, constrained grants and existing report regressions.
 - Actual isolated Tomcat/HTTP/JDBC/JSP18/18, zero skips: finance/report regression, overview JSON, audit list/detail/filter/redaction/invalid inputs, absent session and manager/staff denial, JSP rendering. Test-only session bridge; not owner login/full-WAR/worker acceptance.
+- Expanded CI first exposed an obsolete Swagger smoke expectation after PR48 enabled event details: the two contexts incorrectly expected that implemented operation to be rejected. The same failure was reproduced locally (8/10); the smoke now accepts the implemented event contract and verifies every declared planned/legacy operation stays blocked. Fresh isolated ROOT/WAR Swagger HTTP10/10 and safe Node56/56 passed without changing production behavior.
 - Actual UPDATE and DELETE rejected on both marked audit fixtures; history counts preserved. Canonical trigger52709 and existing team trigger51110 were observed. The team trigger was preserved; the private test expectation was corrected instead of changing production errors.
 
 ## Remaining acceptance
