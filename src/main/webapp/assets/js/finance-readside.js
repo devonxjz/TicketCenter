@@ -17,7 +17,7 @@
     if (!/^[0-9]+$/.test(size) || Number(size) < 1 || Number(size) > 100 || !Number.isInteger(page) || page < 1)
       throw new Error('Phân trang không hợp lệ.');
     const result = new URLSearchParams({ from, to, page: String(page), pageSize: size });
-    for (const name of ['organizationId', 'eventId']) {
+    for (const name of pageType === 'audit' ? ['organizationId', 'eventId', 'actorId'] : ['organizationId', 'eventId']) {
       if (values[name]) {
         if (!uuid.test(values[name])) throw new Error('Tổ chức hoặc sự kiện không hợp lệ.');
         result.set(name, values[name]);
@@ -37,6 +37,21 @@
     if (value == null || !/^-?[0-9]+$/.test(String(value))) return '—';
     return new Intl.NumberFormat('vi-VN').format(BigInt(value)) + ' ₫';
   }
+  function chartBars(days) {
+    if (!Array.isArray(days) || days.length > 7) throw new Error('Dữ liệu biểu đồ không hợp lệ.');
+    let largest = 0n;
+    const amounts = days.map(day => {
+      if (!/^[0-9]+$/.test(day.cohortGrossRevenue) || !/^-?[0-9]+$/.test(day.netCashFlow))
+        throw new Error('Số tiền trong biểu đồ không hợp lệ.');
+      const revenue = BigInt(day.cohortGrossRevenue), cash = BigInt(day.netCashFlow), absoluteCash = cash < 0n ? -cash : cash;
+      largest = largest > revenue ? largest : revenue; largest = largest > absoluteCash ? largest : absoluteCash;
+      return { day, revenue, cash, absoluteCash };
+    });
+    const height = amount => amount === 0n || largest === 0n ? 0 : Math.max(1, Number(amount * 120n / largest));
+    return amounts.map(({ day, revenue, cash, absoluteCash }) => ({ date: day.date,
+      cohortGrossRevenue: String(revenue), netCashFlow: String(cash), revenueHeight: height(revenue),
+      cashHeight: height(absoluteCash), cashNegative: cash < 0n }));
+  }
   async function fetchResponse(url, type, network = fetch) {
     const response = await network(url, { credentials: 'same-origin', cache: 'no-store', headers: { Accept: type } });
     if (!response.ok || !(response.headers.get('Content-Type') || '').toLowerCase().startsWith(type)) {
@@ -51,7 +66,7 @@
     }
     return response;
   }
-  const api = { query, formatVnd, fetchResponse };
+  const api = { query, formatVnd, fetchResponse, chartBars };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (typeof document === 'undefined') return;
 
@@ -77,7 +92,8 @@
     entityType: 'Loại đối tượng', entityId: 'Mã đối tượng', actorId: 'Người thực hiện', id: 'Mã nhật ký',
     pendingOrganizations: 'Tổ chức chờ duyệt', pendingEvents: 'Sự kiện chờ duyệt', pendingRefunds: 'Yêu cầu hoàn chờ xử lý',
     draftSettlements: 'Quyết toán nháp', eventCount: 'Tổng sự kiện', paidOrders: 'Đơn đã thanh toán',
-    todayCohortCommission: 'Hoa hồng của đơn thanh toán hôm nay', from: 'Từ (UTC)', to: 'Đến (UTC)', asOf: 'Cập nhật (UTC)'
+    todayCohortCommission: 'Hoa hồng của đơn thanh toán hôm nay', from: 'Từ (UTC)', to: 'Đến (UTC)', asOf: 'Cập nhật (UTC)',
+    totalUsers: 'Tổng người dùng', activeOrganizations: 'Tổ chức đã duyệt đang hoạt động'
   };
   const columns = {
     COHORT_REVENUE: ['eventId', 'organizationId', 'paidOrderCount', 'grossRevenue', 'totalRefund', 'remainingAmount', 'totalCommission', 'netPayable'],
@@ -106,6 +122,8 @@
     tbody?.replaceChildren(); head?.replaceChildren();
     document.getElementById('summary')?.replaceChildren();
     document.getElementById('audit-detail')?.replaceChildren();
+    document.getElementById('daily-chart')?.replaceChildren();
+    document.getElementById('daily-values')?.replaceChildren();
     if (previous) previous.disabled = true;
     if (next) next.disabled = true;
     if (pagination) pagination.textContent = '';
@@ -162,13 +180,44 @@
   }
   function overview(result) {
     const dl = document.getElementById('summary');
-    for (const key of ['pendingOrganizations', 'pendingEvents', 'pendingRefunds', 'draftSettlements', 'eventCount', 'paidOrders']) {
-      if (result[key] != null) dl.append(node('dt', labels[key]), node('dd', display(key, result[key])));
+    const pending = { pendingOrganizations: '/admin/org-approval', pendingEvents: '/admin/event-approval',
+      pendingRefunds: '/admin/refund-approval', draftSettlements: '/finance/settlements' };
+    for (const key of ['totalUsers', 'activeOrganizations', 'pendingOrganizations', 'pendingEvents', 'pendingRefunds', 'draftSettlements', 'eventCount', 'paidOrders']) {
+      if (result[key] != null) {
+        const dd = node('dd', display(key, result[key]));
+        if (isAdmin && result.organizationId == null && pending[key]) {
+          const link = node('a', 'Mở danh sách'); link.href = context + pending[key];
+          dd.append(document.createTextNode(' · '), link);
+        }
+        dl.append(node('dt', labels[key]), dd);
+      }
     }
     dl.append(node('dt', 'Dòng tiền hôm nay (UTC)'), node('dd', ''));
     for (const [key, value] of Object.entries(result.todayCashFlow || {})) dl.append(node('dt', labels[key] || key), node('dd', display(key, value)));
     dl.append(node('dt', labels.todayCohortCommission), node('dd', formatVnd(result.todayCohortCommission)));
     document.getElementById('basis').textContent = 'Ngày UTC [' + display('from', result.from) + ', ' + display('to', result.to) + '). ' + basis[result.commissionTimeBasis] + ' Cập nhật: ' + display('asOf', result.asOf) + '.';
+    drawDailyChart(result.dailyMetrics || []);
+  }
+  function drawDailyChart(days) {
+    const bars = chartBars(days), chart = document.getElementById('daily-chart'), rows = document.getElementById('daily-values');
+    if (!chart || !rows) return;
+    const ns = 'http://www.w3.org/2000/svg';
+    function svgNode(tag, attrs, text) { const element = document.createElementNS(ns, tag); for (const [key, value] of Object.entries(attrs || {})) element.setAttribute(key, String(value)); if (text != null) element.textContent = text; return element; }
+    const svg = svgNode('svg', { viewBox: '0 0 840 340', width: '100%', role: 'img', 'aria-labelledby': 'daily-chart-title daily-chart-description' });
+    svg.append(svgNode('title', { id: 'daily-chart-title' }, 'Doanh thu gộp và dòng tiền ròng trong bảy ngày UTC'),
+      svgNode('desc', { id: 'daily-chart-description' }, 'Cột xanh: doanh thu gộp theo ngày đơn thanh toán. Cột nâu: dòng tiền ròng theo ngày thu và hoàn, có thể âm. Số tiền chính xác nằm trong bảng bên dưới.'),
+      svgNode('line', { x1: 30, y1: 160, x2: 810, y2: 160, stroke: '#64748b' }),
+      svgNode('text', { x: 10, y: 155, 'font-size': 12 }, '0'));
+    bars.forEach((bar, index) => {
+      const x = 60 + index * 110;
+      for (const [name, height, negative, offset, color] of [['cohortGrossRevenue', bar.revenueHeight, false, 0, '#155ca0'], ['netCashFlow', bar.cashHeight, bar.cashNegative, 28, '#af6423']]) {
+        const rect = svgNode('rect', { x: x + offset, y: negative ? 160 : 160 - height, width: 24, height, fill: color });
+        rect.append(svgNode('title', {}, bar.date + ' · ' + (name === 'cohortGrossRevenue' ? 'Doanh thu gộp: ' : 'Dòng tiền ròng: ') + formatVnd(bar[name]))); svg.append(rect);
+      }
+      svg.append(svgNode('text', { x: x + 26, y: 305, 'text-anchor': 'middle', 'font-size': 12 }, String(bar.date).slice(5)));
+      const tr = node('tr'); tr.append(node('td', bar.date), node('td', formatVnd(bar.cohortGrossRevenue)), node('td', formatVnd(bar.netCashFlow))); rows.append(tr);
+    });
+    chart.append(svg);
   }
   async function load(newPage = 1) {
     const current = ++sequence;

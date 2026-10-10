@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.util.*;
 import vn.ticketscenter.config.AppConfig;
 import vn.ticketscenter.dashboard.service.DashboardService;
+import vn.ticketscenter.dashboard.service.DashboardCache;
 import vn.ticketscenter.report.dto.ReportFilter;
 import vn.ticketscenter.report.service.*;
 import vn.ticketscenter.settlement.infrastructure.*;
@@ -14,7 +15,7 @@ import vn.ticketscenter.settlement.infrastructure.*;
 @WebServlet(name="FinanceReportServlet",urlPatterns={"/api/organizations/*","/api/admin/reports","/api/reports/export","/api/reports/options"})
 public final class ReportServlet extends HttpServlet {
     private ReportService reports;private DashboardService dashboard;
-    @Override public void init(){var database=FinanceRuntime.database(getServletContext());reports=new ReportService(database,AppConfig.getBoolean("finance.redis.enabled",true)?ReportCache.redis():ReportCache.none());dashboard=new DashboardService(database);}
+    @Override public void init(){var database=FinanceRuntime.database(getServletContext());reports=new ReportService(database,AppConfig.getBoolean("finance.redis.enabled",true)?ReportCache.redis():ReportCache.none());dashboard=new DashboardService(database,DashboardCache.configured());}
     @Override protected void doGet(HttpServletRequest request,HttpServletResponse response)throws IOException{
         try{
             var actor=ReadsideHttp.actor(request);var params=ReadsideHttp.parameters(request);String path=request.getServletPath();

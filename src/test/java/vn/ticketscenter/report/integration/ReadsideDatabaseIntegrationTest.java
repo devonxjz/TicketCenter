@@ -14,6 +14,7 @@ import vn.ticketscenter.report.service.*;
 import vn.ticketscenter.audit.dto.AuditFilter;
 import vn.ticketscenter.audit.service.AuditService;
 import vn.ticketscenter.dashboard.service.DashboardService;
+import vn.ticketscenter.dashboard.repository.DashboardRepository;
 import vn.ticketscenter.settlement.infrastructure.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -81,7 +82,33 @@ class ReadsideDatabaseIntegrationTest {
         sql("UPDATE dbo.tc_organization_memberships SET active=0 WHERE user_id=? AND organization_id=?",manager,orgA);
         assertEquals(403,assertThrows(FinanceException.class,()->service.options(managerActor(),orgA)).status());
     }
-    UUID paidOrder(UUID event,int amount,String paid)throws Exception{UUID order=UUID.randomUUID(),payment=UUID.randomUUID();sql("INSERT dbo.tc_orders(id,buyer_id,event_id,order_code,status,subtotal_amount,total_amount,paid_at) VALUES(?,?,?,?,'PAID',?,?,?)",order,manager,event,order.toString(),amount,amount,paid);sql("INSERT dbo.tc_payments(id,order_id,amount,status,txn_ref,paid_at) VALUES(?,?,?,'CAPTURED',?,?)",payment,order,amount,payment.toString(),paid);sql("UPDATE dbo.tc_orders SET accepted_payment_id=? WHERE id=?",payment,order);return order;}
+    @Test void sevenUtcDaysIncludeZeroDaysAndSeparateCohortFromCashWithoutMoneyPrecisionLoss()throws Exception{
+        paidOrder(eventA,new java.math.BigDecimal("9007199254740993"),"2026-09-29T12:00:00");
+        var result=new DashboardRepository().overview(connection,orgA,Instant.parse("2026-10-01T14:00:00Z"));
+        @SuppressWarnings("unchecked") var days=(List<Map<String,Object>>)result.get("dailyMetrics");
+        assertNotNull(days);assertEquals(7,days.size());
+        assertEquals("2026-09-25",days.get(0).get("date"));assertEquals("2026-10-01",days.get(6).get("date"));
+        assertEquals(Instant.parse("2026-09-25T00:00:00Z"),days.get(0).get("from"));
+        assertEquals(Instant.parse("2026-10-02T00:00:00Z"),days.get(6).get("to"));
+        assertEquals(new java.math.BigDecimal("0"),days.get(0).get("cohortGrossRevenue"));
+        assertEquals(new java.math.BigDecimal("9007199254740993"),days.get(4).get("cohortGrossRevenue"));
+        assertEquals(new java.math.BigDecimal("9007199254740993"),days.get(4).get("netCashFlow"));
+        assertEquals(new java.math.BigDecimal("100"),days.get(6).get("cohortGrossRevenue"));
+        assertEquals(new java.math.BigDecimal("90"),days.get(6).get("netCashFlow"));
+        String json=new DashboardService(database,Clock.fixed(Instant.parse("2026-10-01T14:00:00Z"),ZoneOffset.UTC)).organization(managerActor(),orgA);
+        assertTrue(json.contains("\"cohortGrossRevenue\":\"9007199254740993\""),json);
+    }
+    @Test void adminKpisCountAllUsersAndOnlyApprovedOperationalOrganizations()throws Exception{
+        long users,approved;
+        try(var q=connection.createStatement();var r=q.executeQuery("SELECT COUNT_BIG(*) FROM dbo.tc_users")){r.next();users=r.getLong(1);}
+        try(var q=connection.createStatement();var r=q.executeQuery("SELECT COUNT_BIG(*) FROM dbo.tc_organizations WHERE status='APPROVED'")){r.next();approved=r.getLong(1);}
+        UUID disabled=UUID.randomUUID();sql("INSERT dbo.tc_users(id,email,user_name,full_name,status) VALUES(?,?,?,'Inactive dashboard count','DISABLED')",disabled,disabled+"@test.invalid",disabled.toString());
+        sql("UPDATE dbo.tc_organizations SET status='REJECTED' WHERE id=?",orgB);
+        var result=new DashboardRepository().overview(connection,null,Instant.parse("2026-10-01T14:00:00Z"));
+        assertEquals(users+1,result.get("totalUsers"));assertEquals(approved-1,result.get("activeOrganizations"));
+    }
+    UUID paidOrder(UUID event,int amount,String paid)throws Exception{return paidOrder(event,new java.math.BigDecimal(amount),paid);}
+    UUID paidOrder(UUID event,java.math.BigDecimal amount,String paid)throws Exception{UUID order=UUID.randomUUID(),payment=UUID.randomUUID();sql("INSERT dbo.tc_orders(id,buyer_id,event_id,order_code,status,subtotal_amount,total_amount,paid_at) VALUES(?,?,?,?,'PAID',?,?,?)",order,manager,event,order.toString(),amount,amount,paid);sql("INSERT dbo.tc_payments(id,order_id,amount,status,txn_ref,paid_at) VALUES(?,?,?,'CAPTURED',?,?)",payment,order,amount,payment.toString(),paid);sql("UPDATE dbo.tc_orders SET accepted_payment_id=? WHERE id=?",payment,order);return order;}
     void refund(UUID order,int amount,String purpose,String processed)throws Exception{UUID id=UUID.randomUUID();sql("INSERT dbo.tc_refunds(id,order_id,amount,purpose,status,processed_at) VALUES(?,?,?,?,'COMPLETED',?)",id,order,amount,purpose,processed);sql("INSERT dbo.tc_refund_transfer_logs(id,refund_id,attempt_no,result,processed_at) VALUES(?,?,1,'SUCCEEDED',?)",UUID.randomUUID(),id,processed);}
     void sql(String text,Object...values)throws SQLException{try(var q=connection.prepareStatement(text)){for(int i=0;i<values.length;i++)q.setObject(i+1,values[i] instanceof UUID id?id.toString():values[i]);q.executeUpdate();}}
 }
