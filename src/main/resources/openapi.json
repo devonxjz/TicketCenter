@@ -544,29 +544,38 @@
       "post": {"tags": ["Organizations"], "summary": "Tạo chính sách hoa hồng", "responses": {"200": {"description": "Đã tạo"}, "400": {"description": "Điều khoản không hợp lệ"}}}
     },
     "/api/organizations/{organizationId}/events": {
+      "parameters": [{"name":"organizationId","in":"path","required":true,"schema":{"type":"string","format":"uuid"}}],
       "get": {"tags": ["Events"], "summary": "Danh sách sự kiện của tổ chức", "responses": {"200": {"description": "Gồm bản nháp và lý do từ chối"}, "403": {"description": "Cần manager đúng tổ chức"}}},
-      "post": {"tags": ["Events"], "summary": "Tạo sự kiện DRAFT", "responses": {"200": {"description": "Đã tạo"}, "400": {"description": "Dữ liệu không hợp lệ"}, "403": {"description": "Cần manager đúng tổ chức"}}}
+      "post": {"tags": ["Events"], "summary": "Tạo sự kiện DRAFT với ảnh tùy chọn", "parameters": [{"$ref":"#/components/parameters/EventRequestKey"},{"$ref":"#/components/parameters/EventCsrf"}], "requestBody":{"required":true,"content":{"multipart/form-data":{"schema":{"$ref":"#/components/schemas/EventMultipart"}}}}, "responses": {"200": {"description": "EventDto trong data; cùng key và input trả lại kết quả đã commit"}, "400": {"description": "Dữ liệu không hợp lệ"}, "403": {"description": "Cần manager hiện hành đúng tổ chức"},"409":{"description":"Key hoặc phiên bản xung đột"},"502":{"description":"Upload thất bại; retry cùng key"}}}
     },
     "/api/events": {
-      "get": {"tags": ["Events"], "summary": "Tìm sự kiện đã xuất bản", "parameters": [
-        {"in": "query", "name": "q", "schema": {"type": "string"}},
-        {"in": "query", "name": "categoryId", "schema": {"type": "string", "format": "uuid"}},
-        {"in": "query", "name": "from", "schema": {"type": "string", "format": "date-time"}},
-        {"in": "query", "name": "to", "schema": {"type": "string", "format": "date-time"}},
-        {"in": "query", "name": "sort", "schema": {"type": "string", "enum": ["start", "minPrice"]}},
-        {"in": "query", "name": "page", "schema": {"type": "integer", "minimum": 1}},
-        {"in": "query", "name": "pageSize", "schema": {"type": "integer", "minimum": 1, "maximum": 100}}
-      ], "responses": {"200": {"description": "Catalog PUBLISHED phân trang"}, "400": {"description": "Filter không hợp lệ"}}}
+      "get": {"tags": ["Events"], "summary": "Danh sách sự kiện đã xuất bản", "responses": {"200": {"description": "Tối đa 100 EventDto trong data, xếp theo startTime và id. API này chưa hỗ trợ tìm kiếm hoặc phân trang."}}}
     },
     "/api/events/{eventId}": {
+      "parameters": [{"$ref":"#/components/parameters/EventTarget"}],
       "get": {"tags": ["Events"], "summary": "Chi tiết sự kiện công khai", "responses": {"200": {"description": "Sự kiện PUBLISHED"}, "404": {"description": "Không tìm thấy"}}}
     },
     "/api/events/{eventId}/zones": {
       "get": {"tags": ["Events"], "summary": "Sơ đồ khu, tồn chỗ và ghế", "responses": {"200": {"description": "Khu và ghế"}}},
       "post": {"tags": ["Events"], "summary": "Thêm khu và sinh ghế", "responses": {"200": {"description": "Đã tạo nguyên tử"}, "409": {"description": "Không còn được sửa"}}}
     },
-    "/api/events/{eventId}/image": {
-      "post": {"tags": ["Events"], "summary": "Manager upload hoặc thay ảnh sự kiện qua Cloudinary", "requestBody": {"required": true, "content": {"multipart/form-data": {"schema": {"type": "object", "required": ["eventImage"], "properties": {"eventImage": {"type": "string", "format": "binary"}}}}}}, "responses": {"200": {"description": "Ảnh eventImage đã lưu"}, "400": {"description": "Ảnh không hợp lệ"}, "403": {"description": "Không có quyền manager"}, "413": {"description": "Ảnh quá lớn"}}}
+    "/api/events/{eventId}/cover": {
+      "parameters": [{"$ref":"#/components/parameters/EventTarget"}],
+      "post": {"tags": ["Events"], "summary": "Manager thay ảnh sự kiện qua Cloudinary", "parameters":[{"$ref":"#/components/parameters/EventRequestKey"},{"$ref":"#/components/parameters/EventCsrf"}], "requestBody": {"required": true, "content": {"multipart/form-data": {"schema": {"type": "object", "required": ["file","expectedVersion"], "additionalProperties":false,"properties": {"file": {"type": "string", "format": "binary"},"expectedVersion":{"type":"integer","minimum":0}}}}}}, "responses": {"200": {"description": "EventDto trong data"}, "400": {"description": "Ảnh không hợp lệ"}, "403": {"description": "Không có quyền manager hiện hành"},"409":{"description":"Phiên bản hoặc key xung đột"}, "413": {"description": "Ảnh quá lớn"},"502":{"description":"Upload thất bại; ảnh cũ giữ nguyên"}}}
+    },
+    "/api/events/{eventId}/edit": {
+      "parameters": [{"$ref":"#/components/parameters/EventTarget"}],
+      "post":{"tags":["Events"],"summary":"Manager lưu Event và ảnh trong một thao tác nguyên tử","parameters":[{"$ref":"#/components/parameters/EventRequestKey"},{"$ref":"#/components/parameters/EventCsrf"}],"requestBody":{"required":true,"content":{"multipart/form-data":{"schema":{"allOf":[{"$ref":"#/components/schemas/EventMultipart"},{"required":["expectedVersion"]}]}}}},"responses":{"200":{"description":"EventDto trong data; không chọn file giữ ảnh cũ"},"403":{"description":"Manager hiện hành đúng tổ chức"},"409":{"description":"Event đã thay đổi hoặc không còn DRAFT/REJECTED"}}}
+    },
+    "/api/manager/events": {
+      "get":{"tags":["Events"],"summary":"Event của Manager hiện hành","parameters":[{"name":"organizationId","in":"query","required":true,"schema":{"type":"string","format":"uuid"}}],"responses":{"200":{"description":"Danh sách EventDto trong data"},"403":{"description":"Manager hiện hành đúng tổ chức"}}}
+    },
+    "/api/manager/events/{eventId}": {
+      "parameters": [{"$ref":"#/components/parameters/EventTarget"}],
+      "get":{"tags":["Events"],"summary":"Event riêng cho editor","responses":{"200":{"description":"EventDto trong data"},"403":{"description":"Manager hiện hành đúng tổ chức"}}}
+    },
+    "/api/manager/event-options": {
+      "get":{"tags":["Events"],"summary":"Tổ chức và danh mục cho editor","responses":{"200":{"description":"data chứa organizations gồm id/name và categories gồm id/name/slug"}}}
     },
     "/api/admin/events/{eventId}/publish": {
       "post": {"tags": ["Events"], "summary": "Admin xuất bản bằng SP12", "responses": {"200": {"description": "Đã xuất bản"}, "409": {"description": "Chưa đủ điều kiện"}}}
@@ -749,6 +758,11 @@
     }
   },
   "components": {
+    "parameters": {
+      "EventTarget":{"name":"eventId","in":"path","required":true,"schema":{"type":"string","format":"uuid"}},
+      "EventRequestKey":{"name":"Idempotency-Key","in":"header","required":true,"schema":{"type":"string","format":"uuid"},"description":"Giữ nguyên key và input khi retry lỗi mạng/upload/database"},
+      "EventCsrf":{"name":"X-CSRF-Token","in":"header","required":true,"schema":{"type":"string"}}
+    },
     "securitySchemes": {
       "cookieAuth": {
         "type": "apiKey",
@@ -764,6 +778,7 @@
       }
     },
     "schemas": {
+      "EventMultipart":{"type":"object","additionalProperties":false,"required":["title","description","categoryId","venueName","venueAddress","saleStart","saleEnd","startTime","endTime"],"properties":{"title":{"type":"string","maxLength":250},"description":{"type":"string","maxLength":5000},"categoryId":{"type":"string","format":"uuid"},"venueName":{"type":"string","maxLength":250},"venueAddress":{"type":"string","maxLength":500},"saleStart":{"type":"string","format":"date-time"},"saleEnd":{"type":"string","format":"date-time"},"startTime":{"type":"string","format":"date-time"},"endTime":{"type":"string","format":"date-time"},"expectedVersion":{"type":"integer","minimum":0},"file":{"type":"string","format":"binary","description":"PNG/JPEG tối đa 5 MiB và 12 triệu pixel; tùy chọn, tạo mới thiếu ảnh dùng placeholder danh mục"}}},
       "RegisterRequest": {
         "type": "object",
         "required": ["email", "password"],

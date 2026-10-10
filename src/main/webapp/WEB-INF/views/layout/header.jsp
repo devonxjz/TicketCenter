@@ -33,21 +33,21 @@
                             <span class="d-none d-sm-inline">Tài khoản</span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow-sm rounded-0 border-secondary-subtle">
-                            <c:if test="${sessionScope.TC_CURRENT_USER.admin}">
+                            <c:if test="${sessionScope.TC_CURRENT_USER.isAdmin()}">
                                 <li><a class="dropdown-item py-2 fw-bold text-danger" href="${pageContext.request.contextPath}/admin/dashboard"><i class="fa-solid fa-shield-halved me-2"></i>Bảng Quản trị Admin</a></li>
                                 <li><hr class="dropdown-divider"></li>
                             </c:if>
-                            <c:if test="${sessionScope.TC_CURRENT_USER.manager}">
+                            <c:if test="${sessionScope.TC_CURRENT_USER.isManager()}">
                                 <li><a class="dropdown-item py-2 fw-semibold text-primary" href="${pageContext.request.contextPath}/organizer/dashboard"><i class="fa-solid fa-building me-2"></i>Kênh Ban tổ chức</a></li>
                             </c:if>
-                            <c:if test="${sessionScope.TC_CURRENT_USER.staff}">
+                            <c:if test="${sessionScope.TC_CURRENT_USER.isStaff()}">
                                 <li><a class="dropdown-item py-2 fw-semibold text-success" href="${pageContext.request.contextPath}/organizer/checkin-select"><i class="fa-solid fa-qrcode me-2"></i>Kênh Soát vé Check-in</a></li>
                                 <li><hr class="dropdown-divider"></li>
                             </c:if>
                             <li><a class="dropdown-item py-2" href="${pageContext.request.contextPath}/profile"><i class="fa-solid fa-user me-2 text-muted"></i>Hồ sơ cá nhân</a></li>
                             <li><a class="dropdown-item py-2" href="${pageContext.request.contextPath}/my-orders"><i class="fa-solid fa-receipt me-2 text-muted"></i>Đơn hàng của tôi</a></li>
                             <li><a class="dropdown-item py-2" href="${pageContext.request.contextPath}/tickets"><i class="fa-solid fa-ticket me-2 text-muted"></i>Vé điện tử</a></li>
-                            <c:if test="${sessionScope.TC_CURRENT_USER.customerOnly}">
+                            <c:if test="${sessionScope.TC_CURRENT_USER.isCustomerOnly()}">
                                 <li><a class="dropdown-item py-2" href="${pageContext.request.contextPath}/organizer-request"><i class="fa-solid fa-handshake me-2 text-muted"></i>Đăng ký mở ban tổ chức</a></li>
                             </c:if>
                             <li><hr class="dropdown-divider"></li>

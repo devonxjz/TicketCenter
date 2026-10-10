@@ -46,8 +46,14 @@ public class Event extends BaseEntity {
     @Column(name = "venue_address", nullable = false, length = 1000)
     private String venueAddress;
 
-    @Column(name = "cover_image_url", length = 1000)
+    @Column(name = "cover_image_url", length = 2048)
     private String coverImageUrl;
+
+    @Column(name = "event_image", length = 2048)
+    private String eventImage;
+
+    @Column(name = "event_image_public_id", length = 255)
+    private String eventImagePublicId;
 
     @Column(name = "sale_start", nullable = false)
     private Instant saleStart;
@@ -93,7 +99,9 @@ public class Event extends BaseEntity {
     public EventCategory getCategory() { return category; }
     public String getVenueName() { return venueName; }
     public String getVenueAddress() { return venueAddress; }
-    public String getCoverImageUrl() { return coverImageUrl; }
+    public String getCoverImageUrl() { return eventImage == null || eventImage.isBlank() ? coverImageUrl : eventImage; }
+    public String getEventImage() { return eventImage; }
+    public String getEventImagePublicId() { return eventImagePublicId; }
     public Instant getSaleStart() { return saleStart; }
     public Instant getSaleEnd() { return saleEnd; }
     public Instant getStartTime() { return startTime; }
