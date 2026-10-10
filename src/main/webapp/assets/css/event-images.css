@@ -1,0 +1,59 @@
+.cover-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 190px;
+    background: linear-gradient(135deg, #f5e7e7, #edeef2);
+    color: #574a4a;
+    padding: 24px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.event-cover {
+    width: 100%;
+    aspect-ratio: 16/9;
+    object-fit: cover;
+}
+
+#event-cover-preview .event-cover {
+    max-height: 300px;
+}
+
+.table-custom .cover-placeholder {
+    min-height: 72px;
+    padding: 8px;
+    font-size: 0.8rem;
+}
+
+@media (max-width: 767.98px) {
+    .dashboard-layout {
+        flex-direction: column;
+    }
+
+    .dashboard-sidebar {
+        width: 100%;
+        padding: 16px;
+        border-right: 0;
+        border-bottom: 1px solid var(--gray-border);
+    }
+
+    .sidebar-menu {
+        display: flex;
+        flex-wrap: wrap;
+        margin-bottom: 0;
+    }
+
+    .dashboard-content {
+        padding: 24px 16px;
+    }
+
+    .dashboard-content .panel-box {
+        padding: 16px;
+    }
+
+    .panel-header {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+}

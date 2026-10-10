@@ -1,206 +1,40 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Biên Tập Sự Kiện & Cấu Hình Vé — TicketsCenter Partner</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Biên tập sự kiện | TicketsCenter</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
+<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/event-images.css">
 </head>
-<body class="bg-light min-h-screen">
-    <div class="small text-center py-2 bg-light text-muted" role="note">Prototype tĩnh • Dữ liệu và thao tác mô phỏng • Chưa kết nối backend, email hoặc cổng thanh toán.</div>
-
-    <!-- Top Navbar -->
-    <nav class="navbar navbar-custom sticky-top">
-        <div class="container-fluid px-4 d-flex align-items-center justify-content-between">
-            <div class="d-flex align-items-center gap-3">
-                <a class="navbar-brand-custom" href="${pageContext.request.contextPath}/">TicketsCenter</a>
-                <span class="status-pill status-dark">Cổng Đối Tác</span>
-            </div>
-
-            <div class="d-flex align-items-center gap-3">
-                <select class="form-select form-select-sm rounded-0 border-secondary-subtle fw-bold" style="width: auto;">
-                    <option selected>Bảo tàng Phụ nữ Việt Nam (Quản lý)</option>
-                </select>
-                <div class="vr mx-2"></div>
-                <span class="small fw-bold">Trần Minh Thảo</span>
-                <a href="${pageContext.request.contextPath}/auth/logout" class="btn btn-sm btn-outline-dark rounded-0 px-3">Đăng xuất</a>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Layout -->
-    <div class="dashboard-layout">
-        <aside class="dashboard-sidebar">
-            <div class="sidebar-title">Quản lý tổ chức</div>
-            <ul class="sidebar-menu">
-                <li><a href="${pageContext.request.contextPath}/organizer/dashboard">• Tổng quan</a></li>
-                <li><a href="${pageContext.request.contextPath}/organizer/events">• Danh sách sự kiện</a></li>
-                <li><a href="${pageContext.request.contextPath}/organizer/events/new" class="active">• Tạo mới sự kiện</a></li>
-                <li><a href="${pageContext.request.contextPath}/organizer/coupons">• Mã khuyến mãi</a></li>
-                <li><a href="${pageContext.request.contextPath}/organizer/members">• Nhân sự & Phân quyền</a></li>
-                <li><a href="${pageContext.request.contextPath}/organizer/checkin/select">• Soát vé tại cửa</a></li>
-                <li><a href="${pageContext.request.contextPath}/organizer/reports">• Báo cáo & Quyết toán</a></li>
-            </ul>
-        </aside>
-
-        <main class="dashboard-content">
-            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-5">
-                <div>
-                    <h1 class="h3 fw-bold mb-1 text-dark">Biên Tập Chương Trình & Hạng Vé</h1>
-                    <p class="small text-muted mb-0">DRAFT/REJECTED được sửa hồ sơ, lịch và cấu trúc; PENDING_APPROVAL khóa sửa. PUBLISHED chỉ đổi giá khu cho Hold mới.</p>
-                </div>
-                <div class="d-flex gap-3 mt-3 mt-sm-0">
-                    <button class="btn-outline-custom" onclick="alert('Mô phỏng: Đã lưu bản nháp thành công!')">
-                         Lưu bản nháp
-                    </button>
-                    <button class="btn-primary-custom" onclick="submitForApproval()">
-                         Gửi duyệt sự kiện
-                    </button>
-                </div>
-            </div>
-
-            <!-- Form Body -->
-            <div class="row g-5">
-                
-                <!-- Left: Event Basic Info -->
-                <div class="col-lg-7">
-                    <div class="panel-box bg-white">
-                        <div class="panel-header">
-                            <span class="panel-title">1. Thông tin chương trình</span>
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="filter-label">Tên chương trình sự kiện *</label>
-                            <input type="text" class="form-control rounded-0 border-secondary-subtle py-2" value="Vé Tham Quan Bảo Tàng Phụ Nữ Việt Nam & Triển Lãm Chuyên Đề">
-                        </div>
-
-                        <div class="row g-4 mb-4">
-                            <div class="col-md-6">
-                                <label class="filter-label">Thể loại *</label>
-                                <select class="form-select rounded-0 border-secondary-subtle py-2">
-                                    <option value="museum" selected>Tham quan & Di sản</option>
-                                    <option value="music">Hòa nhạc / Concert</option>
-                                    <option value="theater">Sân khấu kịch</option>
-                                    <option value="sports">Thể thao</option>
-                                    <option value="workshop">Hội thảo & Triển lãm</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="filter-label">Địa điểm tổ chức *</label>
-                                <input type="text" class="form-control rounded-0 border-secondary-subtle py-2" value="36 Lý Thường Kiệt, Hoàn Kiếm, Hà Nội">
-                            </div>
-                        </div>
-
-                        <div class="row g-4 mb-3">
-                            <div class="col-md-6">
-                                <label class="filter-label">Bắt đầu mở bán (saleStart) *</label><input type="datetime-local" name="saleStart" class="form-control rounded-0 mb-3" required><label class="filter-label">Kết thúc mở bán (saleEnd) *</label><input type="datetime-local" name="saleEnd" class="form-control rounded-0 mb-3" required><label class="filter-label">Thời gian bắt đầu sự kiện (startTime) *</label>
-                                <input type="datetime-local" class="form-control rounded-0 border-secondary-subtle py-2" value="2026-10-20T08:30" id="startTime">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="filter-label">Thời gian kết thúc sự kiện *</label>
-                                <input type="datetime-local" class="form-control rounded-0 border-secondary-subtle py-2" value="2026-10-20T17:30" id="endTime">
-                            </div>
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="filter-label">Giới thiệu chi tiết chương trình</label>
-                            <textarea class="form-control rounded-0 border-secondary-subtle" rows="5">Bảo tàng Phụ nữ Việt Nam giới thiệu các bộ sưu tập tài liệu, hiện vật phản ánh truyền thống văn hóa, phong tục tập quán và vai trò lịch sử của phụ nữ Việt Nam qua các thời kỳ.</textarea>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Right: Seat Zones & Price Tiers Builder -->
-                <div class="col-lg-5">
-                    <div class="panel-box bg-white">
-                        <div class="panel-header">
-                            <span class="panel-title">2. Hạng vé & Khu vực chỗ ngồi</span><p class="small text-muted mb-0">saleStart &lt; saleEnd &le; startTime &lt; endTime. EventCategory là giá trị/danh mục. Khu đứng không tạo Seat; sau công khai khóa loại khu, ghế và sức chứa.</p>
-                        </div>
-
-                        <!-- Zone 1: VIP Seats -->
-                        <div class="p-4 border mb-3 bg-white">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <strong class="text-dark">Khu 1: Ghế VIP Khán Phòng</strong>
-                                <span class="status-pill status-red">Có chọn ghế</span>
-                            </div>
-                            <div class="row g-3 small">
-                                <div class="col-6">
-                                    <label class="text-muted d-block">Giá vé (VNĐ):</label>
-                                    <input type="number" class="form-control form-control-sm rounded-0 border-secondary-subtle py-2" value="120000">
-                                </div>
-                                <div class="col-6">
-                                    <label class="text-muted d-block">Số lượng ghế:</label>
-                                    <input type="number" class="form-control form-control-sm rounded-0 border-secondary-subtle py-2" value="20">
-                                </div>
-                                <div class="col-12 text-muted">
-                                    Phân bổ: Hàng A (10 ghế), Hàng B (10 ghế)
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Zone 2: Standard Seats -->
-                        <div class="p-4 border mb-3 bg-white">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <strong class="text-dark">Khu 2: Ghế Tiêu Chuẩn</strong>
-                                <span class="status-pill status-dark">Có chọn ghế</span>
-                            </div>
-                            <div class="row g-3 small">
-                                <div class="col-6">
-                                    <label class="text-muted d-block">Giá vé (VNĐ):</label>
-                                    <input type="number" class="form-control form-control-sm rounded-0 border-secondary-subtle py-2" value="80000">
-                                </div>
-                                <div class="col-6">
-                                    <label class="text-muted d-block">Số lượng ghế:</label>
-                                    <input type="number" class="form-control form-control-sm rounded-0 border-secondary-subtle py-2" value="20">
-                                </div>
-                                <div class="col-12 text-muted">
-                                    Phân bổ: Hàng C (10 ghế), Hàng D (10 ghế)
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Zone 3: General Admission (Standing) -->
-                        <div class="p-4 border mb-4 bg-white">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <strong class="text-dark">Khu 3: Vé Phổ Thông Tự Do</strong>
-                                <span class="status-pill status-subtle">Tự do vào cổng</span>
-                            </div>
-                            <div class="row g-3 small">
-                                <div class="col-6">
-                                    <label class="text-muted d-block">Giá vé (VNĐ):</label>
-                                    <input type="number" class="form-control form-control-sm rounded-0 border-secondary-subtle py-2" value="40000">
-                                </div>
-                                <div class="col-6">
-                                    <label class="text-muted d-block">Sức chứa tối đa:</label>
-                                    <input type="number" class="form-control form-control-sm rounded-0 border-secondary-subtle py-2" value="500">
-                                </div>
-                            </div>
-                        </div>
-
-                        <button class="btn btn-outline-dark rounded-0 w-100 py-3 fw-bold">
-                             Thêm khu vực vé mới
-                        </button>
-                    </div>
-                </div>
-
-            </div>
-        </main>
-    </div>
-
-    <script>
-        function submitForApproval() {
-            const start = new Date(document.getElementById('startTime').value);
-            const end = new Date(document.getElementById('endTime').value);
-            if (start >= end) {
-                alert('Mô phỏng: Thời gian bắt đầu sự kiện phải trước thời gian kết thúc.');
-                return;
-            }
-            alert('Mô phỏng: Chương trình đã được gửi lên ban quản trị thẩm định duyệt mở bán.');
-            location.href = "${pageContext.request.contextPath}/organizer/events";
-        }
-    </script>
+<body data-event-page="editor" data-context="${pageContext.request.contextPath}">
+<jsp:include page="/WEB-INF/views/layout/header.jsp" />
+<div class="dashboard-layout"><jsp:include page="/WEB-INF/views/layout/organizer-sidebar.jsp" /><main class="dashboard-content">
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4"><h1 id="editor-heading" class="h3 fw-bold mb-0">Tạo mới sự kiện</h1>
+<a href="${pageContext.request.contextPath}/organizer/events" class="btn-outline-custom">Danh sách sự kiện</a></div>
+<p id="event-message" role="status" aria-live="polite">Đang tải...</p><form id="event-form" enctype="multipart/form-data" method="post" hidden><fieldset id="event-fields" disabled>
+<div class="panel-box bg-white mb-4"><div class="row g-4">
+<div class="col-md-6"><label for="event-organization" class="filter-label">Tổ chức *</label><select id="event-organization" name="organizationId" class="form-select rounded-0" required></select></div>
+<div class="col-md-6"><label for="categoryId" class="filter-label">Thể loại *</label><select id="categoryId" name="categoryId" class="form-select rounded-0" required></select></div>
+<div class="col-12"><label for="title" class="filter-label">Tên chương trình *</label><input id="title" name="title" type="text" maxlength="250" class="form-control rounded-0" required></div>
+<div class="col-md-6"><label for="venueName" class="filter-label">Tên địa điểm *</label><input id="venueName" name="venueName" type="text" maxlength="250" class="form-control rounded-0" required></div>
+<div class="col-12"><label for="venueAddress" class="filter-label">Địa chỉ *</label><input id="venueAddress" name="venueAddress" type="text" maxlength="500" class="form-control rounded-0" required></div>
+<div class="col-md-6"><label for="saleStart" class="filter-label">Bắt đầu mở bán *</label><input id="saleStart" name="saleStart" type="datetime-local" step="0.001" class="form-control rounded-0" required></div>
+<div class="col-md-6"><label for="saleEnd" class="filter-label">Kết thúc mở bán *</label><input id="saleEnd" name="saleEnd" type="datetime-local" step="0.001" class="form-control rounded-0" required></div>
+<div class="col-md-6"><label for="startTime" class="filter-label">Bắt đầu sự kiện *</label><input id="startTime" name="startTime" type="datetime-local" step="0.001" class="form-control rounded-0" required></div>
+<div class="col-md-6"><label for="endTime" class="filter-label">Kết thúc sự kiện *</label><input id="endTime" name="endTime" type="datetime-local" step="0.001" class="form-control rounded-0" required></div>
+<div class="col-12"><label for="description" class="filter-label">Giới thiệu chương trình *</label><textarea id="description" name="description" class="form-control rounded-0" rows="5" maxlength="5000" required></textarea></div>
+</div></div><div class="panel-box bg-white mb-4"><h2 class="h5 fw-bold">Ảnh bìa sự kiện</h2>
+<div id="event-cover-preview" class="mb-3"></div><label for="event-file" class="filter-label">Chọn ảnh PNG hoặc JPEG</label>
+<input id="event-file" name="file" type="file" accept="image/png,image/jpeg" class="form-control rounded-0" aria-describedby="event-file-help">
+<p id="event-file-help" class="small text-muted mt-2 mb-0">Tối đa 5 MiB. Không chọn ảnh mới để giữ ảnh hiện tại. Sự kiện mới không có ảnh dùng ảnh mặc định theo thể loại.</p></div>
+<p class="small text-muted">Lịch bán vé phải thỏa mãn mở bán &lt; đóng bán &le; bắt đầu &lt; kết thúc. Sửa thông tin ở trạng thái bản nháp hoặc bị từ chối. Sự kiện đã công bố cho phép thay ảnh bìa.</p>
+<div class="d-flex gap-3"><button id="event-save" type="submit" class="btn-primary-custom">Lưu bản nháp</button><a href="${pageContext.request.contextPath}/organizer/events" class="btn-outline-custom">Quay lại</a></div>
+</fieldset></form><noscript>Vui lòng bật JavaScript để biên tập sự kiện.</noscript>
+</main></div>
+<script src="${pageContext.request.contextPath}/assets/js/event-images.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

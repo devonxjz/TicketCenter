@@ -13,7 +13,7 @@ import java.util.Set;
 public final class RequestValidationFilter implements Filter {
 
     private static final long MAX_BODY_BYTES = 64 * 1024;
-    private static final long MAX_COVER_BODY_BYTES = 5_300_000;
+    private static final long MAX_COVER_BODY_BYTES = 5_400_000;
     private static final Set<String> BODY_METHODS = Set.of("POST", "PUT", "PATCH");
 
     @Override
@@ -46,7 +46,8 @@ public final class RequestValidationFilter implements Filter {
         String contentType = request.getContentType();
         if (contentType == null || !contentType.startsWith("multipart/form-data")) return false;
         String path = request.getRequestURI().substring(request.getContextPath().length());
-        return path.matches("/api/events/[0-9a-fA-F-]{36}/(cover|image)")
+        return path.matches("/api/events/[0-9a-fA-F-]{36}/(cover|edit)")
+                || path.matches("/api/organizations/[0-9a-fA-F-]{36}/events")
                 || path.equals("/api/me/profile");
     }
 }
