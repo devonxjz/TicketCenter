@@ -1558,27 +1558,33 @@
         "tags": [
           "Events"
         ],
-        "summary": "Chờ triển khai · Tạo sự kiện DRAFT",
+        "summary": "Tạo sự kiện DRAFT với ảnh tùy chọn",
         "responses": {
           "200": {
-            "description": "Đã tạo"
+            "description": "EventDto trong data; cùng key và input trả lại kết quả đã commit"
           },
           "400": {
             "description": "Dữ liệu không hợp lệ"
           },
           "403": {
-            "description": "Cần manager đúng tổ chức"
+            "description": "Cần manager hiện hành đúng tổ chức"
+          },
+          "409": {
+            "description": "Key hoặc phiên bản xung đột"
+          },
+          "502": {
+            "description": "Upload thất bại; retry cùng key"
           }
         },
         "operationId": "postApiOrganizationsOrganizationIdEvents",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
-        "x-owner": "dong",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
+        "x-owner": "liem",
         "externalDocs": {
-          "description": "Issue giao việc và contract dự kiến",
-          "url": "https://github.com/devonxjz/TicketCenter/issues/9"
+          "description": "Event image workflow task",
+          "url": "https://github.com/devonxjz/TicketCenter/issues/43"
         },
-        "description": "\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "description": "EventApiServlet and EventService. Verified with isolated SQL Server and HTTP fixtures. Production login and hosting are outside this verification.",
         "parameters": [
           {
             "name": "organizationId",
@@ -1588,6 +1594,12 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "$ref": "#/components/parameters/EventRequestKey"
+          },
+          {
+            "$ref": "#/components/parameters/EventCsrf"
           }
         ],
         "security": [
@@ -1596,7 +1608,17 @@
             "csrfToken": [],
             "idempotencyKey": []
           }
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/EventMultipart"
+              }
+            }
+          }
+        }
       }
     },
     "/api/events": {
@@ -1604,85 +1626,21 @@
         "tags": [
           "Events"
         ],
-        "summary": "Chờ triển khai · Tìm sự kiện đã xuất bản",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "q",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "categoryId",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "in": "query",
-            "name": "from",
-            "schema": {
-              "type": "string",
-              "format": "date-time"
-            }
-          },
-          {
-            "in": "query",
-            "name": "to",
-            "schema": {
-              "type": "string",
-              "format": "date-time"
-            }
-          },
-          {
-            "in": "query",
-            "name": "sort",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "start",
-                "minPrice"
-              ]
-            }
-          },
-          {
-            "in": "query",
-            "name": "page",
-            "schema": {
-              "type": "integer",
-              "minimum": 1
-            }
-          },
-          {
-            "in": "query",
-            "name": "pageSize",
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 100
-            }
-          }
-        ],
+        "summary": "Danh sách sự kiện đã xuất bản",
         "responses": {
           "200": {
-            "description": "Catalog PUBLISHED phân trang"
-          },
-          "400": {
-            "description": "Filter không hợp lệ"
+            "description": "Tối đa 100 EventDto trong data, xếp theo startTime và id. API này chưa hỗ trợ tìm kiếm hoặc phân trang."
           }
         },
         "operationId": "getApiEvents",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
-        "x-owner": "dong",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
+        "x-owner": "liem",
         "externalDocs": {
-          "description": "Issue giao việc và contract dự kiến",
-          "url": "https://github.com/devonxjz/TicketCenter/issues/8"
+          "description": "Event image workflow task",
+          "url": "https://github.com/devonxjz/TicketCenter/issues/43"
         },
-        "description": "\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "description": "EventApiServlet and EventService. Verified with isolated SQL Server and HTTP fixtures. Production login and hosting are outside this verification.",
         "security": []
       }
     },
@@ -1691,7 +1649,7 @@
         "tags": [
           "Events"
         ],
-        "summary": "Chờ triển khai · Chi tiết sự kiện công khai",
+        "summary": "Chi tiết sự kiện công khai",
         "responses": {
           "200": {
             "description": "Sự kiện PUBLISHED"
@@ -1701,15 +1659,18 @@
           }
         },
         "operationId": "getApiEventsEventId",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
-        "x-owner": "dong",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
+        "x-owner": "liem",
         "externalDocs": {
-          "description": "Issue giao việc và contract dự kiến",
-          "url": "https://github.com/devonxjz/TicketCenter/issues/8"
+          "description": "Event image workflow task",
+          "url": "https://github.com/devonxjz/TicketCenter/issues/43"
         },
-        "description": "\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "description": "EventApiServlet and EventService. Verified with isolated SQL Server and HTTP fixtures. Production login and hosting are outside this verification.",
         "parameters": [
+          {
+            "$ref": "#/components/parameters/EventTarget"
+          },
           {
             "name": "eventId",
             "in": "path",
@@ -1777,70 +1738,6 @@
           "description": "Issue giao việc và contract dự kiến",
           "url": "https://github.com/devonxjz/TicketCenter/issues/10"
         },
-        "description": "\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
-        "parameters": [
-          {
-            "name": "eventId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "security": [
-          {
-            "cookieAuth": [],
-            "csrfToken": [],
-            "idempotencyKey": []
-          }
-        ]
-      }
-    },
-    "/api/events/{eventId}/image": {
-      "post": {
-        "tags": [
-          "Events"
-        ],
-        "summary": "Chờ triển khai · Manager upload hoặc thay ảnh sự kiện qua Cloudinary",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "eventImage"
-                ],
-                "properties": {
-                  "eventImage": {
-                    "type": "string",
-                    "format": "binary"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Ảnh eventImage đã lưu"
-          },
-          "400": {
-            "description": "Ảnh không hợp lệ"
-          },
-          "403": {
-            "description": "Không có quyền manager"
-          },
-          "413": {
-            "description": "Ảnh quá lớn"
-          }
-        },
-        "operationId": "postApiEventsEventIdImage",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
-        "x-owner": "dong",
         "description": "\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
         "parameters": [
           {
@@ -5178,32 +5075,72 @@
         "tags": [
           "Events"
         ],
-        "summary": "Chờ triển khai · Event cover upload qua Cloudinary — POST /api/events/{eventId}/cover",
-        "description": "Contract dự kiến từ issue #11. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "summary": "Manager thay ảnh sự kiện qua Cloudinary",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EventTarget"
+          },
+          {
+            "$ref": "#/components/parameters/EventRequestKey"
+          },
+          {
+            "$ref": "#/components/parameters/EventCsrf"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file",
+                  "expectedVersion"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "expectedVersion": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+            "description": "EventDto trong data"
+          },
+          "400": {
+            "description": "Ảnh không hợp lệ"
+          },
+          "403": {
+            "description": "Không có quyền manager hiện hành"
+          },
+          "409": {
+            "description": "Phiên bản hoặc key xung đột"
+          },
+          "413": {
+            "description": "Ảnh quá lớn"
+          },
+          "502": {
+            "description": "Upload thất bại; ảnh cũ giữ nguyên"
           }
         },
         "operationId": "postApiEventsEventIdCover",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
-        "x-owner": "dong",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
+        "x-owner": "liem",
         "externalDocs": {
-          "description": "Issue giao việc và contract dự kiến",
-          "url": "https://github.com/devonxjz/TicketCenter/issues/11"
+          "description": "Event image workflow task",
+          "url": "https://github.com/devonxjz/TicketCenter/issues/43"
         },
-        "parameters": [
-          {
-            "name": "eventId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
+        "description": "EventApiServlet and EventService. Verified with isolated SQL Server and HTTP fixtures. Production login and hosting are outside this verification.",
         "security": [
           {
             "cookieAuth": [],
@@ -5298,32 +5235,57 @@
         "tags": [
           "Events"
         ],
-        "summary": "Chờ triển khai · Event draft lifecycle và idempotency — POST /api/events/{eventId}/edit",
-        "description": "Contract dự kiến từ issue #9. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "summary": "Manager lưu Event và ảnh trong một thao tác nguyên tử",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EventTarget"
+          },
+          {
+            "$ref": "#/components/parameters/EventRequestKey"
+          },
+          {
+            "$ref": "#/components/parameters/EventCsrf"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/EventMultipart"
+                  },
+                  {
+                    "required": [
+                      "expectedVersion"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+            "description": "EventDto trong data; không chọn file giữ ảnh cũ"
+          },
+          "403": {
+            "description": "Manager hiện hành đúng tổ chức"
+          },
+          "409": {
+            "description": "Event đã thay đổi hoặc không còn DRAFT/REJECTED"
           }
         },
         "operationId": "postApiEventsEventIdEdit",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
-        "x-owner": "dong",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
+        "x-owner": "liem",
         "externalDocs": {
-          "description": "Issue giao việc và contract dự kiến",
-          "url": "https://github.com/devonxjz/TicketCenter/issues/9"
+          "description": "Event image workflow task",
+          "url": "https://github.com/devonxjz/TicketCenter/issues/43"
         },
-        "parameters": [
-          {
-            "name": "eventId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
+        "description": "EventApiServlet and EventService. Verified with isolated SQL Server and HTTP fixtures. Production login and hosting are outside this verification.",
         "security": [
           {
             "cookieAuth": [],
@@ -6403,6 +6365,109 @@
           "description": "Issue giao việc",
           "url": "https://github.com/devonxjz/TicketCenter/issues/33"
         }
+      }
+    },
+    "/api/manager/events": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "Event của Manager hiện hành",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Danh sách EventDto trong data"
+          },
+          "403": {
+            "description": "Manager hiện hành đúng tổ chức"
+          }
+        },
+        "operationId": "getApiManagerEvents",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
+        "x-owner": "liem",
+        "externalDocs": {
+          "description": "Event image workflow task",
+          "url": "https://github.com/devonxjz/TicketCenter/issues/43"
+        },
+        "description": "EventApiServlet and EventService. Verified with isolated SQL Server and HTTP fixtures. Production login and hosting are outside this verification.",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/api/manager/events/{eventId}": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "Event riêng cho editor",
+        "responses": {
+          "200": {
+            "description": "EventDto trong data"
+          },
+          "403": {
+            "description": "Manager hiện hành đúng tổ chức"
+          }
+        },
+        "operationId": "getApiManagerEventsEventId",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
+        "x-owner": "liem",
+        "externalDocs": {
+          "description": "Event image workflow task",
+          "url": "https://github.com/devonxjz/TicketCenter/issues/43"
+        },
+        "description": "EventApiServlet and EventService. Verified with isolated SQL Server and HTTP fixtures. Production login and hosting are outside this verification.",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EventTarget"
+          }
+        ]
+      }
+    },
+    "/api/manager/event-options": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "Tổ chức và danh mục cho editor",
+        "responses": {
+          "200": {
+            "description": "data chứa organizations gồm id/name và categories gồm id/name/slug"
+          }
+        },
+        "operationId": "getApiManagerEventOptions",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
+        "x-owner": "liem",
+        "externalDocs": {
+          "description": "Event image workflow task",
+          "url": "https://github.com/devonxjz/TicketCenter/issues/43"
+        },
+        "description": "EventApiServlet and EventService. Verified with isolated SQL Server and HTTP fixtures. Production login and hosting are outside this verification.",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
       }
     }
   },
@@ -7604,6 +7669,97 @@
           "availableToPay": {
             "$ref": "#/components/schemas/Money"
           }
+        }
+      },
+      "EventMultipart": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "title",
+          "description",
+          "categoryId",
+          "venueName",
+          "venueAddress",
+          "saleStart",
+          "saleEnd",
+          "startTime",
+          "endTime"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 250
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 5000
+          },
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "venueName": {
+            "type": "string",
+            "maxLength": 250
+          },
+          "venueAddress": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "saleStart": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "saleEnd": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "description": "PNG/JPEG tối đa 5 MiB và 12 triệu pixel; tùy chọn, tạo mới thiếu ảnh dùng placeholder danh mục"
+          }
+        }
+      }
+    },
+    "parameters": {
+      "EventTarget": {
+        "name": "eventId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "EventRequestKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "description": "Giữ nguyên key và input khi retry lỗi mạng/upload/database"
+      },
+      "EventCsrf": {
+        "name": "X-CSRF-Token",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
         }
       }
     }
