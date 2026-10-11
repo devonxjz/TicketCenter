@@ -11,7 +11,7 @@ import vn.ticketscenter.report.service.*;
 import vn.ticketscenter.dashboard.service.DashboardService;
 import vn.ticketscenter.settlement.infrastructure.*;
 
-@WebServlet(name="FinanceReportServlet",urlPatterns={"/api/organizations/*","/api/admin/reports","/api/reports/export","/api/reports/options"})
+@WebServlet(name="FinanceReportServlet",urlPatterns={"/api/admin/reports","/api/reports/export","/api/reports/options"})
 public final class ReportServlet extends HttpServlet {
     private ReportService reports;
     private DashboardService overview;
@@ -21,8 +21,9 @@ public final class ReportServlet extends HttpServlet {
             var actor=ReadsideHttp.actor(request);var params=ReadsideHttp.parameters(request);String path=request.getServletPath();
             if(path.equals("/api/reports/options")){ReadsideHttp.json(response,reports.options(actor,ReportFilter.uuid(params.get("organizationId"))));return;}
             UUID org=null;
-            if(path.equals("/api/organizations")){
-                var route=ReadsideHttp.organizationRoute(request.getPathInfo());org=(UUID)route[0];
+            Object organizationRoute=request.getAttribute(OrganizationReadsideRoutesFilter.ROUTE_ATTRIBUTE);
+            if(organizationRoute!=null){
+                var route=ReadsideHttp.organizationRoute((String)organizationRoute);org=(UUID)route[0];
                 if(route[1].equals("overview")){
                     if(!params.isEmpty())throw new FinanceException("INVALID_FILTER",400);
                     try{ReadsideHttp.json(response,overview.organization(actor,org));}

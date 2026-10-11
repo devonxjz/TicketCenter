@@ -24,3 +24,5 @@ Phần tiếp theo của [#33](https://github.com/devonxjz/TicketCenter/issues/3
 Spec có103 operation:41 implemented,59 planned,3 legacy; Vương có20 implemented, không còn operation planned của Vương. Đây là trạng thái hợp đồng/source, không tự hoàn thành toàn bộ #28/#33. Bản kê PR52 tại [VUONG-01-RECONCILIATION](VUONG-01-RECONCILIATION.md) là snapshot trước route này.
 
 Các API hold/order/payment/ticket/scan/refund còn thiếu route bàn giao để chạy chuỗi đăng ký → sự kiện → giữ/mua vé → check-in → quyết toán. Đăng nhập thật, full-WAR/schema/startup/worker, hợp đồng namespace/TTL/QR/IPN và hook cache sau commit giữa các owner vẫn cần nghiệm thu. Provider mô phỏng/session bridge và job bị tắt/skipped không được tính là bằng chứng toàn sàn. #28/#33 và epic giữ mở, tổng hoàn thành4/6.
+
+Cập nhật full WAR sau PR53: bản kiểm toàn ứng dụng phát hiện wildcard tổ chức trùng EventApiServlet. Scope sửa định tuyến, login/session thật và prerequisite runtime JSTL được ghi tại [VUONG-06-FULL-WAR](VUONG-06-FULL-WAR.md); các đoạn mô tả wildcard và login chưa nghiệm thu bên trên là snapshot tại PR53.
