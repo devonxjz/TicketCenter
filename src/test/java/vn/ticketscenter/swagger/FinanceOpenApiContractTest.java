@@ -45,6 +45,8 @@ class FinanceOpenApiContractTest {
         assertFalse(properties.getJSONObject("organizationId").getBoolean("nullable"));
         assertEquals("#/components/schemas/Money",properties.getJSONObject("todayCohortGrossRevenue").getString("$ref"));
         assertEquals("OVERVIEW_UNAVAILABLE",operation.getJSONObject("responses").getJSONObject("503").getJSONArray("x-error-codes").getString(0));
+        assertTrue(operation.getJSONObject("responses").getJSONObject("400").getJSONArray("x-error-codes").toList().contains("INVALID_REPORT_FILTER"));
+        assertTrue(operation.getJSONObject("responses").getJSONObject("401").getJSONArray("x-error-codes").toList().contains("SESSION_EXPIRED"));
         assertEquals("no-store",operation.getJSONObject("responses").getJSONObject("200").getJSONObject("headers").getJSONObject("Cache-Control").getJSONObject("schema").getJSONArray("enum").getString(0));
     }
 }

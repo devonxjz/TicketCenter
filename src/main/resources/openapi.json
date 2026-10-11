@@ -6481,7 +6481,7 @@
             }
           },
           "400": {
-            "description": "INVALID_FILTER; JSON lỗi cố định, không trả chi tiết SQL.",
+            "description": "INVALID_FILTER (query không hỗ trợ/không rõ ràng), INVALID_REPORT_FILTER (UUID sai); JSON lỗi cố định, không trả chi tiết SQL.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6490,11 +6490,12 @@
               }
             },
             "x-error-codes": [
-              "INVALID_FILTER"
+              "INVALID_FILTER",
+              "INVALID_REPORT_FILTER"
             ]
           },
           "401": {
-            "description": "UNAUTHENTICATED; JSON lỗi cố định, không trả chi tiết SQL.",
+            "description": "UNAUTHENTICATED (controller/SQL authority), SESSION_EXPIRED (bộ lọc phiên chung); JSON lỗi cố định, không trả chi tiết SQL.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6503,7 +6504,8 @@
               }
             },
             "x-error-codes": [
-              "UNAUTHENTICATED"
+              "UNAUTHENTICATED",
+              "SESSION_EXPIRED"
             ]
           },
           "403": {

@@ -107,7 +107,7 @@ test('organization overview HTTP denies absent session, other tenant and staff a
  await login(fixture.staff);assert.equal((await request('/api/organizations/'+fixture.otherOrg+'/overview')).status,403);
  await login(fixture.admin);let result=await request('/api/organizations/'+crypto.randomUUID()+'/overview');assert.equal(result.status,404);assert.equal(result.data.error.code,'NOT_FOUND');
  for(const suffix of ['?organizationId='+fixture.otherOrg,'?from=2026-01-01T00:00:00Z','?eventId=A&eventId=B'])assert.equal((await request(path+suffix)).status,400);
- assert.equal((await request(path+'/extra')).status,404);assert.equal((await request('/api/organizations/not-a-uuid/overview')).status,400);
+ assert.equal((await request(path+'/extra')).status,404);result=await request('/api/organizations/not-a-uuid/overview');assert.equal(result.status,400);assert.equal(result.data.error.code,'INVALID_REPORT_FILTER');
 });
 
 test('admin overview HTTP returns real UTC KPI and seven exact-money chart days',async()=>{
