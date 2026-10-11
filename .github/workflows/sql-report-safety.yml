@@ -1,7 +1,7 @@
 name: SQL report security and money regression
 on:
   push:
-    branches: [codex/sql-report-hardening]
+    branches: [dev, codex/sql-report-hardening]
   pull_request:
     branches: [dev, feat/khanh/khanh-02-qr-checkin]
     paths: ['database/migrations/**', 'src/test/java/vn/ticketscenter/database/**', 'src/main/java/vn/ticketscenter/payment/**', 'src/main/java/vn/ticketscenter/fulfillment/**', 'src/main/java/vn/ticketscenter/config/**', 'src/main/java/vn/ticketscenter/identity/security/DatabaseActorFilter.java', 'src/main/java/vn/ticketscenter/event/repository/**', '.github/workflows/sql-report-safety.yml']
