@@ -12,9 +12,10 @@ import java.sql.*;
 import java.time.Instant;
 import java.util.*;
 
-public final class OrderRepository {
+public class OrderRepository {
     private final DataSource buyer;
     public OrderRepository(DataSource buyer) { this.buyer = Objects.requireNonNull(buyer); }
+    public OrderRepository() { this.buyer = null; }
 
     public OrderMutationReceipt mutate(OrderActor actor, OrderCommand command) {
         if (command instanceof OrderCommand.Create create)
@@ -48,6 +49,195 @@ public final class OrderRepository {
             }
             return body;
         }, actor.id(), actor.authVersion(), orderId, couponCode);
+    }
+
+    public record OrderHistoryPage(int page, int size, long total, List<OrderHistoryItemDto> orders) {
+        public String toJson() {
+            String ordersJson = orders.stream().map(OrderHistoryItemDto::toJson).collect(java.util.stream.Collectors.joining(","));
+            return "{\"page\":" + page + ",\"size\":" + size + ",\"total\":" + total + ",\"orders\":[" + ordersJson + "]}";
+        }
+    }
+
+    public OrderHistoryPage findOrdersByBuyerId(UUID buyerId, int page, int size, String statusFilter) {
+        Objects.requireNonNull(buyerId, "buyerId is required");
+        int targetPage = Math.max(1, page);
+        int targetSize = Math.min(50, Math.max(1, size));
+        int offset = (targetPage - 1) * targetSize;
+
+        String countSql = """
+                SELECT COUNT_BIG(*) FROM dbo.tc_orders o WITH (NOLOCK)
+                WHERE o.user_id = ? AND (? IS NULL OR o.status = ?)
+                """;
+        String selectSql = """
+                SELECT o.id, o.order_code, o.event_id, e.title as event_title, e.venue_name, e.start_time,
+                       o.subtotal_amount, o.discount_amount, o.total_amount, o.status,
+                       o.created_at, o.paid_at, c.code as coupon_code,
+                       (SELECT COUNT_BIG(*) FROM dbo.tc_tickets t JOIN dbo.tc_order_items oi ON oi.id = t.order_item_id WHERE oi.order_id = o.id) as ticket_count
+                FROM dbo.tc_orders o WITH (NOLOCK)
+                JOIN dbo.tc_events e WITH (NOLOCK) ON e.id = o.event_id
+                LEFT JOIN dbo.tc_coupons c WITH (NOLOCK) ON c.id = o.coupon_id
+                WHERE o.user_id = ? AND (? IS NULL OR o.status = ?)
+                ORDER BY o.created_at DESC
+                OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+                """;
+
+        long total = 0;
+        List<OrderHistoryItemDto> items = new ArrayList<>();
+
+        try (Connection conn = buyer.getConnection()) {
+            try (PreparedStatement countPs = conn.prepareStatement(countSql)) {
+                countPs.setObject(1, buyerId);
+                countPs.setString(2, statusFilter);
+                countPs.setString(3, statusFilter);
+                try (ResultSet rs = countPs.executeQuery()) {
+                    if (rs.next()) total = rs.getLong(1);
+                }
+            }
+
+            try (PreparedStatement selectPs = conn.prepareStatement(selectSql)) {
+                selectPs.setObject(1, buyerId);
+                selectPs.setString(2, statusFilter);
+                selectPs.setString(3, statusFilter);
+                selectPs.setInt(4, offset);
+                selectPs.setInt(5, targetSize);
+                try (ResultSet rs = selectPs.executeQuery()) {
+                    while (rs.next()) {
+                        Timestamp startTs = rs.getTimestamp("start_time");
+                        Timestamp createdTs = rs.getTimestamp("created_at");
+                        Timestamp paidTs = rs.getTimestamp("paid_at");
+                        items.add(new OrderHistoryItemDto(
+                                UUID.fromString(rs.getString("id")),
+                                rs.getString("order_code"),
+                                rs.getString("event_id") != null ? UUID.fromString(rs.getString("event_id")) : null,
+                                rs.getString("event_title"),
+                                rs.getString("venue_name"),
+                                startTs != null ? startTs.toInstant() : null,
+                                rs.getBigDecimal("subtotal_amount"),
+                                rs.getBigDecimal("discount_amount"),
+                                rs.getBigDecimal("total_amount"),
+                                rs.getString("status"),
+                                createdTs != null ? createdTs.toInstant() : null,
+                                paidTs != null ? paidTs.toInstant() : null,
+                                rs.getString("coupon_code"),
+                                rs.getLong("ticket_count")
+                        ));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            throw OrderException.unavailable();
+        }
+
+        return new OrderHistoryPage(targetPage, targetSize, total, items);
+    }
+
+    public Optional<OrderDetailDto> findOrderDetail(UUID orderId) {
+        Objects.requireNonNull(orderId, "orderId is required");
+        String orderSql = """
+                SELECT o.id, o.user_id as buyer_id, o.order_code, o.event_id, e.title as event_title,
+                       e.venue_name, e.venue_address, e.start_time, e.end_time,
+                       o.subtotal_amount, o.discount_amount, o.total_amount, o.status,
+                       o.created_at, o.paid_at, c.code as coupon_code,
+                       p.status as payment_status, p.txn_ref, p.provider_reference, p.captured_at
+                FROM dbo.tc_orders o WITH (NOLOCK)
+                JOIN dbo.tc_events e WITH (NOLOCK) ON e.id = o.event_id
+                LEFT JOIN dbo.tc_coupons c WITH (NOLOCK) ON c.id = o.coupon_id
+                LEFT JOIN dbo.tc_payments p WITH (NOLOCK) ON p.id = o.accepted_payment_id
+                WHERE o.id = ?
+                """;
+        String itemsSql = """
+                SELECT oi.id, oi.zone_name_snapshot, oi.seat_label_snapshot, oi.quantity, oi.unit_price,
+                       (oi.quantity * oi.unit_price) as line_total
+                FROM dbo.tc_order_items oi WITH (NOLOCK)
+                WHERE oi.order_id = ?
+                """;
+        String ticketsSql = """
+                SELECT t.id, t.ticket_code, t.status, t.paid_amount
+                FROM dbo.tc_tickets t WITH (NOLOCK)
+                JOIN dbo.tc_order_items oi WITH (NOLOCK) ON oi.id = t.order_item_id
+                WHERE oi.order_id = ?
+                ORDER BY t.issued_at ASC
+                """;
+
+        try (Connection conn = buyer.getConnection()) {
+            UUID buyerId;
+            String orderCode, eventTitle, venueName, venueAddress, status, couponCode, paymentStatus, txnRef, providerRef;
+            UUID eventId;
+            BigDecimal subtotal, discount, total;
+            Instant startTime, endTime, createdAt, paidAt, paymentCapturedAt;
+
+            try (PreparedStatement ps = conn.prepareStatement(orderSql)) {
+                ps.setObject(1, orderId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) return Optional.empty();
+                    buyerId = UUID.fromString(rs.getString("buyer_id"));
+                    orderCode = rs.getString("order_code");
+                    eventId = rs.getString("event_id") != null ? UUID.fromString(rs.getString("event_id")) : null;
+                    eventTitle = rs.getString("event_title");
+                    venueName = rs.getString("venue_name");
+                    venueAddress = rs.getString("venue_address");
+                    Timestamp st = rs.getTimestamp("start_time");
+                    startTime = st != null ? st.toInstant() : null;
+                    Timestamp et = rs.getTimestamp("end_time");
+                    endTime = et != null ? et.toInstant() : null;
+                    subtotal = rs.getBigDecimal("subtotal_amount");
+                    discount = rs.getBigDecimal("discount_amount");
+                    total = rs.getBigDecimal("total_amount");
+                    status = rs.getString("status");
+                    Timestamp ct = rs.getTimestamp("created_at");
+                    createdAt = ct != null ? ct.toInstant() : null;
+                    Timestamp pt = rs.getTimestamp("paid_at");
+                    paidAt = pt != null ? pt.toInstant() : null;
+                    couponCode = rs.getString("coupon_code");
+                    paymentStatus = rs.getString("payment_status");
+                    txnRef = rs.getString("txn_ref");
+                    providerRef = rs.getString("provider_reference");
+                    Timestamp cap = rs.getTimestamp("captured_at");
+                    paymentCapturedAt = cap != null ? cap.toInstant() : null;
+                }
+            }
+
+            List<OrderDetailDto.OrderItemDetail> items = new ArrayList<>();
+            try (PreparedStatement ps = conn.prepareStatement(itemsSql)) {
+                ps.setObject(1, orderId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        items.add(new OrderDetailDto.OrderItemDetail(
+                                UUID.fromString(rs.getString("id")),
+                                rs.getString("zone_name_snapshot"),
+                                rs.getString("seat_label_snapshot"),
+                                rs.getInt("quantity"),
+                                rs.getBigDecimal("unit_price"),
+                                rs.getBigDecimal("line_total")
+                        ));
+                    }
+                }
+            }
+
+            List<OrderDetailDto.OrderTicketDetail> tickets = new ArrayList<>();
+            try (PreparedStatement ps = conn.prepareStatement(ticketsSql)) {
+                ps.setObject(1, orderId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        tickets.add(new OrderDetailDto.OrderTicketDetail(
+                                UUID.fromString(rs.getString("id")),
+                                rs.getString("ticket_code"),
+                                rs.getString("status"),
+                                rs.getLong("paid_amount")
+                        ));
+                    }
+                }
+            }
+
+            return Optional.of(new OrderDetailDto(
+                    orderId, buyerId, orderCode, eventId, eventTitle, venueName, venueAddress,
+                    startTime, endTime, subtotal, discount, total, status, createdAt, paidAt,
+                    couponCode, paymentStatus, txnRef, providerRef, paymentCapturedAt,
+                    items, tickets
+            ));
+        } catch (SQLException e) {
+            throw OrderException.unavailable();
+        }
     }
 
     public static CurrentCheckout checkout(String body) {

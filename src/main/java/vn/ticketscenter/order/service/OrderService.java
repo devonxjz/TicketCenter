@@ -33,4 +33,20 @@ public final class OrderService {
         return current;
     }
     public String eligibility(OrderActor actor, UUID orderId, String couponCode) { return repository.eligibility(actor, orderId, couponCode); }
+
+    public OrderRepository.OrderHistoryPage orderHistory(OrderActor actor, int page, int size, String status) {
+        Objects.requireNonNull(actor, "actor is required");
+        return repository.findOrdersByBuyerId(actor.id(), page, size, status);
+    }
+
+    public OrderDetailDto orderDetail(OrderActor actor, UUID orderId) {
+        Objects.requireNonNull(actor, "actor is required");
+        Objects.requireNonNull(orderId, "orderId is required");
+        OrderDetailDto detail = repository.findOrderDetail(orderId)
+                .orElseThrow(() -> new OrderException(404, "ORDER_NOT_FOUND", "Order was not found."));
+        if (!actor.id().equals(detail.buyerId())) {
+            throw new OrderException(403, "FORBIDDEN", "You do not own this order.");
+        }
+        return detail;
+    }
 }

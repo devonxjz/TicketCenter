@@ -10,7 +10,7 @@ import vn.ticketscenter.order.service.*;
 import java.io.IOException;
 import java.util.*;
 
-@WebServlet(urlPatterns = {"/api/orders", "/api/orders/*", "/api/checkout"})
+@WebServlet(urlPatterns = {"/api/orders", "/api/orders/*", "/api/checkout", "/api/me/orders"})
 public final class OrderApiServlet extends HttpServlet {
     private final OrderService supplied;
     private final vn.ticketscenter.payment.service.PaymentService suppliedPayment;
@@ -55,11 +55,19 @@ public final class OrderApiServlet extends HttpServlet {
                 response.setStatus(receipt.httpStatus()); response.getWriter().write(receipt.body());
             } else if (request.getMethod().equals("GET") && path.equals("/api/checkout")) {
                 response.getWriter().write(service().checkout(actor, uuid(parameter(request, "holdId"))).body());
+            } else if (request.getMethod().equals("GET") && path.equals("/api/me/orders")) {
+                int page = parsePositiveInt(request.getParameter("page"), 1);
+                int size = parsePositiveInt(request.getParameter("size"), 10);
+                String status = request.getParameter("status");
+                response.getWriter().write(service().orderHistory(actor, page, size, status).toJson());
             } else if (request.getMethod().equals("GET") && path.matches("/api/orders/[^/]+/coupon-eligibility")) {
                 response.getWriter().write(service().eligibility(actor, uuid(path.split("/")[3]), parameter(request, "couponCode")));
             } else if (request.getMethod().equals("GET") && path.matches("/api/orders/[^/]+/payment-status")) {
                 var paymentStatus = paymentService().getOrderPaymentStatus(actor.id(), uuid(path.split("/")[3]));
                 response.getWriter().write(paymentStatus.toJson());
+            } else if (request.getMethod().equals("GET") && path.matches("/api/orders/[^/]+")) {
+                UUID orderId = uuid(path.split("/")[3]);
+                response.getWriter().write(service().orderDetail(actor, orderId).toJson());
             } else throw missing();
         } catch (OrderException failure) { HttpResponses.error(response, failure.status(), failure.code(), failure.getMessage()); }
         catch (vn.ticketscenter.payment.service.PaymentException failure) { HttpResponses.error(response, failure.status(), failure.code(), failure.getMessage()); }
@@ -88,4 +96,13 @@ public final class OrderApiServlet extends HttpServlet {
     }
     private static OrderException invalid() { return new OrderException(400, "INVALID_REQUEST", "Invalid Order request."); }
     private static OrderException missing() { return new OrderException(404, "NOT_FOUND", "Order endpoint was not found."); }
+    private static int parsePositiveInt(String val, int def) {
+        if (val == null || val.isBlank()) return def;
+        try {
+            int parsed = Integer.parseInt(val);
+            return parsed > 0 ? parsed : def;
+        } catch (NumberFormatException e) {
+            return def;
+        }
+    }
 }
