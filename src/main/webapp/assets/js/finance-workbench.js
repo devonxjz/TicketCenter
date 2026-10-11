@@ -100,7 +100,7 @@
         const [next, blocked] = await Promise.all([api('/api/admin/events/' + eventId + '/settlement'), api('/api/admin/events/' + eventId + '/settlement-blockers')]);
         if (own !== generation) return false; summary = next; blockers = blocked.items;
         for (const [label, value] of [['Trạng thái',next.status],['Doanh thu',money(next.grossRevenue)],['Đã hoàn vé',money(next.totalRefund)],['Hoa hồng',money(next.totalCommission)],['Thực trả',money(next.netPayable)],['Đã chi trả',money(next.paidAmount)],['Đang chờ',money(next.pendingAmount)],['Có thể chi trả',money(next.availableToPay)]]) {
-          const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = label; dd.textContent = value; document.getElementById('summary').append(dt, dd);
+          const card = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); card.className = 'finance-stat'; dt.textContent = label; dd.textContent = value; card.append(dt, dd); document.getElementById('summary').append(card);
         }
         for (const item of blocked.items) { const li = document.createElement('li'); li.textContent = item.detail; document.getElementById('blockers').appendChild(li); }
         if (!blocked.items.length) { const li = document.createElement('li'); li.textContent = 'Không còn giao dịch cần giải quyết.'; document.getElementById('blockers').appendChild(li); }
