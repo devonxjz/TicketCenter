@@ -181,7 +181,7 @@ public class PaymentService {
             } catch (NumberFormatException ignored) { }
         }
 
-        Optional<PaymentRepository.PaymentRecord> maybePayment = (txnRef != null && !txnRef.isBlank())
+        Optional<PaymentRepository.PaymentRecord> maybePayment = (validSignature && txnRef != null && !txnRef.isBlank())
                 ? repository.findPaymentByTxnRef(txnRef)
                 : Optional.empty();
 

@@ -1,0 +1,71 @@
+name: SQL report security and money regression
+on:
+  push:
+    branches: [dev, codex/sql-report-hardening]
+  pull_request:
+    branches: [dev, feat/khanh/khanh-02-qr-checkin]
+    paths: ['database/migrations/**', 'src/test/java/vn/ticketscenter/database/**', 'src/main/java/vn/ticketscenter/payment/**', 'src/main/java/vn/ticketscenter/fulfillment/**', 'src/main/java/vn/ticketscenter/config/**', 'src/main/java/vn/ticketscenter/identity/security/DatabaseActorFilter.java', 'src/main/java/vn/ticketscenter/event/repository/**', '.github/workflows/sql-report-safety.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sql-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      sql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: 'Y'
+          MSSQL_SA_PASSWORD: ${{ format('SqlReport_{0}_Aa!', github.run_id) }}
+        ports: ['1433:1433']
+    env:
+      TC_SQL_REPORT_TEST: 'true'
+      TC_SCAN_INTEGRATION: 'true'
+      TC_SCAN_TEST_URL: 'jdbc:sqlserver://127.0.0.1:1433;databaseName=TicketCenter_Khanh02_Test;encrypt=true;trustServerCertificate=true;loginTimeout=5'
+      TC_SCAN_SA_PASSWORD: ${{ format('SqlReport_{0}_Aa!', github.run_id) }}
+      TC_SCAN_OWNER_USER: khanh02_owner
+      TC_SCAN_CHECKIN_USER: khanh02_checkin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: oracle
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate disposable credentials
+        shell: python
+        run: |
+          import os, secrets
+          values = {key: 'K02!' + secrets.token_hex(24) for key in ('TC_SCAN_OWNER_PASSWORD','TC_SCAN_CHECKIN_PASSWORD','TC_SCAN_FIXTURE_PASSWORD','TC_TICKET_SIGNING_SECRET')}
+          for value in [os.environ['TC_SCAN_SA_PASSWORD'], *values.values()]:
+              print('::add-mask::' + value)
+          with open(os.environ['GITHUB_ENV'], 'a') as out:
+              for key, value in values.items(): out.write(key + '=' + value + '\n')
+      - name: Build test harness
+        run: mvn -B -DskipTests test-compile dependency:build-classpath -Dmdep.outputFile=target/sql-report-classpath.txt -Dmdep.includeScope=test
+      - name: Wait for isolated SQL Server
+        run: |
+          set -euo pipefail
+          container=$(docker ps -q --filter ancestor=mcr.microsoft.com/mssql/server:2022-latest)
+          ready=false
+          for attempt in $(seq 1 30); do
+            if docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$TC_SCAN_SA_PASSWORD" -C -b -Q 'SELECT 1' >/dev/null 2>&1; then ready=true; break; fi
+            sleep 2
+          done
+          test "$ready" = true
+      - name: Install canonical schema and all report migrations atomically
+        run: java -cp "target/test-classes:target/classes:$(cat target/sql-report-classpath.txt)" vn.ticketscenter.database.SqlReportCiSetup
+      - name: Test role boundaries, races, refunds, settlement, 1000 holds and check-in regression
+        run: mvn -B test -Djunit.jupiter.extensions.autodetection.enabled=false -Dtest=SqlReportSafetyIT,TicketCheckInSqlServerTest,PaymentCrossDomainSqlTest,TicketQrInteroperabilityTest
+      - name: Require actual SQL execution without skips
+        if: always()
+        run: node src/test/scripts/test-report-summary.cjs target/surefire-reports --require-no-skips --require-suite=vn.ticketscenter.database.SqlReportSafetyIT --require-suite=vn.ticketscenter.database.PaymentCrossDomainSqlTest --require-suite=vn.ticketscenter.fulfillment.checkin.security.TicketQrInteroperabilityTest --require-suite=vn.ticketscenter.fulfillment.checkin.integration.TicketCheckInSqlServerTest --summary="$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sql-report-safety
+          path: target/surefire-reports/

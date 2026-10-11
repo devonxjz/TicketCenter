@@ -55,7 +55,14 @@ Copy-Item -LiteralPath $JstlApiJar -Destination (Join-Path $run 'lib')
 Copy-Item -LiteralPath $JstlImplementationJar -Destination (Join-Path $run 'lib')
 $app=Join-Path $run 'webapps/ticketscenter'
 [IO.Compression.ZipFile]::ExtractToDirectory((Join-Path $repo 'target/ticketscenter.war'),$app)
-if(Test-Path -LiteralPath (Join-Path $app 'WEB-INF/web.xml')) { throw 'Unexpected deployment descriptor: inspect annotation scanning before proceeding.' }
+if(Test-Path -LiteralPath (Join-Path $app 'WEB-INF/web.xml')) {
+ $xmlSettings=[Xml.XmlReaderSettings]::new();$xmlSettings.DtdProcessing=[Xml.DtdProcessing]::Prohibit;$xmlSettings.XmlResolver=$null
+ $xmlReader=[Xml.XmlReader]::Create((Join-Path $app 'WEB-INF/web.xml'),$xmlSettings)
+ try { $descriptor=[Xml.XmlDocument]::new();$descriptor.XmlResolver=$null;$descriptor.Load($xmlReader) } finally { $xmlReader.Dispose() }
+ if($descriptor.DocumentElement.LocalName -ne 'web-app' -or $descriptor.DocumentElement.GetAttribute('metadata-complete') -ne 'false') {
+  throw 'Full WAR must retain annotation scanning.'
+ }
+}
 $adminPassword=[Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(24))
 $config=[ordered]@{
  'db.host'='127.0.0.1';'db.port'='1433';'db.name'=$fixture.database;'db.url'=$jdbcUrl;'db.user'=$fixture.user;'db.password'=$fixture.password;
