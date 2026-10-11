@@ -64,15 +64,9 @@ public class TicketRepository {
     public List<TicketSummaryDto> findTicketsByBuyerId(UUID buyerId) {
         Objects.requireNonNull(buyerId, "buyerId is required");
         String sql = """
-                SELECT t.id, t.ticket_code, t.paid_amount, t.status, t.issued_at, t.version,
-                       oi.order_id, oi.zone_name_snapshot, oi.seat_label_snapshot,
-                       e.title AS event_title, e.venue_name, e.start_time
-                FROM dbo.tc_tickets t WITH (NOLOCK)
-                JOIN dbo.tc_order_items oi WITH (NOLOCK) ON oi.id = t.order_item_id
-                JOIN dbo.tc_orders o WITH (NOLOCK) ON o.id = oi.order_id
-                JOIN dbo.tc_events e WITH (NOLOCK) ON e.id = o.event_id
-                WHERE o.user_id = ?
-                ORDER BY t.issued_at DESC
+                SELECT id,ticket_code,paid_amount,status,issued_at,version,
+                       order_id,zone_name_snapshot,seat_label_snapshot,event_title,venue_name,start_time
+                FROM dbo.vw_TicketRuntimeDetails WHERE buyer_id=? ORDER BY issued_at DESC
                 """;
 
         List<TicketSummaryDto> result = new ArrayList<>();
@@ -87,12 +81,12 @@ public class TicketRepository {
                             rs.getString("ticket_code"),
                             rs.getString("event_title"),
                             rs.getString("venue_name"),
-                            toInstant(rs.getTimestamp("start_time")),
+                            toInstant(rs.getTimestamp("start_time", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
                             rs.getString("zone_name_snapshot"),
                             rs.getString("seat_label_snapshot"),
                             rs.getLong("paid_amount"),
                             rs.getString("status"),
-                            toInstant(rs.getTimestamp("issued_at")),
+                            toInstant(rs.getTimestamp("issued_at", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
                             rs.getLong("version")
                     ));
                 }
@@ -109,15 +103,7 @@ public class TicketRepository {
     public Optional<TicketRecord> findById(UUID ticketId) {
         Objects.requireNonNull(ticketId, "ticketId is required");
         String sql = """
-                SELECT t.id, t.ticket_code, t.paid_amount, t.status, t.issued_at, t.version,
-                       oi.order_id, oi.zone_name_snapshot, oi.seat_label_snapshot,
-                       o.order_code, o.user_id AS buyer_id,
-                       e.id AS event_id, e.title AS event_title, e.venue_name, e.venue_address, e.start_time, e.end_time
-                FROM dbo.tc_tickets t WITH (NOLOCK)
-                JOIN dbo.tc_order_items oi WITH (NOLOCK) ON oi.id = t.order_item_id
-                JOIN dbo.tc_orders o WITH (NOLOCK) ON o.id = oi.order_id
-                JOIN dbo.tc_events e WITH (NOLOCK) ON e.id = o.event_id
-                WHERE t.id = ?
+                SELECT * FROM dbo.vw_TicketRuntimeDetails WHERE id=?
                 """;
 
         try (Connection conn = dataSource.getConnection();
@@ -135,13 +121,13 @@ public class TicketRepository {
                             rs.getString("event_title"),
                             rs.getString("venue_name"),
                             rs.getString("venue_address"),
-                            toInstant(rs.getTimestamp("start_time")),
-                            toInstant(rs.getTimestamp("end_time")),
+                            toInstant(rs.getTimestamp("start_time", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
+                            toInstant(rs.getTimestamp("end_time", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
                             rs.getString("zone_name_snapshot"),
                             rs.getString("seat_label_snapshot"),
                             rs.getLong("paid_amount"),
                             rs.getString("status"),
-                            toInstant(rs.getTimestamp("issued_at")),
+                            toInstant(rs.getTimestamp("issued_at", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
                             rs.getLong("version")
                     ));
                 }
@@ -158,16 +144,7 @@ public class TicketRepository {
     public List<TicketRecord> findTicketsByOrderId(UUID orderId) {
         Objects.requireNonNull(orderId, "orderId is required");
         String sql = """
-                SELECT t.id, t.ticket_code, t.paid_amount, t.status, t.issued_at, t.version,
-                       oi.order_id, oi.zone_name_snapshot, oi.seat_label_snapshot,
-                       o.order_code, o.user_id AS buyer_id,
-                       e.id AS event_id, e.title AS event_title, e.venue_name, e.venue_address, e.start_time, e.end_time
-                FROM dbo.tc_tickets t WITH (NOLOCK)
-                JOIN dbo.tc_order_items oi WITH (NOLOCK) ON oi.id = t.order_item_id
-                JOIN dbo.tc_orders o WITH (NOLOCK) ON o.id = oi.order_id
-                JOIN dbo.tc_events e WITH (NOLOCK) ON e.id = o.event_id
-                WHERE o.id = ?
-                ORDER BY t.issued_at ASC
+                SELECT * FROM dbo.vw_TicketRuntimeDetails WHERE order_id=? ORDER BY issued_at ASC
                 """;
 
         List<TicketRecord> result = new ArrayList<>();
@@ -186,13 +163,13 @@ public class TicketRepository {
                             rs.getString("event_title"),
                             rs.getString("venue_name"),
                             rs.getString("venue_address"),
-                            toInstant(rs.getTimestamp("start_time")),
-                            toInstant(rs.getTimestamp("end_time")),
+                            toInstant(rs.getTimestamp("start_time", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
+                            toInstant(rs.getTimestamp("end_time", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
                             rs.getString("zone_name_snapshot"),
                             rs.getString("seat_label_snapshot"),
                             rs.getLong("paid_amount"),
                             rs.getString("status"),
-                            toInstant(rs.getTimestamp("issued_at")),
+                            toInstant(rs.getTimestamp("issued_at", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
                             rs.getLong("version")
                     ));
                 }

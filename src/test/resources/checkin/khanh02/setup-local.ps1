@@ -19,8 +19,8 @@ try {
  $protected | Export-Clixml -LiteralPath $file
 }finally{$cn.Dispose()}
 & ./src/test/resources/checkin/khanh02/apply-base-local.ps1
-& sqlcmd -S . -E -I -d $database -b -f 65001 -i database/migrations/030_khanh02_signed_checkin.sql
+& sqlcmd -S . -E -C -I -d $database -b -f 65001 -i database/migrations/030_khanh02_signed_checkin.sql
 if($LASTEXITCODE -ne 0){throw 'KHANH-02 migration failed'}
-& sqlcmd -S . -E -I -d $database -b -Q 'ALTER ROLE tc_checkin ADD MEMBER khanh02_checkin; GRANT VIEW DEFINITION TO khanh02_checkin;'
+& sqlcmd -S . -E -C -I -d $database -b -Q 'ALTER ROLE tc_checkin ADD MEMBER khanh02_checkin; GRANT VIEW DEFINITION TO khanh02_checkin;'
 if($LASTEXITCODE -ne 0){throw 'Restricted fixture role failed'}
 Write-Output 'Dedicated local KHANH-02 database, SQL checks and restricted staff principal ready.'

@@ -4,7 +4,7 @@ on:
     branches: [codex/sql-report-hardening]
   pull_request:
     branches: [dev, feat/khanh/khanh-02-qr-checkin]
-    paths: ['database/migrations/03*_sql_report_*.sql', 'src/test/java/vn/ticketscenter/database/**', 'src/main/java/vn/ticketscenter/config/persistence/**', 'src/main/java/vn/ticketscenter/identity/security/DatabaseActorFilter.java', 'src/main/java/vn/ticketscenter/event/repository/**', '.github/workflows/sql-report-safety.yml']
+    paths: ['database/migrations/**', 'src/test/java/vn/ticketscenter/database/**', 'src/main/java/vn/ticketscenter/payment/**', 'src/main/java/vn/ticketscenter/fulfillment/**', 'src/main/java/vn/ticketscenter/config/**', 'src/main/java/vn/ticketscenter/identity/security/DatabaseActorFilter.java', 'src/main/java/vn/ticketscenter/event/repository/**', '.github/workflows/sql-report-safety.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -60,10 +60,10 @@ jobs:
       - name: Install canonical schema and all report migrations atomically
         run: java -cp "target/test-classes:target/classes:$(cat target/sql-report-classpath.txt)" vn.ticketscenter.database.SqlReportCiSetup
       - name: Test role boundaries, races, refunds, settlement, 1000 holds and check-in regression
-        run: mvn -B test -Djunit.jupiter.extensions.autodetection.enabled=false -Dtest=SqlReportSafetyIT,TicketCheckInSqlServerTest
+        run: mvn -B test -Djunit.jupiter.extensions.autodetection.enabled=false -Dtest=SqlReportSafetyIT,TicketCheckInSqlServerTest,PaymentCrossDomainSqlTest,TicketQrInteroperabilityTest
       - name: Require actual SQL execution without skips
         if: always()
-        run: node src/test/scripts/test-report-summary.cjs target/surefire-reports --require-no-skips --require-suite=vn.ticketscenter.database.SqlReportSafetyIT --require-suite=vn.ticketscenter.fulfillment.checkin.integration.TicketCheckInSqlServerTest --summary="$GITHUB_STEP_SUMMARY"
+        run: node src/test/scripts/test-report-summary.cjs target/surefire-reports --require-no-skips --require-suite=vn.ticketscenter.database.SqlReportSafetyIT --require-suite=vn.ticketscenter.database.PaymentCrossDomainSqlTest --require-suite=vn.ticketscenter.fulfillment.checkin.security.TicketQrInteroperabilityTest --require-suite=vn.ticketscenter.fulfillment.checkin.integration.TicketCheckInSqlServerTest --summary="$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

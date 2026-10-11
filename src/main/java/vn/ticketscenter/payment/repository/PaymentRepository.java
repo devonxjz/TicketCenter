@@ -12,9 +12,15 @@ import java.util.UUID;
 
 public class PaymentRepository {
     private final DataSource buyer;
+    private final DataSource worker;
 
     public PaymentRepository(DataSource buyer) {
+        this(buyer,buyer);
+    }
+
+    public PaymentRepository(DataSource buyer, DataSource worker) {
         this.buyer = Objects.requireNonNull(buyer, "buyer DataSource is required");
+        this.worker = Objects.requireNonNull(worker, "worker DataSource is required");
     }
 
     public record PaymentIntent(
@@ -46,11 +52,8 @@ public class PaymentRepository {
         try (Connection conn = buyer.getConnection();
              PreparedStatement ps = conn.prepareStatement(
                      """
-                     SELECT o.order_code, o.total_amount, h.expires_at, o.status, h.status as hold_status, e.status as event_status
-                     FROM dbo.tc_orders o WITH (NOLOCK)
-                     JOIN dbo.tc_ticket_holds h WITH (NOLOCK) ON h.id = o.hold_id
-                     JOIN dbo.tc_events e WITH (NOLOCK) ON e.id = o.event_id
-                     WHERE o.id = ? AND o.user_id = ?
+                     SELECT order_code,total_amount,expires_at,order_status AS status,hold_status,event_status
+                     FROM dbo.vw_PaymentOrderContext WHERE order_id=? AND user_id=?
                      """)) {
             ps.setObject(1, orderId);
             ps.setObject(2, actorId);
@@ -61,7 +64,7 @@ public class PaymentRepository {
                 String ordStatus = rs.getString("status");
                 String holdStatus = rs.getString("hold_status");
                 String evtStatus = rs.getString("event_status");
-                Timestamp expiresAt = rs.getTimestamp("expires_at");
+                Timestamp expiresAt = rs.getTimestamp("expires_at", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")));
 
                 if (!"PENDING_PAYMENT".equals(ordStatus) || !"ACTIVE".equals(holdStatus)) {
                     throw PaymentException.orderNotPayable();
@@ -91,7 +94,7 @@ public class PaymentRepository {
 
         // 2. Gọi procedure usp_BeginOrderPayment
         return call("EXEC dbo.usp_BeginOrderPayment ?, ?", rows -> {
-            UUID pid = (UUID) rows.getObject("payment_id");
+            UUID pid = UUID.fromString(rows.getString("payment_id"));
             String txn = rows.getString("txn_ref");
             BigDecimal amt = rows.getBigDecimal("amount");
             String curr = rows.getString("currency").trim();
@@ -103,14 +106,12 @@ public class PaymentRepository {
         Objects.requireNonNull(orderId, "orderId is required");
         Objects.requireNonNull(actorId, "actorId is required");
 
-        String verifiedResult = "{\"status\":\"CAPTURED\",\"providerReference\":\"ZERO_PAYMENT\"}";
+        String ticketsJson = generateTicketsForOrder(orderId,buyer);
         try (Connection conn = buyer.getConnection();
-             CallableStatement cs = conn.prepareCall("{call dbo.usp_ApplyPaymentResult(?, ?, ?, ?, ?)}")) {
+             CallableStatement cs = conn.prepareCall("{call dbo.usp_CompleteFreeOrder(?, ?, ?)}")) {
             cs.setObject(1, orderId);
             cs.setObject(2, actorId);
-            cs.setNull(3, Types.OTHER);
-            cs.setString(4, verifiedResult);
-            cs.setString(5, "[]");
+            cs.setString(3, ticketsJson);
             cs.execute();
         } catch (SQLException failure) {
             PaymentException mapped = domain(failure);
@@ -126,12 +127,10 @@ public class PaymentRepository {
         try (Connection conn = buyer.getConnection();
              PreparedStatement ps = conn.prepareStatement(
                      """
-                     SELECT TOP 1 p.id, p.txn_ref, p.amount, o.order_code, h.expires_at
-                     FROM dbo.tc_payments p WITH (NOLOCK)
-                     JOIN dbo.tc_orders o WITH (NOLOCK) ON o.id = p.order_id
-                     JOIN dbo.tc_ticket_holds h WITH (NOLOCK) ON h.id = o.hold_id
-                     WHERE p.order_id = ? AND o.user_id = ? AND p.status IN ('PENDING', 'UNKNOWN')
-                     ORDER BY p.created_at DESC
+                     SELECT TOP 1 payment_id AS id,txn_ref,amount,order_code,expires_at
+                     FROM dbo.vw_PaymentRuntimeDetails
+                     WHERE order_id=? AND user_id=? AND payment_status IN ('PENDING','UNKNOWN')
+                     ORDER BY created_at DESC
                      """)) {
             ps.setObject(1, orderId);
             ps.setObject(2, actorId);
@@ -139,11 +138,11 @@ public class PaymentRepository {
                 if (!rs.next()) {
                     return Optional.empty();
                 }
-                UUID pid = (UUID) rs.getObject("id");
+                UUID pid = UUID.fromString(rs.getString("id"));
                 String txn = rs.getString("txn_ref");
                 BigDecimal amt = rs.getBigDecimal("amount");
                 String code = rs.getString("order_code");
-                Timestamp expires = rs.getTimestamp("expires_at");
+                Timestamp expires = rs.getTimestamp("expires_at", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")));
                 Duration remaining = Duration.ofMillis(Math.max(1000, expires.getTime() - System.currentTimeMillis()));
                 return Optional.of(new PaymentIntent(pid, txn, amt, "VND", code, remaining));
             }
@@ -169,29 +168,27 @@ public class PaymentRepository {
 
     public Optional<PaymentRecord> findPaymentByTxnRef(String txnRef) {
         if (txnRef == null || txnRef.isBlank()) return Optional.empty();
-        try (Connection conn = buyer.getConnection();
+        try (Connection conn = worker.getConnection();
              PreparedStatement ps = conn.prepareStatement(
                      """
-                     SELECT p.id as payment_id, p.order_id, o.user_id, p.txn_ref, p.amount, p.currency,
-                            p.status as payment_status, o.status as order_status, o.total_amount, p.paid_at
-                     FROM dbo.tc_payments p WITH (NOLOCK)
-                     JOIN dbo.tc_orders o WITH (NOLOCK) ON o.id = p.order_id
-                     WHERE p.txn_ref = ?
+                     SELECT payment_id,order_id,user_id,txn_ref,amount,currency,
+                            payment_status,order_status,total_amount,paid_at
+                     FROM dbo.vw_PaymentRuntimeDetails WHERE txn_ref=?
                      """)) {
             ps.setString(1, txnRef.trim());
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) return Optional.empty();
                 return Optional.of(new PaymentRecord(
-                        (UUID) rs.getObject("payment_id"),
-                        (UUID) rs.getObject("order_id"),
-                        (UUID) rs.getObject("user_id"),
+                        UUID.fromString(rs.getString("payment_id")),
+                        UUID.fromString(rs.getString("order_id")),
+                        UUID.fromString(rs.getString("user_id")),
                         rs.getString("txn_ref"),
                         rs.getBigDecimal("amount"),
                         rs.getString("currency"),
                         rs.getString("payment_status"),
                         rs.getString("order_status"),
                         rs.getBigDecimal("total_amount"),
-                        rs.getTimestamp("paid_at")
+                        rs.getTimestamp("paid_at", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))
                 ));
             }
         } catch (SQLException failure) {
@@ -207,26 +204,27 @@ public class PaymentRepository {
         try (Connection conn = buyer.getConnection();
              PreparedStatement ps = conn.prepareStatement(
                      """
-                     SELECT TOP 1 o.id as order_id, o.status as order_status, o.total_amount,
-                            p.id as payment_id, p.status as payment_status, p.amount as payment_amount,
+                     SELECT TOP 1 o.order_id,o.order_status,o.total_amount,
+                            p.payment_id,p.payment_status,p.amount as payment_amount,
                             p.currency, p.paid_at
-                     FROM dbo.tc_orders o WITH (NOLOCK)
-                     LEFT JOIN dbo.tc_payments p WITH (NOLOCK) ON p.order_id = o.id
-                     WHERE o.id = ? AND o.user_id = ?
+                     FROM dbo.vw_PaymentOrderContext o
+                     LEFT JOIN dbo.vw_PaymentRuntimeDetails p ON p.order_id=o.order_id
+                     WHERE o.order_id = ? AND o.user_id = ?
                      ORDER BY p.created_at DESC
                      """)) {
             ps.setObject(1, orderId);
             ps.setObject(2, actorId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) return Optional.empty();
-                UUID oid = (UUID) rs.getObject("order_id");
+                UUID oid = UUID.fromString(rs.getString("order_id"));
                 String ordStatus = rs.getString("order_status");
-                UUID pid = (UUID) rs.getObject("payment_id");
+                String paymentId=rs.getString("payment_id");
+                UUID pid = paymentId==null?null:UUID.fromString(paymentId);
                 String payStatus = rs.getString("payment_status");
                 BigDecimal amt = rs.getBigDecimal("payment_amount");
                 if (amt == null) amt = rs.getBigDecimal("total_amount");
                 String curr = rs.getString("currency");
-                Timestamp paidAt = rs.getTimestamp("paid_at");
+                Timestamp paidAt = rs.getTimestamp("paid_at", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")));
                 return Optional.of(new vn.ticketscenter.payment.dto.PaymentStatusResult(
                         oid,
                         ordStatus,
@@ -251,7 +249,7 @@ public class PaymentRepository {
 
         String ticketsJson = "[]";
         if ("CAPTURED".equals(status)) {
-            ticketsJson = generateTicketsForOrder(orderId);
+            ticketsJson = generateTicketsForOrder(orderId,worker);
         }
 
         org.json.JSONObject verifiedResultJson = new org.json.JSONObject();
@@ -259,7 +257,7 @@ public class PaymentRepository {
         verifiedResultJson.put("providerReference", providerReference != null ? providerReference : "VNPAY");
         String verifiedResult = verifiedResultJson.toString();
 
-        try (Connection conn = buyer.getConnection();
+        try (Connection conn = worker.getConnection();
              CallableStatement cs = conn.prepareCall("{call dbo.usp_ApplyPaymentResult(?, ?, ?, ?, ?)}")) {
             cs.setObject(1, orderId);
             cs.setNull(2, Types.OTHER);
@@ -274,24 +272,25 @@ public class PaymentRepository {
         }
     }
 
-    private String generateTicketsForOrder(UUID orderId) {
+    private String generateTicketsForOrder(UUID orderId,DataSource source) {
         int expected = 0;
-        try (Connection conn = buyer.getConnection();
+        try (Connection conn = source.getConnection();
              PreparedStatement ps = conn.prepareStatement(
-                     "SELECT COALESCE(SUM(quantity), 0) FROM dbo.tc_order_items WITH (NOLOCK) WHERE order_id = ?")) {
+                     "SELECT quantity FROM dbo.vw_OrderTicketQuantity WHERE order_id = ?")) {
             ps.setObject(1, orderId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     expected = rs.getInt(1);
                 }
             }
-        } catch (SQLException ignored) { }
+        } catch (SQLException failure) { throw PaymentException.unavailable(); }
+        if(expected<1)throw PaymentException.unavailable();
 
         org.json.JSONArray tickets = new org.json.JSONArray();
         for (int i = 0; i < expected; i++) {
             String ticketCode = "TC-" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
             byte[] secret = new byte[32];
-            java.util.concurrent.ThreadLocalRandom.current().nextBytes(secret);
+            new java.security.SecureRandom().nextBytes(secret);
             try {
                 java.security.MessageDigest sha256 = java.security.MessageDigest.getInstance("SHA-256");
                 String qrHashHex = java.util.HexFormat.of().formatHex(sha256.digest(secret));

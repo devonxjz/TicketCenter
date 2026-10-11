@@ -1,6 +1,6 @@
 package vn.ticketscenter.fulfillment.checkin.security;
 
-import vn.ticketscenter.config.AppConfig;
+import vn.ticketscenter.config.TicketQrConfig;
 import vn.ticketscenter.config.web.JsonObjectParser;
 import vn.ticketscenter.fulfillment.checkin.CheckInException;
 import javax.crypto.Mac;
@@ -23,10 +23,11 @@ public final class SignedQrDecoder {
         this.secret=secret.clone();
     }
     public static SignedQrDecoder configured() {
-        String value=AppConfig.get("TC_TICKET_SIGNING_SECRET");
-        if(value==null || value.getBytes(StandardCharsets.UTF_8).length<32)
+        try {
+            return new SignedQrDecoder(TicketQrConfig.signingSecret().getBytes(StandardCharsets.UTF_8));
+        } catch(IllegalStateException failure) {
             throw new CheckInException(503,"QR_SIGNING_UNAVAILABLE","Hệ thống xác thực mã QR chưa được cấu hình.");
-        return new SignedQrDecoder(value.getBytes(StandardCharsets.UTF_8));
+        }
     }
     public Decoded decode(String envelope) {
         try {
@@ -34,7 +35,7 @@ public final class SignedQrDecoder {
             int dot=envelope.indexOf('.');String part=envelope.substring(0,dot);
             byte[] bytes=Base64.getUrlDecoder().decode(part),received=Base64.getUrlDecoder().decode(envelope.substring(dot+1));
             var base64=Base64.getUrlEncoder().withoutPadding();
-            if(bytes.length>2048 || !base64.encodeToString(bytes).equals(part)
+            if(bytes.length>3000 || !base64.encodeToString(bytes).equals(part)
                     || !base64.encodeToString(received).equals(envelope.substring(dot+1)))throw invalid();
             Mac mac=Mac.getInstance("HmacSHA256");mac.init(new SecretKeySpec(secret,"HmacSHA256"));
             if(!MessageDigest.isEqual(mac.doFinal(bytes),received))throw invalid();
@@ -45,7 +46,7 @@ public final class SignedQrDecoder {
             if(!values.keySet().equals(Set.of("id","name")))throw invalid();
             String id=values.get("id"),name=values.get("name");
             if(!id.matches("[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}")
-                    || name.isBlank() || name.length()>200 || name.chars().anyMatch(c->c<32))throw invalid();
+                    || name.isBlank() || name.length()>373)throw invalid();
             return new Decoded(UUID.fromString(id),name);
         }catch(CheckInException e){throw e;}catch(Exception e){throw invalid();}
     }

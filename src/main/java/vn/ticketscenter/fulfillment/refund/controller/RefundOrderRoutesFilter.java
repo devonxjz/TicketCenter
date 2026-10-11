@@ -18,6 +18,6 @@ public final class RefundOrderRoutesFilter implements Filter {
         if(!"GET".equals(http.getMethod())){((HttpServletResponse)response).setHeader("Allow","GET");HttpResponses.error((HttpServletResponse)response,405,"METHOD_NOT_ALLOWED","Đường dẫn này chỉ hỗ trợ GET.");return;}
         var dispatcher=request.getServletContext().getNamedDispatcher(name);
         if(dispatcher==null){HttpResponses.error((HttpServletResponse)response,503,"REFUND_UNAVAILABLE","Hệ thống hoàn vé chưa sẵn sàng.");return;}
-        dispatcher.forward(request,response);
+        vn.ticketscenter.identity.security.DatabaseActorFilter.withActor(request,response,dispatcher::forward);
     }
 }

@@ -8,13 +8,15 @@ Issue [#22](https://github.com/devonxjz/TicketCenter/issues/22), branch
 Set `TC_TICKET_SIGNING_SECRET` in the process environment/secret store. It must be
 the **same UTF-8 string as LIEM-05's issuer**, at least 32 UTF-8 bytes. It is not
 base64-decoded. Never put it in tracked properties, client JavaScript or a URL.
-Missing configuration returns 503; there is no default signing key. The test
+Issuer and scanner share precedence: `TC_TICKET_SIGNING_SECRET`, then
+`ticket.qr.secret`, then `app.secret.key`. An explicitly configured weak key fails
+closed instead of falling back. Missing configuration returns 503; there is no default signing key. The test
 signer is restricted to test sources and is not an issuance endpoint.
 
 QR = `base64url(payloadUtf8).base64url(HMAC-SHA256(payloadUtf8,secretUtf8))`, without
 padding; payload has exactly two string fields: `id` (UUID) and `name`. Signature
 comparison is constant-time and occurs before JSON parsing. Limits: 4,096 QR
-characters, 2,048 decoded payload bytes, 200 name characters, 8,192 HTTP body
+characters, 3,000 decoded payload bytes, 373 name characters, 8,192 HTTP body
 bytes/characters. The signed name is display-only; SQL ticket/order/event and
 current active organization membership decide admission.
 

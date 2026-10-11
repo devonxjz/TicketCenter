@@ -29,10 +29,12 @@ public final class OrganizationApiRoutesFilter implements Filter {
         var dispatcher=request.getServletContext().getNamedDispatcher("FinanceReportServlet");
         if(dispatcher==null){HttpResponses.error(out,503,"REPORT_UNAVAILABLE","Hệ thống báo cáo chưa sẵn sàng.");return;}
         // Preserve the wildcard route contract even if another servlet receives this request later.
+        request.setAttribute(vn.ticketscenter.report.controller.OrganizationReadsideRoutesFilter.ROUTE_ATTRIBUTE,
+                path.substring("/api/organizations".length()));
         var routed=new HttpServletRequestWrapper(http){
             @Override public String getServletPath(){return "/api/organizations";}
             @Override public String getPathInfo(){return path.substring("/api/organizations".length());}
         };
-        dispatcher.forward(routed,response);
+        DatabaseActorFilter.withActor(routed,response,dispatcher::forward);
     }
 }

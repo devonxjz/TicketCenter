@@ -39,12 +39,27 @@ class RefundApplicationRoutingTest {
     @Test void onlyReportsSubresourceForwardsWithOriginalReportRouteContract()throws Exception{
         var fixture=new RefundRequestServletsTest();fixture.login();fixture.method="GET";fixture.path="/api/organizations/"+fixture.order+"/reports";
         var context=proxy(ServletContext.class,(method,args)->{
-            if(method.equals("getNamedDispatcher")){assertEquals("FinanceReportServlet",args[0]);return proxy(RequestDispatcher.class,(name,values)->{if(name.equals("forward")){var routed=(HttpServletRequest)values[0];assertEquals("/api/organizations",routed.getServletPath());assertEquals("/"+fixture.order+"/reports",routed.getPathInfo());assertEquals("/tc"+fixture.path,routed.getRequestURI());fixture.forwarded="reports";}return null;});}
+            if(method.equals("getNamedDispatcher")){assertEquals("FinanceReportServlet",args[0]);return proxy(RequestDispatcher.class,(name,values)->{if(name.equals("forward")){assertEquals(vn.ticketscenter.identity.security.SecurityContext.requireCurrentUser(fixture.request()).actorId(),vn.ticketscenter.config.persistence.DatabaseActorContext.current());var routed=(HttpServletRequest)values[0];assertEquals("/api/organizations",routed.getServletPath());assertEquals("/"+fixture.order+"/reports",routed.getPathInfo());assertEquals("/tc"+fixture.path,routed.getRequestURI());fixture.forwarded="reports";}return null;});}
             if(method.equals("getAttribute"))return fixture.contextAttributes.get(args[0]);return null;
         });
         var request=new HttpServletRequestWrapper(fixture.request()){@Override public ServletContext getServletContext(){return context;}};
         var filter=new OrganizationApiRoutesFilter();filter.doFilter(request,fixture.response(),(r,s)->fail("Report route reached event servlet"));assertEquals("reports",fixture.forwarded);
+        assertEquals("/"+fixture.order+"/reports",fixture.attributes.get(vn.ticketscenter.report.controller.OrganizationReadsideRoutesFilter.ROUTE_ATTRIBUTE));
         fixture.path="/api/organizations/"+fixture.order+"/events";boolean[] passed={false};filter.doFilter(request,fixture.response(),(r,s)->passed[0]=true);assertTrue(passed[0]);
+    }
+    @Test void refundForwardHasActorAndRestoresOuterContextEvenOnFailure()throws Exception {
+        var fixture=new RefundRequestServletsTest();fixture.login();fixture.method="GET";fixture.path="/refund-request";
+        UUID outer=UUID.randomUUID();vn.ticketscenter.config.persistence.DatabaseActorContext.set(outer);
+        var context=proxy(ServletContext.class,(method,args)->method.equals("getNamedDispatcher")?
+                proxy(RequestDispatcher.class,(name,values)->{if(name.equals("forward")){
+                    assertEquals(vn.ticketscenter.identity.security.SecurityContext.requireCurrentUser(fixture.request()).actorId(),vn.ticketscenter.config.persistence.DatabaseActorContext.current());
+                    throw new ServletException("fixture failure");
+                }return null;}):null);
+        var request=new HttpServletRequestWrapper(fixture.request()){@Override public ServletContext getServletContext(){return context;}};
+        try {
+            assertThrows(ServletException.class,()->new RefundOrderRoutesFilter().doFilter(request,fixture.response(),(r,s)->fail()));
+            assertEquals(outer,vn.ticketscenter.config.persistence.DatabaseActorContext.current());
+        }finally{vn.ticketscenter.config.persistence.DatabaseActorContext.clear();}
     }
     @Test void reportsForwardingChecksSessionEvenBeforeSharedFilters()throws Exception{
         var f=new RefundRequestServletsTest();f.method="GET";f.path="/api/organizations/"+f.order+"/reports";var filter=new OrganizationApiRoutesFilter();

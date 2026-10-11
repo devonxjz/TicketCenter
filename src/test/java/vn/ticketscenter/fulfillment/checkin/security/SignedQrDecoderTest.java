@@ -9,6 +9,16 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class SignedQrDecoderTest {
+    @Test void acceptsQrProducedForMaximumValidEventAndZoneNames() {
+        String name="Đ".repeat(250)+" - "+"K".repeat(120);
+        var signer=new vn.ticketscenter.fulfillment.ticket.service.SignedTicketQrSigner(new String(SECRET,StandardCharsets.UTF_8));
+        assertEquals(name,new SignedQrDecoder(SECRET).decode(signer.buildEnvelope(ID,name)).name());
+    }
+    @Test void acceptsEscapedDisplayMetadataFromTheRealIssuer() {
+        String name="Sự kiện\nBuổi tối - A\t1";
+        var signer=new vn.ticketscenter.fulfillment.ticket.service.SignedTicketQrSigner(new String(SECRET,StandardCharsets.UTF_8));
+        assertEquals(name,new SignedQrDecoder(SECRET).decode(signer.buildEnvelope(ID,name)).name());
+    }
     static final byte[] SECRET="fixture-signing-secret-32-bytes!!".getBytes(StandardCharsets.UTF_8);
     static final UUID ID=UUID.randomUUID();
     static String envelope(byte[] bytes) throws Exception {
