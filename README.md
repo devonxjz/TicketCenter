@@ -1,44 +1,86 @@
 # TicketsCenter
 
-Backend Java 25/Servlet 6.1 cho quản lý Event và bán vé. Build tạo `target/ticketscenter.war`; SQL Server là source of truth, Redis chỉ phục vụ idempotency và cache public Event.
+Ứng dụng Java25, Servlet6.1/JSP trên Tomcat11, JPA/Hibernate và SQL Server.
+Mục tiêu demo/portfolio theo [SPEC](docs/references/SPEC.md): VNPAY Sandbox;
+hoàn tiền và chi trả mô phỏng. SQL Server quyết định nghiệp vụ/quyền;
+Redis phục vụ cache/idempotency.
 
-## Prerequisites
+## Chạy local trên Windows từ checkout sạch
 
-- JDK 25, Maven, SQL Server 2022+; Docker chỉ cần khi chạy container.
-- Ba database tách biệt: development, integration và benchmark. Không chạy fixture/benchmark trên database demo hoặc dữ liệu người dùng.
+Cài **JDK25**, **Maven**, **Node.js**, **PowerShell7**, **Tomcat11** và
+**SQL Server** trước. SQL Server phải cho phép TCP tại `127.0.0.1:1433`,
+SQL authentication; Windows account hiện tại có quyền tạo database/login.
+Bộ chạy không thay cấu hình SQL Server hoặc khởi động lại dịch vụ.
 
-## Configure
+Mở PowerShell7 ở thư mục repository vừa clone:
 
-```bash
-cp .env.example .env.runtime
-# export values from the approved secret store; do not commit .env.runtime
-mvn -B test
+```powershell
+# Thay hai đường dẫn bằng nơi đã cài trên máy bạn.
+$env:JAVA_HOME = 'C:\Tools\jdk-25'
+$tomcatHome = 'C:\Tools\apache-tomcat-11.0.25'
+
+# Chỉ chạy lần đầu. Tên MỚI, không phải database dùng chung của nhóm.
+./tools/local/setup.ps1 -Database TC_Vuong_Test_Local_Demo
+
+# Build, test, bổ sung JSTL vào Tomcat base riêng, kiểm tra login rồi giữ web chạy.
+./tools/local/run.ps1 -TomcatHome $tomcatHome
 ```
 
-All configuration names are listed in `.env.example`. Runtime uses separate SQL identities for buyer, manager, check-in, admin, auth, and worker; migrations use `TC_SQL_MIGRATION_LOGIN` only.
+Mở **http://127.0.0.1:18082/ticketscenter/auth/login** hoặc
+[Swagger](http://127.0.0.1:18082/ticketscenter/swagger/).
+Giữ terminal mở; `Ctrl+C` dừng JVM vừa tạo. Không dừng Tomcat khác hoặc sửa
+Tomcat đã cài. Port mặc định18082; dùng `-Port 18083` nếu cần.
 
-## Database
+Tài khoản demo: Manager `abcc@manager.com`, Staff `abcc@staff.com`,
+Buyer `buyer@ticketscenter.vn`, mật khẩu `123`. ADMIN dùng mật khẩu ngẫu nhiên;
+đọc file tại dòng `LOCAL_ACCOUNTS` trong terminal, không đưa file lên Git hoặc
+gửi mật khẩu trong chat. Mật khẩu ADMIN đổi mỗi lần chạy.
 
-```bash
-database/run-migrations.sh --plan
-export TC_SQL_TARGET_DB="$TC_SQL_TEST_DB"
-database/run-migrations.sh
-mvn -B -Psqlserver-it -Dit.test=Day19IT verify
+Để nghiệm thu rồi tự dừng:
+
+```powershell
+./tools/local/run.ps1 -TomcatHome $tomcatHome -Smoke
 ```
 
-The runner permits only the configured Dev/Test/Bench names and verifies migration checksums. See [database/README.md](database/README.md) and [database runbook](docs/backend/database-runbook.md). Do not pass passwords on a command line.
+Chỉ tính đạt khi có `BUILD SUCCESS`, full WAR tests không lỗi và
+`FULL_WAR_ACCEPTANCE_PASS`. Integration test ngoại vi bị skip trong Maven
+không được tính là nghiệm thu các miền đó. Node.js bắt buộc để chạy smoke.
 
-## Run
+## Phạm vi của bộ chạy
 
-```bash
-mvn -B package
-# Deploy target/ticketscenter.war to Tomcat 11, context path /ticketscenter
-curl -f http://localhost:8080/ticketscenter/health/live
-curl -f http://localhost:8080/ticketscenter/health/ready
-```
+Đây là **fixture local biệt lập** để chứng minh đóng gói, startup, JSP,
+login/session/CSRF và API tài chính đã ghép. Chỉ kết nối DB có tên/marker test
+hợp lệ trên loopback. Cấu hình đóng gói được thay và biến môi trường kế thừa
+được loại trước khi bật listener/seeder/worker.
 
-For Docker instructions, see [deployment](docs/backend/deployment.md). Container and Azure validation are not claimed until their respective environments are available.
+DB mới dựng từ snapshot UUID/`tc_*` đã duyệt và các migration theo thứ tự ở
+[database runbook](docs/backend/database-runbook.md). Login ngẫu nhiên có
+`db_owner` **chỉ trong fixture mới**, dùng cho sáu persistence principal;
+đây **không phải** bằng chứng least privilege. Không chạy setup trên Azure/DB
+dùng chung hoặc áp migration001–008 cũ lên snapshot này.
 
-## Handoff status
+Mail/VNPAY dùng loopback vô hiệu, Cloudinary không cấu hình, payout không bật.
+Mua vé/check-in/refund liên hoàn và provider vẫn phụ thuộc bàn giao owner.
+Web chạy được trong khi API còn planned; không coi trang/dữ liệu mẫu là toàn
+bộ sản phẩm đã nghiệm thu.
 
-[Backend acceptance](docs/evidence/backend-acceptance.md) is the authoritative PASS/FAIL/BLOCKED record. Current blockers include unprovisioned local runtime-role credentials, no approved benchmark database, and an unavailable local Docker daemon.
+## Cấu hình và lỗi thường gặp
+
+Setup tự sinh `.local/database.json` với ACL riêng, không nhập password trên
+dòng lệnh. [database.example.json](tools/local/database.example.json) mô tả cấu
+trúc, không phải credential dùng được. `.env.example` liệt kê biến cấu hình cho
+môi trường nhóm được duyệt riêng; Java **không tự đọc** `.env`; bộ local dùng
+JSON do setup tạo. Không sửa/commit `application.properties` để đổi secret.
+
+- `JDK 25 is required`: chọn đúng JAVA_HOME; Java mặc định có thể khác.
+- SQL lỗi: kiểm Windows permissions, TCP/SQL authentication; xem runbook.
+- DB/config đã tồn tại: giữ lại; dùng config cũ để chạy lại, hoặc tên DB mới
+  với `setup.ps1 -ConfigPath .local/another-database.json`.
+- Thiếu Maven/Node/Tomcat: cài prerequisites; không tự cài service toàn máy.
+- Tải JSTL lỗi: cần Internet tới Maven Central. Artifact3.0.1 được kiểm SHA512
+  cả khi dùng cache `.local/lib`.
+- Startup/test lỗi: xem `FULL_WAR_LOGS`. Secret runtime được xóa khi JVM dừng;
+  nếu kill terminal cưỡng bức, xem [deployment runbook](docs/backend/deployment.md).
+
+Xem [backend acceptance](docs/evidence/backend-acceptance.md) cho bằng chứng và
+gate còn chờ. CI xanh không tự chứng minh deployment online.
