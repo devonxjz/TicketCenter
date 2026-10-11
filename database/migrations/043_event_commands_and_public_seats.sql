@@ -1,4 +1,4 @@
-/* #45 Event SQL coordination. New migration030;029 is reserved by refund PR50.
+/* #45 Event SQL coordination. New migration043;029/030 exist on dev and031-042 are reserved by PR65/67.
    Requires the canonical baseline and027/028 adapters/image workflow.
    Apply only through the reviewed shared rollout, before Event PR51 WAR.
    No user roles are granted or synchronized by this migration. */
@@ -165,7 +165,7 @@ CREATE OR ALTER PROCEDURE dbo.usp_EventCommand
 AS
 BEGIN
  SET NOCOUNT ON; SET XACT_ABORT ON;
- DECLARE @started bit=CASE WHEN @@TRANCOUNT=0 THEN 1 ELSE 0 END;
+ DECLARE @started bit=CASE WHEN @@TRANCOUNT=0 THEN 1 ELSE 0 END,@old_actor sql_variant=SESSION_CONTEXT(N'actor_id');
  IF @started=1 BEGIN TRANSACTION; ELSE SAVE TRANSACTION tc_event_command;
  BEGIN TRY
   IF @payload IS NULL OR ISJSON(@payload)<>1 OR @idempotency_key IS NULL OR LEN(@idempotency_key) NOT BETWEEN 1 AND 128 OR @scope IS NULL OR @scope NOT IN('EVENT','EVENT_REVIEW') OR @request_hash IS NULL THROW 52000,'Invalid command',1;
@@ -296,11 +296,11 @@ BEGIN
   SET @response=CONCAT('{"data":',(SELECT LOWER(CONVERT(varchar(36),@event_id)) eventId,LOWER(CONVERT(varchar(36),@organization_id)) organizationId,LOWER(CONVERT(varchar(36),@zone_id)) zoneId,@status status,@cover coverImageUrl FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES),'}');
   INSERT dbo.tc_event_command_receipts(actor_id,scope,idempotency_key,request_hash,organization_id,event_id,status_code,response_json,cleanup_json)
    VALUES(@actor_id,@scope,@idempotency_key,@request_hash,@organization_id,@event_id,@code,@response,@cleanup_json);
-  EXEC sys.sp_set_session_context @key=N'actor_id',@value=NULL;
+  EXEC sys.sp_set_session_context @key=N'actor_id',@value=@old_actor;
   IF @started=1 COMMIT;
   SELECT @code status_code,@response response_json,@organization_id organization_id,@event_id event_id,@cleanup_json cleanup_json;
  END TRY BEGIN CATCH
-  EXEC sys.sp_set_session_context @key=N'actor_id',@value=NULL;
+  EXEC sys.sp_set_session_context @key=N'actor_id',@value=@old_actor;
   IF @started=1 AND XACT_STATE()<>0 ROLLBACK;
   ELSE IF @started=0 AND XACT_STATE()=1 ROLLBACK TRANSACTION tc_event_command;
   THROW;
@@ -324,19 +324,22 @@ CREATE OR ALTER PROCEDURE dbo.usp_PublishEvent
 AS
 BEGIN
  SET NOCOUNT ON; SET XACT_ABORT ON;
- DECLARE @started bit=CASE WHEN @@TRANCOUNT=0 THEN 1 ELSE 0 END;
+ DECLARE @started bit=CASE WHEN @@TRANCOUNT=0 THEN 1 ELSE 0 END,@old_actor sql_variant=SESSION_CONTEXT(N'actor_id');
  IF @started=1 BEGIN TRANSACTION; ELSE SAVE TRANSACTION tc_sp12;
  BEGIN TRY
+  EXEC sys.sp_set_session_context @key=N'actor_id',@value=@actor_id;
   IF NOT EXISTS(SELECT 1 FROM dbo.tc_users WITH(HOLDLOCK)
    WHERE id=@actor_id AND status='ACTIVE' AND platform_role='ADMIN')
    THROW 51520,'Administrator role required',1;
   DECLARE @organization_id uniqueidentifier,@status varchar(30),@now datetime2(3)=SYSUTCDATETIME();
   SELECT @organization_id=organization_id,@status=status FROM dbo.tc_events WITH(UPDLOCK,HOLDLOCK) WHERE id=@event_id;
+  SET @now=SYSUTCDATETIME();
   IF @status IS NULL THROW 51521,'Event not found',1;
   IF @status='PUBLISHED' BEGIN
    IF @commission_rule_id IS NULL OR (SELECT commission_rule_id FROM dbo.tc_events WHERE id=@event_id)<>@commission_rule_id
     THROW 51522,'Published event commission rule is immutable',1;
    IF @started=1 COMMIT;
+   EXEC sys.sp_set_session_context @key=N'actor_id',@value=@old_actor;
    SELECT @event_id event_id,@status status; RETURN;
   END;
   IF @status<>'PENDING_APPROVAL' THROW 51523,'Event is not pending approval',1;
@@ -357,10 +360,12 @@ BEGIN
    THROW 51527,'Each seated zone requires seats',1;
   UPDATE dbo.tc_events SET commission_rule_id=@commission_rule_id,status='PUBLISHED',version=version+1 WHERE id=@event_id;
   IF @started=1 COMMIT;
+  EXEC sys.sp_set_session_context @key=N'actor_id',@value=@old_actor;
   SELECT @event_id event_id,CAST('PUBLISHED' AS varchar(30)) status;
  END TRY BEGIN CATCH
   IF @started=1 AND XACT_STATE()<>0 ROLLBACK;
   ELSE IF @started=0 AND XACT_STATE()=1 ROLLBACK TRANSACTION tc_sp12;
+  EXEC sys.sp_set_session_context @key=N'actor_id',@value=@old_actor;
   THROW;
  END CATCH;
 END;

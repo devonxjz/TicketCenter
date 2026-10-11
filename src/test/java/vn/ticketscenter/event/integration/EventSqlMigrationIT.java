@@ -18,7 +18,8 @@ class EventSqlMigrationIT {
                 assertTrue(rows.next());assertEquals(target.group(1),rows.getString(1),"Refuse unexpected database");
             }
             long receipts=count(c);String cleanupBefore=cleanupFingerprint(c);
-            String migration=Files.readString(Path.of("database/migrations/030_event_commands_and_public_seats.sql"));
+            String migration=Files.readString(Path.of("database/migrations/043_event_commands_and_public_seats.sql"));
+            assertTrue(migration.contains("CREATE OR ALTER PROCEDURE dbo.usp_EventCommand"),"Refuse an incomplete migration artifact" );
             for(int attempt=0;attempt<2;attempt++) {
                 c.setAutoCommit(false);
                 try(var q=c.createStatement()) {

@@ -1,114 +1,81 @@
-# SQL45 — Event command and public Seat integration
+# Event SQL coordination — issue45 / PR56
 
-Refs #45 and Event feature PR51. This is a separate schema coordination change,
-not part of the Event feature PR. Existing migrations, locked models, POM/config,
-OpenAPI and other owners' business code are unchanged.
+Updated12 October2026 (UTC+7). Scope: Event command/public Seat contract for
+DONG-01–05. Feature delivery is PR51; database changes are kept in this separate
+PR. Both now integrate dev af2ded209122d8c5604ae4ccee2e765fefde190e.
 
-## Result
+## Current additive migration
 
-New migration030 adds a PUBLISHED-only Seat projection for tc_buyer, scoped Event
-read/authorize/command/receipt procedures and a durable atomic command-receipt
-store. Manager/admin execute rights are limited to those procedures; ownership
-chaining supplies their table access. Idempotency keys use BIN2, matching Redis
-case sensitivity. Retention policy requires rollout agreement; no purge job is
-claimed. The migration does not change user roles or seed production users.
+The unmerged/unapplied Event file was renumbered from030 to
+**043_event_commands_and_public_seats.sql**. dev already contains029_hold_runtime
+and030_order_runtime; pending PR65/67 reserve031–042. No applied migration was
+renumbered or edited. This PR does not adopt those other pending changes.
 
-Canonical usp_PublishEvent remains the only publication path. Its authority now
-matches the current ACTIVE tc_users.platform_role used by login/Event access,
-rather than legacy tc_user_platform_roles. It checks approved organization and
-same-org commission validity both now and at Event start. Existing lifecycle,
-short transaction/savepoint behavior, seat prerequisites and status audit remain.
-No other legacy procedure is rewritten.
+043 requires canonical baseline/roles, Event image columns from028 and existing
+Zone/public views/procedures. It provides:
 
-## Order and rollout
+- PUBLISHED-only vw_PublicEventSeats; buyer has projection access but no private
+  Seat/Event/receipt grant or hold/order/customer data in the output.
+- Scoped current-user/authVersion/organization authorization, private reads,
+  durable command receipts and atomic draft/Zone/Seat/review mutations.
+- Canonical SP12 still owns publish; current ACTIVE platform_role is authoritative,
+  including revocation with a stale legacy ADMIN row. Rule must cover Event start.
+- Private cleanup_json commits with draft deletion/receipt for postcommit journal
+  and authorized replay repair; it is never exposed in the HTTP JSON envelope.
+- Command/SP12 restore the prior actor context rather than clearing a caller's
+  context. Direct SP12 sets audit actor and refreshes time after its Event lock.
 
-1. Verify canonical baseline001–008 and existing027/028 adapters/image workflow.
-   Migration030 preflight rejects a missing Event image column/view/procedure or
-   runtime role before the Event additions.029 is reserved by customer refund PR50.
-2. Database/platform owner reviews this PR and the role-authority change. Execute
-   GO-separated batches using a fail-fast migration runner within an outer
-   transaction; rollback the entire run on any error. Never rewrite older files.
-3. Verify buyer public Seat access and manager/admin procedure execution using
-   the actual deployment logins, current role revocation and tenant boundaries.
-4. Deploy Event PR51 only after migration030. Adopt its DONG-INTEGRATION.md API,
-   Redis and postcommit owner hooks, then run acceptance on the integrated head.
+Pair with PR51's updated EventManagementRepository: scope each JDBC work item to
+the authenticated actor and restore previous SESSION_CONTEXT on every exit.
+No user roles/credentials are synchronized or granted by this migration.
 
-No shared/production DB migration or role grants have been executed by this task.
-Shared deploy/merge still needs approval and independent review. Baseline and
-schema-only team layouts differ in audit columns: this version targets the
-canonical baseline validated by Dong, not an untested legacy physical layout.
-Run the guarded preflight and schema review before adoption; do not claim legacy
-team compatibility merely because the finance adapter has been installed.
+## Verified12 October
 
-## Verification — 11 October 2026, UTC+7
+- Exact043 full-artifact migration test **1/1**,0 failures/errors/skips. Applies
+  and reapplies in outer transactions to TicketCenter_Dong_Epic_Test_20261011.
+  Receipt count and cleanup-data SHA256 fingerprint are preserved. Restricted
+  buyer reads projection; private Event and receipt access is denied.
+- Event source on current dev: **16 real SQL/Redis +1 Cloudinary +3 actual WAR
+  HTTP =20**,0 failures/errors/skips. Includes restored actor after read/edit/403/
+  direct SQL, rollback/races/rights, provider replay, image/delete recovery and
+  public Hold handoff alongside Report/overview.
+- Safe package: **659 executed pass/183 external guard-skipped** (842 total),
+  one unguarded external organization method explicitly excluded; **116 JS pass**.
+  These exclusions/skips are not SQL acceptance and common tests were not edited.
 
-- Applied migration030 and reapplied it atomically only to
-  TicketCenter_Dong_Epic_Test_20261011 on local SQLEXPRESS. Existing durable receipt
-  count was preserved; restricted dong_buyer could select vw_PublicEventSeats.
-- Same SQL proposal exercised through Event PR51/current dev7541a65 integration:
-  13 real SQL/Redis,1 real Cloudinary and2 full-WAR HTTP tests passed, no skips.
-  Includes rollback/concurrency/current permissions, cross-org access, seat
-  inventory, publish/reject, public cache refresh and multipart/overview coexistence.
-- Current ADMIN fixture has no legacy role row. New regression publishes with
-  current role only, then revokes it while retaining a stale legacy ADMIN row:
-  Event service403 and direct canonical SP51520, no authorization by legacy row.
-- Safe regression package:383 Java executed pass/60 guarded external skips,
-  56 Node tests pass plus7 URL guard tests pass. No SMTP messages sent.
-- SQL tests use restricted database-user impersonation over Windows-auth owner
-  transport; these are not separate production SQL-login grant tests.
+Normalized SHA256 (UTF-8, CRLF→LF), exact043 file:
 
-Event reproduction: docs/evidence/dong/RUNBOOK.md in PR51. Tests are opted in via
-TC_DONG_ACCEPTANCE, dedicated loopback DB-name guard and Cloudinary acceptance.
-Fault-only storage cases are labeled fake; provider/HTTP cases use real Cloudinary.
-The initial retest attempt failed from launching the SQL bridge with PowerShell5;
-correcting the helper to PowerShell7 and restarting the dedicated WAR resolved
-fixture startup. No acceptance failure was silently skipped.
+17CBDA78F6DB6C169934ECDA9E6C20D32926AC86FD4F5ED4A5D76E0838110550
 
-Migration030 normalized SHA256 (UTF-8, CRLF normalized to LF):
-4E9F9997C26C9D59A0144522DDBC4B1703D8726DDAD6D72431F3F5CB2DA37C4D
+The initial helper used a wrong relative path and left only a temporary prefix;
+its smoke result is not acceptance. Complete artifact was restored, helper made
+fail-fast and smoke strengthened to reject a missing command body; fresh compile/
+full-artifact apply/reapply passed. No temporary file was deployed to shared SQL.
+Private logs: target/dong-sql-20261012-migration-final.log in this worktree;
+Event branch logs/evidence: docs/evidence/dong/DONG-PROGRESS-20261012.md.
 
-A read-only metadata probe of the configured shared database returned SQL40613
-(database unavailable); no shared compatibility/grant acceptance is claimed.
+## Open adoption gates
 
-Separate branch test: EventSqlMigrationIT passed1/1 with no skips, applying and
-reapplying the exact file in outer transactions, preserving receipts, allowing
-buyer projection reads but denying private Event tables/receipts, and checking
-that all projected inventory belongs to PUBLISHED Events. The initial test
-incorrectly attempted its owner integrity join as buyer and received SQL229;
-the corrected test preserves that denial and checks integrity after REVERT.
+1. Independent database-owner review, final migration-number/deploy-order adoption.
+2. Combined compatibility with PR65/67 (031–042/RLS/image/actor/routing); current
+   tests use the accepted dev baseline and do not prove the entire pending stack.
+3. Actual deployed runtime-login/grants and HTTP acceptance. Tests impersonate
+   restricted database users over Windows-auth owner transport, not SQL logins.
+4. Shared metadata probe12 October returns40615/S0001; shared schema remains
+   unverified. No firewall, credentials/grants or shared business data changed.
+5. Merge and CI/owned UI acceptance on final dev before closing epic/coordination.
 
-Reproduce after the dedicated fixture/users are provisioned from PR51:
+Earlier030 checkpoints remain in Git history; current file/hash/results above
+supersede them. Runtime image/JSTL/Cloudinary/Redis prerequisites and reference-safe
+provider cleanup remain in PR51's DONG-INTEGRATION.md and RUNBOOK.md. Other domains'
+postcommit inventory/cancellation cache hooks are separate owner obligations.
+
+## Reproduce (dedicated fixture only)
+
+Use TC_DONG_ACCEPTANCE=true and the strict loopback Dong Windows-auth URL in
+PR51's runbook; test checks exact DB_NAME before mutations and rejects JDBC overrides.
 
     mvn test-compile -Djunit.jupiter.extensions.autodetection.enabled=false -Dit.test=EventSqlMigrationIT -DargLine="--enable-native-access=ALL-UNNAMED -Djava.library.path=<verified-native-directory>" failsafe:integration-test failsafe:verify
 
-Set TC_DONG_ACCEPTANCE=true and TC_DONG_SQL_URL to the explicit loopback Dong
-Windows-auth URL documented by PR51. This test rejects JDBC redirection/extra
-properties and verifies actual DB_NAME before mutations. Ordinary CI does not
-run this opted-in test automatically; default green jobs are not SQL acceptance.
-
-## Thorough review update — 11 October 2026
-
-Integrated dev3e380bf (PR55). Reviewed migration030 now stores private cleanup_json
-atomically with draft deletion and receipt, so postcommit journaling can be
-repaired by authorized replay without deleting a referenced asset or exposing
-cleanup metadata in HTTP JSON. Existing command receipts get a nullable column;
-image-workflow receipts and existing migrations are unchanged. Pair SQL's fifth
-internal result column with updated Event PR51 caller during adoption.
-
-Two additional real SQL regressions reproduced unknown category409 and malformed
-DETAIL JSON under list page/status filters. Category existence validation now
-returns400 with no receipt/change; detail ignores list filters and returns404 if
-its target disappears. Canonical SP12 remains current ACTIVE role based.
-
-Final acceptance on Event PR51 tree:385 Java executed/60 guarded skips;59 Node,
-18 URL/native handoff guard checks;15 SQL/Redis+1 Cloudinary+3 full-WAR HTTP=19,
-all executed checks pass. The19 run supersedes earlier16/17 checkpoints. Focused
-migration test1/1 preserves both receipt count and a SHA256 fingerprint of the
-private cleanup metadata across atomic reapplication, and verifies buyer public
-projection/private table denial. Fixture cleanup1/1 passes after reference checks.
-Initial RED outputs and fixture limitations remain documented in Event PR51's
-DONG-REVIEW-20261011.md; no acceptance failures were silently skipped.
-
-Shared metadata read now returns SQL40615; actual deployed schema/runtime logins
-remain unverified. No shared firewall, credentials, grants or database were
-changed. Independent review and actual-schema adoption still gate shared rollout.
+Default green CI does not run this opted-in test. Disable automatic discovery
+only for the explicitly listed Dong suites with their own fixture guards.
