@@ -26,8 +26,9 @@ public final class AdminRefundCiSetup {
                     for(String file:new String[]{"040_payment_ticket_runtime_reads.sql","041_hold_refund_runtime_compatibility.sql","042_checkin_event_user_lock_order.sql"})install(c,file);
                     for(String role:new String[]{"admin","buyer","worker"})q.execute("IF USER_ID('sql_report_"+role+"') IS NULL BEGIN CREATE USER sql_report_"+role+" WITHOUT LOGIN; ALTER ROLE "+(role.equals("admin")?"tc_platform_admin":"tc_"+role)+" ADD MEMBER sql_report_"+role+"; END;");
                 }
-                install(c,"043_khanh04_admin_refund.sql");c.commit();
+                install(c,"043_khanh04_admin_refund.sql");
                 if(adminPassword!=null)q.execute("CREATE USER khanh04_admin FOR LOGIN khanh04_admin; ALTER ROLE tc_platform_admin ADD MEMBER khanh04_admin; GRANT VIEW DEFINITION TO khanh04_admin;");
+                c.commit();
             }catch(Exception failure){c.rollback();throw failure;}
         }
     }
