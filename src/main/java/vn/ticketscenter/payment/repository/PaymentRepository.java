@@ -11,10 +11,17 @@ import java.util.Optional;
 import java.util.UUID;
 
 public class PaymentRepository {
+    private static final java.security.SecureRandom TICKET_SECRET_RANDOM = new java.security.SecureRandom();
     private final DataSource buyer;
+    private final DataSource worker;
 
     public PaymentRepository(DataSource buyer) {
+        this(buyer, buyer);
+    }
+
+    public PaymentRepository(DataSource buyer, DataSource worker) {
         this.buyer = Objects.requireNonNull(buyer, "buyer DataSource is required");
+        this.worker = Objects.requireNonNull(worker, "worker DataSource is required");
     }
 
     public record PaymentIntent(
@@ -36,6 +43,10 @@ public class PaymentRepository {
     }
 
     public PaymentIntent beginOrderPayment(UUID orderId, UUID actorId) {
+        return beginOrderPayment(orderId, actorId, -1);
+    }
+
+    public PaymentIntent beginOrderPayment(UUID orderId, UUID actorId, int authVersion) {
         Objects.requireNonNull(orderId, "orderId is required");
         Objects.requireNonNull(actorId, "actorId is required");
 
@@ -46,14 +57,11 @@ public class PaymentRepository {
         try (Connection conn = buyer.getConnection();
              PreparedStatement ps = conn.prepareStatement(
                      """
-                     SELECT o.order_code, o.total_amount, h.expires_at, o.status, h.status as hold_status, e.status as event_status
-                     FROM dbo.tc_orders o WITH (NOLOCK)
-                     JOIN dbo.tc_ticket_holds h WITH (NOLOCK) ON h.id = o.hold_id
-                     JOIN dbo.tc_events e WITH (NOLOCK) ON e.id = o.event_id
-                     WHERE o.id = ? AND o.user_id = ?
+                     EXEC dbo.usp_ReadPaymentOrder ?, ?, ?
                      """)) {
             ps.setObject(1, orderId);
             ps.setObject(2, actorId);
+            ps.setInt(3, authVersion);
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) {
                     throw PaymentException.orderNotFound();
@@ -61,7 +69,7 @@ public class PaymentRepository {
                 String ordStatus = rs.getString("status");
                 String holdStatus = rs.getString("hold_status");
                 String evtStatus = rs.getString("event_status");
-                Timestamp expiresAt = rs.getTimestamp("expires_at");
+                long remainingMs = rs.getLong("hold_remaining_ms");
 
                 if (!"PENDING_PAYMENT".equals(ordStatus) || !"ACTIVE".equals(holdStatus)) {
                     throw PaymentException.orderNotPayable();
@@ -70,7 +78,6 @@ public class PaymentRepository {
                     throw PaymentException.eventUnavailable();
                 }
 
-                long remainingMs = expiresAt.getTime() - System.currentTimeMillis();
                 if (remainingMs <= 0) {
                     throw PaymentException.orderNotPayable();
                 }
@@ -100,17 +107,22 @@ public class PaymentRepository {
     }
 
     public void completeZeroOrder(UUID orderId, UUID actorId) {
+        completeZeroOrder(orderId, actorId, -1);
+    }
+
+    public void completeZeroOrder(UUID orderId, UUID actorId, int authVersion) {
         Objects.requireNonNull(orderId, "orderId is required");
         Objects.requireNonNull(actorId, "actorId is required");
 
         String verifiedResult = "{\"status\":\"CAPTURED\",\"providerReference\":\"ZERO_PAYMENT\"}";
+        String ticketsJson = generateTicketsForOrder(orderId, actorId, authVersion, buyer);
         try (Connection conn = buyer.getConnection();
              CallableStatement cs = conn.prepareCall("{call dbo.usp_ApplyPaymentResult(?, ?, ?, ?, ?)}")) {
             cs.setObject(1, orderId);
             cs.setObject(2, actorId);
             cs.setNull(3, Types.OTHER);
             cs.setString(4, verifiedResult);
-            cs.setString(5, "[]");
+            cs.setString(5, ticketsJson);
             cs.execute();
         } catch (SQLException failure) {
             PaymentException mapped = domain(failure);
@@ -120,21 +132,21 @@ public class PaymentRepository {
     }
 
     public Optional<PaymentIntent> findExistingPayment(UUID orderId, UUID actorId) {
+        return findExistingPayment(orderId, actorId, -1);
+    }
+
+    public Optional<PaymentIntent> findExistingPayment(UUID orderId, UUID actorId, int authVersion) {
         Objects.requireNonNull(orderId, "orderId is required");
         Objects.requireNonNull(actorId, "actorId is required");
 
         try (Connection conn = buyer.getConnection();
              PreparedStatement ps = conn.prepareStatement(
                      """
-                     SELECT TOP 1 p.id, p.txn_ref, p.amount, o.order_code, h.expires_at
-                     FROM dbo.tc_payments p WITH (NOLOCK)
-                     JOIN dbo.tc_orders o WITH (NOLOCK) ON o.id = p.order_id
-                     JOIN dbo.tc_ticket_holds h WITH (NOLOCK) ON h.id = o.hold_id
-                     WHERE p.order_id = ? AND o.user_id = ? AND p.status IN ('PENDING', 'UNKNOWN')
-                     ORDER BY p.created_at DESC
+                     EXEC dbo.usp_ReadExistingPayment ?, ?, ?
                      """)) {
             ps.setObject(1, orderId);
             ps.setObject(2, actorId);
+            ps.setInt(3, authVersion);
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) {
                     return Optional.empty();
@@ -143,8 +155,7 @@ public class PaymentRepository {
                 String txn = rs.getString("txn_ref");
                 BigDecimal amt = rs.getBigDecimal("amount");
                 String code = rs.getString("order_code");
-                Timestamp expires = rs.getTimestamp("expires_at");
-                Duration remaining = Duration.ofMillis(Math.max(1000, expires.getTime() - System.currentTimeMillis()));
+                Duration remaining = Duration.ofMillis(Math.max(1000, rs.getLong("hold_remaining_ms")));
                 return Optional.of(new PaymentIntent(pid, txn, amt, "VND", code, remaining));
             }
         } catch (SQLException failure) {
@@ -169,14 +180,10 @@ public class PaymentRepository {
 
     public Optional<PaymentRecord> findPaymentByTxnRef(String txnRef) {
         if (txnRef == null || txnRef.isBlank()) return Optional.empty();
-        try (Connection conn = buyer.getConnection();
+        try (Connection conn = worker.getConnection();
              PreparedStatement ps = conn.prepareStatement(
                      """
-                     SELECT p.id as payment_id, p.order_id, o.user_id, p.txn_ref, p.amount, p.currency,
-                            p.status as payment_status, o.status as order_status, o.total_amount, p.paid_at
-                     FROM dbo.tc_payments p WITH (NOLOCK)
-                     JOIN dbo.tc_orders o WITH (NOLOCK) ON o.id = p.order_id
-                     WHERE p.txn_ref = ?
+                     EXEC dbo.usp_ReadProviderPayment ?
                      """)) {
             ps.setString(1, txnRef.trim());
             try (ResultSet rs = ps.executeQuery()) {
@@ -202,21 +209,20 @@ public class PaymentRepository {
     }
 
     public Optional<vn.ticketscenter.payment.dto.PaymentStatusResult> getOrderPaymentStatus(UUID orderId, UUID actorId) {
+        return getOrderPaymentStatus(orderId, actorId, -1);
+    }
+
+    public Optional<vn.ticketscenter.payment.dto.PaymentStatusResult> getOrderPaymentStatus(UUID orderId, UUID actorId, int authVersion) {
         Objects.requireNonNull(orderId, "orderId is required");
         Objects.requireNonNull(actorId, "actorId is required");
         try (Connection conn = buyer.getConnection();
              PreparedStatement ps = conn.prepareStatement(
                      """
-                     SELECT TOP 1 o.id as order_id, o.status as order_status, o.total_amount,
-                            p.id as payment_id, p.status as payment_status, p.amount as payment_amount,
-                            p.currency, p.paid_at
-                     FROM dbo.tc_orders o WITH (NOLOCK)
-                     LEFT JOIN dbo.tc_payments p WITH (NOLOCK) ON p.order_id = o.id
-                     WHERE o.id = ? AND o.user_id = ?
-                     ORDER BY p.created_at DESC
+                     EXEC dbo.usp_ReadPaymentStatus ?, ?, ?
                      """)) {
             ps.setObject(1, orderId);
             ps.setObject(2, actorId);
+            ps.setInt(3, authVersion);
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) return Optional.empty();
                 UUID oid = (UUID) rs.getObject("order_id");
@@ -251,7 +257,7 @@ public class PaymentRepository {
 
         String ticketsJson = "[]";
         if ("CAPTURED".equals(status)) {
-            ticketsJson = generateTicketsForOrder(orderId);
+            ticketsJson = generateTicketsForOrder(orderId, null, -1, worker);
         }
 
         org.json.JSONObject verifiedResultJson = new org.json.JSONObject();
@@ -259,7 +265,7 @@ public class PaymentRepository {
         verifiedResultJson.put("providerReference", providerReference != null ? providerReference : "VNPAY");
         String verifiedResult = verifiedResultJson.toString();
 
-        try (Connection conn = buyer.getConnection();
+        try (Connection conn = worker.getConnection();
              CallableStatement cs = conn.prepareCall("{call dbo.usp_ApplyPaymentResult(?, ?, ?, ?, ?)}")) {
             cs.setObject(1, orderId);
             cs.setNull(2, Types.OTHER);
@@ -274,24 +280,28 @@ public class PaymentRepository {
         }
     }
 
-    private String generateTicketsForOrder(UUID orderId) {
-        int expected = 0;
-        try (Connection conn = buyer.getConnection();
-             PreparedStatement ps = conn.prepareStatement(
-                     "SELECT COALESCE(SUM(quantity), 0) FROM dbo.tc_order_items WITH (NOLOCK) WHERE order_id = ?")) {
+    private String generateTicketsForOrder(UUID orderId, UUID actorId, int authVersion, DataSource source) {
+        int expected;
+        try (Connection conn = source.getConnection();
+             PreparedStatement ps = conn.prepareStatement("EXEC dbo.usp_ReadOrderTicketQuantity ?, ?, ?")) {
             ps.setObject(1, orderId);
+            ps.setObject(2, actorId);
+            ps.setInt(3, authVersion);
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    expected = rs.getInt(1);
-                }
+                if (!rs.next()) throw PaymentException.orderNotFound();
+                expected = rs.getInt(1);
             }
-        } catch (SQLException ignored) { }
+        } catch (SQLException failure) {
+            PaymentException mapped = domain(failure);
+            if (mapped != null) throw mapped;
+            throw PaymentException.unavailable();
+        }
 
         org.json.JSONArray tickets = new org.json.JSONArray();
         for (int i = 0; i < expected; i++) {
             String ticketCode = "TC-" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
             byte[] secret = new byte[32];
-            java.util.concurrent.ThreadLocalRandom.current().nextBytes(secret);
+            TICKET_SECRET_RANDOM.nextBytes(secret);
             try {
                 java.security.MessageDigest sha256 = java.security.MessageDigest.getInstance("SHA-256");
                 String qrHashHex = java.util.HexFormat.of().formatHex(sha256.digest(secret));

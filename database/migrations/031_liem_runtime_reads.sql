@@ -8,7 +8,8 @@ AS
 BEGIN
     SET NOCOUNT ON;
     EXEC dbo.usp_HoldAuthorize @actor_id, @auth_version;
-    SELECT o.order_code, o.total_amount, h.expires_at, o.status,
+    SELECT o.order_code, o.total_amount,
+           DATEDIFF_BIG(millisecond,SYSUTCDATETIME(),h.expires_at) AS hold_remaining_ms, o.status,
            h.status AS hold_status, e.status AS event_status
     FROM dbo.tc_orders o
     JOIN dbo.tc_ticket_holds h ON h.id=o.hold_id
@@ -23,7 +24,8 @@ AS
 BEGIN
     SET NOCOUNT ON;
     EXEC dbo.usp_HoldAuthorize @actor_id, @auth_version;
-    SELECT TOP (1) p.id, p.txn_ref, p.amount, o.order_code, h.expires_at
+    SELECT TOP (1) p.id, p.txn_ref, p.amount, o.order_code,
+           DATEDIFF_BIG(millisecond,SYSUTCDATETIME(),h.expires_at) AS hold_remaining_ms
     FROM dbo.tc_payments p
     JOIN dbo.tc_orders o ON o.id=p.order_id
     JOIN dbo.tc_ticket_holds h ON h.id=o.hold_id

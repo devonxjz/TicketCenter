@@ -36,13 +36,13 @@ public final class OrderService {
 
     public OrderRepository.OrderHistoryPage orderHistory(OrderActor actor, int page, int size, String status) {
         Objects.requireNonNull(actor, "actor is required");
-        return repository.findOrdersByBuyerId(actor.id(), page, size, status);
+        return repository.findOrdersByBuyerId(actor.id(), actor.authVersion(), page, size, status);
     }
 
     public OrderDetailDto orderDetail(OrderActor actor, UUID orderId) {
         Objects.requireNonNull(actor, "actor is required");
         Objects.requireNonNull(orderId, "orderId is required");
-        OrderDetailDto detail = repository.findOrderDetail(orderId)
+        OrderDetailDto detail = repository.findOrderDetail(orderId, actor.id(), actor.authVersion())
                 .orElseThrow(() -> new OrderException(404, "ORDER_NOT_FOUND", "Order was not found."));
         if (!actor.id().equals(detail.buyerId())) {
             throw new OrderException(403, "FORBIDDEN", "You do not own this order.");

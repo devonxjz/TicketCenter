@@ -50,7 +50,11 @@ public final class TicketRuntime implements ServletContextListener {
 
                 String secret = ServerConfig.getSecretKey();
                 if (secret == null || secret.isBlank()) {
-                    secret = AppConfig.get("ticket.qr.secret", "dev-secret-key-ticketscenter-2026");
+                    secret = AppConfig.get("ticket.qr.secret");
+                }
+                if (secret == null || secret.isBlank()) {
+                    if (ServerConfig.isProduction()) throw TicketException.unavailable();
+                    secret = "dev-secret-key-ticketscenter-2026";
                 }
 
                 SignedTicketQrSigner signer = new SignedTicketQrSigner(secret);

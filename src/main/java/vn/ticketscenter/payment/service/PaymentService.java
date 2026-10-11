@@ -67,7 +67,7 @@ public class PaymentService {
             }
 
             try {
-                PaymentRepository.PaymentIntent intent = repository.beginOrderPayment(orderId, actor.id());
+                PaymentRepository.PaymentIntent intent = repository.beginOrderPayment(orderId, actor.id(), actor.authVersion());
                 String orderInfo = "Thanh toan don hang " + intent.orderCode();
                 String redirectUrl = signer.buildPaymentUrl(intent.txnRef(), intent.amount(), orderInfo, clientIp, bankCode);
 
@@ -83,7 +83,7 @@ public class PaymentService {
                 claim.complete(result.body(), intent.holdRemaining());
                 return result;
             } catch (PaymentRepository.ZeroOrderDetectedException zero) {
-                repository.completeZeroOrder(orderId, actor.id());
+                repository.completeZeroOrder(orderId, actor.id(), actor.authVersion());
                 PaymentInitiationResult result = PaymentInitiationResult.zero(orderId, false);
                 claim.complete(result.body(), Duration.ofMinutes(10));
                 return result;
@@ -205,6 +205,13 @@ public class PaymentService {
         Objects.requireNonNull(actorId, "actorId is required");
         Objects.requireNonNull(orderId, "orderId is required");
         return repository.getOrderPaymentStatus(orderId, actorId)
+                .orElseThrow(PaymentException::orderNotFound);
+    }
+
+    public vn.ticketscenter.payment.dto.PaymentStatusResult getOrderPaymentStatus(PaymentActor actor, UUID orderId) {
+        Objects.requireNonNull(actor, "actor is required");
+        Objects.requireNonNull(orderId, "orderId is required");
+        return repository.getOrderPaymentStatus(orderId, actor.id(), actor.authVersion())
                 .orElseThrow(PaymentException::orderNotFound);
     }
 }

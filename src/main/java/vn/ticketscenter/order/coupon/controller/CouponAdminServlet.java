@@ -6,17 +6,15 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import vn.ticketscenter.config.persistence.ConnectionBudgets;
-import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.order.coupon.dto.CouponAdminDto;
 import vn.ticketscenter.order.coupon.dto.CreateCouponRequest;
 import vn.ticketscenter.order.coupon.dto.UpdateCouponRequest;
-import vn.ticketscenter.order.coupon.repository.CouponAdminRepository;
+import vn.ticketscenter.order.coupon.service.CouponAdminRuntime;
 import vn.ticketscenter.order.coupon.service.CouponAdminService;
 import vn.ticketscenter.order.service.OrderException;
-import vn.ticketscenter.order.service.OrderRuntime;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -35,10 +33,8 @@ import java.util.stream.Collectors;
  * - POST /api/coupons/{id}/deactivate: Vô hiệu hóa coupon
  * - DELETE /api/coupons/{id}: Xóa coupon
  */
-@WebServlet(urlPatterns = {
+@WebServlet(name = "CouponAdminServlet", urlPatterns = {
         "/api/admin/coupons",
-        "/api/organizations/*/coupons",
-        "/api/admin/organizations/*/coupons",
         "/api/coupons/*"
 })
 public class CouponAdminServlet extends HttpServlet {
@@ -157,10 +153,7 @@ public class CouponAdminServlet extends HttpServlet {
 
     private CouponAdminService service() {
         if (suppliedService != null) return suppliedService;
-        var pool = (com.zaxxer.hikari.HikariDataSource) getServletContext().getAttribute("OrderRuntime.pool");
-        var redis = RedisClientProvider.getInstance();
-        CouponAdminRepository repo = new CouponAdminRepository(pool);
-        return new CouponAdminService(repo, redis::getResource);
+        return CouponAdminRuntime.resolve(getServletContext());
     }
 
     private static String readBody(HttpServletRequest request) throws IOException {

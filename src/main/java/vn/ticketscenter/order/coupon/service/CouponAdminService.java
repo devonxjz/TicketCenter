@@ -28,7 +28,7 @@ public class CouponAdminService {
     public List<CouponAdminDto> listAllCoupons(UserPrincipal principal, int page, int size, UUID filterOrgId) {
         if (principal == null) throw new OrderException(401, "UNAUTHENTICATED", "A current session is required.");
         if (!principal.isAdmin()) throw new OrderException(403, "FORBIDDEN", "Admin access is required.");
-        return repository.getAllCoupons(page, size, filterOrgId);
+        return repository.getAllCoupons(principal, page, size, filterOrgId);
     }
 
     public List<CouponAdminDto> listOrganizationCoupons(UserPrincipal principal, UUID organizationId, int page, int size) {
@@ -36,14 +36,14 @@ public class CouponAdminService {
         if (organizationId == null) throw new OrderException(400, "BAD_REQUEST", "organizationId is required.");
 
         checkPermission(principal, organizationId);
-        return repository.getCouponsByOrganization(organizationId, page, size);
+        return repository.getCouponsByOrganization(principal, organizationId, page, size);
     }
 
     public CouponAdminDto getCoupon(UserPrincipal principal, UUID couponId) {
         if (principal == null) throw new OrderException(401, "UNAUTHENTICATED", "A current session is required.");
         if (couponId == null) throw new OrderException(400, "BAD_REQUEST", "couponId is required.");
 
-        CouponAdminDto coupon = repository.findById(couponId)
+        CouponAdminDto coupon = repository.findById(principal, couponId)
                 .orElseThrow(() -> new OrderException(404, "COUPON_NOT_FOUND", "Coupon was not found."));
 
         checkPermission(principal, coupon.organizationId());
@@ -78,9 +78,9 @@ public class CouponAdminService {
             throw new OrderException(400, "INVALID_DISCOUNT_TYPE", "Discount type must be PERCENTAGE or FIXED_AMOUNT.");
         }
 
-        UUID createdId = repository.createCoupon(organizationId, req);
+        UUID createdId = repository.createCoupon(principal, organizationId, req);
         invalidateCouponCache(organizationId);
-        return repository.findById(createdId).orElseThrow();
+        return repository.findById(principal, createdId).orElseThrow();
     }
 
     public CouponAdminDto updateCoupon(UserPrincipal principal, UUID couponId, UpdateCouponRequest req) {
@@ -88,7 +88,7 @@ public class CouponAdminService {
         if (couponId == null) throw new OrderException(400, "BAD_REQUEST", "couponId is required.");
         Objects.requireNonNull(req, "request is required");
 
-        CouponAdminDto existing = repository.findById(couponId)
+        CouponAdminDto existing = repository.findById(principal, couponId)
                 .orElseThrow(() -> new OrderException(404, "COUPON_NOT_FOUND", "Coupon was not found."));
 
         checkPermission(principal, existing.organizationId());
@@ -104,24 +104,24 @@ public class CouponAdminService {
             throw new OrderException(400, "INVALID_VALIDITY", "validTo must be after validFrom.");
         }
 
-        repository.updateCoupon(couponId, req);
+        repository.updateCoupon(principal, couponId, req);
         invalidateCouponCache(existing.organizationId());
-        return repository.findById(couponId).orElseThrow();
+        return repository.findById(principal, couponId).orElseThrow();
     }
 
     public void setStatus(UserPrincipal principal, UUID couponId, boolean active) {
         if (principal == null) throw new OrderException(401, "UNAUTHENTICATED", "A current session is required.");
-        CouponAdminDto existing = repository.findById(couponId)
+        CouponAdminDto existing = repository.findById(principal, couponId)
                 .orElseThrow(() -> new OrderException(404, "COUPON_NOT_FOUND", "Coupon was not found."));
 
         checkPermission(principal, existing.organizationId());
-        repository.setActive(couponId, active);
+        repository.setActive(principal, couponId, active);
         invalidateCouponCache(existing.organizationId());
     }
 
     public void deleteCoupon(UserPrincipal principal, UUID couponId) {
         if (principal == null) throw new OrderException(401, "UNAUTHENTICATED", "A current session is required.");
-        CouponAdminDto existing = repository.findById(couponId)
+        CouponAdminDto existing = repository.findById(principal, couponId)
                 .orElseThrow(() -> new OrderException(404, "COUPON_NOT_FOUND", "Coupon was not found."));
 
         checkPermission(principal, existing.organizationId());
@@ -130,17 +130,13 @@ public class CouponAdminService {
             throw new OrderException(409, "CANNOT_DELETE_ACTIVE_REDEMPTIONS", "Cannot delete coupon that has redemptions.");
         }
 
-        try {
-            repository.deleteCoupon(couponId);
-        } catch (IllegalStateException e) {
-            throw new OrderException(409, "COUPON_IN_USE", e.getMessage());
-        }
+        repository.deleteCoupon(principal, couponId);
         invalidateCouponCache(existing.organizationId());
     }
 
     private void checkPermission(UserPrincipal principal, UUID organizationId) {
         if (principal.isAdmin()) return;
-        boolean allowed = repository.isManagerOrAdmin(principal.actorId(), principal.isAdmin(), organizationId);
+        boolean allowed = repository.isManagerOrAdmin(principal, organizationId);
         if (!allowed) {
             throw new OrderException(403, "FORBIDDEN", "Manager permission for organization " + organizationId + " is required.");
         }

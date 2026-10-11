@@ -19,6 +19,7 @@ import java.time.Clock;
 public final class PaymentRuntime implements ServletContextListener {
     public static final String SERVICE_ATTRIBUTE = PaymentService.class.getName();
     private static final String POOL_ATTRIBUTE = PaymentRuntime.class.getName() + ".pool";
+    private static final String WORKER_POOL_ATTRIBUTE = PaymentRuntime.class.getName() + ".workerPool";
     private static final String CLOSED_ATTRIBUTE = PaymentRuntime.class.getName() + ".closed";
 
     public static PaymentService resolve(ServletContext context) {
@@ -30,10 +31,16 @@ public final class PaymentRuntime implements ServletContextListener {
                 return service;
             }
             HikariDataSource pool = null;
+            HikariDataSource workerPool = null;
             try {
                 String user = AppConfig.get("db.buyer.user");
                 String password = AppConfig.get("db.buyer.password");
+                String workerUser = AppConfig.get("db.worker.user");
+                String workerPassword = AppConfig.get("db.worker.password");
                 if (user == null || user.isBlank() || password == null || password.isBlank()) {
+                    throw PaymentException.unavailable();
+                }
+                if (workerUser == null || workerUser.isBlank() || workerPassword == null || workerPassword.isBlank()) {
                     throw PaymentException.unavailable();
                 }
                 HikariConfig config = new HikariConfig();
@@ -47,6 +54,17 @@ public final class PaymentRuntime implements ServletContextListener {
                 config.setConnectionTimeout(10_000);
                 config.setAutoCommit(true);
                 pool = new HikariDataSource(config);
+                HikariConfig workerConfig = new HikariConfig();
+                workerConfig.setPoolName("payment-worker");
+                workerConfig.setJdbcUrl(DatabaseConfig.getJdbcUrl());
+                workerConfig.setUsername(workerUser);
+                workerConfig.setPassword(workerPassword);
+                workerConfig.setMaximumPoolSize(1);
+                workerConfig.setMinimumIdle(0);
+                workerConfig.setInitializationFailTimeout(-1);
+                workerConfig.setConnectionTimeout(10_000);
+                workerConfig.setAutoCommit(true);
+                workerPool = new HikariDataSource(workerConfig);
 
                 String tmnCode = AppConfig.get(AppConfig.Keys.VNPAY_TMN_CODE);
                 String hashSecret = AppConfig.get(AppConfig.Keys.VNPAY_HASH_SECRET);
@@ -59,14 +77,16 @@ public final class PaymentRuntime implements ServletContextListener {
                 VnpaySigner signer = new VnpaySigner(tmnCode, hashSecret, payUrl, returnUrl, Clock.systemUTC());
                 var redis = RedisClientProvider.getInstance();
                 RedisPaymentIdempotency idempotency = new RedisPaymentIdempotency(redis::getResource);
-                PaymentRepository repository = new PaymentRepository(ConnectionBudgets.wrap(pool));
+                PaymentRepository repository = new PaymentRepository(ConnectionBudgets.wrap(pool), ConnectionBudgets.wrap(workerPool));
 
                 PaymentService service = new PaymentService(repository, signer, idempotency);
                 context.setAttribute(POOL_ATTRIBUTE, pool);
+                context.setAttribute(WORKER_POOL_ATTRIBUTE, workerPool);
                 context.setAttribute(SERVICE_ATTRIBUTE, service);
                 return service;
             } catch (RuntimeException failure) {
                 if (pool != null) pool.close();
+                if (workerPool != null) workerPool.close();
                 throw PaymentException.unavailable();
             }
         }
@@ -84,8 +104,12 @@ public final class PaymentRuntime implements ServletContextListener {
             if (event.getServletContext().getAttribute(POOL_ATTRIBUTE) instanceof HikariDataSource pool) {
                 pool.close();
             }
+            if (event.getServletContext().getAttribute(WORKER_POOL_ATTRIBUTE) instanceof HikariDataSource pool) {
+                pool.close();
+            }
             event.getServletContext().removeAttribute(SERVICE_ATTRIBUTE);
             event.getServletContext().removeAttribute(POOL_ATTRIBUTE);
+            event.getServletContext().removeAttribute(WORKER_POOL_ATTRIBUTE);
         }
     }
 }

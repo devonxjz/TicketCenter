@@ -62,23 +62,18 @@ public class TicketRepository {
      * Lấy danh sách tất cả vé thuộc về người mua (buyerId).
      */
     public List<TicketSummaryDto> findTicketsByBuyerId(UUID buyerId) {
+        return findTicketsByBuyerId(buyerId, -1);
+    }
+
+    public List<TicketSummaryDto> findTicketsByBuyerId(UUID buyerId, int authVersion) {
         Objects.requireNonNull(buyerId, "buyerId is required");
-        String sql = """
-                SELECT t.id, t.ticket_code, t.paid_amount, t.status, t.issued_at, t.version,
-                       oi.order_id, oi.zone_name_snapshot, oi.seat_label_snapshot,
-                       e.title AS event_title, e.venue_name, e.start_time
-                FROM dbo.tc_tickets t WITH (NOLOCK)
-                JOIN dbo.tc_order_items oi WITH (NOLOCK) ON oi.id = t.order_item_id
-                JOIN dbo.tc_orders o WITH (NOLOCK) ON o.id = oi.order_id
-                JOIN dbo.tc_events e WITH (NOLOCK) ON e.id = o.event_id
-                WHERE o.user_id = ?
-                ORDER BY t.issued_at DESC
-                """;
+        String sql = "EXEC dbo.usp_ListBuyerTickets ?, ?";
 
         List<TicketSummaryDto> result = new ArrayList<>();
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setObject(1, buyerId);
+            ps.setInt(2, authVersion);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     result.add(new TicketSummaryDto(
@@ -107,22 +102,18 @@ public class TicketRepository {
      * Tìm thông tin đầy đủ của một vé theo ticketId.
      */
     public Optional<TicketRecord> findById(UUID ticketId) {
+        return findById(ticketId, null, -1);
+    }
+
+    public Optional<TicketRecord> findById(UUID ticketId, UUID buyerId, int authVersion) {
         Objects.requireNonNull(ticketId, "ticketId is required");
-        String sql = """
-                SELECT t.id, t.ticket_code, t.paid_amount, t.status, t.issued_at, t.version,
-                       oi.order_id, oi.zone_name_snapshot, oi.seat_label_snapshot,
-                       o.order_code, o.user_id AS buyer_id,
-                       e.id AS event_id, e.title AS event_title, e.venue_name, e.venue_address, e.start_time, e.end_time
-                FROM dbo.tc_tickets t WITH (NOLOCK)
-                JOIN dbo.tc_order_items oi WITH (NOLOCK) ON oi.id = t.order_item_id
-                JOIN dbo.tc_orders o WITH (NOLOCK) ON o.id = oi.order_id
-                JOIN dbo.tc_events e WITH (NOLOCK) ON e.id = o.event_id
-                WHERE t.id = ?
-                """;
+        String sql = "EXEC dbo.usp_ReadBuyerTicket ?, ?, ?";
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setObject(1, ticketId);
+            ps.setObject(2, buyerId);
+            ps.setInt(3, authVersion);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return Optional.of(new TicketRecord(
@@ -156,24 +147,19 @@ public class TicketRepository {
      * Lấy tất cả các vé thuộc về một đơn hàng (orderId).
      */
     public List<TicketRecord> findTicketsByOrderId(UUID orderId) {
+        return findTicketsByOrderId(orderId, null, -1);
+    }
+
+    public List<TicketRecord> findTicketsByOrderId(UUID orderId, UUID buyerId, int authVersion) {
         Objects.requireNonNull(orderId, "orderId is required");
-        String sql = """
-                SELECT t.id, t.ticket_code, t.paid_amount, t.status, t.issued_at, t.version,
-                       oi.order_id, oi.zone_name_snapshot, oi.seat_label_snapshot,
-                       o.order_code, o.user_id AS buyer_id,
-                       e.id AS event_id, e.title AS event_title, e.venue_name, e.venue_address, e.start_time, e.end_time
-                FROM dbo.tc_tickets t WITH (NOLOCK)
-                JOIN dbo.tc_order_items oi WITH (NOLOCK) ON oi.id = t.order_item_id
-                JOIN dbo.tc_orders o WITH (NOLOCK) ON o.id = oi.order_id
-                JOIN dbo.tc_events e WITH (NOLOCK) ON e.id = o.event_id
-                WHERE o.id = ?
-                ORDER BY t.issued_at ASC
-                """;
+        String sql = "EXEC dbo.usp_ListBuyerOrderTicketsDetailed ?, ?, ?";
 
         List<TicketRecord> result = new ArrayList<>();
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setObject(1, orderId);
+            ps.setObject(2, buyerId);
+            ps.setInt(3, authVersion);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     result.add(new TicketRecord(

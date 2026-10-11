@@ -79,6 +79,12 @@ class PaymentApiServletTest {
             }
             throw PaymentException.orderNotFound();
         }
+
+        @Override
+        public vn.ticketscenter.payment.dto.PaymentStatusResult getOrderPaymentStatus(
+                vn.ticketscenter.payment.dto.PaymentActor actor, UUID orderId) {
+            return getOrderPaymentStatus(actor.id(), orderId);
+        }
     }
 
     @BeforeEach

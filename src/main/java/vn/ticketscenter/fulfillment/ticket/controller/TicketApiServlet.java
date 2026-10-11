@@ -45,16 +45,17 @@ public class TicketApiServlet extends HttpServlet {
             UserPrincipal principal = SecurityContext.getCurrentUser(request)
                     .orElseThrow(TicketException::unauthenticated);
             UUID actorId = principal.actorId();
+            int authVersion = principal.authVersion();
 
             if ("/api/me/tickets".equals(path)) {
-                handleMyTickets(actorId, response);
+                handleMyTickets(actorId, authVersion, response);
             } else if (path.matches("^/api/tickets/[^/]+/qr$")) {
                 UUID ticketId = parseTicketId(path.split("/")[3]);
                 int size = parseSize(request.getParameter("size"));
-                handleTicketQr(actorId, ticketId, size, response);
+                handleTicketQr(actorId, authVersion, ticketId, size, response);
             } else if (path.matches("^/api/tickets/[^/]+$")) {
                 UUID ticketId = parseTicketId(path.split("/")[3]);
-                handleTicketDetail(actorId, ticketId, response);
+                handleTicketDetail(actorId, authVersion, ticketId, response);
             } else {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
             }
@@ -69,11 +70,11 @@ public class TicketApiServlet extends HttpServlet {
         }
     }
 
-    private void handleMyTickets(UUID actorId, HttpServletResponse response) throws IOException {
+    private void handleMyTickets(UUID actorId, int authVersion, HttpServletResponse response) throws IOException {
         response.setContentType("application/json;charset=UTF-8");
         response.setHeader("Cache-Control", "no-store");
 
-        List<TicketSummaryDto> tickets = service().getMyTickets(actorId);
+        List<TicketSummaryDto> tickets = service().getMyTickets(actorId, authVersion);
         String jsonArray = tickets.stream()
                 .map(TicketSummaryDto::toJson)
                 .collect(Collectors.joining(","));
@@ -82,17 +83,17 @@ public class TicketApiServlet extends HttpServlet {
         response.getWriter().write("{\"tickets\":[" + jsonArray + "]}");
     }
 
-    private void handleTicketDetail(UUID actorId, UUID ticketId, HttpServletResponse response) throws IOException {
+    private void handleTicketDetail(UUID actorId, int authVersion, UUID ticketId, HttpServletResponse response) throws IOException {
         response.setContentType("application/json;charset=UTF-8");
         response.setHeader("Cache-Control", "no-store");
 
-        TicketDetailDto detail = service().getTicketDetail(actorId, ticketId);
+        TicketDetailDto detail = service().getTicketDetail(actorId, authVersion, ticketId);
         response.setStatus(HttpServletResponse.SC_OK);
         response.getWriter().write(detail.toJson());
     }
 
-    private void handleTicketQr(UUID actorId, UUID ticketId, int size, HttpServletResponse response) throws IOException {
-        byte[] pngBytes = service().getTicketQrPng(actorId, ticketId, size, size);
+    private void handleTicketQr(UUID actorId, int authVersion, UUID ticketId, int size, HttpServletResponse response) throws IOException {
+        byte[] pngBytes = service().getTicketQrPng(actorId, authVersion, ticketId, size, size);
 
         response.setContentType("image/png");
         response.setHeader("Cache-Control", "private, max-age=300");
