@@ -2,6 +2,7 @@
 const test = require('node:test'), assert = require('node:assert/strict');
 const fs = require('node:fs'), os = require('node:os'), path = require('node:path');
 const {spawnSync} = require('node:child_process');
+const net = require('node:net');
 const powershell = process.env.TC_TEST_POWERSHELL;
 const enabled = process.platform === 'win32' && powershell;
 function run(script, args) {
@@ -54,15 +55,19 @@ test('JSTL cache corruption is rejected before reuse or downloads', {skip: !enab
 
 test('local build clears inherited Maven settings and forces safe tests', {
   skip: !(enabled && process.env.TC_TEST_JAVA_HOME && process.env.TC_TEST_TOMCAT_HOME)
-}, () => {
+}, async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tc-maven-probe-'));
   try {
+    const listener = net.createServer();
+    await new Promise((resolve, reject) => {listener.once('error', reject); listener.listen(0, '127.0.0.1', resolve);});
+    const port = listener.address().port;
+    await new Promise((resolve, reject) => listener.close(error => error ? reject(error) : resolve()));
     const config = path.join(root, 'database.json'), probe = path.join(root, 'probe.txt');
     fs.writeFileSync(config, '{}');
     fs.writeFileSync(path.join(root, 'mvn.cmd'), '@echo off\r\n>"%HANDOFF_BUILD_PROBE%" echo args=[%MAVEN_ARGS%]\r\n>>"%HANDOFF_BUILD_PROBE%" echo opts=[%MAVEN_OPTS%]\r\n>>"%HANDOFF_BUILD_PROBE%" echo cli=%*\r\nexit /b 42\r\n');
     const result = spawnSync(powershell, ['-NoProfile', '-File', 'tools/local/run.ps1',
       '-JavaHome', process.env.TC_TEST_JAVA_HOME, '-TomcatHome', process.env.TC_TEST_TOMCAT_HOME,
-      '-ConfigPath', config, '-Smoke'], {
+      '-ConfigPath', config, '-Port', String(port), '-Smoke'], {
       encoding: 'utf8', windowsHide: true, timeout: 20000,
       env: {...process.env, PATH: root + path.delimiter + process.env.PATH,
         HANDOFF_BUILD_PROBE: probe, MAVEN_ARGS: '-DskipTests -Dtc.tests.db=true',
