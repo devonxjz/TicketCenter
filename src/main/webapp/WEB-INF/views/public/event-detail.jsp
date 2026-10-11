@@ -9,6 +9,7 @@
     <article id="event" hidden><img id="cover" alt="" class="w-100 mb-4" style="max-height:420px;object-fit:cover" hidden>
         <h1 id="title"></h1><p id="time" class="text-muted"></p><p id="venue"></p>
         <p id="sale" class="small text-muted"></p><p id="description" style="white-space:pre-wrap"></p>
+        <a id="event-hold-link" class="btn btn-danger" hidden>Chọn vé</a>
         <h2 class="h4 mt-5">Khu vực và tình trạng vé</h2>
         <p class="text-muted small">Tình trạng vé được cập nhật định kỳ. Vé được xác nhận khi yêu cầu giữ vé thành công.</p>
         <p id="zone-status" role="status" aria-live="polite">Đang tải khu vực…</p><div id="zones" class="row g-3"></div>
@@ -18,6 +19,7 @@
 <script>
 (async () => {
     const base = document.body.dataset.context, status = document.getElementById('status');
+    const holdLink = document.getElementById('event-hold-link'); holdLink.hidden = true;
     function text(tag, value, className) { const el = document.createElement(tag); el.textContent = value; el.className = className || ''; return el; }
     async function api(path) {
         const response = await fetch(base + path, {headers: {Accept: 'application/json'}}), payload = await response.json();
@@ -39,6 +41,7 @@
                 const cover = document.getElementById('cover'); cover.src = url.href; cover.alt = event.title; cover.hidden = false;
             } } catch (_) { }
         }
+        holdLink.href = base + '/select-tickets?eventId=' + encodeURIComponent(id); holdLink.hidden = false;
         document.getElementById('event').hidden = false; status.textContent = '';
     } catch (error) { status.textContent = error.message; return; }
     const zoneStatus = document.getElementById('zone-status');

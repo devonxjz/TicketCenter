@@ -1,219 +1,43 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<% response.setHeader("Cache-Control", "no-store"); %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thanh Toán Đơn Vé — TicketsCenter</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
-    <style>
-        .hold-timer-bar {
-            background: var(--black);
-            color: var(--white);
-            padding: 14px 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: 0.92rem;
-            font-weight: 600;
-        }
-        .timer-display {
-            font-family: var(--font-mono);
-            font-size: 1.35rem;
-            color: var(--primary);
-            letter-spacing: 1px;
-        }
-    </style>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Đơn hàng và mã giảm giá | TicketsCenter</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
+<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ticket-hold.css">
 </head>
-<body class="bg-light min-h-screen d-flex flex-column justify-content-between">
-    <div class="small text-center py-2 bg-light text-muted" role="note">Prototype tĩnh • Dữ liệu và thao tác mô phỏng • Chưa kết nối backend, email hoặc cổng thanh toán.</div>
-
-    <!-- Header & Navbar -->
-    <nav class="navbar navbar-custom sticky-top">
-        <div class="container d-flex align-items-center justify-content-between">
-            <a class="navbar-brand-custom" href="${pageContext.request.contextPath}/">
-                TicketsCenter
-            </a>
-            <div class="small fw-semibold text-muted">
-                <i class="fa-solid fa-lock text-dark me-1"></i> Thanh toán VNPAY Sandbox • mô phỏng
-            </div>
-        </div>
-    </nav>
-
-    <!-- Main Checkout -->
-    <main class="container my-5">
-        
-        <!-- 10-Minute Hold Timer Bar -->
-        <div class="hold-timer-bar mb-5">
-            <div class="d-flex align-items-center gap-3">
-                <i class="fa-regular fa-clock text-danger fs-5"></i>
-                <span>Lượt giữ minh họa còn hạn (máy chủ quyết định khi triển khai):</span>
-            </div>
-            <div class="d-flex align-items-center gap-2">
-                <span class="timer-display" id="holdCountdown">09:42</span>
-            </div>
-        </div>
-
-        <form id="checkoutForm" action="${pageContext.request.contextPath}/payment-result" method="get">
-            <input type="hidden" name="_csrf" value="${sessionScope.TC_CSRF_TOKEN}">
-            <div class="row g-5">
-            
-            <!-- Left Column: Customer Information & Payment Method -->
-            <div class="col-lg-7">
-                
-                <!-- 1. Customer Information -->
-                <div class="panel-box">
-                    <div class="panel-header">
-                        <span class="panel-title">1. Thông tin người nhận vé</span>
-                    </div>
-
-                    <div class="row g-4">
-                        <div class="col-md-6">
-                            <label class="filter-label">Họ và tên *</label>
-                            <input type="text" class="form-control rounded-0 border-secondary-subtle py-2" value="Nguyễn Hoàng Nam">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="filter-label">Số điện thoại *</label>
-                            <input type="tel" class="form-control rounded-0 border-secondary-subtle py-2" value="0988 776 655">
-                        </div>
-                        <div class="col-12">
-                            <label class="filter-label">Email nhận mã vé điện tử *</label>
-                            <input type="email" class="form-control rounded-0 border-secondary-subtle py-2" value="buyer@ticketscenter.vn">
-                            <span class="small text-muted mt-2 d-block">Email tài khoản dùng nhận thông tin và liên kết xem QR sau commit; lỗi email không đảo ngược đơn đã trả.</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 2. Payment Method -->
-                <div class="panel-box">
-                    <div class="panel-header">
-                        <span class="panel-title">2. Phương thức thanh toán</span>
-                    </div>
-
-                    <div class="d-flex flex-column gap-3">
-                        <label class="d-flex align-items-center justify-content-between p-3 border bg-white cursor-pointer border-2 border-dark">
-                            <div class="d-flex align-items-center gap-3">
-                                <input type="radio" name="paymentMethod" value="VNPAY" checked class="form-check-input mt-0">
-                                <div>
-                                    <strong class="d-block text-dark">VNPAY Sandbox (giao dịch thử nghiệm)</strong>
-                                    <span class="small text-muted">Hỗ trợ tất cả ngân hàng Việt Nam và thẻ tín dụng Visa / MasterCard.</span>
-                                </div>
-                            </div>
-                            <span class="badge bg-danger rounded-0">Khuyên dùng</span>
-                        </label>
-
-                        <label class="d-flex align-items-center justify-content-between p-3 border bg-white cursor-pointer opacity-75">
-                            <div class="d-flex align-items-center gap-3">
-                                <input type="radio" name="paymentMethod" value="ZERO_ORDER" disabled class="form-check-input mt-0">
-                                <div>
-                                    <strong class="d-block text-dark">Đơn 0đ: hoàn tất trực tiếp</strong>
-                                    <span class="small text-muted">Không gọi VNPAY và không tạo Payment giả; vẫn kiểm tra Hold/Event và ghi Order.paidAt.</span>
-                                </div>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- Right Column: Order Review & Pricing -->
-            <div class="col-lg-5">
-                <div class="panel-box bg-white">
-                    <div class="panel-header">
-                        <span class="panel-title">Chi tiết đơn vé</span>
-                        <span class="small text-muted font-monospace">Mã giữ chỗ: #TC-9982</span>
-                    </div>
-
-                    <div class="mb-4">
-                        <h6 class="fw-bold mb-1 text-dark">Vé Tham Quan Bảo Tàng Phụ Nữ Việt Nam & Triển Lãm</h6>
-                        <span class="small text-muted d-block">Địa điểm: 36 Lý Thường Kiệt, Hoàn Kiếm, Hà Nội</span>
-                        <span class="small text-muted d-block">Thời gian: 01/11/2026 • 08:30 – 17:30</span>
-                    </div>
-
-                    <!-- Items List -->
-                    <div class="border-top pt-3 pb-2 small">
-                        <div class="d-flex justify-content-between py-2">
-                            <span>1x Ghế A5 (VIP)</span>
-                            <span class="fw-bold">120.000 đ</span>
-                        </div>
-                        <div class="d-flex justify-content-between py-2">
-                            <span>1x Ghế A6 (VIP)</span>
-                            <span class="fw-bold">120.000 đ</span>
-                        </div>
-                        <div class="d-flex justify-content-between py-2">
-                            <span>1x Vé Phổ Thông</span>
-                            <span class="fw-bold">40.000 đ</span>
-                        </div>
-                    </div>
-
-                    <!-- Coupon Input -->
-                    <div class="border-top pt-3 my-2">
-                        <label class="filter-label">Mã khuyến mãi / Giảm giá</label>
-                        <div class="input-group">
-                            <input type="text" id="couponInput" class="form-control rounded-0 border-secondary-subtle text-uppercase" placeholder="Nhập mã khuyến mãi" value="CHAOTHU20">
-                            <button class="btn btn-dark rounded-0 px-3 fw-bold" onclick="applyCoupon()">Áp dụng</button>
-                        </div>
-                        <span class="small text-danger mt-2 d-block fw-semibold" id="couponMsg">
-                            <i class="fa-solid fa-check"></i> Đã áp dụng mã giảm giá <strong>CHAOTHU20</strong> (-20%).
-                        </span>
-                    </div>
-
-                    <!-- Financial Summary -->
-                    <div class="border-top pt-4">
-                        <div class="d-flex justify-content-between py-1 small">
-                            <span class="text-muted">Tổng tiền vé:</span>
-                            <span class="fw-bold">280.000 đ</span>
-                        </div>
-                        <div class="d-flex justify-content-between py-1 small text-danger">
-                            <span>Khuyến mãi đã giảm:</span>
-                            <span class="fw-bold" id="discountAmount">-56.000 đ</span>
-                        </div>
-                        <div class="d-flex justify-content-between py-3 border-top mt-3 align-items-center">
-                            <span class="fw-bold fs-6">Tổng thanh toán:</span>
-                            <span class="h3 fw-bold text-danger mb-0" id="finalTotal">224.000 đ</span>
-                        </div>
-                    </div>
-
-                    <!-- Action Button -->
-                    <div class="mt-4">
-                        <button type="submit" class="btn-primary-custom w-100 py-3 text-center text-uppercase fw-bold fs-6 border-0">
-                            Mô phỏng tiếp tục thanh toán 
-                        </button>
-                        <span class="small text-muted text-center d-block mt-3">
-                            Một Order có nhiều lần Payment; chỉ acceptedPayment CAPTURED hoàn tất đơn. PENDING/UNKNOWN chặn đổi coupon và lần thu mới. Thu muộn/trùng tạo Refund bù trừ, không phát hành vé.<br>Bằng việc nhấn thanh toán, bạn đồng ý với Điều khoản dịch vụ và Quy chế hoạt động của TicketsCenter.
-                        </span>
-                    </div>
-
-                </div>
-            </div>
-
-            </div>
-        </form>
-
-    </main>
-
-    <!-- Footer -->
-    <footer class="mt-auto py-4 bg-white border-top">
-        <div class="container text-center small text-muted">
-            &copy; 2026 TicketsCenter. Cổng thanh toán trực tuyến bảo mật.
-        </div>
-    </footer>
-
-    <script>
-        function applyCoupon() {
-            const code = document.getElementById('couponInput').value.trim().toUpperCase();
-            if (code === 'CHAOTHU20') {
-                document.getElementById('couponMsg').innerHTML = '<i class="fa-solid fa-check"></i> Đã áp dụng mã giảm giá <strong>CHAOTHU20</strong> (-20%).';
-                document.getElementById('couponMsg').className = 'small text-danger mt-2 d-block fw-semibold';
-                document.getElementById('discountAmount').innerText = '-56.000 đ';
-                document.getElementById('finalTotal').innerText = '224.000 đ';
-            } else {
-                alert('Mô phỏng: Mã giảm giá không hợp lệ hoặc đã hết hạn.');
-            }
-        }
-    </script>
-</body>
-</html>
+<body data-hold-page="current" data-context="${pageContext.request.contextPath}">
+<jsp:include page="/WEB-INF/views/layout/header.jsp" />
+<main class="container my-5 hold-page">
+<a href="${pageContext.request.contextPath}/">Tất cả sự kiện</a><h1 id="hold-heading" class="h2 mt-4">Lượt giữ vé</h1>
+<p id="hold-message" role="status" aria-live="polite">Đang đối chiếu lượt giữ...</p>
+<div id="hold-auth" hidden><a href="${pageContext.request.contextPath}/auth/login" class="btn btn-dark">Đăng nhập</a> <a href="${pageContext.request.contextPath}/auth/verify-email">Xác minh email</a></div>
+<div id="hold-recovery" hidden class="hold-notice"><p>Kết quả yêu cầu chưa rõ. Thử lại cùng yêu cầu để đối chiếu với máy chủ.</p><button id="hold-retry" type="button" class="btn btn-dark">Thử lại yêu cầu</button></div>
+<section id="current-hold" hidden class="hold-panel"><h2 class="h4">Vé đang giữ</h2><p id="hold-id" class="hold-id"></p><p>Thời gian còn lại <strong id="hold-countdown" role="timer" aria-label="Thời gian còn lại"></strong></p><p id="hold-deadline"></p><ul id="hold-items" class="hold-items"></ul><p>Giá vé đã giữ <strong id="hold-total"></strong></p><p>Vé đang được giữ và chưa thanh toán.</p><a id="hold-view" class="btn btn-outline-dark">Xem sự kiện</a> <button id="hold-cancel" type="button" class="btn btn-outline-danger">Hủy lượt giữ</button></section>
+<button id="hold-refresh" type="button" class="btn btn-outline-dark mt-4">Cập nhật trạng thái</button>
+<section id="order-checkout" class="hold-panel" aria-labelledby="order-heading">
+<h2 id="order-heading" class="h4">Đơn hàng</h2>
+<p id="order-message" role="status" aria-live="polite">Đang đối chiếu đơn hàng...</p>
+<div id="order-recovery" hidden class="hold-notice"><p>Yêu cầu chưa rõ kết quả. Thử lại cùng mã yêu cầu đã lưu.</p><button id="order-retry" type="button" class="btn btn-dark">Thử lại yêu cầu đơn hàng</button></div>
+<button id="order-create" hidden type="button" class="btn btn-dark">Xác nhận tạo đơn từ vé đang giữ</button>
+<div id="order-summary" hidden>
+<p id="order-code" class="hold-id"></p><p id="order-status"></p>
+<ul id="order-items" class="hold-items"></ul>
+<dl><dt>Tiền vé</dt><dd id="order-subtotal"></dd><dt>Giảm giá</dt><dd id="order-discount"></dd><dt>Tổng cần thanh toán</dt><dd id="order-total" class="h4"></dd></dl>
+<p id="order-applied-coupon"></p>
+<form id="order-coupon-form"><label for="order-coupon-code" class="form-label">Mã giảm giá</label><input id="order-coupon-code" class="form-control" type="text" maxlength="80" autocomplete="off" aria-describedby="order-coupon-help"><p id="order-coupon-help" class="text-muted">Mã được gửi đúng như bạn nhập. Xem trước không giữ lượt sử dụng.</p><button id="order-preview" type="button" class="btn btn-outline-dark">Xem trước</button> <button id="order-apply" type="submit" class="btn btn-dark">Áp dụng mã</button> <button id="order-remove" type="button" class="btn btn-outline-danger">Gỡ mã</button></form>
+<p id="order-preview-result" role="status" aria-live="polite"></p>
+<p>Đơn chưa thanh toán. Thời hạn giữ vé không thay đổi khi tạo đơn hoặc áp dụng mã giảm giá.</p>
+</div>
+<button id="order-refresh" type="button" class="btn btn-outline-dark mt-3">Đối chiếu đơn hàng</button>
+</section>
+<noscript>Vui lòng bật JavaScript để xem lượt giữ hiện tại.</noscript>
+</main><jsp:include page="/WEB-INF/views/layout/footer.jsp" />
+<script src="${pageContext.request.contextPath}/assets/js/ticket-hold.js" defer></script>
+<script src="${pageContext.request.contextPath}/assets/js/order-checkout.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body></html>
