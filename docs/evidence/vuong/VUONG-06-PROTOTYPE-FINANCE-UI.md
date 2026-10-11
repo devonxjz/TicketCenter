@@ -9,7 +9,8 @@ whole #28/#33 remain open and the epic remains 4/6.
 The live pages use the existing `assets/css/style.css` white/red/black tokens,
 typography, flat panels and dashboard navigation. Finance-only responsive
 styles extend those tokens. Admin reuses the existing `layout/admin-navbar.jsp`
-and `admin-notifications.js`; neither shared file is edited. Manager gets its
+and `admin-notifications.js`. Navbar markup stays unchanged; notification row
+removal is confined to its existing organization approval table. Manager gets its
 own report navigation without Admin controls. Existing owner approval links
 remain available. No owner servlet, schema, model or business contract changes.
 
@@ -39,7 +40,7 @@ not carry arbitrary query parameters into financial filters.
   Fresh full WAR: 17/17, no failures/skips, actual login/session/CSRF/SQL role
   checks and five rendered JSPs. Includes GET/HEAD aliases and POST ownership.
 - Safe Java package: 408 executed, 60 guarded external skips, zero failure/error.
-  Safe JavaScript contracts: 56/56, zero skips. Skips are not counted as PASS.
+  Safe JavaScript contracts: 59/59, zero skips. Skips are not counted as PASS.
 - New rendered header/current menu/Manager-exclusion assertions first failed
   against the old WAR. Alias assertions then failed against static menu pages.
   Browser found a footer UTF-8 fragment defect, reproduced by rendered HTTP
@@ -60,6 +61,10 @@ not carry arbitrary query parameters into financial filters.
 - Tablet navbar regression: client753px / page814px before fix; after scoped
   flex wrapping both753px. At320px viewport, client/page305px and notification
   dropdown288px fit the screen. Shared navbar markup remains unchanged.
+- Fresh independent review found the shared notification approval fallback could
+  remove a matching finance audit row. Actual-script regression RED:16/18, two
+  failures; GREEN:18/18 after confining lookup/removal to `#pendingOrgTableBody`.
+  Both attributed and legacy owner approval rows still update; finance rows stay.
 
 Screenshots: [desktop report](prototype-ui/report-desktop.png),
 [mobile report](prototype-ui/report-mobile.png),

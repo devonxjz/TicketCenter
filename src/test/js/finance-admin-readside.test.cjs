@@ -65,3 +65,42 @@ test('overview initialization requests only admin overview and renders seven day
  const h=harness('overview');assert.equal(h.requests[0].url,'/ticketscenter/api/admin/overview');
  h.requests[0].resolve(h.response({timezone:'UTC',totalUsers:3,activeOrganizations:2,todayCohortGrossRevenue:'9007199254740993',todayCohortCommission:'5',todayCashFlow:{ticketCaptured:'100',compensationCaptured:'0',ticketRefund:'0',compensationRefund:'0',netCashFlow:'100'},dailyMetrics:Array.from({length:7},(_,i)=>({date:'2026-10-0'+(i+1),cohortGrossRevenue:'100',netCashFlow:'-10'}))}));await tick();await tick();assert.equal(h.ids['daily-values'].children.length,7);assert.ok(h.ids.summary.children.length>0);
 });
+
+// The shared notification handler also runs on finance pages. Approval must only
+// remove rows from the organization approval table, never a matching audit row.
+function notificationApprovalHarness(pendingKind) {
+ class Element {
+  constructor(text=''){this.textContent=text;this.removed=false;this.classList={add(){},remove(){}};this.style={};}
+  remove(){this.removed=true;} appendChild(){} setAttribute(){}
+ }
+ const financeRow=new Element('Organization audit '+actor),pendingRow=pendingKind?new Element('Organization '+actor):null;
+ const pending={querySelectorAll:selector=>selector==='tr[data-org-id]'&&pendingKind==='attributed'&&!pendingRow.removed?[pendingRow]:[]};
+ const ids={pendingOrgTableBody:pendingKind?pending:null,adminNotificationBadge:new Element('1'),adminNotificationCountText:new Element('1'),adminNotificationEmpty:new Element(),pendingOrgTitleCount:new Element()};
+ const requests=[],document={
+  getElementById:id=>ids[id]||null,createElement:()=>new Element(),body:new Element(),addEventListener(){},
+  querySelector(selector){
+   if(selector.startsWith('meta['))return {getAttribute:()=>selector.includes('csrf-token')?'synthetic-csrf':'/ticketscenter'};
+   if(selector===`tr[data-org-id="${actor}"]`)return pendingKind==='attributed'?pendingRow:null;
+   if(selector===`#pendingOrgTableBody tr[data-org-id="${actor}"]`)return pendingKind==='attributed'?pendingRow:null;
+   return null;
+  },
+  querySelectorAll(selector){
+   if(selector==='table tbody tr')return [financeRow,...(pendingRow?[pendingRow]:[])];
+   if(selector==='#pendingOrgTableBody tr')return pendingRow?[pendingRow]:[];
+   return [];
+  }
+ };
+ const window={},fetch=async(url,options)=>{requests.push({url,options});return {ok:true};};
+ vm.runInNewContext(fs.readFileSync(require.resolve('../../main/webapp/assets/js/admin-notifications.js'),'utf8'),{document,window,fetch,console,setTimeout(){}});
+ return {window,financeRow,pendingRow,ids,requests};
+}
+test('shared notification approval preserves a finance audit row containing organization UUID',async()=>{
+ const h=notificationApprovalHarness();await h.window.approveFromNotification(null,actor);
+ assert.equal(h.financeRow.removed,false);
+ assert.equal(h.requests[0].url,'/ticketscenter/api/admin/organization-requests/'+actor+'/approve');
+ assert.equal(h.requests[0].options.method,'POST');assert.equal(h.requests[0].options.headers['X-CSRF-Token'],'synthetic-csrf');
+});
+for(const kind of ['attributed','legacy'])test('notification approval still updates its own '+kind+' pending organization row',async()=>{
+ const h=notificationApprovalHarness(kind);await h.window.approveFromNotification(null,actor);
+ assert.equal(h.pendingRow.removed,true);assert.equal(h.financeRow.removed,false);
+});
