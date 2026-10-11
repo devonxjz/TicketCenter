@@ -41,7 +41,6 @@ final class DongSqlFixture {
                 execute(c,"INSERT dbo.tc_users(id,email,user_name,full_name,password_hash,platform_role,email_verified_at) VALUES(?,?,?,?,?,?,SYSUTCDATETIME())",
                     id,name+"@example.test",name,"Dong fixture",new PasswordHasher().hash(UUID.randomUUID().toString()),id.equals(admin)?"ADMIN":"CUSTOMER");
             }
-            execute(c,"INSERT dbo.tc_user_platform_roles(user_id,role) VALUES(?,'ADMIN')",admin);
             for(UUID id:List.of(org,otherOrg)) execute(c,"INSERT dbo.tc_organizations(id,name,contact_email,status) VALUES(?,?,?,'APPROVED')",id,"Dong fixture "+id,"fixture@example.test");
             execute(c,"INSERT dbo.tc_organization_memberships(user_id,organization_id,role) VALUES(?,?,'MANAGER')",manager,org);
             execute(c,"INSERT dbo.tc_organization_memberships(user_id,organization_id,role) VALUES(?,?,'MANAGER')",other,otherOrg);

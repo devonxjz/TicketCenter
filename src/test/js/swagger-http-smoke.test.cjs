@@ -101,6 +101,15 @@ for (const context of ['', '/ticketscenter']) {
     assert.equal((await valid.json()).error.code, 'DATABASE_UNAVAILABLE');
   });
 
+  test(label + ': delivered check-in read routes reject absent sessions through actual owner dispatch', async () => {
+    for (const route of ['/api/check-ins/events', '/api/events/11111111-1111-1111-1111-111111111111/check-in-window']) {
+      const response = await boundedFetch(base + route);
+      assert.equal(response.status, 401, route + ' must reach the owner authorization boundary');
+      assert.equal((await response.json()).error.code, 'UNAUTHENTICATED');
+      assert.match(response.headers.get('cache-control') || '', /no-store/);
+    }
+  });
+
   test(label + ': deployed initializer performs bodyless logout through real filters', async () => {
     const call = session();
     const spec = await (await call(base + '/api/openapi.json')).json();

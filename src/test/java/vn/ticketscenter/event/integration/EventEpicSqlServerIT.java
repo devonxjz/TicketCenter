@@ -16,6 +16,22 @@ import static org.junit.jupiter.api.Assertions.*;
 class EventEpicSqlServerIT {
     static DongSqlFixture f;
     @BeforeAll static void setup() throws Exception {f=new DongSqlFixture();}
+    @Test void publicationUsesCurrentRoleWithoutLegacyAdminAndRejectsStaleLegacyGrant() throws Exception {
+        var isolated=new DongSqlFixture();UUID event=isolated.draft();isolated.seated(event,"Current role",1,2);
+        isolated.covers(new DongSqlFixture.Storage(),(e,a)->{}).upload(isolated.actor,event,UUID.randomUUID().toString(),new ByteArrayInputStream(DongSqlFixture.png()));
+        isolated.service.mutate(isolated.actor,UUID.randomUUID().toString(),isolated.command("SUBMIT",event,null,Map.of()));
+        var command=isolated.command("PUBLISH",event,null,Map.of("commissionRuleId",isolated.rule.toString()));
+        var result=isolated.service.mutate(isolated.adminActor,UUID.randomUUID().toString(),command);assertTrue(result.json().contains("PUBLISHED"));
+        try(Connection c=DongSqlFixture.connection(null)) {
+            DongSqlFixture.execute(c,"INSERT dbo.tc_user_platform_roles(user_id,role) VALUES(?,'ADMIN')",isolated.admin);
+            DongSqlFixture.execute(c,"UPDATE dbo.tc_users SET platform_role='CUSTOMER' WHERE id=?",isolated.admin);
+        }
+        assertEquals(403,assertThrows(EventProblem.class,()->isolated.service.mutate(isolated.adminActor,UUID.randomUUID().toString(),command)).status());
+        try(Connection c=DongSqlFixture.connection("dong_admin");var q=c.prepareCall("{call dbo.usp_PublishEvent(?,?,?)}")) {
+            q.setString(1,event.toString());q.setString(2,isolated.admin.toString());q.setString(3,isolated.rule.toString());
+            assertEquals(51520,assertThrows(SQLException.class,q::execute).getErrorCode(),"A stale legacy role must not authorize direct SP publication");
+        }
+    }
     @Test void draftReplayPayloadConflictAndCrossOrganizationGuards(){
         var command=f.create();String key=UUID.randomUUID().toString();var first=f.service.mutate(f.actor,key,command);
         assertEquals(201,first.status());assertEquals(first,f.service.mutate(f.actor,key,command));

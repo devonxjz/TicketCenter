@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 @WebServlet(
         name = "EventApiServlet", loadOnStartup=1,
         urlPatterns = {
+            "/api/organizations/*",
             "/api/manager/events",
             "/api/manager/events/*",
             "/api/manager/event-options"

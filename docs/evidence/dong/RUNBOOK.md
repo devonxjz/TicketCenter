@@ -10,12 +10,12 @@ node --check src/main/webapp/assets/js/dong-events.js
 node src/test/resources/event/dong-01-ui-check.cjs
 ```
 
-Expected on integrated dev: 375 executed tests pass, 59 external tests explicitly skip (434 total), WAR package succeeds. The earlier selected 143-test checkpoint preceded dev's safe-default extension. Skipped DB/SMTP/Redis suites are not evidence for this epic; run them only in their owners' configured environments.
+Expected on dev7541a65 integration:383 executed tests pass,60 external tests explicitly skip (443 total), WAR package succeeds. Earlier375/59 and selected143 counts are historical checkpoints. Skipped DB/SMTP/Redis suites are not evidence for this epic; run them only in their owners' configured environments.
 
 ## Dedicated SQL/Redis/provider environment
 
 1. `src/test/resources/event/setup-dong-local.ps1` provisions only `TicketCenter_Dong_Epic_Test_20261011` on `.\SQLEXPRESS` using Windows authentication. It refuses an existing database unless explicitly resumed with `-ResumeCreatedFixture`. It applies the baseline top-level migrations in dependency order, the SQL coordination proposal and three restricted execution users. Never point the integration suites at a shared database; their fixture creates/modifies test data and rollback triggers.
-2. If SQL TCP is disabled, run `start-dong-sql-bridge.ps1` in a hidden background PowerShell process. It relays localhost:11433 to local SQLEXPRESS named pipe; no server restart/config changes. A normal test SQL endpoint can replace the bridge. Save the created PID and verify its command/path before stopping it.
+2. If SQL TCP is disabled, run `start-dong-sql-bridge.ps1` in a hidden background **PowerShell7 (`pwsh`)** process; Windows PowerShell5 cannot compile its C# source. Verify the11433 listener before starting WAR/tests. It relays localhost:11433 to local SQLEXPRESS named pipe; no server restart/config changes. A normal test SQL endpoint can replace the bridge. Save the created PID and verify its command/path before stopping it.
 3. Native integrated auth requires official Microsoft `mssql-jdbc_auth-12.8.1.x64.dll`. Obtain version12.8.1 from Maven Central, verify its artifact manifest and Microsoft Authenticode signature. This machine used an ASCII temporary directory `ticketcenter-dong-native-12-8-1` because the Windows Java launcher loses Unicode CLI paths. Never print credentials in arguments/logs.
 4. Start a dedicated Redis on `127.0.0.1:16479`, e.g. `redis-server.exe --bind 127.0.0.1 --port 16479 --save "" --appendonly no`. Do not FLUSHALL on a shared Redis. Acceptance used the repository's portable Windows distribution8.10.2 (redis-windows release), ZIP SHA256 `6de5cc7f5adbf97b5928b13766383d4ad424626ef3d8b313ffff12d820ec6fc1`. Verify downloads before executing them; use `Start-Process -WindowStyle Hidden` for background helpers.
 5. Cloudinary comes from existing `AppConfig` / secret environment. Do not print API keys/secrets. The real provider test creates a tiny fixture image in its own Event folder, confirms SQL/public URL, removes its own SQL Event, checks no remaining publicId reference and deletes only its created asset. It does not silently skip if credentials are missing.
@@ -32,7 +32,7 @@ $env:TC_DONG_CLOUDINARY_ACCEPTANCE='true'
 mvn '-Djunit.jupiter.extensions.autodetection.enabled=false' '-Dit.test=EventCloudinarySqlServerIT' "-DargLine=--enable-native-access=ALL-UNNAMED -Djava.library.path=$native" failsafe:integration-test failsafe:verify
 ```
 
-Expected: 12 SQL/Redis tests +1 real Cloudinary test. The inherited global test extension only accepts Vương's fixture marker; exactly these Dong ITs use their own explicit opt-in, loopback/dedicated-DB guard instead of that auto-discovered extension. Do not turn off discovery for unrelated suites. `trustServerCertificate=true` applies to this loopback test endpoint only; production requires a trusted certificate. Recompile test sources if changed before direct failsafe execution.
+Expected:13 SQL/Redis tests +1 real Cloudinary test. Current ADMIN fixture has no legacy role row; role-revocation regression includes direct SP12 denial despite a stale legacy ADMIN row. The inherited global test extension only accepts Vương's fixture marker; exactly these Dong ITs use their own explicit opt-in, loopback/dedicated-DB guard instead of that auto-discovered extension. Do not turn off discovery for unrelated suites. `trustServerCertificate=true` applies to this loopback test endpoint only; production requires a trusted certificate. Recompile test sources if changed before direct failsafe execution.
 
 ## WAR and browser acceptance
 
@@ -52,7 +52,7 @@ To clean the HTTP fixture afterward, run only `EventHttpFixtureCleanupIT` with t
 
 ## Shared rollout / orphan reconciliation
 
-The SQL proposal is not deployed to the shared application. Owner adopts it into a new reviewed migration, supplies role synchronization and grants, then deploys the WAR. Verify the actual runtime logins as well as the tested execution contexts. Use the current `data` envelope/UUID/UTC/VND contracts; do not copy incompatible numeric-ID examples from issues.
+The SQL proposal is not deployed to the shared application. New migration030 is prepared in a separate coordination PR under#45; owner reviews/adopts it and grants before deploying the WAR. SP12 uses the current ACTIVE platform role without synchronization to legacy rows. Verify actual runtime logins as well as tested execution contexts. Use the current `data` envelope/UUID/UTC/VND contracts; do not copy incompatible numeric-ID examples from issues. [DONG-INTEGRATION.md](DONG-INTEGRATION.md) supplies platform API/cache handoff and shared rollout order.
 
 Set `event.cover.orphan.directory` through existing configuration lookup to a persistent writable directory. Journal contains only Event/publicId metadata. For each record, verify **all** `tc_events.event_image_public_id` references after any ambiguous operation settles. Delete only an unreferenced asset, then mark/clear its record after successful provider acknowledgement. If SQL/provider/journal is unavailable, retain the asset and reconcile later. Cover replacement and draft deletion require this lifecycle review; do not delete an old/current image before SQL commit or trust a URL comparison without decoding SQL JSON.
 

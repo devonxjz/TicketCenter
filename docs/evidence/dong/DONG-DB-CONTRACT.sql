@@ -1,5 +1,5 @@
 /* Coordination proposal for #45. Apply as a NEW migration after owner review.
-   Does not modify migrations 001-008 or locked JPA models. Tests apply it only
+   Does not modify existing migrations or locked JPA models. Tests apply it only
    to a dedicated Dong database. SQL owns all Event/Zone writes and receipts. */
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
@@ -286,4 +286,54 @@ GRANT EXECUTE ON dbo.usp_EventReceipt TO tc_manager;
 GRANT EXECUTE ON dbo.usp_EventReceipt TO tc_platform_admin;
 GRANT EXECUTE ON dbo.usp_EventCommand TO tc_manager;
 GRANT EXECUTE ON dbo.usp_EventCommand TO tc_platform_admin;
+GO
+
+/* SP12 remains the single publication path. Current ACTIVE tc_users role is
+   authoritative, matching login and usp_EventAuthorize. Legacy role rows alone
+   must neither grant publication nor prevent a current ADMIN from publishing. */
+CREATE OR ALTER PROCEDURE dbo.usp_PublishEvent
+ @event_id uniqueidentifier,@actor_id uniqueidentifier,@commission_rule_id uniqueidentifier
+AS
+BEGIN
+ SET NOCOUNT ON; SET XACT_ABORT ON;
+ DECLARE @started bit=CASE WHEN @@TRANCOUNT=0 THEN 1 ELSE 0 END;
+ IF @started=1 BEGIN TRANSACTION; ELSE SAVE TRANSACTION tc_sp12;
+ BEGIN TRY
+  IF NOT EXISTS(SELECT 1 FROM dbo.tc_users WITH(HOLDLOCK)
+   WHERE id=@actor_id AND status='ACTIVE' AND platform_role='ADMIN')
+   THROW 51520,'Administrator role required',1;
+  DECLARE @organization_id uniqueidentifier,@status varchar(30),@now datetime2(3)=SYSUTCDATETIME();
+  SELECT @organization_id=organization_id,@status=status FROM dbo.tc_events WITH(UPDLOCK,HOLDLOCK) WHERE id=@event_id;
+  IF @status IS NULL THROW 51521,'Event not found',1;
+  IF @status='PUBLISHED' BEGIN
+   IF @commission_rule_id IS NULL OR (SELECT commission_rule_id FROM dbo.tc_events WHERE id=@event_id)<>@commission_rule_id
+    THROW 51522,'Published event commission rule is immutable',1;
+   IF @started=1 COMMIT;
+   SELECT @event_id event_id,@status status; RETURN;
+  END;
+  IF @status<>'PENDING_APPROVAL' THROW 51523,'Event is not pending approval',1;
+  IF NOT EXISTS(SELECT 1 FROM dbo.tc_organizations WITH(HOLDLOCK) WHERE id=@organization_id AND status='APPROVED')
+   THROW 51524,'Event organization is not approved',1;
+  IF NOT EXISTS(SELECT 1 FROM dbo.tc_commission_rules r WITH(UPDLOCK,HOLDLOCK)
+   JOIN dbo.tc_events e ON e.organization_id=r.organization_id
+   WHERE e.id=@event_id AND r.id=@commission_rule_id AND r.effective_from<=@now AND r.effective_to>@now
+   AND r.effective_from<=e.start_time AND r.effective_to>e.start_time)
+   THROW 51524,'Commission rule is not valid for event organization and date',1;
+  IF EXISTS(SELECT 1 FROM dbo.tc_events WHERE id=@event_id AND
+   (NULLIF(LTRIM(RTRIM(cover_image_url)),'') IS NULL OR sale_start>=sale_end OR sale_end>start_time OR start_time>=end_time))
+   THROW 51525,'Event content or schedule is incomplete',1;
+  IF NOT EXISTS(SELECT 1 FROM dbo.tc_zones WITH(UPDLOCK,HOLDLOCK) WHERE event_id=@event_id)
+   THROW 51526,'Event requires at least one zone',1;
+  IF EXISTS(SELECT 1 FROM dbo.tc_zones z WHERE z.event_id=@event_id AND z.type='SEATED'
+   AND NOT EXISTS(SELECT 1 FROM dbo.tc_seats s WHERE s.zone_id=z.id))
+   THROW 51527,'Each seated zone requires seats',1;
+  UPDATE dbo.tc_events SET commission_rule_id=@commission_rule_id,status='PUBLISHED',version=version+1 WHERE id=@event_id;
+  IF @started=1 COMMIT;
+  SELECT @event_id event_id,CAST('PUBLISHED' AS varchar(30)) status;
+ END TRY BEGIN CATCH
+  IF @started=1 AND XACT_STATE()<>0 ROLLBACK;
+  ELSE IF @started=0 AND XACT_STATE()=1 ROLLBACK TRANSACTION tc_sp12;
+  THROW;
+ END CATCH;
+END;
 GO

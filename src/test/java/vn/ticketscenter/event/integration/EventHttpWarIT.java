@@ -74,6 +74,7 @@ class EventHttpWarIT {
         assertEquals(403,get(manager,"/api/admin/events").statusCode());assertEquals(403,get(other,"/api/organizations/"+fixture.org+"/events").statusCode());
         assertEquals(403,get(manager,"/events/review").statusCode());
         var reportRoute=get(manager,"/api/organizations/"+fixture.org+"/reports");assertEquals(400,reportRoute.statusCode());assertTrue(reportRoute.body().contains("INVALID_REPORT_FILTER"),"Organization Report requests must remain with their existing controller");
+        var overview=get(manager,"/api/organizations/"+fixture.org+"/overview");assertEquals(200,overview.statusCode(),"The merged readside dispatcher must preserve organization overview beside Event routes");
         for(String path:List.of("/events/manage","/events/manage/editor?organizationId="+fixture.org)) {var page=get(manager,path);assertEquals(200,page.statusCode(),"Owned JSP did not render");assertTrue(page.body().contains("dong-events.js"));}
         var review=get(admin,"/events/review");assertEquals(200,review.statusCode());assertTrue(review.body().contains("review-zones"));
         var fields=new TreeMap<>(fixture.create().fields());fields.put("title","Đêm nhạc nghiệm thu Đông");String body=new vn.ticketscenter.event.dto.EventCommand("CREATE",fixture.org,null,null,fields).json();

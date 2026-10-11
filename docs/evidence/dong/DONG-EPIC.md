@@ -2,7 +2,48 @@
 
 Verified locally on 11 October 2026 (UTC+7). Integrated with `origin/dev` at `28ce056` after the initial acceptance checkpoint. Scope is the live epic [#13](https://github.com/devonxjz/TicketCenter/issues/13), DONG-01–05 (#8–12), not the older thirteen-task organization assignment in the reference documents.
 
-Implementation and local acceptance are complete. Remote delivery and shared SQL integration remain open gates; this is not a merged release or a claim that all project tests/CI passed.
+Implementation and local acceptance are complete; remote delivery is [PR #51](https://github.com/devonxjz/TicketCenter/pull/51). Shared SQL integration and merge remain open gates; this is not a merged release or a claim that all project tests/CI passed.
+
+## Current integration checkpoint — 11 October 2026
+
+Integrated newer `origin/dev`7541a65 (PR52/53/54). Its Report named dispatcher now
+owns only reports/overview, so EventApiServlet again owns the organization
+wildcard with its own multipart configuration. Removed the obsolete Event
+listener that changed Report's multipart metadata. Actual full-WAR acceptance
+checks Event multipart create/upload, Report pass-through and authorized
+organization overview200 in the same deployment.
+
+Current safe-default build: **383 executed Java tests passed,60 guarded external
+tests skipped (443 total)**; **56 Node tests passed**, plus **7 full-WAR URL guard
+tests passed**. Dedicated acceptance: **13 SQL/Redis +1 real Cloudinary +2 actual
+WAR HTTP =16 passed, no skips**. SQL acceptance now creates current ADMIN without
+any legacy role row. The canonical publication proposal uses current ACTIVE
+`tc_users.platform_role`; a separate regression proves a revoked ADMIN with a
+stale legacy ADMIN row cannot publish, even by directly invoking SP12. No user
+role synchronization or role grants are performed.
+
+The first attempt failed because the SQL bridge was mistakenly started under
+Windows PowerShell5 rather than its required PowerShell7 runtime. After correcting
+the test helper and restarting the dedicated WAR, the unchanged test suite
+passed. This was fixture startup failure, not a silently skipped acceptance.
+Private outputs: `target/dong-current-dev-package.log`,
+`dong-current-dev-node.log`, `dong-current-dev-safety.log`,
+`dong-current-dev-it.log` (failed setup) and `dong-current-dev-it-retry.log`.
+
+Concrete HTTP/routing, Redis TTL/namespace and other-owner postcommit handoff are
+in [DONG-INTEGRATION.md](DONG-INTEGRATION.md). SQL is prepared separately under
+coordination#45 as new migration030; proposed029 belongs to refund PR50. Existing
+migrations are not rewritten and no shared database is changed. Migration030 was
+applied/reapplied atomically in the dedicated Dong fixture with durable receipt
+history preserved and restricted buyer Seat access verified. This makes adoption
+reviewable; it does not count as shared rollout approval.
+
+A read-only schema metadata probe against the configured shared database returned
+SQL40613 (database unavailable). No shared-schema or actual-login acceptance is
+claimed, and no shared SQL writes were attempted.
+
+The following tables retain the earlier28ce056 checkpoint and its historical
+counts/routing decisions. The current results above supersede them.
 
 ## Integration with current dev
 
@@ -48,7 +89,7 @@ The default Maven test suite contains database seeding and real SMTP tests. Thes
 - UUID strings, integer VND strings, UTC ISO dates and `data` envelope follow CONVENTIONS. `venueName`/`venueAddress`, `rows`/`seatsPerRow` follow current API-MAP/schema. Examples with numeric IDs, `venue`, `rowCount`, invented `sp_event_*` names in the live issues are illustrative and conflict with these canonical contracts.
 - One typed `EventCommand` with operation-specific validation and one repository/service pair share the short SP/receipt boundary. Grouping prevents drift between five coupled tasks. Optional `expectedVersion` rejects stale edits; cover always captures/rechecks the current Event version.
 - The baseline does not contain draft/zone/reject SPs or durable Event command receipts. [DONG-DB-CONTRACT.sql](DONG-DB-CONTRACT.sql) is a concrete coordination proposal, applied **only to the isolated test DB**, not a migration silently inserted into the shared suite. It adds the missing SPs, technical receipt table and PUBLISHED-only Seat view. Existing `usp_PublishEvent` is still the sole publication path. Status changes use the existing trigger audit; optional admin notes have a separate audit note.
-- Canonical publication uses `tc_user_platform_roles`, while current auth uses `tc_users.platform_role`; acceptance fixtures deliberately seed both. Shared role synchronization requires owner review. Event authorization never grants admin based only on the legacy role row.
+- The earlier canonical publication depended on `tc_user_platform_roles` and initial acceptance seeded both role representations. The current coordination proposal replaces only SP12's authority check with current ACTIVE `tc_users.platform_role`, matching Event authorization; latest acceptance has no legacy ADMIN seed and proves a stale legacy row cannot authorize publication. Other legacy procedures remain outside this change.
 - Idempotency hashes normalized payload + operation/resources + actor/scope. Redis NX120s gate and compare-token completion24h coordinate requests; SQL receipt and mutation commit atomically. Replays revalidate current permissions, including after delete or Redis eviction. Redis completion failure cannot turn a committed write into an HTTP failure. New writes fail503 before mutation when mandatory Redis lease acquisition is unavailable. Durable receipts currently have no automatic retention job; agree retention before production rollout.
 - Invalidation occurs after committed repository return. Generation comparison prevents an in-flight old read from refilling cache. Rollback does not invalidate. A shared cache instance bypasses cache while retrying failed invalidation; a hard crash or multiple nodes still require bounded TTL/reconciliation. Hold/refund/cancellation owners must invalidate these namespaces when integrating; this change does not claim their paths are connected.
 - Private org/admin reads are scoped SQL reads, not cached copies. Filter dispatch claims only Event-owned actions, leaving other domain routes to their existing controllers.
@@ -61,4 +102,4 @@ The default Maven test suite contains database seeding and real SMTP tests. Thes
 2. Tomcat acceptance needed existing JSTL API3.0.0 + implementation3.0.1 in the dedicated server library. This runtime prerequisite must be supplied by deployment/common build owner; no locked POM edit was made. Other owners' dashboard prototype data remain outside this epic.
 3. Cancellation/progress controls call the other owner's API and were not counted as completed backend functionality. Hold/payment/refund/coupon flows are outside Đông's five-issue scope.
 4. Local branch `feat/dong/dong-epic-event-integration` began atop `origin/dev` `71e02ad` and incorporates current dev `28ce056`. Live issues explicitly target `dev`/`feat/dong/...`, while the older reference workflow says `develop`/`feature/...`; this handoff follows the actual issue/base and records that discrepancy. Coupled subissues are delivered together on the epic integration branch with issue references.
-5. Push of the earlier DONG-01 branch was rejected by automatic approval review (private repository payload to an external destination without exact approval). No bypass occurred. Commit/push/PR status must be reported honestly; after explicit destination/payload approval, publish this concrete branch and open PR against `dev`, then obtain required CI and independent review. Issues remain open until shared integration/merge gates are satisfied.
+5. The earlier DONG-01 push was rejected by automatic approval review. After explicit user approval, the reviewed integration branch was published as PR51 targeting `dev`. No bypass occurred. Obtain current-head CI, independent review and shared SQL integration before merge. Issues remain open until these gates are satisfied.
