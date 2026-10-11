@@ -5,7 +5,8 @@ param(
  [Parameter(Mandatory=$true)][string]$JstlImplementationJar,
  [string]$JavaHome=$env:JAVA_HOME,
  [string]$NodePath='node',
- [int]$Port=0
+ [int]$Port=0,
+ [switch]$Serve
 )
 $ErrorActionPreference='Stop'
 $repo=(Resolve-Path (Join-Path $PSScriptRoot '../../..')).Path
@@ -39,6 +40,11 @@ if($Port -lt 1024 -or $Port -gt 65535) {throw 'Unprivileged port required.'}
 if (Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue) { throw 'Chosen port is already in use.' }
 $run=Join-Path $privateRoot ([guid]::NewGuid().ToString('N'))
 foreach($dir in @('conf','logs','temp','webapps','work','data','lib')) { New-Item -ItemType Directory -Path (Join-Path $run $dir) -Force | Out-Null }
+$runAcl=[Security.AccessControl.DirectorySecurity]::new();$runAcl.SetAccessRuleProtection($true,$false)
+foreach($sid in @([Security.Principal.WindowsIdentity]::GetCurrent().User,[Security.Principal.SecurityIdentifier]::new('S-1-5-18'))) {
+ $runAcl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid,'FullControl','ContainerInherit,ObjectInherit','None','Allow'))
+}
+Set-Acl -LiteralPath $run -AclObject $runAcl
 [IO.File]::WriteAllText((Join-Path $run 'conf/server.xml'), "<Server port=`"-1`"><Service name=`"Catalina`"><Connector address=`"127.0.0.1`" port=`"$Port`" protocol=`"org.apache.coyote.http11.Http11Nio2Protocol`" connectionTimeout=`"5000`"/><Engine name=`"Catalina`" defaultHost=`"localhost`"><Host name=`"localhost`" appBase=`"webapps`" autoDeploy=`"false`" deployOnStartup=`"true`"/></Engine></Service></Server>")
 [IO.File]::WriteAllText((Join-Path $run 'conf/context.xml'), '<Context/>')
 [IO.File]::WriteAllText((Join-Path $run 'conf/logging.properties'), "handlers=java.util.logging.ConsoleHandler`n.level=INFO`njava.util.logging.ConsoleHandler.level=INFO`n")
@@ -86,11 +92,21 @@ try {
  try { $env:TC_FULL_WAR_AUTH_FILE=$authFile; & $NodePath --test (Join-Path $repo 'src/test/js/full-war-auth-smoke.test.cjs'); if($LASTEXITCODE -ne 0){throw 'Full WAR authentication/finance acceptance failed.'} }
  finally { $env:TC_FULL_WAR_AUTH_FILE=$previous; Remove-Item -LiteralPath $authFile }
  Write-Output ('FULL_WAR_ACCEPTANCE_PASS '+$origin)
+ if($Serve) {
+  $accounts=Join-Path $run 'accounts.json'
+  [IO.File]::WriteAllText($accounts,(@{origin=$origin;adminEmail='vuong.acceptance@test.invalid';adminPassword=$adminPassword}|ConvertTo-Json))
+  Write-Output ('LOCAL_APP_READY '+$origin)
+  Write-Output ('LOCAL_ACCOUNTS '+$accounts)
+  Write-Output 'Keep this terminal open. Press Ctrl+C to stop this dedicated JVM. Business E2E and external providers are not enabled by this local fixture.'
+  while(-not $proc.WaitForExit(1000)) {}
+  throw 'Local Tomcat exited; inspect the run logs.'
+ }
 } finally {
  if($started -and -not $proc.HasExited) { $proc.Kill($true);$proc.WaitForExit(15000)|Out-Null }
  if($started) { [IO.File]::WriteAllText((Join-Path $run 'logs/stdout.log'),$outTask.GetAwaiter().GetResult());[IO.File]::WriteAllText((Join-Path $run 'logs/stderr.log'),$errTask.GetAwaiter().GetResult()) }
  # Remove the credential-bearing copies after stopping the dedicated JVM. Keep logs and generated JSPs.
  foreach($name in @('application.properties','application.properties.example')) { $path=Join-Path $app ('WEB-INF/classes/'+$name); if(Test-Path -LiteralPath $path){Remove-Item -LiteralPath $path} }
+ if($Serve -and (Test-Path -LiteralPath (Join-Path $run 'accounts.json'))) {Remove-Item -LiteralPath (Join-Path $run 'accounts.json')}
  Write-Output ('FULL_WAR_LOGS '+(Join-Path $run 'logs'))
  $proc.Dispose()
 }

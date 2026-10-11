@@ -64,8 +64,8 @@ The initial retest attempt failed from launching the SQL bridge with PowerShell5
 correcting the helper to PowerShell7 and restarting the dedicated WAR resolved
 fixture startup. No acceptance failure was silently skipped.
 
-Migration030 SHA256 as tested:
-843E96EADE59EA8B984A04769FBCE0B9ACB9499C970AB40AFC07E1CDE6977BBF
+Migration030 normalized SHA256 (UTF-8, CRLF normalized to LF):
+4E9F9997C26C9D59A0144522DDBC4B1703D8726DDAD6D72431F3F5CB2DA37C4D
 
 A read-only metadata probe of the configured shared database returned SQL40613
 (database unavailable); no shared compatibility/grant acceptance is claimed.
@@ -85,3 +85,30 @@ Set TC_DONG_ACCEPTANCE=true and TC_DONG_SQL_URL to the explicit loopback Dong
 Windows-auth URL documented by PR51. This test rejects JDBC redirection/extra
 properties and verifies actual DB_NAME before mutations. Ordinary CI does not
 run this opted-in test automatically; default green jobs are not SQL acceptance.
+
+## Thorough review update — 11 October 2026
+
+Integrated dev3e380bf (PR55). Reviewed migration030 now stores private cleanup_json
+atomically with draft deletion and receipt, so postcommit journaling can be
+repaired by authorized replay without deleting a referenced asset or exposing
+cleanup metadata in HTTP JSON. Existing command receipts get a nullable column;
+image-workflow receipts and existing migrations are unchanged. Pair SQL's fifth
+internal result column with updated Event PR51 caller during adoption.
+
+Two additional real SQL regressions reproduced unknown category409 and malformed
+DETAIL JSON under list page/status filters. Category existence validation now
+returns400 with no receipt/change; detail ignores list filters and returns404 if
+its target disappears. Canonical SP12 remains current ACTIVE role based.
+
+Final acceptance on Event PR51 tree:385 Java executed/60 guarded skips;59 Node,
+18 URL/native handoff guard checks;15 SQL/Redis+1 Cloudinary+3 full-WAR HTTP=19,
+all executed checks pass. The19 run supersedes earlier16/17 checkpoints. Focused
+migration test1/1 preserves both receipt count and a SHA256 fingerprint of the
+private cleanup metadata across atomic reapplication, and verifies buyer public
+projection/private table denial. Fixture cleanup1/1 passes after reference checks.
+Initial RED outputs and fixture limitations remain documented in Event PR51's
+DONG-REVIEW-20261011.md; no acceptance failures were silently skipped.
+
+Shared metadata read now returns SQL40615; actual deployed schema/runtime logins
+remain unverified. No shared firewall, credentials, grants or database were
+changed. Independent review and actual-schema adoption still gate shared rollout.

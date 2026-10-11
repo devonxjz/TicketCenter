@@ -26,9 +26,12 @@ IF OBJECT_ID('dbo.tc_event_command_receipts','U') IS NULL
  actor_id uniqueidentifier NOT NULL, scope varchar(30) NOT NULL,
  idempotency_key varchar(128) COLLATE Latin1_General_100_BIN2 NOT NULL, request_hash char(64) NOT NULL,
  organization_id uniqueidentifier NOT NULL, event_id uniqueidentifier NULL,
- status_code int NOT NULL, response_json nvarchar(max) NOT NULL,
+ status_code int NOT NULL, response_json nvarchar(max) NOT NULL,cleanup_json nvarchar(max) NULL,
  created_at datetime2(3) NOT NULL DEFAULT SYSUTCDATETIME(),
  CONSTRAINT PK_EventCommandReceipts PRIMARY KEY(actor_id,scope,idempotency_key));
+GO
+IF COL_LENGTH('dbo.tc_event_command_receipts','cleanup_json') IS NULL
+ ALTER TABLE dbo.tc_event_command_receipts ADD cleanup_json nvarchar(max) NULL;
 GO
 IF EXISTS(SELECT 1 FROM sys.columns WHERE object_id=OBJECT_ID('dbo.tc_event_command_receipts') AND name='idempotency_key' AND collation_name<>'Latin1_General_100_BIN2')
 BEGIN
@@ -85,6 +88,7 @@ BEGIN
  IF @page<1 OR @page_size<1 OR @page_size>100 OR CONVERT(bigint,@page-1)*@page_size>1000000 THROW 52000,'Invalid page',1;
  IF @status IS NOT NULL AND @status NOT IN('DRAFT','PENDING_APPROVAL','REJECTED','PUBLISHED','CANCELLED') THROW 52000,'Invalid status',1;
  EXEC dbo.usp_EventAuthorize @actor_id,@actor_version,@admin,@organization_id OUTPUT,@event_id OUTPUT,@zone_id;
+ IF @kind='DETAIL' BEGIN SET @status=NULL;SET @page=1;SET @page_size=1;END;
  IF @kind='AUTHORIZE' BEGIN
   SELECT @organization_id organization_id,@event_id event_id; RETURN;
  END;
@@ -131,7 +135,10 @@ BEGIN
   WHERE (@admin=1 OR e.organization_id=@organization_id) AND (@status IS NULL OR e.status=@status)
   AND (@event_id IS NULL OR e.id=@event_id) ORDER BY e.created_at DESC,e.id
   OFFSET (@page-1)*@page_size ROWS FETCH NEXT @page_size ROWS ONLY FOR JSON PATH,INCLUDE_NULL_VALUES);
- IF @kind='DETAIL' SELECT CONCAT('{"data":',JSON_QUERY(@data,'$[0]'),'}') json;
+ IF @kind='DETAIL' BEGIN
+  IF JSON_QUERY(@data,'$[0]') IS NULL THROW 52004,'Event no longer exists',1;
+  SELECT CONCAT('{"data":',JSON_QUERY(@data,'$[0]'),'}') json;
+ END;
  ELSE SELECT CONCAT('{"data":',COALESCE(@data,'[]'),',"page":',@page,',"pageSize":',@page_size,',"total":',@total,
   ',"totalPages":',@total/@page_size+CASE WHEN @total%@page_size=0 THEN 0 ELSE 1 END,'}') json;
 END;
@@ -147,7 +154,7 @@ BEGIN
  EXEC dbo.usp_EventAuthorize @actor_id,@actor_version,@admin,@organization_id OUTPUT,@event_id OUTPUT;
  IF EXISTS(SELECT 1 FROM dbo.tc_event_command_receipts WHERE actor_id=@actor_id AND scope=@scope
   AND idempotency_key=@idempotency_key AND request_hash<>@request_hash) THROW 52009,'Idempotency payload conflict',1;
- SELECT status_code,response_json,organization_id,event_id FROM dbo.tc_event_command_receipts
+ SELECT status_code,response_json,organization_id,event_id,cleanup_json FROM dbo.tc_event_command_receipts
   WHERE actor_id=@actor_id AND scope=@scope AND idempotency_key=@idempotency_key;
 END;
 GO
@@ -174,7 +181,7 @@ BEGIN
    IF EXISTS(SELECT 1 FROM dbo.tc_event_command_receipts WHERE actor_id=@actor_id AND scope=@scope AND idempotency_key=@idempotency_key AND request_hash<>@request_hash)
     THROW 52009,'Idempotency payload conflict',1;
    IF @started=1 COMMIT;
-   SELECT status_code,response_json,organization_id,event_id FROM dbo.tc_event_command_receipts WHERE actor_id=@actor_id AND scope=@scope AND idempotency_key=@idempotency_key; RETURN;
+   SELECT status_code,response_json,organization_id,event_id,cleanup_json FROM dbo.tc_event_command_receipts WHERE actor_id=@actor_id AND scope=@scope AND idempotency_key=@idempotency_key; RETURN;
   END;
   EXEC dbo.usp_EventAuthorize @actor_id,@actor_version,@admin,@organization_id OUTPUT,@event_id OUTPUT,@zone_id;
   IF @organization_id IS NULL THROW 52003,'Organization scope required',1;
@@ -192,7 +199,9 @@ BEGIN
    @sale_end datetime2(3)=TRY_CONVERT(datetime2(3),JSON_VALUE(@payload,'$.saleEndTime'),127),
    @start datetime2(3)=TRY_CONVERT(datetime2(3),JSON_VALUE(@payload,'$.startTime'),127),
    @end datetime2(3)=TRY_CONVERT(datetime2(3),JSON_VALUE(@payload,'$.endTime'),127),
-   @response nvarchar(max),@code int=200,@cover nvarchar(2048)=JSON_VALUE(@payload,'$.coverImageUrl');
+   @response nvarchar(max),@cleanup_json nvarchar(max)=NULL,@code int=200,@cover nvarchar(2048)=JSON_VALUE(@payload,'$.coverImageUrl');
+  IF @operation IN('CREATE','EDIT') AND @category IS NOT NULL AND NOT EXISTS(SELECT 1 FROM dbo.tc_event_categories WHERE id=@category)
+   THROW 52000,'Unknown event category',1;
   IF @operation='CREATE' BEGIN
    IF @admin=1 OR @event_id IS NOT NULL OR @sale_start IS NULL OR @sale_end IS NULL OR @start IS NULL OR @end IS NULL OR @sale_start<=@now OR @title IS NULL OR LEN(@title) NOT BETWEEN 5 AND 200 THROW 52000,'Invalid draft',1;
    IF NOT(@sale_start<@sale_end AND @sale_end<=@start AND @start<@end) OR @category IS NULL OR @description IS NULL OR LEN(@description) NOT BETWEEN 1 AND 5000 OR @venue IS NULL OR LEN(@venue)=0 OR @address IS NULL OR LEN(@address)=0 THROW 52000,'Invalid event fields or schedule',1;
@@ -208,6 +217,8 @@ BEGIN
     sale_end=COALESCE(@sale_end,sale_end),start_time=COALESCE(@start,start_time),end_time=COALESCE(@end,end_time),version=version+1 WHERE id=@event_id;
   END ELSE IF @operation='DELETE' BEGIN
    IF @status<>'DRAFT' OR EXISTS(SELECT 1 FROM dbo.tc_orders WHERE event_id=@event_id) OR EXISTS(SELECT 1 FROM dbo.tc_ticket_holds WHERE event_id=@event_id) THROW 52009,'Draft cannot be deleted',1;
+   SET @cleanup_json=NULLIF((SELECT event_image_public_id publicId,COALESCE(event_image,cover_image_url) coverImageUrl FROM dbo.tc_events
+    WHERE id=@event_id AND event_image_public_id IS NOT NULL FOR JSON PATH,WITHOUT_ARRAY_WRAPPER),'');
    DELETE s FROM dbo.tc_seats s JOIN dbo.tc_zones z ON z.id=s.zone_id WHERE z.event_id=@event_id;
    DELETE dbo.tc_zones WHERE event_id=@event_id; DELETE dbo.tc_events WHERE id=@event_id; SET @status='DELETED';
   END ELSE IF @operation='SUBMIT' BEGIN
@@ -283,11 +294,11 @@ BEGIN
   IF @operation NOT IN('SUBMIT','PUBLISH','REJECT')
    INSERT dbo.tc_audit_logs(actor_id,action,aggregate_type,aggregate_id,detail) VALUES(@actor_id,CONCAT('EVENT_',@operation),'EVENT',@event_id,NULL);
   SET @response=CONCAT('{"data":',(SELECT LOWER(CONVERT(varchar(36),@event_id)) eventId,LOWER(CONVERT(varchar(36),@organization_id)) organizationId,LOWER(CONVERT(varchar(36),@zone_id)) zoneId,@status status,@cover coverImageUrl FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES),'}');
-  INSERT dbo.tc_event_command_receipts(actor_id,scope,idempotency_key,request_hash,organization_id,event_id,status_code,response_json)
-   VALUES(@actor_id,@scope,@idempotency_key,@request_hash,@organization_id,@event_id,@code,@response);
+  INSERT dbo.tc_event_command_receipts(actor_id,scope,idempotency_key,request_hash,organization_id,event_id,status_code,response_json,cleanup_json)
+   VALUES(@actor_id,@scope,@idempotency_key,@request_hash,@organization_id,@event_id,@code,@response,@cleanup_json);
   EXEC sys.sp_set_session_context @key=N'actor_id',@value=NULL;
   IF @started=1 COMMIT;
-  SELECT @code status_code,@response response_json,@organization_id organization_id,@event_id event_id;
+  SELECT @code status_code,@response response_json,@organization_id organization_id,@event_id event_id,@cleanup_json cleanup_json;
  END TRY BEGIN CATCH
   EXEC sys.sp_set_session_context @key=N'actor_id',@value=NULL;
   IF @started=1 AND XACT_STATE()<>0 ROLLBACK;

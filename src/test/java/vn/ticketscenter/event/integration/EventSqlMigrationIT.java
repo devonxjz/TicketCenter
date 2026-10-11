@@ -17,7 +17,7 @@ class EventSqlMigrationIT {
             try(var q=c.createStatement();var rows=q.executeQuery("SELECT DB_NAME()")) {
                 assertTrue(rows.next());assertEquals(target.group(1),rows.getString(1),"Refuse unexpected database");
             }
-            long receipts=count(c);
+            long receipts=count(c);String cleanupBefore=cleanupFingerprint(c);
             String migration=Files.readString(Path.of("database/migrations/030_event_commands_and_public_seats.sql"));
             for(int attempt=0;attempt<2;attempt++) {
                 c.setAutoCommit(false);
@@ -28,6 +28,7 @@ class EventSqlMigrationIT {
                 } catch(Exception e) {c.rollback();throw e;}
                 finally {c.setAutoCommit(true);}
                 assertEquals(receipts,count(c),"Durable command results must survive reapplication");
+                assertEquals(cleanupBefore,cleanupFingerprint(c),"Durable private cleanup metadata must survive reapplication");
             }
             try(var q=c.createStatement()) {
                 q.execute("EXECUTE AS USER='dong_buyer'");
@@ -45,6 +46,19 @@ class EventSqlMigrationIT {
                 }
             }
         }
+    }
+    private static String cleanupFingerprint(Connection c) throws Exception {
+        var digest=java.security.MessageDigest.getInstance("SHA-256");
+        try(var q=c.createStatement();var rows=q.executeQuery("SELECT COL_LENGTH('dbo.tc_event_command_receipts','cleanup_json')")) {
+            rows.next();if(rows.getObject(1)==null)return java.util.HexFormat.of().formatHex(digest.digest());
+        }
+        try(var q=c.createStatement();var rows=q.executeQuery("SELECT actor_id,scope,idempotency_key,cleanup_json FROM dbo.tc_event_command_receipts WHERE cleanup_json IS NOT NULL ORDER BY actor_id,scope,idempotency_key")) {
+            while(rows.next())for(int column=1;column<=4;column++) {
+                byte[] bytes=rows.getString(column).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                digest.update(java.nio.ByteBuffer.allocate(4).putInt(bytes.length).array());digest.update(bytes);
+            }
+        }
+        return java.util.HexFormat.of().formatHex(digest.digest());
     }
     private static long count(Connection c) throws SQLException {
         try(var q=c.createStatement();var rows=q.executeQuery("IF OBJECT_ID('dbo.tc_event_command_receipts','U') IS NULL SELECT CAST(0 AS bigint) ELSE SELECT COUNT_BIG(*) FROM dbo.tc_event_command_receipts")) {rows.next();return rows.getLong(1);}
