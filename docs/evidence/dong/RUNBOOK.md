@@ -5,25 +5,33 @@ Current completion checklist and source-head CI snapshot:
 shared metadata retry returned40613/S0001;40615 below is an earlier checkpoint.
 
 Latest12 October: [DONG-PROGRESS-20261012.md](DONG-PROGRESS-20261012.md).
-dev af2ded2 adds an unguarded OrganizationRepositoryTest integration method;
-exclude it explicitly until owner fix PR65 lands. Latest probe returns40615.
+dev c1d7e0a includes PR67 and its owner-supplied OrganizationRepositoryTest DB
+guard, so safe-default no longer needs a method exclusion. Latest probe40615.
 
 Run from repository root with Java25 and Maven. All generated binaries, logs, fake-account credentials and screenshots live under ignored `target/`. Do not upload these raw outputs or commit `application.properties` credentials.
 
 ## Local build (no external email/DB seed tests)
 
 ```powershell
-mvn '-Dtc.tests.db=false' '-Dtc.tests.smtp=false' '-Dtc.tests.redis=false' '-Dtest=*,!OrganizationRepositoryTest#testRepositoryIntegration' package
+mvn '-Dtc.tests.db=false' '-Dtc.tests.smtp=false' '-Dtc.tests.redis=false' package
 node --check src/main/webapp/assets/js/dong-events.js
 node src/test/resources/event/dong-01-ui-check.cjs
 ```
 
 Expected on dev3e380bf/review integration:385 executed tests pass,60 external tests explicitly skip (445 total), WAR package succeeds. Earlier375/59 and selected143 counts are historical checkpoints. Skipped DB/SMTP/Redis suites are not evidence for this epic; run them only in their owners' configured environments.
 
-On current dev af2ded2 integration:659 executed pass/183 guarded skips (842 total),
-one external method excluded rather than counted as a skip/pass;116 JS,16 real
+On current dev c1d7e0a integration:717 executed pass/104 guarded skips (821 total),
+no method exclusion;116 JS,16 real
 SQL/Redis+1 Cloudinary+3 HTTP=20 acceptance tests. Migration043 test1/1. Historical
 counts and browser checkpoints below are retained for traceability.
+
+For fresh combined-schema acceptance12 October, setup/start helpers accept
+`-DatabaseName TicketCenter_Dong_Combined_Test_20261012`, validated to the dedicated
+Dong prefix. Use that same databaseName in TC_DONG_SQL_URL; existing11 October
+fixture remains untouched. Defaults below reproduce the older fixture.
+
+The setup resolves baseline001–008 dependencies before applying each subsequent
+adapter in order; never retry004 after027 finance, which overwrites its projection.
 
 ## Dedicated SQL/Redis/provider environment
 

@@ -132,10 +132,10 @@ acceptance uses restricted database-user impersonation over Windows transport;
 that is not proof of production-login grants.
 
 Update12 October: the pending Event file is043_event_commands_and_public_seats.sql.
-Current dev has029_hold_runtime/030_order_runtime; PR65/67 reserve031–042 and
-also contain common image/actor/routing integration work. Review the combined
-deployment before adoption; current20-test acceptance does not cover all those
-unmerged migrations. EventManagementRepository now scopes each JDBC work item to
+Current dev has029_hold_runtime/030_order_runtime and PR67 integrated031–042
+with common image/actor/routing work. Dedicated20-test Event acceptance now uses
+that combined schema/WAR; review actual shared deployment/logins before adoption.
+EventManagementRepository now scopes each JDBC work item to
 its authenticated actor and restores the previous connection context; Event SQL
 command/SP12 restore that context too. No common persistence/config edits were made.
 

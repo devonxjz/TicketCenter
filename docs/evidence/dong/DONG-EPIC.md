@@ -1,9 +1,9 @@
 # DONG-EPIC — Event integration handoff
 
 Latest: [DONG-PROGRESS-20261012.md](DONG-PROGRESS-20261012.md). Both branches now
-integrate dev af2ded2. Current proposal is migration043;030 below is historical.
-Current validation:659 Java executed/183 guarded skips (one unguarded external
-method explicitly excluded),116 JS,20 real Event tests and migration1/1. Review,
+integrate dev c1d7e0a (PR67). Current proposal is migration043;030 below is historical.
+Current validation:717 Java executed/104 guarded skips,116 JS,20 real Event tests
+with schema031–042 and migration043 test1/1. Review,
 combined SQL/runtime rollout and final dev acceptance remain open.
 
 Verified locally on 11 October 2026 (UTC+7). Current source integrates `origin/dev` at `3e380bf`. Scope is the live epic [#13](https://github.com/devonxjz/TicketCenter/issues/13), DONG-01–05 (#8–12), not the older thirteen-task organization assignment in the reference documents.

@@ -1,7 +1,8 @@
 param(
  [string]$TomcatDirectory = 'target/dong-runtime/apache-tomcat-11.0.25',
  [string]$JavaDirectory = 'C:\Users\Lenovo\.jdks\openjdk-25.0.2',
- [string]$NativeDirectory = (Join-Path ([IO.Path]::GetTempPath()) 'ticketcenter-dong-native-12-8-1')
+ [string]$NativeDirectory = (Join-Path ([IO.Path]::GetTempPath()) 'ticketcenter-dong-native-12-8-1'),
+ [ValidatePattern('^TicketCenter_Dong_[A-Za-z0-9_]+$')][string]$DatabaseName='TicketCenter_Dong_Epic_Test_20261011'
 )
 $ErrorActionPreference='Stop'
 $runtime=[IO.Path]::GetFullPath((Join-Path $PWD 'target/dong-runtime'))
@@ -23,7 +24,7 @@ foreach($connector in @($server.Server.Service.Connector)) {
 }
 $server.Save("$tomcat/conf/server.xml")
 Copy-Item -LiteralPath 'target/ticketscenter.war' -Destination "$tomcat/webapps/ticketscenter.war"
-$env:DB_URL='jdbc:sqlserver://127.0.0.1:11433;databaseName=TicketCenter_Dong_Epic_Test_20261011;integratedSecurity=true;encrypt=true;trustServerCertificate=true;loginTimeout=5'
+$env:DB_URL="jdbc:sqlserver://127.0.0.1:11433;databaseName=$DatabaseName;integratedSecurity=true;encrypt=true;trustServerCertificate=true;loginTimeout=5"
 $env:REDIS_HOST='127.0.0.1';$env:REDIS_PORT='16479'
 $env:HIKARI_MAXIMUM_POOL_SIZE='4';$env:HIKARI_MINIMUM_IDLE='0';$env:HIKARI_POOL_BUDGET='24'
 $env:ADMIN_SEED_ENABLED='false';$env:MAIL_SMTP_HOST='127.0.0.1';$env:MAIL_SMTP_PORT='1'

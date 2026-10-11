@@ -41,6 +41,8 @@ class EventEpicSqlServerIT {
             try(var query=c.prepareStatement("EXEC dbo.usp_EventCommand @actor_id=?,@actor_version=0,@scope='EVENT',@idempotency_key=?,@request_hash=?,@operation='EDIT',@event_id=?,@payload=?")) {
                 query.setString(1,f.manager.toString());query.setString(2,UUID.randomUUID().toString());query.setString(3,edit.hash());
                 query.setString(4,event.toString());query.setString(5,edit.json());query.execute();
+                assertSessionActor(c,f.other);
+                query.execute(); // Durable replay must restore the context too.
             }
             assertSessionActor(c,f.other);
         }

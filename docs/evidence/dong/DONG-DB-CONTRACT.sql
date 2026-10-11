@@ -152,6 +152,7 @@ BEGIN
  IF @started=1 BEGIN TRANSACTION; ELSE SAVE TRANSACTION tc_event_command;
  BEGIN TRY
   IF @payload IS NULL OR ISJSON(@payload)<>1 OR @idempotency_key IS NULL OR LEN(@idempotency_key) NOT BETWEEN 1 AND 128 OR @scope IS NULL OR @scope NOT IN('EVENT','EVENT_REVIEW') OR @request_hash IS NULL THROW 52000,'Invalid command',1;
+  EXEC sys.sp_set_session_context @key=N'actor_id',@value=@actor_id;
   DECLARE @admin bit=CASE WHEN @scope='EVENT_REVIEW' THEN 1 ELSE 0 END,@stored_org uniqueidentifier,@stored_event uniqueidentifier;
   EXEC dbo.usp_EventAuthorize @actor_id,@actor_version,@admin,@stored_org OUTPUT,@stored_event OUTPUT;
   DECLARE @lock_result int,@resource nvarchar(255)=CONCAT('tc:event:command:',@actor_id,':',@scope,':',CONVERT(varchar(64),HASHBYTES('SHA2_256',@idempotency_key),2));
@@ -163,6 +164,7 @@ BEGIN
    EXEC dbo.usp_EventAuthorize @actor_id,@actor_version,@admin,@stored_org OUTPUT,@stored_event OUTPUT;
    IF EXISTS(SELECT 1 FROM dbo.tc_event_command_receipts WHERE actor_id=@actor_id AND scope=@scope AND idempotency_key=@idempotency_key AND request_hash<>@request_hash)
     THROW 52009,'Idempotency payload conflict',1;
+   EXEC sys.sp_set_session_context @key=N'actor_id',@value=@old_actor;
    IF @started=1 COMMIT;
    SELECT status_code,response_json,organization_id,event_id,cleanup_json FROM dbo.tc_event_command_receipts WHERE actor_id=@actor_id AND scope=@scope AND idempotency_key=@idempotency_key; RETURN;
   END;
@@ -174,7 +176,6 @@ BEGIN
   IF @event_id IS NOT NULL AND @status IS NULL THROW 52004,'Event was deleted',1;
   DECLARE @expected bigint=TRY_CONVERT(bigint,JSON_VALUE(@payload,'$.expectedVersion'));
   IF @expected IS NOT NULL AND @expected<>@version THROW 52009,'Event changed since it was read',1;
-  EXEC sys.sp_set_session_context @key=N'actor_id',@value=@actor_id;
   DECLARE @title nvarchar(250)=JSON_VALUE(@payload,'$.title'),@description nvarchar(max)=(SELECT [value] FROM OPENJSON(@payload) WHERE [key]='description'),
    @venue nvarchar(250)=JSON_VALUE(@payload,'$.venueName'),@address nvarchar(500)=JSON_VALUE(@payload,'$.venueAddress'),
    @category uniqueidentifier=TRY_CONVERT(uniqueidentifier,JSON_VALUE(@payload,'$.categoryId')),

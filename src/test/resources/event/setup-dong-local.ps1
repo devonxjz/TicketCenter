@@ -1,7 +1,8 @@
-param([switch]$ResumeCreatedFixture)
+param([switch]$ResumeCreatedFixture,
+ [ValidatePattern('^TicketCenter_Dong_[A-Za-z0-9_]+$')][string]$DatabaseName='TicketCenter_Dong_Epic_Test_20261011')
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
-$database='TicketCenter_Dong_Epic_Test_20261011'
+$database=$DatabaseName
 $connection=[System.Data.SqlClient.SqlConnection]::new('Server=.\SQLEXPRESS;Database=master;Integrated Security=true;TrustServerCertificate=true')
 $connection.Open()
 try {
@@ -10,8 +11,14 @@ try {
   if(!$ResumeCreatedFixture){throw 'Dedicated Dong database already exists; refusing to overwrite it.'}
  } else {$command.CommandText="CREATE DATABASE [$database]";$command.ExecuteNonQuery() | Out-Null}
  $connection.ChangeDatabase($database)
+ $files=@(Get-ChildItem -LiteralPath database/migrations -Filter '*.sql' | Sort-Object Name)
+ # Resolve the mutually dependent baseline functions/views before adapters.
+ # A deferred004 batch must never overwrite a later finance projection.
+ $phases=@([pscustomobject]@{files=@($files | Where-Object {$_.Name -match '^00[1-8]_'})})
+ $phases+=@($files | Where-Object {$_.Name -notmatch '^00[1-8]_'} | ForEach-Object {[pscustomobject]@{files=@($_)}})
+ foreach($phase in $phases) {
  $pending=[Collections.Generic.List[object]]::new()
- foreach($file in Get-ChildItem -LiteralPath database/migrations -Filter '*.sql' | Sort-Object Name) {
+ foreach($file in $phase.files) {
   $source=[IO.File]::ReadAllText($file.FullName)
   foreach($batch in [regex]::Split($source,'(?im)^\s*GO\s*\r?$')) {
    if(!$batch.Trim()){continue};$pending.Add(@{name=$file.Name;text=$batch})
@@ -30,6 +37,7 @@ try {
   }
   if($progress -eq 0){throw ('Unresolved migration dependencies: '+(($next | ForEach-Object {$_.name+': '+$_.lastError} | Select-Object -Unique)-join ', '))}
   $pending=$next
+ }
  }
  foreach($batch in [regex]::Split([IO.File]::ReadAllText((Join-Path $PWD 'docs/evidence/dong/DONG-DB-CONTRACT.sql')),'(?im)^\s*GO\s*\r?$')) {
   if($batch.Trim()){$command.CommandText=$batch;$command.ExecuteNonQuery() | Out-Null}
