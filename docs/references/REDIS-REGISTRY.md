@@ -1,6 +1,6 @@
 # Redis Key Registry — VUONG-01
 
-Owner tích hợp: Vương. Nguồn: [#28](https://github.com/devonxjz/TicketCenter/issues/28) và các sub-issue hiện hành, baseline `cfd77c6`, 09/10/2026. Đây là hợp đồng bàn giao: **hiện có** là đã thấy producer trong source; **dự kiến** cần owner triển khai và nghiệm thu; **cần phối hợp** là có mâu thuẫn giữa issue/code. Việc đăng ký key không chứng minh Redis runtime hoạt động.
+Owner tích hợp: Vương. Nguồn: [#28](https://github.com/devonxjz/TicketCenter/issues/28) và các sub-issue hiện hành; đối chiếu producer tại `28ce056`, 11/10/2026. Đây là hợp đồng bàn giao: **hiện có** là đã thấy producer trong source; **dự kiến** cần owner triển khai và nghiệm thu; **cần phối hợp** là có mâu thuẫn giữa issue/code. Việc đăng ký key không chứng minh Redis runtime hoạt động.
 
 ## Quy tắc dùng chung
 
@@ -25,8 +25,8 @@ Owner tích hợp: Vương. Nguồn: [#28](https://github.com/devonxjz/TicketCen
 | `tc:user:active-hold:<userId>` | Liêm | Chỉ holdId | 600, không quá expiry DB | Replace/cancel/expire/order; dự kiến #14 |
 | `tc:order:summary:<orderId>` | Liêm | DTO đơn hàng; kiểm quyền buyer | Thời gian còn lại của Hold | Coupon/payment/expire/refund; dự kiến #15 |
 | `tc:user:orders:v1:<actorId>:<page>` | Liêm | Order history, scope actor | Chưa chốt | Thêm filter/order vào scope nếu API có; payment/refund; dự kiến #19 |
-| `tc:checkin:events:v1:<actorId>:<orgId>` | Khánh | Event được phép check-in | 60 | Membership/time/event đổi; dự kiến #21 |
-| `tc:checkin:window:v1:<eventId>` | Khánh | Khung giờ projection | 30 | Edit/cancel; mutation vẫn kiểm DB/time; dự kiến #21 |
+| `tc:checkin:events:v1:<actorId>:<orgId>` | Khánh | Event metadata/bộ đếm, không có tiền; actor và org ở key | 60 | **Hiện có:** RedisCheckInEventCache; User/membership/lịch kiểm SQL mỗi request, hit không gia hạn TTL; invalidateEvent xóa actor-list theo org bằng SCAN. Event writer cần gọi hook sau commit |
+| `tc:checkin:window:v1:<eventId>` | Khánh | Metadata khung giờ; trạng thái mở tính lại theo UTC máy chủ | 30 | **Hiện có:** RedisCheckInEventCache; SQL guard + UDF mỗi request, cache không cấp quyền. invalidateEvent xóa key; Event writer cần gọi hook sau commit |
 | `tc:event:cancel-progress:<eventId>` | Khánh | Progress projection | 10 | Batch hoàn tất/retry; dự kiến #26 |
 | `tc:commission:rules:v1:<organizationId>` | Vương | Rule DTO list; current ADMIN và org tồn tại được kiểm trước hit | 300 | **Hiện có:** CommissionRuleCache; create/edit invalidate sau SP commit. InitialPolicy từ Thái cần thông báo sau commit |
 | `tc:finance:report:v1:<scope>:<generation>:<filterHash>` | Vương | scope `global` hoặc `org:<UUID>`; SHA256 actor/authVersion + metric/org/event/UTC/page/pageSize | 60 | **Hiện có:** ReportCache; current authority/event scope trước hit; mutation finance tăng global và org generation sau commit |
@@ -71,6 +71,8 @@ Các producer Vương cập nhật ngày 10/10/2026 theo schema UUID/tc_* đã �
 5. TTL ghi “Chưa chốt” và producer chỉ xuất hiện ở invalidation là hạng mục handoff cụ thể, không phải cache đã triển khai. Owner cập nhật registry cùng feature PR của mình qua Vương.
 
 ## Checklist bàn giao một namespace
+
+Hai producer check-in trên đã đối chiếu [mã nguồn](../../src/main/java/vn/ticketscenter/fulfillment/checkin/cache/RedisCheckInEventCache.java), [service](../../src/main/java/vn/ticketscenter/fulfillment/checkin/service/CheckInEventService.java) và [bằng chứng owner ngày10/10](../evidence/khanh/KHANH-01-completion.md). Kiểm thử key/TTL/outage được chạy lại ở mức unit trong đợt đối chiếu ngày11/10; kết quả Redis/SQL thật của Khánh là bằng chứng lịch sử của owner, không được ghi thành một lần nghiệm thu mới của Vương. Event/payment/refund/identity writers phải ghép hook sau commit; chưa có bằng chứng toàn bộ các hook liên miền đã gọi.
 
 - Owner xác nhận key/identity/version/TTL/value được lọc, cache scope có đủ quyền và filter.
 - Ghi mutation nào invalidate, phía nào phát thông báo sau commit và bên nào xử lý.
