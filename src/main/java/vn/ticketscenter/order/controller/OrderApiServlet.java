@@ -13,8 +13,13 @@ import java.util.*;
 @WebServlet(urlPatterns = {"/api/orders", "/api/orders/*", "/api/checkout"})
 public final class OrderApiServlet extends HttpServlet {
     private final OrderService supplied;
-    public OrderApiServlet() { supplied = null; }
-    public OrderApiServlet(OrderService supplied) { this.supplied = Objects.requireNonNull(supplied); }
+    private final vn.ticketscenter.payment.service.PaymentService suppliedPayment;
+    public OrderApiServlet() { this.supplied = null; this.suppliedPayment = null; }
+    public OrderApiServlet(OrderService supplied) { this.supplied = Objects.requireNonNull(supplied); this.suppliedPayment = null; }
+    public OrderApiServlet(OrderService supplied, vn.ticketscenter.payment.service.PaymentService suppliedPayment) {
+        this.supplied = supplied;
+        this.suppliedPayment = suppliedPayment;
+    }
     @Override protected void service(HttpServletRequest request, HttpServletResponse response) throws IOException {
         response.setCharacterEncoding("UTF-8"); response.setContentType("application/json;charset=UTF-8"); response.setHeader("Cache-Control", "no-store");
         try {
@@ -35,6 +40,16 @@ public final class OrderApiServlet extends HttpServlet {
                 if (path.equals("/api/orders")) command = new OrderCommand.Create(key, OrderRequests.create(request.getInputStream()));
                 else if (path.matches("/api/orders/[^/]+/coupon"))
                     command = new OrderCommand.ChangeCoupon(key, OrderRequests.coupon(uuid(path.split("/")[3]), request.getInputStream()));
+                else if (path.matches("/api/orders/[^/]+/payments")) {
+                    UUID orderId = uuid(path.split("/")[3]);
+                    var paymentReq = vn.ticketscenter.payment.dto.PaymentRequests.parse(request.getInputStream());
+                    String clientIp = clientIp(request);
+                    var paymentActor = new vn.ticketscenter.payment.dto.PaymentActor(principal.actorId(), principal.authVersion());
+                    var result = paymentService().initiate(paymentActor, orderId, key, paymentReq.bankCode(), clientIp);
+                    response.setStatus(result.httpStatus());
+                    response.getWriter().write(result.body());
+                    return;
+                }
                 else throw missing();
                 OrderMutationReceipt receipt = service().mutate(actor, command);
                 response.setStatus(receipt.httpStatus()); response.getWriter().write(receipt.body());
@@ -44,10 +59,22 @@ public final class OrderApiServlet extends HttpServlet {
                 response.getWriter().write(service().eligibility(actor, uuid(path.split("/")[3]), parameter(request, "couponCode")));
             } else throw missing();
         } catch (OrderException failure) { HttpResponses.error(response, failure.status(), failure.code(), failure.getMessage()); }
+        catch (vn.ticketscenter.payment.service.PaymentException failure) { HttpResponses.error(response, failure.status(), failure.code(), failure.getMessage()); }
         catch (OrderRequests.BodyTooLargeException failure) { HttpResponses.error(response, 413, "PAYLOAD_TOO_LARGE", "Order request body is too large."); }
         catch (IllegalArgumentException failure) { HttpResponses.error(response, 400, "INVALID_REQUEST", "Invalid Order request."); }
     }
     private OrderService service() { return supplied == null ? OrderRuntime.resolve(getServletContext()) : supplied; }
+    private vn.ticketscenter.payment.service.PaymentService paymentService() {
+        return suppliedPayment == null ? vn.ticketscenter.payment.service.PaymentRuntime.resolve(getServletContext()) : suppliedPayment;
+    }
+    private static String clientIp(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isBlank()) {
+            return xForwardedFor.split(",", 2)[0].trim();
+        }
+        String remoteAddr = request.getRemoteAddr();
+        return (remoteAddr != null && !remoteAddr.isBlank()) ? remoteAddr : "127.0.0.1";
+    }
     private static String parameter(HttpServletRequest request, String name) {
         if (!request.getParameterMap().keySet().equals(Set.of(name)) || request.getParameterValues(name).length != 1) throw invalid();
         return request.getParameter(name);
