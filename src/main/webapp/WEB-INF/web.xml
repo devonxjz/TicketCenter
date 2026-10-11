@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_6_1.xsd"
+         version="6.1" metadata-complete="false">
+    <!-- Resolve the existing Organization wildcard collision through descriptor precedence.
+         EventApiServlet keeps /api/organizations/*; the reports subresource is forwarded by
+         OrganizationApiRoutesFilter. Both module implementations and other annotations remain intact. -->
+    <servlet>
+        <servlet-name>FinanceReportServlet</servlet-name>
+        <servlet-class>vn.ticketscenter.report.controller.ReportServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>FinanceReportServlet</servlet-name>
+        <url-pattern>/api/admin/reports</url-pattern>
+        <url-pattern>/api/reports/export</url-pattern>
+        <url-pattern>/api/reports/options</url-pattern>
+    </servlet-mapping>
+</web-app>
