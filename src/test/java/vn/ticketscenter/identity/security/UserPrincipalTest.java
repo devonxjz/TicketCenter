@@ -59,4 +59,19 @@ public class UserPrincipalTest {
         assertTrue(admin.isManager());
         assertTrue(admin.isStaff());
     }
+
+    @Test
+    @DisplayName("UserPrincipal preserves email and supports nullable email")
+    void testUserPrincipalEmail() {
+        UUID actorId = UUID.randomUUID();
+        UserPrincipal principalWithEmail = new UserPrincipal(actorId, PlatformRole.CUSTOMER, 1, null, "user@test.com");
+        assertEquals("user@test.com", principalWithEmail.email());
+
+        UserPrincipal principal3Arg = new UserPrincipal(actorId, PlatformRole.CUSTOMER, 1);
+        assertNull(principal3Arg.email());
+
+        UserPrincipal principal4Arg = new UserPrincipal(actorId, PlatformRole.CUSTOMER, 1, vn.ticketscenter.identity.model.OrganizationRole.MANAGER);
+        assertNull(principal4Arg.email());
+        assertEquals(vn.ticketscenter.identity.model.OrganizationRole.MANAGER, principal4Arg.organizationRole());
+    }
 }

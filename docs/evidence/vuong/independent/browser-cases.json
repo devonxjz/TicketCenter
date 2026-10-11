@@ -1,0 +1,27 @@
+{
+  "origin": "http://127.0.0.1:18082/ticketscenter",
+  "database": "TC_Vuong_Test_Local_Independent_1011",
+  "cases": [
+    "ADMIN report: organization/date filter, 25-event summary with exact 9007199254743393 VND, page1=20",
+    "ADMIN report page2=5, all-page summary unchanged",
+    "ADMIN CSV from page2 contains header+25 rows and exact 9007199254740993",
+    "EVENT_SALES CSV formula title is tab-prefixed inside quoted cell",
+    "ADMIN audit filter returns25 rows, page1=20",
+    "ADMIN audit detail preserves eventId and redacts synthetic passwordHash",
+    "ADMIN audit page2=5",
+    "ADMIN commission5%, fixed2VND, attached25events, no edit control",
+    "ADMIN settlement preview100 gross,7 commission,93 net; payout unavailable and disabled",
+    "ADMIN recalculation persisted DRAFT snapshot and retained93VND net",
+    "ADMIN confirm persisted CONFIRMED and disables recalculation; no transfer",
+    "ADMIN overview:4 users,2 approved organizations,7 real UTC day rows",
+    "MANAGER actual login, scoped org options without all-organizations, same25-event exact report",
+    "MANAGER navigation exposes Reports only; admin audit navigation blocked by browser, HTTP403 separately verified by full WAR suite",
+    "STAFF real login redirects to check-in selection without finance navigation",
+    "STAFF finance report navigation blocked by browser; HTTP403 verified separately, no CSV bytes exposed"
+  ],
+  "limitations": [
+    "IAB blocks rendering JSON403 documents; actual status proven by separate full-WAR HTTP suite",
+    "Owner admin/organizer dashboards remain static prototypes; home event service reported temporarily unavailable",
+    "Screenshots via viewport fallback; tab full-page capture unavailable"
+  ]
+}

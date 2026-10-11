@@ -2,6 +2,8 @@
 
 Issue [#28](https://github.com/devonxjz/TicketCenter/issues/28). Baseline dev `28ce056b97d778edcdf99b91e856c017b5c35e7b`. Đây là bàn giao hợp đồng đã khớp source, không đóng #28/#33 hoặc thay nghiệm thu E2E toàn sàn.
 
+Bản kê bên dưới giữ trạng thái tại đợt đối chiếu PR52. Sau đó Vương đã nối API tổng quan tổ chức; spec hiện tại có 41 implemented, 59 planned, 3 legacy. Vương có 20 implemented và không còn operation planned. Xem [phần nghiệm thu tiếp theo](VUONG-06-ORGANIZATION-OVERVIEW.md); các điều kiện tích hợp liên miền vẫn còn.
+
 ## Phần đã đối chiếu
 
 - KHANH-01 đã có hai API đọc nhưng spec còn planned: `/api/check-ins/events` trả `data` là mảng; `/api/events/{eventId}/check-in-window` trả DTO. Đối chiếu servlet, filter/named dispatcher, repository/service, DTO và [bằng chứng owner](../khanh/KHANH-01-completion.md). Chỉ hai thao tác này chuyển implemented/matched-to-source; quét QR và refund vẫn planned.

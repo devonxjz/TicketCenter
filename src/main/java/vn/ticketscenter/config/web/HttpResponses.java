@@ -27,7 +27,18 @@ public final class HttpResponses {
         response.getWriter().write("{\"data\":" + jsonObject + "}");
     }
 
+    public static void created(HttpServletResponse response, String jsonObject) throws IOException {
+        response.setStatus(HttpServletResponse.SC_CREATED);
+        response.setContentType("application/json;charset=UTF-8");
+        response.setCharacterEncoding("UTF-8");
+        response.setHeader("Cache-Control", "no-store");
+        response.getWriter().write("{\"data\":" + jsonObject + "}");
+    }
+
     public static String jsonString(String value) {
+        if (value == null) {
+            return "null";
+        }
         StringBuilder escaped = new StringBuilder("\"");
         for (int index = 0; index < value.length(); index++) {
             char current = value.charAt(index);
