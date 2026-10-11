@@ -6428,10 +6428,10 @@
           "Overview and Audit"
         ],
         "summary": "Tổng quan tổ chức",
-        "description": "ADMIN hoặc MANAGER active của đúng tổ chức; counter live và dòng tiền ngày UTC hiện tại.",
+        "description": "ADMIN hiện tại hoặc MANAGER ACTIVE của đúng tổ chức, kiểm status/authVersion và membership trực tiếp SQL mỗi request. Counter live toàn thời gian và dòng tiền/cohort ngày UTC [from,to), bảy ngày UTC gần nhất; tiền nguyên VND dạng chuỗi. Không trả KPI toàn sàn, không đọc cache tổng quan ADMIN. Không nhận query/filter; scope chỉ lấy organizationId trên path. Tổ chức không tồn tại trả404 sau kiểm quyền (caller không có membership vẫn403).",
         "operationId": "getApiOrganizationsOrganizationIdOverview",
         "x-owner": "vuong",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "matched-to-source",
         "security": [
           {
@@ -6456,64 +6456,94 @@
               "application/json": {
                 "schema": {
                   "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "data"
+                  ],
                   "properties": {
                     "data": {
-                      "$ref": "#/components/schemas/FinanceOverview"
+                      "$ref": "#/components/schemas/OrganizationOverview"
                     }
                   }
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "description": "Không lưu dữ liệu tài chính trong cache HTTP.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no-store"
+                  ]
                 }
               }
             }
           },
           "400": {
-            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "description": "INVALID_FILTER; JSON lỗi cố định, không trả chi tiết SQL.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "x-error-codes": [
+              "INVALID_FILTER"
+            ]
           },
           "401": {
-            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "description": "UNAUTHENTICATED; JSON lỗi cố định, không trả chi tiết SQL.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "x-error-codes": [
+              "UNAUTHENTICATED"
+            ]
           },
           "403": {
-            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "description": "FORBIDDEN; JSON lỗi cố định, không trả chi tiết SQL.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "x-error-codes": [
+              "FORBIDDEN"
+            ]
           },
           "404": {
-            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "description": "NOT_FOUND; JSON lỗi cố định, không trả chi tiết SQL.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "x-error-codes": [
+              "NOT_FOUND"
+            ]
           },
           "503": {
-            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "description": "OVERVIEW_UNAVAILABLE; JSON lỗi cố định, không trả chi tiết SQL.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "x-error-codes": [
+              "OVERVIEW_UNAVAILABLE"
+            ]
           }
         },
         "externalDocs": {
@@ -7993,6 +8023,129 @@
           },
           "message": {
             "type": "string"
+          }
+        }
+      },
+      "OrganizationOverview": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "asOf",
+          "timezone",
+          "from",
+          "to",
+          "organizationId",
+          "eventCount",
+          "pendingEvents",
+          "paidOrders",
+          "todayCashFlow",
+          "todayCohortGrossRevenue",
+          "todayCohortCommission",
+          "commissionTimeBasis",
+          "dailyMetrics",
+          "dailyMetricTimeBasis"
+        ],
+        "properties": {
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "timezone": {
+            "type": "string",
+            "enum": [
+              "UTC"
+            ]
+          },
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": false
+          },
+          "eventCount": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "pendingEvents": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "paidOrders": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "todayCashFlow": {
+            "type": "object",
+            "properties": {
+              "ticketCaptured": {
+                "$ref": "#/components/schemas/Money"
+              },
+              "compensationCaptured": {
+                "$ref": "#/components/schemas/Money"
+              },
+              "ticketRefund": {
+                "$ref": "#/components/schemas/Money"
+              },
+              "compensationRefund": {
+                "$ref": "#/components/schemas/Money"
+              },
+              "netCashFlow": {
+                "$ref": "#/components/schemas/SignedMoney"
+              }
+            },
+            "required": [
+              "ticketCaptured",
+              "compensationCaptured",
+              "ticketRefund",
+              "compensationRefund",
+              "netCashFlow"
+            ],
+            "additionalProperties": false
+          },
+          "todayCohortGrossRevenue": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "todayCohortCommission": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "commissionTimeBasis": {
+            "type": "string"
+          },
+          "dailyMetrics": {
+            "type": "array",
+            "minItems": 7,
+            "maxItems": 7,
+            "items": {
+              "$ref": "#/components/schemas/FinanceDailyMetric"
+            },
+            "description": "Seven consecutive UTC days, including today; real zero days included. Cohort revenue and cash flow retain separate time bases."
+          },
+          "dailyMetricTimeBasis": {
+            "type": "object",
+            "properties": {
+              "cohortGrossRevenue": {
+                "type": "string",
+                "enum": [
+                  "ORDER_PAID_AT"
+                ]
+              },
+              "netCashFlow": {
+                "type": "string",
+                "enum": [
+                  "PAYMENT_PAID_AT_AND_REFUND_PROCESSED_AT"
+                ]
+              }
+            }
           }
         }
       }
