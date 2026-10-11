@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bảng Điều Khiển Tổ Chức — TicketsCenter Partner</title>
+    <title>Bảng Điều Khiển Tổ Chức | TicketsCenter Partner</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
@@ -68,7 +68,7 @@
             
             <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-5">
                 <div>
-                    <h1 class="h3 fw-bold mb-1 text-dark">Tổng Quan: Bảo Tàng Phụ Nữ Việt Nam</h1>
+                    <h1 class="h3 fw-bold mb-1 text-dark">Tổng Quan - Bảo Tàng Phụ Nữ Việt Nam</h1>
                     <p class="small text-muted mb-0">Theo dõi doanh thu bán vé, số lượng đặt chỗ và tiến độ tổ chức sự kiện.</p>
                 </div>
                 <div class="mt-3 mt-sm-0">
@@ -154,7 +154,7 @@
                                     <strong class="d-block text-dark">Vé Tham Quan Bảo Tàng Phụ Nữ Việt Nam</strong>
                                     <span class="small text-muted">Triển lãm cố định & chuyên đề</span>
                                 </td>
-                                <td>01/11/2026 • 08:30 – 17:30</td>
+                                <td>01/11/2026 • 08:30 - 17:30</td>
                                 <td>36 Lý Thường Kiệt, Hoàn Kiếm</td>
                                 <td><strong>820</strong> / 1.000 vé</td>
                                 <td><span class="status-pill status-success">Đang mở bán</span></td>
@@ -166,7 +166,7 @@
                             </tr>
                             <tr>
                                 <td>
-                                    <strong class="d-block text-dark">Chuyên Đề: Phụ Nữ Việt Nam Trong Di Sản</strong>
+                                    <strong class="d-block text-dark">Chuyên Đề - Phụ Nữ Việt Nam Trong Di Sản</strong>
                                     <span class="small text-muted">Giao lưu văn hóa nghệ thuật</span>
                                 </td>
                                 <td>15/11/2026 • 09:00</td>

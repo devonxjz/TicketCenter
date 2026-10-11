@@ -155,7 +155,7 @@ public class AuthService {
             }
         });
 
-        return new UserPrincipal(user.getId(), user.getPlatformRole(), user.getAuthVersion(), orgRole);
+        return new UserPrincipal(user.getId(), user.getPlatformRole(), user.getAuthVersion(), orgRole, user.getEmail());
     }
 
     /**
