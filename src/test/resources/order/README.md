@@ -8,8 +8,8 @@ Prepare these dependencies before running the script.
 
 - Java 25, Maven, PowerShell 7, `sqlcmd`, and a Redis directory containing `redis-server.exe` and `redis-cli.exe`.
 - A canonical TicketsCenter schema in `TicketCenter_LIEM02_Test`, including the runtime roles and business objects.
-- The DB owner's Hold runtime migration and Order runtime migration. These dependencies are supplied separately because [LIEM-02 issue #15](https://github.com/devonxjz/TicketCenter/issues/15) excludes database changes from LIEM's ownership.
-- Windows integrated authentication with permission to install the isolated proposals and create temporary test principals.
+- The tracked Hold and Order runtime migrations in `database/migrations/029_hold_runtime.sql` and `030_order_runtime.sql`. Install them after the canonical schema and roles. LIEM has explicit approval to integrate these shared dependencies for this task.
+- Windows integrated authentication with permission to install the isolated migrations and create temporary test principals.
 
 The Hold dependency provides authorization, selection locks, durable request receipts, release, and expiry. The Order dependency provides these BUYER procedures.
 
@@ -18,7 +18,7 @@ The Hold dependency provides authorization, selection locks, durable request rec
 - `dbo.usp_ReadCheckout`.
 - `dbo.usp_ReadOrderCouponEligibility`.
 
-It also removes BUYER access to the legacy Order and Coupon write procedures. SQL owns the transaction and saves the immutable response before committing.
+The migrations remove BUYER access to the legacy Hold, Order and Coupon write procedures. SQL owns the transaction and saves the immutable response before committing.
 
 ## Run the verification
 
@@ -28,8 +28,8 @@ From the repository root, run the script with explicit local dependency paths.
 pwsh -NoProfile -File src/test/resources/order/verify-local.ps1 `
   -TcpPort 63657 `
   -RedisDirectory 'C:\tools\redis' `
-  -HoldMigrationPath 'C:\test-dependencies\029_hold_runtime.sql' `
-  -MigrationPath 'C:\test-dependencies\030_order_runtime.sql'
+  -HoldMigrationPath 'database/migrations/029_hold_runtime.sql' `
+  -MigrationPath 'database/migrations/030_order_runtime.sql'
 ```
 
 Use the actual SQLExpress TCP port and dependency locations. The script rejects SQL scripts with database switches, includes, or shell commands. It records normalized dependency checksums, the Git revision, test output, and WAR packaging output under the excluded `.codex/liem-02/completion/verification-*` directory.
@@ -46,7 +46,7 @@ The default Maven suite skips external integration tests. A passing default buil
 
 ## Verify the packaged checkout
 
-Use an isolated application instance with the canonical schema, approved runtime migrations, restricted database principals, and dedicated Redis. Normal WAR startup also requires the shared servlet mappings and JSTL dependencies to be resolved by their owners.
+Use an isolated application instance with the canonical schema, runtime migrations, restricted database principals, and dedicated Redis. The shared servlet mapping fix and JSTL dependencies are included in this branch so the packaged WAR can start and render its JSPs.
 
 1. Sign in through the existing login form with a verified test buyer.
 2. Select a seat and standing tickets, then create a ten-minute Hold.
@@ -58,3 +58,13 @@ Use an isolated application instance with the canonical schema, approved runtime
 8. Let the Hold expire. Confirm Coupon controls stop accepting changes. After the worker runs, reconcile checkout and confirm the Order is EXPIRED, inventory and Coupon quota are released, and release audit occurs once.
 
 The HTTP integration fixture exercises the real Order servlet, filters, JDBC, and Redis with a test session. The packaged checkout check additionally verifies normal form login, application listeners, JSP rendering, and the Hold worker. Payment initiation belongs to LIEM-03.
+
+## Check the shared Event route
+
+With the same isolated packaged WAR running, set `EVENT_ROUTE_BASE_URL` to its loopback HTTP URL and `EVENT_ROUTE_ORGANIZATION_ID` to the fixture organization UUID. Set `EVENT_ROUTE_EMAIL` and `EVENT_ROUTE_PASSWORD` to the verified fixture buyer credentials in process environment variables, then run:
+
+```powershell
+python src/test/resources/order/verify-event-route.py
+```
+
+The runner rejects non-loopback targets before login. It checks that small multipart requests reach Event validation, oversized requests return 413, invalid CSRF returns 403, and unrelated Report POST requests remain unsupported. It sends invalid Event data and creates no Event or provider asset. These four packaged WAR checks run separately from the 103 guarded Order cases.

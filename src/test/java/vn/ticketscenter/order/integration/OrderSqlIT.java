@@ -255,10 +255,15 @@ class OrderSqlIT {
     @Test void buyerCannotReadRawOrderOrManufactureReceiptOrCallLegacyBypass() throws Exception {
         Checkout checkout = create();
         try(Connection buyer=f.buyer.getConnection();Statement sql=buyer.createStatement()) {
+            try(ResultSet permissions=sql.executeQuery("SELECT HAS_PERMS_BY_NAME('dbo.usp_CreateTicketHold','OBJECT','EXECUTE'),HAS_PERMS_BY_NAME('dbo.usp_ReleaseTicketHold','OBJECT','EXECUTE')")) {
+                assertTrue(permissions.next());assertEquals(0,permissions.getInt(1));assertEquals(0,permissions.getInt(2));
+            }
             assertThrows(SQLException.class,() -> sql.executeQuery("SELECT * FROM dbo.tc_orders"));
             assertThrows(SQLException.class,() -> sql.executeQuery("SELECT * FROM dbo.tc_request_idempotency"));
             assertThrows(SQLException.class,() -> sql.executeQuery("EXEC dbo.usp_CreateOrderFromHold '"+checkout.hold()+"','"+checkout.actor().id()+"'"));
             assertThrows(SQLException.class,() -> sql.executeQuery("EXEC dbo.usp_ApplyOrderCoupon '"+checkout.order()+"','"+checkout.actor().id()+"',NULL"));
+            assertThrows(SQLException.class,() -> sql.executeQuery("EXEC dbo.usp_CreateTicketHold '"+checkout.actor().id()+"','"+checkout.actor().id()+"',N'[]'"));
+            assertThrows(SQLException.class,() -> sql.executeQuery("EXEC dbo.usp_ReleaseTicketHold '"+checkout.hold()+"','"+checkout.actor().id()+"','CANCELLED'"));
         }
     }
 
