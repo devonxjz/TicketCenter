@@ -63,3 +63,5 @@ Dashboard/Audit: xem [nghiệm thu VUONG-06](../evidence/vuong/VUONG-06-ACCEPTAN
 Phạm vi #29–#31 dùng `dev` → `feat/vuong/vuong-02-04-ready` → PR về `dev`, Conventional Commits và CI xanh trên cả commit PR lẫn commit dev sau merge. Người dùng đã cho phép merge các task hoàn thành mà không chờ review đồng đội; vẫn tuân thủ mọi yêu cầu GitHub thực sự áp dụng, không tạo approval giả hoặc thay branch protection. Các phần còn lại giữ tại [PR #42](https://github.com/devonxjz/TicketCenter/pull/42). Tài liệu GitFlow cũ còn dùng `develop/feature`, cần nhóm cập nhật thống nhất; không trộn hai quy ước.
 
 Không sửa model, pom, persistence hay implementation của owner khác để làm cho contract trông đã hoàn tất. Evidence và các giới hạn kiểm thử tại [VUONG-READY-MERGE.md](../evidence/vuong/VUONG-READY-MERGE.md).
+
+Full WAR phải kiểm annotation của toàn ứng dụng: báo cáo/overview tổ chức dùng named dispatcher qua OrganizationReadsideRoutesFilter để cùng tồn tại với EventApiServlet. Kiểm login/session/CSRF và runtime JSTL cục bộ theo [VUONG-06-FULL-WAR](../evidence/vuong/VUONG-06-FULL-WAR.md); smoke từng phạm vi không chứng minh full WAR khởi động.
