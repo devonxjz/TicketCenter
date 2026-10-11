@@ -17,7 +17,8 @@ public record UserPrincipal(
         UUID actorId,
         PlatformRole platformRole,
         int authVersion,
-        OrganizationRole organizationRole
+        OrganizationRole organizationRole,
+        String email
 ) implements Serializable {
 
     public UserPrincipal {
@@ -26,7 +27,11 @@ public record UserPrincipal(
     }
 
     public UserPrincipal(UUID actorId, PlatformRole platformRole, int authVersion) {
-        this(actorId, platformRole, authVersion, null);
+        this(actorId, platformRole, authVersion, null, null);
+    }
+
+    public UserPrincipal(UUID actorId, PlatformRole platformRole, int authVersion, OrganizationRole organizationRole) {
+        this(actorId, platformRole, authVersion, organizationRole, null);
     }
 
     public boolean isAdmin() {

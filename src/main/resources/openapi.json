@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "TicketsCenter API",
-    "description": "Tài liệu API của TicketsCenter. “Đã triển khai” đối chiếu với servlet tại commit nền cfd77c6; không đồng nghĩa đã nghiệm thu SQL/SMTP. “Chờ triển khai” và “Legacy” chỉ để tra cứu, chưa bật Try it out. Contract dự kiến cần owner xác nhận schema, route, quyền và Redis invalidation trước khi ghép.",
+    "description": "Tài liệu API của TicketsCenter, đối chiếu source hiện hành tại 28ce056b97d778edcdf99b91e856c017b5c35e7b. “Đã triển khai” nghĩa route/DTO đã khớp mã nguồn; không đồng nghĩa đã nghiệm thu toàn bộ SQL/SMTP hay E2E. “Chờ triển khai” và “Legacy” chỉ để tra cứu, chưa bật Try it out. Contract dự kiến và Redis invalidation liên miền vẫn cần owner phối hợp.",
     "version": "1.0.0"
   },
   "servers": [
@@ -1033,27 +1033,66 @@
         "tags": [
           "Organizations"
         ],
-        "summary": "Chờ triển khai · Gửi yêu cầu tạo tổ chức",
+        "summary": "Đã triển khai · Gửi yêu cầu tạo tổ chức",
+        "description": "Gửi yêu cầu trở thành tổ chức tổ chức sự kiện. Trạng thái khởi tạo PENDING_APPROVAL. Yêu cầu đăng nhập, CSRF và hỗ trợ Idempotency-Key.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "contactEmail"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Công ty TNHH Sự Kiện ABC"
+                  },
+                  "contactEmail": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "contact@eventabc.vn"
+                  },
+                  "contactPhone": {
+                    "type": "string",
+                    "example": "0912345678"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Đơn vị tổ chức sự kiện âm nhạc và thể thao"
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
-          "200": {
-            "description": "Yêu cầu PENDING đã được tạo"
+          "201": {
+            "description": "Yêu cầu PENDING_APPROVAL đã được tạo"
           },
           "400": {
             "description": "Dữ liệu không hợp lệ"
           },
           "401": {
             "description": "Chưa đăng nhập"
+          },
+          "403": {
+            "description": "Tài khoản bị khóa hoặc không đủ quyền"
+          },
+          "409": {
+            "description": "Đang có yêu cầu chờ duyệt hoặc xung đột idempotency"
           }
         },
         "operationId": "postApiOrganizationRequests",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
         "x-owner": "thai",
         "externalDocs": {
           "description": "Issue giao việc và contract dự kiến",
           "url": "https://github.com/devonxjz/TicketCenter/issues/3"
         },
-        "description": "\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
         "security": [
           {
             "cookieAuth": [],
@@ -1068,24 +1107,24 @@
         "tags": [
           "Organizations"
         ],
-        "summary": "Chờ triển khai · Danh sách yêu cầu tổ chức của tài khoản hiện tại",
+        "summary": "Đã triển khai · Danh sách yêu cầu tổ chức của tài khoản hiện tại",
+        "description": "Lấy danh sách các yêu cầu tạo tổ chức của người dùng hiện tại theo thứ tự thời gian tạo mới nhất.",
         "responses": {
           "200": {
-            "description": "Danh sách phân trang"
+            "description": "Danh sách các yêu cầu của người dùng"
           },
           "401": {
             "description": "Chưa đăng nhập"
           }
         },
         "operationId": "getApiMeOrganizationRequests",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
         "x-owner": "thai",
         "externalDocs": {
           "description": "Issue giao việc và contract dự kiến",
           "url": "https://github.com/devonxjz/TicketCenter/issues/3"
         },
-        "description": "\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
         "security": [
           {
             "cookieAuth": []
@@ -4330,16 +4369,83 @@
         "tags": [
           "Check-in & Refunds"
         ],
-        "summary": "Chờ triển khai · Check-in Event selection và time window cache — GET /api/check-ins/events",
-        "description": "Contract dự kiến từ issue #21. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "summary": "Chọn sự kiện được phép soát vé",
+        "description": "AuthService kiểm phiên; User ACTIVE và membership MANAGER/CHECK_IN_STAFF được kiểm ở SQL kể cả khi có cache. organizationId tùy chọn giới hạn tổ chức; thiếu quyền trả403. data là mảng, không phân trang. Chọn PUBLISHED/CANCELLED có endTime từ đầu ngày UTC hiện tại, sắp startTime rồi eventId. Khung giờ [startTime−60 phút,endTime); bộ đếm vé có thể cache tối đa60 giây, không gia hạn TTL khi hit. Bằng chứng owner: docs/evidence/khanh/KHANH-01-completion.md. Đối chiếu source tại 28ce056b97d778edcdf99b91e856c017b5c35e7b; matched-to-source không thay nghiệm thu E2E toàn sàn.",
         "responses": {
           "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+            "description": "Projection thực tế từ DTO của KHANH-01; không chứa số tiền.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CheckInEventSummary"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_ID: organizationId không phải UUID canonical.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED hoặc SESSION_EXPIRED: chưa đăng nhập hoặc phiên không còn hợp lệ.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "CHECK_IN_FORBIDDEN: thiếu membership ACTIVE MANAGER/CHECK_IN_STAFF của tổ chức hiện tại.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "AUTH_UNAVAILABLE hoặc DATABASE_UNAVAILABLE: phụ thuộc chưa sẵn sàng; lỗi cố định, không trả SQL/secret.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "operationId": "getApiCheckInsEvents",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
         "x-owner": "khanh",
         "externalDocs": {
           "description": "Issue giao việc và contract dự kiến",
@@ -4349,6 +4455,19 @@
           {
             "cookieAuth": []
           }
+        ],
+        "x-source-baseline": "28ce056b97d778edcdf99b91e856c017b5c35e7b",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "query",
+            "required": false,
+            "description": "UUID tổ chức tùy chọn; không gửi tham số để lấy mọi tổ chức được phép. Chuỗi rỗng/sai UUID trả400.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
         ]
       }
     },
@@ -4357,16 +4476,90 @@
         "tags": [
           "Check-in & Refunds"
         ],
-        "summary": "Chờ triển khai · Check-in Event selection và time window cache — GET /api/events/{eventId}/check-in-window",
-        "description": "Contract dự kiến từ issue #21. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "summary": "Kiểm tra khung giờ soát vé hiện tại",
+        "description": "CheckInEventRoutesFilter chuyển đúng route GET tới named CheckInWindowServlet; không chiếm các route Event khác. AuthService kiểm phiên; SQL kiểm User/membership/lịch và UDF mỗi lần gọi, kể cả cache metadata TTL30. isOpen chỉ true với PUBLISHED trong [startTime−60 phút,endTime); currentServerTime là UTC máy chủ. CANCELLED trả400 EVENT_CANCELLED thay vì data thành công. ADMIN không tự được phép nếu không có membership phù hợp. Bằng chứng owner: docs/evidence/khanh/KHANH-01-completion.md. Đối chiếu source tại 28ce056b97d778edcdf99b91e856c017b5c35e7b; matched-to-source không thay nghiệm thu E2E toàn sàn.",
         "responses": {
           "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+            "description": "Projection thực tế từ DTO của KHANH-01; không chứa số tiền.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CheckInWindowStatus"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_ID: eventId không hợp lệ; EVENT_CANCELLED: sự kiện đã hủy.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED hoặc SESSION_EXPIRED: chưa đăng nhập hoặc phiên không còn hợp lệ.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "CHECK_IN_FORBIDDEN: thiếu membership ACTIVE MANAGER/CHECK_IN_STAFF của tổ chức hiện tại.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "EVENT_NOT_FOUND: không tìm thấy sự kiện; membership sai của sự kiện tồn tại trả403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "AUTH_UNAVAILABLE, DATABASE_UNAVAILABLE hoặc CHECK_IN_CONTRACT_MISMATCH; route khung giờ cũng có CHECK_IN_UNAVAILABLE khi named dispatcher thiếu. Lỗi cố định, không trả SQL/secret.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "operationId": "getApiEventsEventIdCheckInWindow",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
         "x-owner": "khanh",
         "externalDocs": {
           "description": "Issue giao việc và contract dự kiến",
@@ -4387,7 +4580,8 @@
           {
             "cookieAuth": []
           }
-        ]
+        ],
+        "x-source-baseline": "28ce056b97d778edcdf99b91e856c017b5c35e7b"
       }
     },
     "/api/me/orders": {
@@ -5588,16 +5782,22 @@
         "tags": [
           "Organizations"
         ],
-        "summary": "Chờ triển khai · Admin duyệt và từ chối tổ chức — GET /api/admin/organization-requests",
-        "description": "Contract dự kiến từ issue #4. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "summary": "Đã triển khai · Admin lấy danh sách yêu cầu tổ chức chờ duyệt",
+        "description": "Lấy danh sách các yêu cầu tạo tổ chức đang ở trạng thái PENDING_APPROVAL. Yêu cầu quyền ADMIN.",
         "responses": {
           "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+            "description": "Danh sách các yêu cầu chờ duyệt"
+          },
+          "401": {
+            "description": "Chưa đăng nhập"
+          },
+          "403": {
+            "description": "Không có quyền quản trị"
           }
         },
         "operationId": "getApiAdminOrganizationRequests",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
         "x-owner": "thai",
         "externalDocs": {
           "description": "Issue giao việc và contract dự kiến",
@@ -5615,16 +5815,28 @@
         "tags": [
           "Organizations"
         ],
-        "summary": "Chờ triển khai · Admin duyệt và từ chối tổ chức — POST /api/admin/organization-requests/{organizationId}/approve",
-        "description": "Contract dự kiến từ issue #4. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "summary": "Đã triển khai · Admin duyệt yêu cầu tạo tổ chức",
+        "description": "Phê duyệt yêu cầu tạo tổ chức, nâng quyền requester thành MANAGER và khởi tạo lịch sự kiện. Yêu cầu quyền ADMIN và CSRF.",
         "responses": {
           "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+            "description": "Hồ sơ đã được phê duyệt"
+          },
+          "400": {
+            "description": "Yêu cầu không hợp lệ hoặc trạng thái không phải PENDING_APPROVAL"
+          },
+          "401": {
+            "description": "Chưa đăng nhập"
+          },
+          "403": {
+            "description": "Không có quyền quản trị hoặc sai CSRF"
+          },
+          "404": {
+            "description": "Không tìm thấy hồ sơ yêu cầu"
           }
         },
         "operationId": "postApiAdminOrganizationRequestsOrganizationIdApprove",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
         "x-owner": "thai",
         "externalDocs": {
           "description": "Issue giao việc và contract dự kiến",
@@ -5695,16 +5907,25 @@
         "tags": [
           "Organizations"
         ],
-        "summary": "Chờ triển khai · Vòng đời yêu cầu tạo tổ chức — GET /api/organization-requests/{organizationId}",
-        "description": "Contract dự kiến từ issue #3. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "summary": "Đã triển khai · Chi tiết yêu cầu tạo tổ chức",
+        "description": "Xem chi tiết một yêu cầu tạo tổ chức. Chỉ chủ sở hữu hồ sơ hoặc ADMIN mới có quyền truy cập.",
         "responses": {
           "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+            "description": "Thông tin chi tiết hồ sơ yêu cầu"
+          },
+          "401": {
+            "description": "Chưa đăng nhập"
+          },
+          "403": {
+            "description": "Không có quyền truy cập (IDOR guard)"
+          },
+          "404": {
+            "description": "Không tìm thấy hồ sơ yêu cầu"
           }
         },
         "operationId": "getApiOrganizationRequestsOrganizationId",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
         "x-owner": "thai",
         "externalDocs": {
           "description": "Issue giao việc và contract dự kiến",
@@ -6273,10 +6494,10 @@
           "Overview and Audit"
         ],
         "summary": "Tổng quan tổ chức",
-        "description": "ADMIN hoặc MANAGER active của đúng tổ chức; counter live và dòng tiền ngày UTC hiện tại.",
+        "description": "ADMIN hiện tại hoặc MANAGER ACTIVE của đúng tổ chức, kiểm status/authVersion và membership trực tiếp SQL mỗi request. Counter live toàn thời gian và dòng tiền/cohort ngày UTC [from,to), bảy ngày UTC gần nhất; tiền nguyên VND dạng chuỗi. Không trả KPI toàn sàn, không đọc cache tổng quan ADMIN. Không nhận query/filter; scope chỉ lấy organizationId trên path. Tổ chức không tồn tại trả404 sau kiểm quyền (caller không có membership vẫn403).",
         "operationId": "getApiOrganizationsOrganizationIdOverview",
         "x-owner": "vuong",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "matched-to-source",
         "security": [
           {
@@ -6301,64 +6522,96 @@
               "application/json": {
                 "schema": {
                   "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "data"
+                  ],
                   "properties": {
                     "data": {
-                      "$ref": "#/components/schemas/FinanceOverview"
+                      "$ref": "#/components/schemas/OrganizationOverview"
                     }
                   }
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "description": "Không lưu dữ liệu tài chính trong cache HTTP.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "no-store"
+                  ]
                 }
               }
             }
           },
           "400": {
-            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "description": "INVALID_FILTER (query không hỗ trợ/không rõ ràng), INVALID_REPORT_FILTER (UUID sai); JSON lỗi cố định, không trả chi tiết SQL.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "x-error-codes": [
+              "INVALID_FILTER",
+              "INVALID_REPORT_FILTER"
+            ]
           },
           "401": {
-            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "description": "UNAUTHENTICATED (controller/SQL authority), SESSION_EXPIRED (bộ lọc phiên chung); JSON lỗi cố định, không trả chi tiết SQL.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "x-error-codes": [
+              "UNAUTHENTICATED",
+              "SESSION_EXPIRED"
+            ]
           },
           "403": {
-            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "description": "FORBIDDEN; JSON lỗi cố định, không trả chi tiết SQL.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "x-error-codes": [
+              "FORBIDDEN"
+            ]
           },
           "404": {
-            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "description": "NOT_FOUND; JSON lỗi cố định, không trả chi tiết SQL.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "x-error-codes": [
+              "NOT_FOUND"
+            ]
           },
           "503": {
-            "description": "Lỗi cố định, không trả chi tiết SQL; DB/actor/tenant được kiểm trước output.",
+            "description": "OVERVIEW_UNAVAILABLE; JSON lỗi cố định, không trả chi tiết SQL.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "x-error-codes": [
+              "OVERVIEW_UNAVAILABLE"
+            ]
           }
         },
         "externalDocs": {
@@ -7730,6 +7983,237 @@
             "type": "string",
             "format": "binary",
             "description": "PNG/JPEG tối đa 5 MiB và 12 triệu pixel; tùy chọn, tạo mới thiếu ảnh dùng placeholder danh mục"
+          }
+        }
+      },
+      "CheckInEventSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "eventId",
+          "title",
+          "venue",
+          "startTime",
+          "endTime",
+          "checkInOpenTime",
+          "isCheckInOpen",
+          "totalTicketsIssued",
+          "totalCheckedIn",
+          "status"
+        ],
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "venue": {
+            "type": "string"
+          },
+          "startTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "checkInOpenTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isCheckInOpen": {
+            "type": "boolean"
+          },
+          "totalTicketsIssued": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "totalCheckedIn": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "NOT_YET_OPEN",
+              "ENDED",
+              "CANCELLED"
+            ]
+          }
+        }
+      },
+      "CheckInWindowStatus": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "eventId",
+          "isOpen",
+          "status",
+          "windowStart",
+          "windowEnd",
+          "currentServerTime",
+          "message"
+        ],
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "isOpen": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "NOT_YET_OPEN",
+              "ENDED",
+              "UNAVAILABLE"
+            ]
+          },
+          "windowStart": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "windowEnd": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "currentServerTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "OrganizationOverview": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "asOf",
+          "timezone",
+          "from",
+          "to",
+          "organizationId",
+          "eventCount",
+          "pendingEvents",
+          "paidOrders",
+          "todayCashFlow",
+          "todayCohortGrossRevenue",
+          "todayCohortCommission",
+          "commissionTimeBasis",
+          "dailyMetrics",
+          "dailyMetricTimeBasis"
+        ],
+        "properties": {
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "timezone": {
+            "type": "string",
+            "enum": [
+              "UTC"
+            ]
+          },
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": false
+          },
+          "eventCount": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "pendingEvents": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "paidOrders": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "todayCashFlow": {
+            "type": "object",
+            "properties": {
+              "ticketCaptured": {
+                "$ref": "#/components/schemas/Money"
+              },
+              "compensationCaptured": {
+                "$ref": "#/components/schemas/Money"
+              },
+              "ticketRefund": {
+                "$ref": "#/components/schemas/Money"
+              },
+              "compensationRefund": {
+                "$ref": "#/components/schemas/Money"
+              },
+              "netCashFlow": {
+                "$ref": "#/components/schemas/SignedMoney"
+              }
+            },
+            "required": [
+              "ticketCaptured",
+              "compensationCaptured",
+              "ticketRefund",
+              "compensationRefund",
+              "netCashFlow"
+            ],
+            "additionalProperties": false
+          },
+          "todayCohortGrossRevenue": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "todayCohortCommission": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "commissionTimeBasis": {
+            "type": "string"
+          },
+          "dailyMetrics": {
+            "type": "array",
+            "minItems": 7,
+            "maxItems": 7,
+            "items": {
+              "$ref": "#/components/schemas/FinanceDailyMetric"
+            },
+            "description": "Seven consecutive UTC days, including today; real zero days included. Cohort revenue and cash flow retain separate time bases."
+          },
+          "dailyMetricTimeBasis": {
+            "type": "object",
+            "properties": {
+              "cohortGrossRevenue": {
+                "type": "string",
+                "enum": [
+                  "ORDER_PAID_AT"
+                ]
+              },
+              "netCashFlow": {
+                "type": "string",
+                "enum": [
+                  "PAYMENT_PAID_AT_AND_REFUND_PROCESSED_AT"
+                ]
+              }
+            }
           }
         }
       }

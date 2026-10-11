@@ -10,6 +10,8 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import vn.ticketscenter.persistence.model.BaseEntity;
 
+import java.time.Instant;
+
 @Entity
 @Table(name = "tc_organizations", schema = "dbo")
 public class Organization extends BaseEntity {
@@ -36,11 +38,20 @@ public class Organization extends BaseEntity {
     @Column(name = "rejection_reason", length = 2000)
     private String rejectionReason;
 
+    @Column(name = "submitted_at")
+    private Instant submittedAt;
+
     protected Organization() { }
 
     public Organization(String name, String contactEmail, User requester) {
+        this(name, contactEmail, null, null, requester);
+    }
+
+    public Organization(String name, String contactEmail, String contactPhone, String description, User requester) {
         this.name = name;
         this.contactEmail = contactEmail;
+        this.contactPhone = contactPhone;
+        this.description = description;
         this.requester = requester;
     }
 
@@ -51,8 +62,12 @@ public class Organization extends BaseEntity {
     public User getRequester() { return requester; }
     public OrganizationStatus getStatus() { return status; }
     public String getRejectionReason() { return rejectionReason; }
+    public Instant getSubmittedAt() { return submittedAt; }
 
-    public void submitForApproval() { status = OrganizationStatus.PENDING_APPROVAL; }
+    public void submitForApproval() {
+        this.status = OrganizationStatus.PENDING_APPROVAL;
+        this.submittedAt = Instant.now();
+    }
     public void approve() { status = OrganizationStatus.APPROVED; rejectionReason = null; }
     public void reject(String reason) {
         status = OrganizationStatus.REJECTED;
