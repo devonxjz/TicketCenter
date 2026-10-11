@@ -2,3 +2,6 @@
 src/main/webapp/swagger/vendor/swagger-ui-bundle.js -text
 src/main/webapp/swagger/vendor/swagger-ui.css -text
 src/main/webapp/swagger/vendor/LICENSE -text
+database/migrations/030_khanh02_signed_checkin.sql text eol=lf
+src/main/webapp/assets/checkin/vendor/html5-qrcode.min.js -text
+src/main/webapp/assets/checkin/vendor/LICENSE -text
