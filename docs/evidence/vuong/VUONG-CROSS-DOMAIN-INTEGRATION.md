@@ -20,6 +20,9 @@ PR50/61/65 are integrated locally with additive runtime compatibility fixes.
 - Fresh whole-branch review found scanner User → Event inversion against buyer
   Event → User. A real restricted CHECK_IN two-connection reproduction deadlocked
   before additive042; the corrected suite passed afterward.
+- First CI compile rejected duplicate JSTL dependencies inherited from combined
+  dev changes. Keep one runtime API3.0.1 and implementation3.0.1 declaration,
+  matching the effective Native-tested dependency and pinned Tomcat helpers.
 
 ## Fresh local results
 
@@ -55,6 +58,8 @@ protected credentials and raw private fixture files are not committed.
 - 041 adds an actor application lock before idempotency keys to align direct hold,
   retained hold facade and refund paths. It serializes same-buyer mutations; cost
   is reduced concurrency for one buyer, without serializing unrelated buyers.
+- Deduplicate JSTL at3.0.1 instead of retaining conflicting3.0.2/3.0.1 declarations;
+  cost if wrong is a missing newer JSTL behavior, covered by full WAR JSP checks.
 - Defer retained finance ADMIN/raw connections and unscoped refund child SQL views.
   HTTP refund detail checks ownership; do not claim independently scoped child
   projections or a global physical connection cap from checkout budget tests.
