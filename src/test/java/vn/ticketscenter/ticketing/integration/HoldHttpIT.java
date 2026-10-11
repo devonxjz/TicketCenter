@@ -94,7 +94,11 @@ class HoldHttpIT {
         var created = post("/api/holds", key, selection(), csrf, "application/json");
         assertEquals(201, created.statusCode(), created.body());
         JSONObject body = new JSONObject(created.body());
-        assertEquals(Set.of("id", "eventId", "createdAt", "expiresAt", "outcome", "items"), body.keySet());
+        assertEquals(Set.of("id", "eventId", "eventTitle", "createdAt", "expiresAt", "outcome", "items"), body.keySet());
+        assertEquals("Hold fixture", body.getString("eventTitle"));
+        JSONObject item = body.getJSONArray("items").getJSONObject(0);
+        assertEquals("Floor", item.getString("zoneName"));
+        assertTrue(item.isNull("seatLabel"));
         assertEquals("CREATED", body.getString("outcome"));
         assertEquals(created.body(), post("/api/holds", key, selection(), csrf, "application/json").body());
         var active = get("/api/me/hold");
