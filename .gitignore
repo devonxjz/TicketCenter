@@ -1,5 +1,10 @@
 .codegraph/
 
+# Private local handoff configuration and generated runtime dependencies
+.local/
+.env
+.env.runtime
+
 target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
