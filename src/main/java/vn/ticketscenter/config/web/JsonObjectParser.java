@@ -30,7 +30,8 @@ public final class JsonObjectParser {
             String key = string();
             expect(':');
             String value = value();
-            if (values.putIfAbsent(key, value) != null) throw invalid();
+            if (values.containsKey(key)) throw invalid();
+            values.put(key, value);
             skipWhitespace();
         } while (take(','));
         expect('}');
@@ -42,6 +43,10 @@ public final class JsonObjectParser {
     private String value() {
         skipWhitespace();
         if (index < source.length() && source.charAt(index) == '"') return string();
+        if (source.startsWith("null", index)) {
+            index += 4;
+            return null;
+        }
         int start = index;
         char open = index < source.length() ? source.charAt(index) : 0;
         if (open != '[') throw invalid();

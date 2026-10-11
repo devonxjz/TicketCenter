@@ -5,40 +5,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bảng Điều Hành Quản Trị — TicketsCenter Admin</title>
+    <meta name="csrf-token" content="${sessionScope.TC_CSRF_TOKEN}">
+    <meta name="context-path" content="${pageContext.request.contextPath}">
+    <title>Bảng Điều Hành Quản Trị | TicketsCenter Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
 </head>
 <body class="bg-light min-h-screen">
     <div class="small text-center py-2 bg-light text-muted" role="note">Prototype tĩnh • Dữ liệu và thao tác mô phỏng • Chưa kết nối backend, email hoặc cổng thanh toán.</div>
 
-    <!-- Top Admin Bar -->
-    <nav class="admin-navbar sticky-top">
-        <div class="container-fluid d-flex align-items-center justify-content-between p-0">
-            <div class="d-flex align-items-center gap-3">
-                <a class="navbar-brand-custom" href="${pageContext.request.contextPath}/">
-                    TicketsCenter
-                </a>
-                <span class="status-pill status-neutral">Quản Trị Hệ Thống</span>
-            </div>
-
-            <div class="d-flex align-items-center gap-3">
-                <span class="status-pill status-success">
-                    Trạng thái mẫu
-                </span>
-                <span class="small text-muted d-none d-sm-inline">admin@ticketscenter.vn</span>
-                <a href="${pageContext.request.contextPath}/" class="btn btn-sm btn-outline-dark rounded-0 px-3">
-                    Xem sàn bán vé
-                </a>
-                <a href="${pageContext.request.contextPath}/auth/logout" class="btn btn-sm btn-outline-danger rounded-0 px-3" onclick="event.preventDefault(); document.getElementById('logoutForm').submit();">
-                    Đăng xuất
-                </a>
-                <form id="logoutForm" action="${pageContext.request.contextPath}/auth/logout" method="post" style="display:none;">
-                    <input type="hidden" name="_csrf" value="${sessionScope.TC_CSRF_TOKEN}">
-                </form>
-            </div>
-        </div>
-    </nav>
+    <c:set var="adminStatusBadge" value="Trạng thái mẫu" scope="request" />
+    <jsp:include page="/WEB-INF/views/layout/admin-navbar.jsp" />
 
     <!-- Layout -->
     <div class="dashboard-layout">
@@ -193,7 +171,7 @@
                                     </tr>
                                     <tr>
                                         <td>
-                                            <strong class="d-block text-dark">Chuyên Đề: Di Sản Phụ Nữ VN</strong>
+                                            <strong class="d-block text-dark">Chuyên Đề - Di Sản Phụ Nữ VN</strong>
                                             <span class="small text-muted">Hà Nội</span>
                                         </td>
                                         <td>Bảo tàng Phụ nữ VN</td>
@@ -284,5 +262,7 @@
         </main>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/admin-notifications.js"></script>
 </body>
 </html>
