@@ -32,14 +32,21 @@ async function run(name, routes, search='') {
   const empty=await run('index',{...categories,'/api/events':{data:[],total:0,pageSize:12}}); assert.match(empty.get('status').textContent,/Chưa có/);
   const failure=await run('index',{...categories,'/api/events':{error:{message:'Unavailable'}}}); assert.equal(failure.get('status').textContent,'Unavailable');
   const invalid=await run('event-detail',{},'?eventId=bad'); assert.equal(invalid.calls.length,0);
+  assert.equal(invalid.get('event-hold-link').hidden,true);
   const detail=await run('event-detail',{
     ['/api/events/'+id]:{data:event},['/api/events/'+id+'/zones']:{data:[{zoneId:zone,name:'VIP',basePrice:'300000',availableSeats:2,totalCapacity:3,zoneType:'SEATED'}]},
     ['/api/zones/'+zone+'/seats']:{data:[{rowName:'A',seatLabel:'A1',status:'AVAILABLE'},{rowName:'A',seatLabel:'A2',status:'HELD'},{rowName:'B',seatLabel:'B1',status:'SOLD'}]}
   },'?eventId='+id);
   assert.equal(detail.get('title').textContent,event.title); assert.equal(detail.get('cover').src,undefined);
   assert.equal(detail.get('description').textContent,event.description);
+  assert.equal(detail.get('event-hold-link').href,'/tickets/select-tickets?eventId='+id);
+  assert.equal(detail.get('event-hold-link').hidden,false);
+  const legacy=await run('event-detail',{['/api/events/'+id]:{data:event},['/api/events/'+id+'/zones']:{data:[]}},'?id='+id);
+  assert.equal(legacy.get('event-hold-link').href,'/tickets/select-tickets?eventId='+id);
+  assert.equal(legacy.get('event-hold-link').hidden,false);
   const panel=detail.get('zones').children[0].children[0]; await panel.children[2].handlers.click();
   assert.equal(panel.children[4].children.length,2); assert.match(panel.children[4].children[0].children[2].className,/bg-warning/);
   const hidden=await run('event-detail',{['/api/events/'+id]:{error:{message:'Not found'}}},'?eventId='+id); assert.equal(hidden.calls.length,1); assert.equal(hidden.get('status').textContent,'Not found');
+  assert.equal(hidden.get('event-hold-link').hidden,true);
   console.log('PASS: catalog rendering, pagination, empty/error, literal text, unsafe image URL, invalid/hidden Event, Zone/Seat rows and status colors.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

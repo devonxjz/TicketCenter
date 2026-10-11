@@ -131,6 +131,14 @@ manager/admin read/execute through the actual deployment principals. Dedicated
 acceptance uses restricted database-user impersonation over Windows transport;
 that is not proof of production-login grants.
 
+Update12 October: the pending Event file is043_event_commands_and_public_seats.sql.
+Current dev has029_hold_runtime/030_order_runtime; PR65/67 reserve031–042 and
+also contain common image/actor/routing integration work. Review the combined
+deployment before adoption; current20-test acceptance does not cover all those
+unmerged migrations. EventManagementRepository now scopes each JDBC work item to
+its authenticated actor and restores the previous connection context; Event SQL
+command/SP12 restore that context too. No common persistence/config edits were made.
+
 Deployment also needs existing JSTL API3.0.0/implementation3.0.1, configured
 Cloudinary secrets, Redis and a persistent writable orphan-journal directory.
 The Event PR does not edit locked POM/config/persistence/OpenAPI or deploy to a

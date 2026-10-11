@@ -125,7 +125,14 @@ class EventHttpWarIT {
         assertEquals(200,upload.statusCode(),"Multipart configuration and real provider must work through the filter route");
         assertEquals(200,post(manager,"/api/events/"+event+"/submit","{}",UUID.randomUUID().toString(),true).statusCode());
         assertEquals(200,post(admin,"/api/admin/events/"+event+"/publish","{\"commissionRuleId\":\""+fixture.rule+"\"}",UUID.randomUUID().toString(),true).statusCode());
-        assertEquals(200,get(anonymous,"/api/events/"+event).statusCode());assertEquals(200,get(anonymous,"/event-detail?eventId="+event).statusCode());
+        assertEquals(200,get(anonymous,"/api/events/"+event).statusCode());
+        for(String query:List.of("eventId=","id=")) {
+            var detail=get(anonymous,"/event-detail?"+query+event);assertEquals(200,detail.statusCode());
+            assertTrue(detail.body().contains("event-hold-link"));assertTrue(detail.body().contains("select-tickets?eventId="));
+            assertTrue(detail.body().contains("zone-status"),"Keep the Event seat projection beside the Hold handoff");
+        }
+        var selection=get(anonymous,"/select-tickets?eventId="+event);assertEquals(200,selection.statusCode());
+        assertTrue(selection.body().contains("ticket-hold.js"),"The merged Hold page must remain reachable from Event detail");
         assertEquals(302,get(anonymous,"/api/events/"+event+"/image").statusCode());
         // Keep this isolated fixture briefly for browser acceptance, credentials only in ignored target output.
         Files.createDirectories(Path.of("target/dong-runtime"));

@@ -1,5 +1,8 @@
 # Cập nhật nghiệm thu phần việc của Đông
 
+Bản này giữ checkpoint11/10. Cập nhật nguồn/kiểm thử/migration043 ngày12/10:
+[DONG-PROGRESS-20261012.md](DONG-PROGRESS-20261012.md).
+
 Cập nhật 11/10/2026 (UTC+7). Phạm vi đã thống nhất: DONG-01–05, issues #8–12,
 epic #13. Dấu hoàn thành dưới đây xác nhận **triển khai và nghiệm thu riêng của
 Đông trên nhánh bàn giao**, chưa xác nhận Definition of Done tích hợp của epic.

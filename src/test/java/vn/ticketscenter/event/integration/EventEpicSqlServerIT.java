@@ -16,6 +16,40 @@ import static org.junit.jupiter.api.Assertions.*;
 class EventEpicSqlServerIT {
     static DongSqlFixture f;
     @BeforeAll static void setup() throws Exception {f=new DongSqlFixture();}
+    @Test void eventRepositoryRestoresExistingActorAfterReadMutationAndDeniedRequest() throws Exception {
+        UUID event=f.draft();
+        try(Connection c=DongSqlFixture.connection("dong_manager")) {
+            DongSqlFixture.execute(c,"EXEC sys.sp_set_session_context @key=N'actor_id',@value=?",f.other);
+            var transactions=new EventTransactions(null){
+                @Override public <T> T run(vn.ticketscenter.config.persistence.DatabasePrincipal principal,Work<T> work){
+                    try{return work.execute(c);}catch(SQLException e){throw EventTransactions.translate(e);}
+                }
+            };
+            transactions.run(vn.ticketscenter.config.persistence.DatabasePrincipal.MANAGER,f.manager,connection->{
+                assertSessionActor(connection,f.manager);return null;
+            });
+            assertSessionActor(c,f.other);
+            var repository=new EventManagementRepository(transactions);
+            assertTrue(repository.read(f.actor,false,"DETAIL",f.org,event,null,null,1,20).contains(event.toString()));
+            assertSessionActor(c,f.other);
+            var edit=f.command("EDIT",event,null,Map.of("description","Actor-scoped update"));
+            assertEquals(200,repository.command(f.actor,UUID.randomUUID().toString(),edit.hash(),edit).status());
+            assertSessionActor(c,f.other);
+            assertEquals(403,assertThrows(EventProblem.class,()->repository.read(f.otherActor,false,"DETAIL",f.org,event,null,null,1,20)).status());
+            assertSessionActor(c,f.other);
+            // Direct SQL callers also retain their surrounding context, independently of JDBC cleanup.
+            try(var query=c.prepareStatement("EXEC dbo.usp_EventCommand @actor_id=?,@actor_version=0,@scope='EVENT',@idempotency_key=?,@request_hash=?,@operation='EDIT',@event_id=?,@payload=?")) {
+                query.setString(1,f.manager.toString());query.setString(2,UUID.randomUUID().toString());query.setString(3,edit.hash());
+                query.setString(4,event.toString());query.setString(5,edit.json());query.execute();
+            }
+            assertSessionActor(c,f.other);
+        }
+    }
+    private static void assertSessionActor(Connection c,UUID expected) throws SQLException {
+        try(var query=c.createStatement();var rows=query.executeQuery("SELECT CONVERT(varchar(36),SESSION_CONTEXT(N'actor_id'))")) {
+            assertTrue(rows.next());assertEquals(expected.toString(),rows.getString(1));
+        }
+    }
     @Test void unknownCategoryIsValidationAndNeverLeavesAReceiptOrChangesTheDraft() {
         var fields=new TreeMap<>(f.create().fields());fields.put("categoryId",UUID.randomUUID().toString());
         var create=new EventCommand("CREATE",f.org,null,null,fields);String key=UUID.randomUUID().toString();

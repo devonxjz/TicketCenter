@@ -4,17 +4,26 @@ Current completion checklist and source-head CI snapshot:
 [DONG-ACCEPTANCE-20261011.md](DONG-ACCEPTANCE-20261011.md). The latest read-only
 shared metadata retry returned40613/S0001;40615 below is an earlier checkpoint.
 
+Latest12 October: [DONG-PROGRESS-20261012.md](DONG-PROGRESS-20261012.md).
+dev af2ded2 adds an unguarded OrganizationRepositoryTest integration method;
+exclude it explicitly until owner fix PR65 lands. Latest probe returns40615.
+
 Run from repository root with Java25 and Maven. All generated binaries, logs, fake-account credentials and screenshots live under ignored `target/`. Do not upload these raw outputs or commit `application.properties` credentials.
 
 ## Local build (no external email/DB seed tests)
 
 ```powershell
-mvn '-Dtc.tests.db=false' '-Dtc.tests.smtp=false' '-Dtc.tests.redis=false' package
+mvn '-Dtc.tests.db=false' '-Dtc.tests.smtp=false' '-Dtc.tests.redis=false' '-Dtest=*,!OrganizationRepositoryTest#testRepositoryIntegration' package
 node --check src/main/webapp/assets/js/dong-events.js
 node src/test/resources/event/dong-01-ui-check.cjs
 ```
 
 Expected on dev3e380bf/review integration:385 executed tests pass,60 external tests explicitly skip (445 total), WAR package succeeds. Earlier375/59 and selected143 counts are historical checkpoints. Skipped DB/SMTP/Redis suites are not evidence for this epic; run them only in their owners' configured environments.
+
+On current dev af2ded2 integration:659 executed pass/183 guarded skips (842 total),
+one external method excluded rather than counted as a skip/pass;116 JS,16 real
+SQL/Redis+1 Cloudinary+3 HTTP=20 acceptance tests. Migration043 test1/1. Historical
+counts and browser checkpoints below are retained for traceability.
 
 ## Dedicated SQL/Redis/provider environment
 
@@ -56,7 +65,7 @@ To clean the HTTP fixture afterward, run only `EventHttpFixtureCleanupIT` with t
 
 ## Shared rollout / orphan reconciliation
 
-The SQL proposal is not deployed to the shared application. New migration030 is prepared in a separate coordination PR under#45; owner reviews/adopts it and grants before deploying the WAR. SP12 uses the current ACTIVE platform role without synchronization to legacy rows. Verify actual runtime logins as well as tested execution contexts. Use the current `data` envelope/UUID/UTC/VND contracts; do not copy incompatible numeric-ID examples from issues. [DONG-INTEGRATION.md](DONG-INTEGRATION.md) supplies platform API/cache handoff and shared rollout order.
+The SQL proposal is not deployed to the shared application. New migration043 is prepared in a separate coordination PR under#45; owner reviews/adopts it and grants before deploying the WAR. SP12 uses the current ACTIVE platform role without synchronization to legacy rows. Verify actual runtime logins as well as tested execution contexts. Use the current `data` envelope/UUID/UTC/VND contracts; do not copy incompatible numeric-ID examples from issues. [DONG-INTEGRATION.md](DONG-INTEGRATION.md) supplies platform API/cache handoff and shared rollout order.
 
 Set `event.cover.orphan.directory` through existing configuration lookup to a persistent writable directory. Journal contains only Event/publicId metadata. For each record, verify **all** `tc_events.event_image_public_id` references after any ambiguous operation settles. Delete only an unreferenced asset, then mark/clear its record after successful provider acknowledgement. If SQL/provider/journal is unavailable, retain the asset and reconcile later. Cover replacement and draft deletion require this lifecycle review; do not delete an old/current image before SQL commit or trust a URL comparison without decoding SQL JSON.
 

@@ -17,7 +17,7 @@ public class EventManagementRepository {
     public EventManagementRepository(EventTransactions transactions) { this.transactions=transactions; }
     private DatabasePrincipal principal(boolean admin) { return admin?DatabasePrincipal.ADMIN:DatabasePrincipal.MANAGER; }
     public String read(Actor actor,boolean admin,String kind,UUID org,UUID event,UUID zone,String status,int page,int size) {
-        return transactions.run(principal(admin),c->{
+        return transactions.run(principal(admin),actor.id(),c->{
             try(var q=c.prepareCall("{call dbo.usp_EventRead(?,?,?,?,?,?,?,?,?,?)}")) {
                 q.setQueryTimeout(10);q.setString(1,actor.id().toString());q.setInt(2,actor.authVersion());q.setBoolean(3,admin);q.setString(4,kind);
                 id(q,5,org);id(q,6,event);id(q,7,zone);q.setString(8,status);q.setInt(9,page);q.setInt(10,size);
@@ -26,7 +26,7 @@ public class EventManagementRepository {
         });
     }
     public Context authorize(Actor actor,EventCommand command) {
-        return transactions.run(principal(command.scope().equals("EVENT_REVIEW")),c->{
+        return transactions.run(principal(command.scope().equals("EVENT_REVIEW")),actor.id(),c->{
             try(var q=c.prepareCall("{call dbo.usp_EventRead(?,?,?,?,?,?,?,?,?,?)}")) {
                 q.setQueryTimeout(10);q.setString(1,actor.id().toString());q.setInt(2,actor.authVersion());q.setBoolean(3,command.scope().equals("EVENT_REVIEW"));q.setString(4,"AUTHORIZE");
                 id(q,5,command.organizationId());id(q,6,command.eventId());id(q,7,command.zoneId());q.setString(8,null);q.setInt(9,1);q.setInt(10,20);
@@ -35,7 +35,7 @@ public class EventManagementRepository {
         });
     }
     public CoverContext coverContext(Actor actor,UUID event) {
-        return transactions.run(DatabasePrincipal.MANAGER,c->{
+        return transactions.run(DatabasePrincipal.MANAGER,actor.id(),c->{
             try(var q=c.prepareCall("{call dbo.usp_EventRead(?,?,?,?,?,?,?,?,?,?)}")) {
                 q.setQueryTimeout(10);q.setString(1,actor.id().toString());q.setInt(2,actor.authVersion());q.setBoolean(3,false);q.setString(4,"COVER_CONTEXT");
                 id(q,5,null);id(q,6,event);id(q,7,null);q.setString(8,null);q.setInt(9,1);q.setInt(10,20);
@@ -44,7 +44,7 @@ public class EventManagementRepository {
         });
     }
     public Optional<Result> receipt(Actor actor,String scope,String key,String hash) {
-        return transactions.run(principal(scope.equals("EVENT_REVIEW")),c->{
+        return transactions.run(principal(scope.equals("EVENT_REVIEW")),actor.id(),c->{
             try(var q=c.prepareCall("{call dbo.usp_EventReceipt(?,?,?,?,?)}")) {
                 q.setQueryTimeout(10);q.setString(1,actor.id().toString());q.setInt(2,actor.authVersion());q.setString(3,scope);q.setString(4,key);q.setString(5,hash);
                 try(var rows=q.executeQuery()) { return rows.next()?Optional.of(result(rows)):Optional.empty(); }
@@ -52,7 +52,7 @@ public class EventManagementRepository {
         });
     }
     public Result command(Actor actor,String key,String hash,EventCommand command) {
-        return transactions.run(principal(command.scope().equals("EVENT_REVIEW")),c->{
+        return transactions.run(principal(command.scope().equals("EVENT_REVIEW")),actor.id(),c->{
             try(var q=c.prepareCall("{call dbo.usp_EventCommand(?,?,?,?,?,?,?,?,?,?)}")) {
                 q.setQueryTimeout(15);q.setString(1,actor.id().toString());q.setInt(2,actor.authVersion());q.setString(3,command.scope());q.setString(4,key);q.setString(5,hash);q.setString(6,command.operation());
                 id(q,7,command.organizationId());id(q,8,command.eventId());id(q,9,command.zoneId());q.setString(10,command.json());

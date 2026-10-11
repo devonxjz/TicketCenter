@@ -4,6 +4,7 @@ import org.hibernate.Session;
 import vn.ticketscenter.config.persistence.*;
 import vn.ticketscenter.event.service.EventProblem;
 import java.sql.*;
+import java.util.UUID;
 
 /** Feature-owned JDBC work inside the existing JPA transaction boundary. */
 public class EventTransactions {
@@ -13,6 +14,23 @@ public class EventTransactions {
     public <T> T run(DatabasePrincipal principal,Work<T> work) {
         try { return transactions.execute(principal,em->em.unwrap(Session.class).doReturningWork(work::execute)); }
         catch(RuntimeException e) { throw translate(e); }
+    }
+    /** Scope RLS to the authenticated actor and restore a reused connection on every exit. */
+    public <T> T run(DatabasePrincipal principal,UUID actor,Work<T> work) {
+        return run(principal,connection->{
+            Object previous;
+            try(var query=connection.prepareStatement("SELECT SESSION_CONTEXT(N'actor_id')")) {
+                query.setQueryTimeout(10);
+                try(var rows=query.executeQuery()) {rows.next();previous=rows.getObject(1);}
+            }
+            try {setActor(connection,actor.toString());return work.execute(connection);}
+            finally {setActor(connection,previous);}
+        });
+    }
+    private static void setActor(Connection connection,Object actor) throws SQLException {
+        try(var query=connection.prepareCall("{call sys.sp_set_session_context(?,?)}")) {
+            query.setQueryTimeout(10);query.setString(1,"actor_id");query.setObject(2,actor);query.execute();
+        }
     }
     public static RuntimeException translate(Throwable cause) {
         for(Throwable e=cause;e!=null;e=e.getCause()) {
