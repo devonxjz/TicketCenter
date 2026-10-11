@@ -2,14 +2,14 @@
 
 Updated12 October2026 (UTC+7). Scope: Event command/public Seat contract for
 DONG-01–05. Feature delivery is PR51; database changes are kept in this separate
-PR. Both now integrate dev af2ded209122d8c5604ae4ccee2e765fefde190e.
+PR. Both now integrate dev c1d7e0af7d308226224b76928a2e2607326249ec.
 
 ## Current additive migration
 
 The unmerged/unapplied Event file was renumbered from030 to
 **043_event_commands_and_public_seats.sql**. dev already contains029_hold_runtime
-and030_order_runtime; pending PR65/67 reserve031–042. No applied migration was
-renumbered or edited. This PR does not adopt those other pending changes.
+and030_order_runtime; PR67 integrated031–042. No applied migration was
+renumbered or edited. Those changes are inherited from accepted dev; this PR owns only043 and its test/evidence.
 
 043 requires canonical baseline/roles, Event image columns from028 and existing
 Zone/public views/procedures. It provides:
@@ -32,20 +32,20 @@ No user roles/credentials are synchronized or granted by this migration.
 ## Verified12 October
 
 - Exact043 full-artifact migration test **1/1**,0 failures/errors/skips. Applies
-  and reapplies in outer transactions to TicketCenter_Dong_Epic_Test_20261011.
+  and reapplies in outer transactions to TicketCenter_Dong_Combined_Test_20261012.
   Receipt count and cleanup-data SHA256 fingerprint are preserved. Restricted
   buyer reads projection; private Event and receipt access is denied.
 - Event source on current dev: **16 real SQL/Redis +1 Cloudinary +3 actual WAR
   HTTP =20**,0 failures/errors/skips. Includes restored actor after read/edit/403/
   direct SQL, rollback/races/rights, provider replay, image/delete recovery and
   public Hold handoff alongside Report/overview.
-- Safe package: **659 executed pass/183 external guard-skipped** (842 total),
-  one unguarded external organization method explicitly excluded; **116 JS pass**.
+- Safe package: **717 executed pass/104 external guard-skipped** (821 total),
+  no method exclusion after the owner DB guard landed via PR67; **116 JS pass**.
   These exclusions/skips are not SQL acceptance and common tests were not edited.
 
 Normalized SHA256 (UTF-8, CRLF→LF), exact043 file:
 
-17CBDA78F6DB6C169934ECDA9E6C20D32926AC86FD4F5ED4A5D76E0838110550
+0B4955916B48EF5E92F15F53D0E6B9B26E372C88AEEA08EFA0CC88EB75DDBE44
 
 The initial helper used a wrong relative path and left only a temporary prefix;
 its smoke result is not acceptance. Complete artifact was restored, helper made
@@ -57,8 +57,8 @@ Event branch logs/evidence: docs/evidence/dong/DONG-PROGRESS-20261012.md.
 ## Open adoption gates
 
 1. Independent database-owner review, final migration-number/deploy-order adoption.
-2. Combined compatibility with PR65/67 (031–042/RLS/image/actor/routing); current
-   tests use the accepted dev baseline and do not prove the entire pending stack.
+2. Review actual shared adoption. Dedicated Event20-test acceptance now includes
+   accepted dev PR67 and schema031–042; it does not prove the entire product.
 3. Actual deployed runtime-login/grants and HTTP acceptance. Tests impersonate
    restricted database users over Windows-auth owner transport, not SQL logins.
 4. Shared metadata probe12 October returns40615/S0001; shared schema remains
@@ -79,3 +79,10 @@ PR51's runbook; test checks exact DB_NAME before mutations and rejects JDBC over
 
 Default green CI does not run this opted-in test. Disable automatic discovery
 only for the explicitly listed Dong suites with their own fixture guards.
+
+Final combined checkpoint: raw Event command failed52001 under RLS with prior
+actor context;043 now sets the actor before authorization and restores it on
+replay too. The unchanged regression passed after the fix. Fresh fixture ordering
+was corrected to resolve001–008 before adapters, retaining the finance
+total_commission projection; full WAR overview200 and all20 Event tests pass.
+Migration test1/1 also passes on that fresh031–042+043 schema.
