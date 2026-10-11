@@ -105,4 +105,3 @@ Owner API mới cần method/path, input/output, quyền, status/error, idempote
 - Hai ca HTTP mới RED404 khi fixture chưa map route; sau wiring, ROOT/WAR Swagger/check-in HTTP12/12 GREEN, zero skips. Hai route thực sự tới owner servlet/filter và trả401 JSON/no-store khi thiếu phiên; không khởi tạo DB/SMTP/worker.
 - Fresh clean package: Java389 discovered,330 executed,59 named external guarded skips, zero failures/errors. Safe Node56/56; finance/report/dashboard/audit actual HTTP/JDBC/JSP18/18 zero skips với marked loopback fixture, xác nhận phần wiring chung không làm hỏng hồi quy.
 - Review và exact-head/post-merge CI: kết quả cuối sẽ được ghi trong PR metadata. Không tính external skipped thành pass; owner SQL/Redis/SMTP evidence ngày10/10 là bằng chứng lịch sử, không phải lượt chạy mới của Vương.
-
