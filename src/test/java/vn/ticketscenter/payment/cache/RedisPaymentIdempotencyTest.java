@@ -126,4 +126,20 @@ class RedisPaymentIdempotencyTest {
         assertNotNull(lock3);
         lock3.close();
     }
+
+    @Test
+    void cachesAndRetrievesIpnResult() {
+        MockJedis jedis = new MockJedis();
+        RedisPaymentIdempotency idempotency = new RedisPaymentIdempotency(() -> jedis);
+
+        assertNull(idempotency.getCachedIpn("TXN-1", "PROV-1"));
+
+        idempotency.cacheIpn("TXN-1", "PROV-1", "{\"RspCode\":\"00\"}");
+        assertEquals("{\"RspCode\":\"00\"}", idempotency.getCachedIpn("TXN-1", "PROV-1"));
+
+        // With null providerTxnNo
+        assertNull(idempotency.getCachedIpn("TXN-2", null));
+        idempotency.cacheIpn("TXN-2", null, "{\"RspCode\":\"02\"}");
+        assertEquals("{\"RspCode\":\"02\"}", idempotency.getCachedIpn("TXN-2", null));
+    }
 }

@@ -66,6 +66,19 @@ class PaymentApiServletTest {
             }
             return resultToReturn;
         }
+
+        vn.ticketscenter.payment.dto.PaymentStatusResult statusToReturn;
+
+        @Override
+        public vn.ticketscenter.payment.dto.PaymentStatusResult getOrderPaymentStatus(UUID actorId, UUID orderId) {
+            if (exceptionToThrow != null) {
+                throw exceptionToThrow;
+            }
+            if (statusToReturn != null) {
+                return statusToReturn;
+            }
+            throw PaymentException.orderNotFound();
+        }
     }
 
     @BeforeEach
@@ -228,6 +241,26 @@ class PaymentApiServletTest {
         assertEquals(409, responseStatus.get());
         JSONObject json = new JSONObject(responseOutput.toString());
         assertEquals("IDEMPOTENCY_CONFLICT", json.getJSONObject("error").getString("code"));
+    }
+
+    @Test
+    void getOrderPaymentStatusReturns200WithStatusDetails() throws Exception {
+        UUID pid = UUID.randomUUID();
+        paymentService.statusToReturn = new vn.ticketscenter.payment.dto.PaymentStatusResult(
+                ORDER_ID, "PAID", Optional.of(pid), Optional.of("CAPTURED"),
+                new BigDecimal("250000"), "VND", Optional.of(java.time.Instant.now())
+        );
+
+        HttpServletRequest req = mockRequest("GET", "/api/orders/" + ORDER_ID + "/payment-status", "");
+        HttpServletResponse res = mockResponse();
+
+        invokeServlet(req, res);
+
+        assertEquals(200, responseStatus.get());
+        JSONObject json = new JSONObject(responseOutput.toString());
+        assertEquals("PAID", json.getString("orderStatus"));
+        assertEquals("CAPTURED", json.getString("paymentStatus"));
+        assertEquals("250000", json.getString("amount"));
     }
 
     private void invokeServlet(HttpServletRequest req, HttpServletResponse res) throws Exception {

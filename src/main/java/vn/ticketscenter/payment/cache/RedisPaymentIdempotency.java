@@ -145,4 +145,29 @@ public final class RedisPaymentIdempotency {
             throw failure;
         }
     }
+
+    public static final Duration IPN_RETENTION = Duration.ofDays(7);
+
+    public String getCachedIpn(String txnRef, String providerTxnNo) {
+        if (txnRef == null || txnRef.isBlank()) return null;
+        String key = ipnKey(txnRef, providerTxnNo);
+        try (Jedis client = connections.get()) {
+            return client.get(key);
+        }
+    }
+
+    public void cacheIpn(String txnRef, String providerTxnNo, String responseJson) {
+        if (txnRef == null || txnRef.isBlank() || responseJson == null) return;
+        String key = ipnKey(txnRef, providerTxnNo);
+        try (Jedis client = connections.get()) {
+            client.set(key, responseJson, SetParams.setParams().ex(IPN_RETENTION.toSeconds()));
+        }
+    }
+
+    private static String ipnKey(String txnRef, String providerTxnNo) {
+        if (providerTxnNo != null && !providerTxnNo.isBlank()) {
+            return "tc:idem:vnpay:ipn:" + txnRef + ":" + providerTxnNo;
+        }
+        return "tc:idem:vnpay:ipn:" + txnRef;
+    }
 }

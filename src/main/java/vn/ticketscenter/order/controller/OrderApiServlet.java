@@ -57,6 +57,9 @@ public final class OrderApiServlet extends HttpServlet {
                 response.getWriter().write(service().checkout(actor, uuid(parameter(request, "holdId"))).body());
             } else if (request.getMethod().equals("GET") && path.matches("/api/orders/[^/]+/coupon-eligibility")) {
                 response.getWriter().write(service().eligibility(actor, uuid(path.split("/")[3]), parameter(request, "couponCode")));
+            } else if (request.getMethod().equals("GET") && path.matches("/api/orders/[^/]+/payment-status")) {
+                var paymentStatus = paymentService().getOrderPaymentStatus(actor.id(), uuid(path.split("/")[3]));
+                response.getWriter().write(paymentStatus.toJson());
             } else throw missing();
         } catch (OrderException failure) { HttpResponses.error(response, failure.status(), failure.code(), failure.getMessage()); }
         catch (vn.ticketscenter.payment.service.PaymentException failure) { HttpResponses.error(response, failure.status(), failure.code(), failure.getMessage()); }

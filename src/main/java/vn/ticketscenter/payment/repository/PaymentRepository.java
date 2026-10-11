@@ -154,6 +154,158 @@ public class PaymentRepository {
         }
     }
 
+    public record PaymentRecord(
+            UUID paymentId,
+            UUID orderId,
+            UUID userId,
+            String txnRef,
+            BigDecimal amount,
+            String currency,
+            String paymentStatus,
+            String orderStatus,
+            BigDecimal totalAmount,
+            Timestamp paidAt
+    ) { }
+
+    public Optional<PaymentRecord> findPaymentByTxnRef(String txnRef) {
+        if (txnRef == null || txnRef.isBlank()) return Optional.empty();
+        try (Connection conn = buyer.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                     """
+                     SELECT p.id as payment_id, p.order_id, o.user_id, p.txn_ref, p.amount, p.currency,
+                            p.status as payment_status, o.status as order_status, o.total_amount, p.paid_at
+                     FROM dbo.tc_payments p WITH (NOLOCK)
+                     JOIN dbo.tc_orders o WITH (NOLOCK) ON o.id = p.order_id
+                     WHERE p.txn_ref = ?
+                     """)) {
+            ps.setString(1, txnRef.trim());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) return Optional.empty();
+                return Optional.of(new PaymentRecord(
+                        (UUID) rs.getObject("payment_id"),
+                        (UUID) rs.getObject("order_id"),
+                        (UUID) rs.getObject("user_id"),
+                        rs.getString("txn_ref"),
+                        rs.getBigDecimal("amount"),
+                        rs.getString("currency"),
+                        rs.getString("payment_status"),
+                        rs.getString("order_status"),
+                        rs.getBigDecimal("total_amount"),
+                        rs.getTimestamp("paid_at")
+                ));
+            }
+        } catch (SQLException failure) {
+            PaymentException mapped = domain(failure);
+            if (mapped != null) throw mapped;
+            throw PaymentException.unavailable();
+        }
+    }
+
+    public Optional<vn.ticketscenter.payment.dto.PaymentStatusResult> getOrderPaymentStatus(UUID orderId, UUID actorId) {
+        Objects.requireNonNull(orderId, "orderId is required");
+        Objects.requireNonNull(actorId, "actorId is required");
+        try (Connection conn = buyer.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                     """
+                     SELECT TOP 1 o.id as order_id, o.status as order_status, o.total_amount,
+                            p.id as payment_id, p.status as payment_status, p.amount as payment_amount,
+                            p.currency, p.paid_at
+                     FROM dbo.tc_orders o WITH (NOLOCK)
+                     LEFT JOIN dbo.tc_payments p WITH (NOLOCK) ON p.order_id = o.id
+                     WHERE o.id = ? AND o.user_id = ?
+                     ORDER BY p.created_at DESC
+                     """)) {
+            ps.setObject(1, orderId);
+            ps.setObject(2, actorId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) return Optional.empty();
+                UUID oid = (UUID) rs.getObject("order_id");
+                String ordStatus = rs.getString("order_status");
+                UUID pid = (UUID) rs.getObject("payment_id");
+                String payStatus = rs.getString("payment_status");
+                BigDecimal amt = rs.getBigDecimal("payment_amount");
+                if (amt == null) amt = rs.getBigDecimal("total_amount");
+                String curr = rs.getString("currency");
+                Timestamp paidAt = rs.getTimestamp("paid_at");
+                return Optional.of(new vn.ticketscenter.payment.dto.PaymentStatusResult(
+                        oid,
+                        ordStatus,
+                        Optional.ofNullable(pid),
+                        Optional.ofNullable(payStatus),
+                        amt != null ? amt : BigDecimal.ZERO,
+                        curr != null ? curr.trim() : "VND",
+                        Optional.ofNullable(paidAt).map(Timestamp::toInstant)
+                ));
+            }
+        } catch (SQLException failure) {
+            PaymentException mapped = domain(failure);
+            if (mapped != null) throw mapped;
+            throw PaymentException.unavailable();
+        }
+    }
+
+    public void applyPaymentResult(UUID orderId, UUID paymentId, String status, String providerReference) {
+        Objects.requireNonNull(orderId, "orderId is required");
+        Objects.requireNonNull(paymentId, "paymentId is required");
+        Objects.requireNonNull(status, "status is required");
+
+        String ticketsJson = "[]";
+        if ("CAPTURED".equals(status)) {
+            ticketsJson = generateTicketsForOrder(orderId);
+        }
+
+        org.json.JSONObject verifiedResultJson = new org.json.JSONObject();
+        verifiedResultJson.put("status", status);
+        verifiedResultJson.put("providerReference", providerReference != null ? providerReference : "VNPAY");
+        String verifiedResult = verifiedResultJson.toString();
+
+        try (Connection conn = buyer.getConnection();
+             CallableStatement cs = conn.prepareCall("{call dbo.usp_ApplyPaymentResult(?, ?, ?, ?, ?)}")) {
+            cs.setObject(1, orderId);
+            cs.setNull(2, Types.OTHER);
+            cs.setObject(3, paymentId);
+            cs.setString(4, verifiedResult);
+            cs.setString(5, ticketsJson);
+            cs.execute();
+        } catch (SQLException failure) {
+            PaymentException mapped = domain(failure);
+            if (mapped != null) throw mapped;
+            throw PaymentException.unavailable();
+        }
+    }
+
+    private String generateTicketsForOrder(UUID orderId) {
+        int expected = 0;
+        try (Connection conn = buyer.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                     "SELECT COALESCE(SUM(quantity), 0) FROM dbo.tc_order_items WITH (NOLOCK) WHERE order_id = ?")) {
+            ps.setObject(1, orderId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    expected = rs.getInt(1);
+                }
+            }
+        } catch (SQLException ignored) { }
+
+        org.json.JSONArray tickets = new org.json.JSONArray();
+        for (int i = 0; i < expected; i++) {
+            String ticketCode = "TC-" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
+            byte[] secret = new byte[32];
+            java.util.concurrent.ThreadLocalRandom.current().nextBytes(secret);
+            try {
+                java.security.MessageDigest sha256 = java.security.MessageDigest.getInstance("SHA-256");
+                String qrHashHex = java.util.HexFormat.of().formatHex(sha256.digest(secret));
+                org.json.JSONObject t = new org.json.JSONObject();
+                t.put("ticketCode", ticketCode);
+                t.put("qrSecretHashHex", qrHashHex);
+                tickets.put(t);
+            } catch (java.security.NoSuchAlgorithmException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+        return tickets.toString();
+    }
+
     @FunctionalInterface private interface Read<T> { T read(ResultSet rows) throws SQLException; }
 
     private <T> T call(String sql, Read<T> read, Object... args) {
