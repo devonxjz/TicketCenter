@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+	<testsuite name="full WAR rejects JDBC redirection before SQL marker lookup or startup" time="7.133615" disabled="0" errors="0" tests="6" failures="0" skipped="0" hostname="LAPTOP-215BGAUF">
+		<testcase name="duplicate database" time="1.311826" classname="test" file="C:\Users\Le Vuong\.codex\worktrees\vuong-finance-ready\TicketCenter\src\test\js\full-war-smoke-safety.test.cjs"/>
+		<testcase name="database alias duplicate" time="1.129115" classname="test" file="C:\Users\Le Vuong\.codex\worktrees\vuong-finance-ready\TicketCenter\src\test\js\full-war-smoke-safety.test.cjs"/>
+		<testcase name="server override" time="1.204781" classname="test" file="C:\Users\Le Vuong\.codex\worktrees\vuong-finance-ready\TicketCenter\src\test\js\full-war-smoke-safety.test.cjs"/>
+		<testcase name="failover override" time="1.133688" classname="test" file="C:\Users\Le Vuong\.codex\worktrees\vuong-finance-ready\TicketCenter\src\test\js\full-war-smoke-safety.test.cjs"/>
+		<testcase name="remote host" time="1.071770" classname="test" file="C:\Users\Le Vuong\.codex\worktrees\vuong-finance-ready\TicketCenter\src\test\js\full-war-smoke-safety.test.cjs"/>
+		<testcase name="different database" time="1.274967" classname="test" file="C:\Users\Le Vuong\.codex\worktrees\vuong-finance-ready\TicketCenter\src\test\js\full-war-smoke-safety.test.cjs"/>
+	</testsuite>
+	<testsuite name="local setup refuses non-local database names before SQL or config writes" time="5.896278" disabled="0" errors="0" tests="5" failures="0" skipped="0" hostname="LAPTOP-215BGAUF">
+		<testcase name="TicketCenterticke" time="1.306862" classname="test" file="C:\Users\Le Vuong\.codex\worktrees\vuong-finance-ready\TicketCenter\src\test\js\local-handoff-safety.test.cjs"/>
+		<testcase name="master" time="1.148281" classname="test" file="C:\Users\Le Vuong\.codex\worktrees\vuong-finance-ready\TicketCenter\src\test\js\local-handoff-safety.test.cjs"/>
+		<testcase name="TC_Vuong_Test_Shared" time="1.216317" classname="test" file="C:\Users\Le Vuong\.codex\worktrees\vuong-finance-ready\TicketCenter\src\test\js\local-handoff-safety.test.cjs"/>
+		<testcase name="TC_Vuong_Test_Local_x;DROP" time="1.111031" classname="test" file="C:\Users\Le Vuong\.codex\worktrees\vuong-finance-ready\TicketCenter\src\test\js\local-handoff-safety.test.cjs"/>
+		<testcase name="TC_Vuong_Test_Local_" time="1.108786" classname="test" file="C:\Users\Le Vuong\.codex\worktrees\vuong-finance-ready\TicketCenter\src\test\js\local-handoff-safety.test.cjs"/>
+	</testsuite>
+	<testcase name="local setup preserves an existing credentials file before contacting SQL" time="1.221072" classname="test" file="C:\Users\Le Vuong\.codex\worktrees\vuong-finance-ready\TicketCenter\src\test\js\local-handoff-safety.test.cjs"/>
+	<testcase name="local runner rejects a missing JDK before build, download or SQL startup" time="0.977789" classname="test" file="C:\Users\Le Vuong\.codex\worktrees\vuong-finance-ready\TicketCenter\src\test\js\local-handoff-safety.test.cjs"/>
+	<testcase name="local setup will not write credentials to an unignored checkout path" time="1.073675" classname="test" file="C:\Users\Le Vuong\.codex\worktrees\vuong-finance-ready\TicketCenter\src\test\js\local-handoff-safety.test.cjs"/>
+	<testcase name="JSTL cache corruption is rejected before reuse or downloads" time="1.246062" classname="test" file="C:\Users\Le Vuong\.codex\worktrees\vuong-finance-ready\TicketCenter\src\test\js\local-handoff-safety.test.cjs"/>
+	<testcase name="local build clears inherited Maven settings and forces safe tests" time="4.763742" classname="test" file="C:\Users\Le Vuong\.codex\worktrees\vuong-finance-ready\TicketCenter\src\test\js\local-handoff-safety.test.cjs"/>
+	<testsuite name="SQL acceptance tools refuse shared DBs and redirected URLs before any SQL or output" time="15.062110" disabled="0" errors="0" tests="12" failures="0" skipped="0" hostname="LAPTOP-215BGAUF">
+		<testcase name="sql-inventory TicketCenterticke 127.0.0.1:1433" time="1.241518" classname="test" file="C:\Users\Le Vuong\.codex\worktrees\vuong-finance-ready\TicketCenter\src\test\js\sql-acceptance-safety.test.cjs"/>
+		<testcase name="sql-inventory TC_Vuong_Test_Local_Guard remote:1433" time="1.124669" classname="test" file="C:\Users\Le Vuong\.codex\worktrees\vuong-finance-ready\TicketCenter\src\test\js\sql-acceptance-safety.test.cjs"/>
+		<testcase name="sql-inventory TC_Vuong_Test_Local_Guard 127.0.0.1:1433" time="1.256205" classname="test" file="C:\Users\Le Vuong\.codex\worktrees\vuong-finance-ready\TicketCenter\src\test\js\sql-acceptance-safety.test.cjs"/>
+		<testcase name="backup-restore TicketCenterticke 127.0.0.1:1433" time="1.108800" classname="test" file="C:\Users\Le Vuong\.codex\worktrees\vuong-finance-ready\TicketCenter\src\test\js\sql-acceptance-safety.test.cjs"/>
+		<testcase name="backup-restore TC_Vuong_Test_Local_Guard remote:1433" time="1.059471" classname="test" file="C:\Users\Le Vuong\.codex\worktrees\vuong-finance-ready\TicketCenter\src\test\js\sql-acceptance-safety.test.cjs"/>
+		<testcase name="backup-restore TC_Vuong_Test_Local_Guard 127.0.0.1:1433" time="1.397184" classname="test" file="C:\Users\Le Vuong\.codex\worktrees\vuong-finance-ready\TicketCenter\src\test\js\sql-acceptance-safety.test.cjs"/>
+		<testcase name="finance-benchmark TicketCenterticke 127.0.0.1:1433" time="0.989620" classname="test" file="C:\Users\Le Vuong\.codex\worktrees\vuong-finance-ready\TicketCenter\src\test\js\sql-acceptance-safety.test.cjs"/>
+		<testcase name="finance-benchmark TC_Vuong_Test_Local_Guard remote:1433" time="0.903123" classname="test" file="C:\Users\Le Vuong\.codex\worktrees\vuong-finance-ready\TicketCenter\src\test\js\sql-acceptance-safety.test.cjs"/>
+		<testcase name="finance-benchmark TC_Vuong_Test_Local_Guard 127.0.0.1:1433" time="1.362241" classname="test" file="C:\Users\Le Vuong\.codex\worktrees\vuong-finance-ready\TicketCenter\src\test\js\sql-acceptance-safety.test.cjs"/>
+		<testcase name="seed-browser TicketCenterticke 127.0.0.1:1433" time="1.645008" classname="test" file="C:\Users\Le Vuong\.codex\worktrees\vuong-finance-ready\TicketCenter\src\test\js\sql-acceptance-safety.test.cjs"/>
+		<testcase name="seed-browser TC_Vuong_Test_Local_Guard remote:1433" time="1.687493" classname="test" file="C:\Users\Le Vuong\.codex\worktrees\vuong-finance-ready\TicketCenter\src\test\js\sql-acceptance-safety.test.cjs"/>
+		<testcase name="seed-browser TC_Vuong_Test_Local_Guard 127.0.0.1:1433" time="1.276636" classname="test" file="C:\Users\Le Vuong\.codex\worktrees\vuong-finance-ready\TicketCenter\src\test\js\sql-acceptance-safety.test.cjs"/>
+	</testsuite>
+	<!-- tests 31 -->
+	<!-- suites 0 -->
+	<!-- pass 31 -->
+	<!-- fail 0 -->
+	<!-- cancelled 0 -->
+	<!-- skipped 0 -->
+	<!-- todo 0 -->
+	<!-- duration_ms 15368.724 -->
+</testsuites>
