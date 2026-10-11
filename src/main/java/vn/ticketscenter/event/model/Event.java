@@ -92,6 +92,22 @@ public class Event extends BaseEntity {
         this.venueAddress = venueAddress;
     }
 
+    public Event(Organization organization, String title, String description, EventCategory category,
+                 String venueName, String venueAddress, Instant startTime, Instant endTime) {
+        this(organization, title, description, category, venueName, venueAddress);
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.saleStart = (startTime != null) ? startTime.minus(java.time.Duration.ofDays(7)) : Instant.now();
+        this.saleEnd = (startTime != null) ? startTime : Instant.now().plus(java.time.Duration.ofDays(1));
+    }
+
+    public void setSchedule(Instant saleStart, Instant saleEnd, Instant startTime, Instant endTime) {
+        this.saleStart = saleStart;
+        this.saleEnd = saleEnd;
+        this.startTime = startTime;
+        this.endTime = endTime;
+    }
+
     public Organization getOrganization() { return organization; }
     public CommissionRule getCommissionRule() { return commissionRule; }
     public String getTitle() { return title; }

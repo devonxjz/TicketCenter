@@ -5,37 +5,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Duyệt Hồ Sơ Tổ Chức — TicketsCenter Admin</title>
+    <meta name="csrf-token" content="${sessionScope.TC_CSRF_TOKEN}">
+    <meta name="context-path" content="${pageContext.request.contextPath}">
+    <title>Duyệt Hồ Sơ Tổ Chức | TicketsCenter Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
 </head>
 <body class="bg-light min-h-screen">
     <div class="small text-center py-2 bg-light text-muted" role="note">Prototype tĩnh • Dữ liệu và thao tác mô phỏng • Chưa kết nối backend, email hoặc cổng thanh toán.</div>
 
-    <!-- Top Admin Bar -->
-    <nav class="admin-navbar sticky-top">
-        <div class="container-fluid d-flex align-items-center justify-content-between p-0">
-            <div class="d-flex align-items-center gap-3">
-                <a class="navbar-brand-custom" href="${pageContext.request.contextPath}/">
-                    TicketsCenter
-                </a>
-                <span class="status-pill status-neutral">Quản Trị Hệ Thống</span>
-            </div>
-
-            <div class="d-flex align-items-center gap-3">
-                <span class="small text-muted d-none d-sm-inline">admin@ticketscenter.vn</span>
-                <a href="${pageContext.request.contextPath}/" class="btn btn-sm btn-outline-dark rounded-0 px-3">
-                    Xem sàn bán vé
-                </a>
-                <a href="${pageContext.request.contextPath}/auth/logout" class="btn btn-sm btn-outline-danger rounded-0 px-3" onclick="event.preventDefault(); document.getElementById('logoutForm').submit();">
-                    Đăng xuất
-                </a>
-                <form id="logoutForm" action="${pageContext.request.contextPath}/auth/logout" method="post" style="display:none;">
-                    <input type="hidden" name="_csrf" value="${sessionScope.TC_CSRF_TOKEN}">
-                </form>
-            </div>
-        </div>
-    </nav>
+    <jsp:include page="/WEB-INF/views/layout/admin-navbar.jsp" />
 
     <!-- Layout -->
     <div class="dashboard-layout">
@@ -78,7 +58,7 @@
             <div class="panel-box bg-white mb-5">
                 <div class="panel-header">
                     <div>
-                        <h2 class="panel-title">Hồ sơ đối tác chờ xét duyệt (3 hồ sơ)</h2>
+                        <h2 class="panel-title">Hồ sơ đối tác chờ xét duyệt (<span id="pendingOrgTitleCount">3 hồ sơ</span>)</h2>
                         <span class="small text-muted">Hồ sơ đăng ký mới gửi đến hệ thống</span>
                     </div>
                 </div>
@@ -95,7 +75,7 @@
                                 <th class="text-end">Thao tác</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="pendingOrgTableBody">
                             <tr>
                                 <td>
                                     <strong class="d-block text-dark">Bảo tàng Phụ nữ Việt Nam</strong>
@@ -107,7 +87,7 @@
                                 </td>
                                 <td>24/09/2026</td>
                                 <td>
-                                    <span class="d-block text-dark">BIDV — CN Hoàn Kiếm</span>
+                                    <span class="d-block text-dark">BIDV - CN Hoàn Kiếm</span>
                                     <span class="small text-muted">STK: 12410000889922</span>
                                 </td>
                                 <td>
@@ -119,7 +99,7 @@
                                 </td>
                                 <td class="text-end">
                                     <div class="d-inline-flex gap-2">
-                                        <button class="btn btn-sm btn-dark rounded-0 px-3 py-1" onclick="alert('Mô phỏng: Organization → APPROVED; tạo CommissionRule và assignRole(requester, MANAGER) cùng giao dịch dự kiến.')">
+                                        <button class="btn btn-sm btn-dark rounded-0 px-3 py-1" onclick="alert('Mô phỏng. Organization → APPROVED; tạo CommissionRule và assignRole(requester, MANAGER) cùng giao dịch dự kiến.')">
                                             Phê duyệt
                                         </button>
                                         <button class="btn btn-sm btn-outline-danger rounded-0 px-2 py-1" onclick="prompt('Nhập lý do từ chối hồ sơ:')">
@@ -140,7 +120,7 @@
                                 </td>
                                 <td>23/09/2026</td>
                                 <td>
-                                    <span class="d-block text-dark">Techcombank — CN Thăng Long</span>
+                                    <span class="d-block text-dark">Techcombank - CN Thăng Long</span>
                                     <span class="small text-muted">STK: 19034567891011</span>
                                 </td>
                                 <td>
@@ -152,7 +132,7 @@
                                 </td>
                                 <td class="text-end">
                                     <div class="d-inline-flex gap-2">
-                                        <button class="btn btn-sm btn-dark rounded-0 px-3 py-1" onclick="alert('Mô phỏng: Organization → APPROVED; tạo CommissionRule và assignRole(requester, MANAGER) cùng giao dịch dự kiến.')">
+                                        <button class="btn btn-sm btn-dark rounded-0 px-3 py-1" onclick="alert('Mô phỏng. Organization → APPROVED; tạo CommissionRule và assignRole(requester, MANAGER) cùng giao dịch dự kiến.')">
                                             Phê duyệt
                                         </button>
                                         <button class="btn btn-sm btn-outline-danger rounded-0 px-2 py-1" onclick="prompt('Nhập lý do từ chối hồ sơ:')">
@@ -173,7 +153,7 @@
                                 </td>
                                 <td>22/09/2026</td>
                                 <td>
-                                    <span class="d-block text-dark">Vietcombank — CN Bến Thành</span>
+                                    <span class="d-block text-dark">Vietcombank - CN Bến Thành</span>
                                     <span class="small text-muted">STK: 0071001234567</span>
                                 </td>
                                 <td>
@@ -185,7 +165,7 @@
                                 </td>
                                 <td class="text-end">
                                     <div class="d-inline-flex gap-2">
-                                        <button class="btn btn-sm btn-dark rounded-0 px-3 py-1" onclick="alert('Mô phỏng: Organization → APPROVED; tạo CommissionRule và assignRole(requester, MANAGER) cùng giao dịch dự kiến.')">
+                                        <button class="btn btn-sm btn-dark rounded-0 px-3 py-1" onclick="alert('Mô phỏng. Organization → APPROVED; tạo CommissionRule và assignRole(requester, MANAGER) cùng giao dịch dự kiến.')">
                                             Phê duyệt
                                         </button>
                                         <button class="btn btn-sm btn-outline-danger rounded-0 px-2 py-1" onclick="prompt('Nhập lý do từ chối hồ sơ:')">
@@ -230,7 +210,7 @@
                                 <td><span class="status-pill status-neutral">8.0%</span></td>
                                 <td><span class="status-pill status-success">Đang hoạt động</span></td>
                                 <td class="text-end">
-                                    <button class="btn btn-sm btn-outline-dark rounded-0 px-2 py-1" onclick="alert('Mô phỏng: Tạo phiên bản CommissionRule mới; không sửa điều khoản đã gắn cho Event công khai.')">
+                                    <button class="btn btn-sm btn-outline-dark rounded-0 px-2 py-1" onclick="alert('Mô phỏng. Tạo phiên bản CommissionRule mới; không sửa điều khoản đã gắn cho Event công khai.')">
                                         Sửa hoa hồng
                                     </button>
                                 </td>
@@ -244,7 +224,7 @@
                                 <td><span class="status-pill status-neutral">5.0%</span></td>
                                 <td><span class="status-pill status-success">Đang hoạt động</span></td>
                                 <td class="text-end">
-                                    <button class="btn btn-sm btn-outline-dark rounded-0 px-2 py-1" onclick="alert('Mô phỏng: Tạo phiên bản CommissionRule mới; không sửa điều khoản đã gắn cho Event công khai.')">
+                                    <button class="btn btn-sm btn-outline-dark rounded-0 px-2 py-1" onclick="alert('Mô phỏng. Tạo phiên bản CommissionRule mới; không sửa điều khoản đã gắn cho Event công khai.')">
                                         Sửa hoa hồng
                                     </button>
                                 </td>
@@ -257,5 +237,7 @@
         </main>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/admin-notifications.js"></script>
 </body>
 </html>
