@@ -103,4 +103,44 @@ class VnpaySignerTest {
         assertThrows(NullPointerException.class, () -> signer.buildPaymentUrl("TXN", null, "Info", "127.0.0.1", Optional.empty()));
         assertThrows(NullPointerException.class, () -> signer.buildPaymentUrl("TXN", BigDecimal.TEN, null, "127.0.0.1", Optional.empty()));
     }
+
+    @Test
+    void verifiesValidSignatureSuccessfully() {
+        VnpaySigner signer = new VnpaySigner(TMN_CODE, HASH_SECRET, PAY_URL, RETURN_URL, FIXED_CLOCK);
+        Map<String, String> params = new HashMap<>();
+        params.put("vnp_Amount", "10000000");
+        params.put("vnp_BankCode", "NCB");
+        params.put("vnp_ResponseCode", "00");
+        params.put("vnp_TxnRef", "PAY-9999");
+
+        // Canonical sorted string: vnp_Amount=10000000&vnp_BankCode=NCB&vnp_ResponseCode=00&vnp_TxnRef=PAY-9999
+        String raw = "vnp_Amount=10000000&vnp_BankCode=NCB&vnp_ResponseCode=00&vnp_TxnRef=PAY-9999";
+        String validHash = VnpaySigner.hmacSha512(HASH_SECRET, raw);
+
+        assertTrue(signer.verifySignature(params, validHash));
+        assertTrue(signer.verifySignature(params, validHash.toUpperCase())); // Case-insensitive
+    }
+
+    @Test
+    void rejectsTamperedParametersOrInvalidHash() {
+        VnpaySigner signer = new VnpaySigner(TMN_CODE, HASH_SECRET, PAY_URL, RETURN_URL, FIXED_CLOCK);
+        Map<String, String> params = new HashMap<>();
+        params.put("vnp_Amount", "10000000");
+        params.put("vnp_TxnRef", "PAY-9999");
+        String validHash = VnpaySigner.hmacSha512(HASH_SECRET, "vnp_Amount=10000000&vnp_TxnRef=PAY-9999");
+
+        // Tamper amount
+        Map<String, String> tampered = new HashMap<>(params);
+        tampered.put("vnp_Amount", "50000000");
+        assertFalse(signer.verifySignature(tampered, validHash));
+
+        // Wrong secret
+        String wrongSecretHash = VnpaySigner.hmacSha512("WRONGSECRET", "vnp_Amount=10000000&vnp_TxnRef=PAY-9999");
+        assertFalse(signer.verifySignature(params, wrongSecretHash));
+
+        // Null / empty hash
+        assertFalse(signer.verifySignature(params, null));
+        assertFalse(signer.verifySignature(params, ""));
+        assertFalse(signer.verifySignature(Collections.emptyMap(), validHash));
+    }
 }

@@ -99,6 +99,42 @@ public final class VnpaySigner {
         return payUrl + "?" + query;
     }
 
+    public boolean verifySignature(Map<String, String> queryParams, String secureHash) {
+        if (secureHash == null || secureHash.isBlank() || queryParams == null || queryParams.isEmpty()) {
+            return false;
+        }
+        List<String> fieldNames = new ArrayList<>();
+        for (String key : queryParams.keySet()) {
+            if (key != null && key.startsWith("vnp_")
+                    && !key.equals("vnp_SecureHash")
+                    && !key.equals("vnp_SecureHashType")) {
+                String val = queryParams.get(key);
+                if (val != null && !val.isEmpty()) {
+                    fieldNames.add(key);
+                }
+            }
+        }
+        Collections.sort(fieldNames);
+
+        StringBuilder hashData = new StringBuilder();
+        for (int i = 0; i < fieldNames.size(); i++) {
+            String fieldName = fieldNames.get(i);
+            String fieldValue = queryParams.get(fieldName);
+            String encodedKey = URLEncoder.encode(fieldName, StandardCharsets.US_ASCII);
+            String encodedVal = URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII);
+            hashData.append(encodedKey).append('=').append(encodedVal);
+            if (i < fieldNames.size() - 1) {
+                hashData.append('&');
+            }
+        }
+
+        String calculated = hmacSha512(hashSecret, hashData.toString());
+        return java.security.MessageDigest.isEqual(
+                calculated.toLowerCase(Locale.ROOT).getBytes(StandardCharsets.UTF_8),
+                secureHash.toLowerCase(Locale.ROOT).getBytes(StandardCharsets.UTF_8)
+        );
+    }
+
     public static String hmacSha512(String key, String data) {
         try {
             Mac hmac = Mac.getInstance("HmacSHA512");

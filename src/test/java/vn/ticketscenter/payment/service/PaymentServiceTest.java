@@ -54,11 +54,31 @@ class PaymentServiceTest {
 
     private static class StubPaymentRepository extends PaymentRepository {
         PaymentIntent intentToReturn;
+        PaymentRecord recordToReturn;
+        vn.ticketscenter.payment.dto.PaymentStatusResult statusToReturn;
+        String appliedStatus;
+        String appliedReference;
         boolean zeroOrderDetected = false;
         final AtomicBoolean zeroCompleted = new AtomicBoolean(false);
 
         public StubPaymentRepository() {
             super(new DataSourceStub());
+        }
+
+        @Override
+        public Optional<PaymentRecord> findPaymentByTxnRef(String txnRef) {
+            return Optional.ofNullable(recordToReturn);
+        }
+
+        @Override
+        public Optional<vn.ticketscenter.payment.dto.PaymentStatusResult> getOrderPaymentStatus(UUID orderId, UUID actorId) {
+            return Optional.ofNullable(statusToReturn);
+        }
+
+        @Override
+        public void applyPaymentResult(UUID orderId, UUID paymentId, String status, String providerReference) {
+            this.appliedStatus = status;
+            this.appliedReference = providerReference;
         }
 
         @Override
@@ -189,5 +209,181 @@ class PaymentServiceTest {
 
         // Sau khi bị lỗi, claim đã được hủy, key không bị treo ở pending
         assertNull(jedis.get("tc:idem:vnpay:init:" + ACTOR_ID + ":" + KEY));
+    }
+
+    @Test
+    void processIpnReturns97OnInvalidChecksum() {
+        StubPaymentRepository repo = new StubPaymentRepository();
+        PaymentService service = new PaymentService(repo, signer, idempotency);
+
+        Map<String, String> params = new HashMap<>();
+        params.put("vnp_TxnRef", "TXN-1");
+        params.put("vnp_SecureHash", "INVALID_HASH");
+
+        var result = service.processIpn(params);
+        assertEquals("97", result.rspCode());
+        assertEquals("Invalid Checksum", result.message());
+    }
+
+    @Test
+    void processIpnReturns01WhenOrderNotFound() {
+        StubPaymentRepository repo = new StubPaymentRepository();
+        repo.recordToReturn = null;
+        PaymentService service = new PaymentService(repo, signer, idempotency);
+
+        Map<String, String> params = new HashMap<>();
+        params.put("vnp_Amount", "10000000");
+        params.put("vnp_TxnRef", "TXN-NOT-FOUND");
+        String hash = VnpaySigner.hmacSha512("TESTSECRET", "vnp_Amount=10000000&vnp_TxnRef=TXN-NOT-FOUND");
+        params.put("vnp_SecureHash", hash);
+
+        var result = service.processIpn(params);
+        assertEquals("01", result.rspCode());
+        assertEquals("Order Not Found", result.message());
+    }
+
+    @Test
+    void processIpnReturns04WhenAmountMismatch() {
+        StubPaymentRepository repo = new StubPaymentRepository();
+        UUID pid = UUID.randomUUID();
+        repo.recordToReturn = new PaymentRepository.PaymentRecord(
+                pid, ORDER_ID, ACTOR_ID, "TXN-1", new BigDecimal("100000"), "VND",
+                "PENDING", "PENDING_PAYMENT", new BigDecimal("100000"), null
+        );
+        PaymentService service = new PaymentService(repo, signer, idempotency);
+
+        Map<String, String> params = new HashMap<>();
+        params.put("vnp_Amount", "20000000"); // 200,000 VND instead of 100,000 VND
+        params.put("vnp_TxnRef", "TXN-1");
+        String hash = VnpaySigner.hmacSha512("TESTSECRET", "vnp_Amount=20000000&vnp_TxnRef=TXN-1");
+        params.put("vnp_SecureHash", hash);
+
+        var result = service.processIpn(params);
+        assertEquals("04", result.rspCode());
+        assertEquals("Invalid Amount", result.message());
+    }
+
+    @Test
+    void processIpnReturns02WhenAlreadyConfirmed() {
+        StubPaymentRepository repo = new StubPaymentRepository();
+        UUID pid = UUID.randomUUID();
+        repo.recordToReturn = new PaymentRepository.PaymentRecord(
+                pid, ORDER_ID, ACTOR_ID, "TXN-1", new BigDecimal("100000"), "VND",
+                "CAPTURED", "PAID", new BigDecimal("100000"), new java.sql.Timestamp(System.currentTimeMillis())
+        );
+        PaymentService service = new PaymentService(repo, signer, idempotency);
+
+        Map<String, String> params = new HashMap<>();
+        params.put("vnp_Amount", "10000000");
+        params.put("vnp_TxnRef", "TXN-1");
+        String hash = VnpaySigner.hmacSha512("TESTSECRET", "vnp_Amount=10000000&vnp_TxnRef=TXN-1");
+        params.put("vnp_SecureHash", hash);
+
+        var result = service.processIpn(params);
+        assertEquals("02", result.rspCode());
+        assertEquals("Order already confirmed", result.message());
+    }
+
+    @Test
+    void processIpnSuccessfullyMarksCapturedAndCachesResult() {
+        StubPaymentRepository repo = new StubPaymentRepository();
+        UUID pid = UUID.randomUUID();
+        repo.recordToReturn = new PaymentRepository.PaymentRecord(
+                pid, ORDER_ID, ACTOR_ID, "TXN-1", new BigDecimal("100000"), "VND",
+                "PENDING", "PENDING_PAYMENT", new BigDecimal("100000"), null
+        );
+        PaymentService service = new PaymentService(repo, signer, idempotency);
+
+        Map<String, String> params = new HashMap<>();
+        params.put("vnp_Amount", "10000000");
+        params.put("vnp_ResponseCode", "00");
+        params.put("vnp_TransactionNo", "14567890");
+        params.put("vnp_TransactionStatus", "00");
+        params.put("vnp_TxnRef", "TXN-1");
+
+        String raw = "vnp_Amount=10000000&vnp_ResponseCode=00&vnp_TransactionNo=14567890&vnp_TransactionStatus=00&vnp_TxnRef=TXN-1";
+        String hash = VnpaySigner.hmacSha512("TESTSECRET", raw);
+        params.put("vnp_SecureHash", hash);
+
+        var result = service.processIpn(params);
+        assertEquals("00", result.rspCode());
+        assertEquals("Confirm Success", result.message());
+        assertEquals("CAPTURED", repo.appliedStatus);
+        assertEquals("14567890", repo.appliedReference);
+
+        // Lần thứ 2 gọi lại cùng txnRef & transactionNo -> Đọc từ cache trả 02
+        var replay = service.processIpn(params);
+        assertEquals("02", replay.rspCode());
+    }
+
+    @Test
+    void processIpnMarksFailedWhenResponseCodeNot00() {
+        StubPaymentRepository repo = new StubPaymentRepository();
+        UUID pid = UUID.randomUUID();
+        repo.recordToReturn = new PaymentRepository.PaymentRecord(
+                pid, ORDER_ID, ACTOR_ID, "TXN-1", new BigDecimal("100000"), "VND",
+                "PENDING", "PENDING_PAYMENT", new BigDecimal("100000"), null
+        );
+        PaymentService service = new PaymentService(repo, signer, idempotency);
+
+        Map<String, String> params = new HashMap<>();
+        params.put("vnp_Amount", "10000000");
+        params.put("vnp_ResponseCode", "24"); // Khách hàng hủy giao dịch
+        params.put("vnp_TransactionNo", "14567891");
+        params.put("vnp_TxnRef", "TXN-1");
+
+        String raw = "vnp_Amount=10000000&vnp_ResponseCode=24&vnp_TransactionNo=14567891&vnp_TxnRef=TXN-1";
+        String hash = VnpaySigner.hmacSha512("TESTSECRET", raw);
+        params.put("vnp_SecureHash", hash);
+
+        var result = service.processIpn(params);
+        assertEquals("00", result.rspCode());
+        assertEquals("FAILED", repo.appliedStatus);
+    }
+
+    @Test
+    void processReturnHandlesValidAndInvalidSignatures() {
+        StubPaymentRepository repo = new StubPaymentRepository();
+        UUID pid = UUID.randomUUID();
+        repo.recordToReturn = new PaymentRepository.PaymentRecord(
+                pid, ORDER_ID, ACTOR_ID, "TXN-1", new BigDecimal("100000"), "VND",
+                "PENDING", "PENDING_PAYMENT", new BigDecimal("100000"), null
+        );
+        PaymentService service = new PaymentService(repo, signer, idempotency);
+
+        Map<String, String> validParams = new HashMap<>();
+        validParams.put("vnp_Amount", "10000000");
+        validParams.put("vnp_ResponseCode", "00");
+        validParams.put("vnp_TxnRef", "TXN-1");
+        String hash = VnpaySigner.hmacSha512("TESTSECRET", "vnp_Amount=10000000&vnp_ResponseCode=00&vnp_TxnRef=TXN-1");
+        validParams.put("vnp_SecureHash", hash);
+
+        var validReturn = service.processReturn(validParams);
+        assertTrue(validReturn.validSignature());
+        assertTrue(validReturn.success());
+        assertEquals(0, new BigDecimal("100000").compareTo(validReturn.amount()));
+
+        // Sai hash
+        Map<String, String> invalidParams = new HashMap<>(validParams);
+        invalidParams.put("vnp_SecureHash", "TAMPERED");
+        var invalidReturn = service.processReturn(invalidParams);
+        assertFalse(invalidReturn.validSignature());
+        assertFalse(invalidReturn.success());
+    }
+
+    @Test
+    void getOrderPaymentStatusReturnsCorrectDetails() {
+        StubPaymentRepository repo = new StubPaymentRepository();
+        UUID pid = UUID.randomUUID();
+        repo.statusToReturn = new vn.ticketscenter.payment.dto.PaymentStatusResult(
+                ORDER_ID, "PAID", Optional.of(pid), Optional.of("CAPTURED"),
+                new BigDecimal("150000"), "VND", Optional.of(Instant.now())
+        );
+        PaymentService service = new PaymentService(repo, signer, idempotency);
+
+        var status = service.getOrderPaymentStatus(ACTOR_ID, ORDER_ID);
+        assertEquals(ORDER_ID, status.orderId());
+        assertEquals("PAID", status.orderStatus());
+        assertEquals(Optional.of("CAPTURED"), status.paymentStatus());
     }
 }
