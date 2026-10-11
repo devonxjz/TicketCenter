@@ -30,6 +30,12 @@ class ExternalTestIsolationTest {
         assertEquals(1, result.skipped);
     }
 
+    @Test void organizationRepositoryIntegrationIsDisabledBeforeDatabaseAccess() {
+        ProbeResult result = execute(vn.ticketscenter.identity.repository.OrganizationRepositoryTest.class, Map.of());
+        assertEquals(1, result.skipped, "Organization fixture creation must require explicit isolated DB opt-in");
+        assertEquals(0, result.failed);
+    }
+
     @Test void defaultSmtpGateStopsBeforeAll() {
         setupCalls.set(0);
         ProbeResult result = execute(SmtpProbe.class, Map.of());

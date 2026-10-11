@@ -92,6 +92,12 @@ final class EventJdbc {
                 throw exception;
             }
         } catch (SQLException exception) {
+            if (exception.getErrorCode() == 51810)
+                throw failure(403, "MANAGER_REQUIRED", "Active manager of this organization required");
+            if (exception.getErrorCode() == 51813)
+                throw failure(409, "EVENT_VERSION_CONFLICT", "Event has changed; reload before saving");
+            if (exception.getErrorCode() == 51812)
+                throw failure(409, "EVENT_NOT_EDITABLE", "Only editable drafts may be changed");
             throw failure(
                     503,
                     "EVENT_DATABASE_UNAVAILABLE",

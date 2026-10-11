@@ -1,0 +1,87 @@
+name: KHANH-02 signed QR check-in acceptance
+on:
+  push:
+    branches: [feat/khanh/khanh-02-qr-checkin]
+  pull_request:
+    branches: [dev]
+    paths: ['pom.xml', 'src/main/java/vn/ticketscenter/fulfillment/checkin/**', 'src/main/java/vn/ticketscenter/config/web/OrganizationApiRoutesFilter.java', 'src/main/webapp/WEB-INF/web.xml', 'src/main/webapp/WEB-INF/views/checkin/**', 'src/main/webapp/assets/checkin/**', 'src/test/**/checkin/**', 'src/test/js/checkin-scanner.test.cjs', 'database/migrations/030_khanh02_signed_checkin.sql', '.github/workflows/khanh02-checkin.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      sql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: 'Y'
+          MSSQL_SA_PASSWORD: ${{ format('Khanh02_{0}_Aa!', github.run_id) }}
+        ports: ['1433:1433']
+      redis:
+        image: redis:7.4
+        ports: ['16379:6379']
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      TC_SCAN_INTEGRATION: 'true'
+      TC_SCAN_TEST_URL: 'jdbc:sqlserver://127.0.0.1:1433;databaseName=TicketCenter_Khanh02_Test;encrypt=true;trustServerCertificate=true;loginTimeout=5'
+      TC_SCAN_SA_PASSWORD: ${{ format('Khanh02_{0}_Aa!', github.run_id) }}
+      TC_SCAN_OWNER_USER: khanh02_owner
+      TC_SCAN_CHECKIN_USER: khanh02_checkin
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: '16379'
+      REDIS_PASSWORD: ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: oracle
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate disposable test credentials
+        shell: python
+        run: |
+          import os, secrets
+          values = {name: 'K02!' + secrets.token_hex(24) for name in ('TC_SCAN_OWNER_PASSWORD', 'TC_SCAN_CHECKIN_PASSWORD', 'TC_SCAN_FIXTURE_PASSWORD', 'TC_TICKET_SIGNING_SECRET')}
+          for value in [os.environ['TC_SCAN_SA_PASSWORD'], *values.values()]:
+              print('::add-mask::' + value)
+          with open(os.environ['GITHUB_ENV'], 'a') as env:
+              for name, value in values.items():
+                  env.write(name + '=' + value + '\n')
+      - name: Prepare classes and JDBC classpath
+        run: mvn -B -DskipTests test-compile dependency:build-classpath -Dmdep.outputFile=target/khanh02-classpath.txt -Dmdep.includeScope=test
+      - name: Wait for disposable SQL Server
+        run: |
+          set -euo pipefail
+          container=$(docker ps -q --filter ancestor=mcr.microsoft.com/mssql/server:2022-latest)
+          ready=false
+          for attempt in $(seq 1 30); do
+            if docker exec "$container" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$TC_SCAN_SA_PASSWORD" -C -b -Q 'SELECT 1' >/dev/null 2>&1; then ready=true; break; fi
+            sleep 2
+          done
+          test "$ready" = true
+      - name: Install canonical schema and module contract
+        run: java -cp "target/test-classes:target/classes:$(cat target/khanh02-classpath.txt)" vn.ticketscenter.fulfillment.checkin.integration.ScanCiSetup
+      - name: Test decoder, API, Redis, SQL rollback and concurrent scans
+        run: mvn -B test -Dtest=SignedQrDecoderTest,TicketCheckInServiceTest,TicketCheckInServletTest,CheckInConcurrencyTest,RedisCheckInScanCacheTest,TicketCheckInSqlServerTest,CheckInServletsTest
+      - name: Require real SQL and Redis tests without skips
+        if: always()
+        run: node src/test/scripts/test-report-summary.cjs target/surefire-reports --require-no-skips --require-suite=vn.ticketscenter.fulfillment.checkin.integration.TicketCheckInSqlServerTest --require-suite=vn.ticketscenter.fulfillment.checkin.integration.CheckInConcurrencyTest --require-suite=vn.ticketscenter.fulfillment.checkin.cache.RedisCheckInScanCacheTest --summary="$GITHUB_STEP_SUMMARY"
+      - name: Test scanner browser logic
+        run: node --test src/test/js/checkin-scanner.test.cjs
+      - name: Package production JSP application
+        run: mvn -B -DskipTests package
+      - name: Accept full WAR HTTP routes on Tomcat
+        run: python3 src/test/resources/checkin/khanh02/ci-web-acceptance.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: khanh02-checkin-acceptance
+          path: |
+            target/surefire-reports/
+            target/khanh02-http-result.json
+            target/khanh02-ci-tomcat.log
