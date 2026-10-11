@@ -1,0 +1,120 @@
+{
+  "date": "2026-10-11",
+  "environment": "Native local SQL fixture; no provider transfer",
+  "results": [
+    {
+      "case": "report-desktop",
+      "footer": "TicketsCenter · Tài chínhSố liệu theo phạm vi và bộ lọc đã chọn",
+      "pagination": "Trang 1 · 25 dòng",
+      "rows": 20,
+      "scrollWidth": 1265,
+      "summary": "Số sự kiện trong báo cáo25Đơn đã thanh toán25Vé đã phát hành0Vé hợp lệ0Vé đã hoàn0Vé từng check-in0Doanh thu vé9.007.199.254.743.393 ₫Hoàn tiền vé0 ₫Hoa hồng450.359.962.737.220 ₫Phải trả tổ chức8.556.839.292.006.173 ₫",
+      "width": 1265
+    },
+    {
+      "case": "report-page-2",
+      "pagination": "Trang 2 · 25 dòng",
+      "rows": 5,
+      "summary": "Số sự kiện trong báo cáo25Đơn đã thanh toán25Vé đã phát hành0Vé hợp lệ0Vé đã hoàn0Vé từng check-in0Doanh thu vé9.007.199.254.743.393 ₫Hoàn tiền vé0 ₫Hoa hồng450.359.962.737.220 ₫Phải trả tổ chức8.556.839.292.006.173 ₫"
+    },
+    {
+      "case": "csv-page-2",
+      "lines": 26,
+      "exactLargeMoney": true,
+      "formulaProtected": true
+    },
+    {
+      "case": "report-mobile",
+      "width": 375,
+      "scrollWidth": 375,
+      "viewportRequested": 390
+    },
+    {
+      "case": "commission-mobile",
+      "buttons": [
+        {
+          "disabled": true,
+          "text": "Đã khóa"
+        }
+      ],
+      "containers": [
+        {
+          "scrollWidth": 790,
+          "width": 304
+        }
+      ],
+      "scrollWidth": 375,
+      "table": "5.0000200:00:00 1/1/2020 UTC00:00:00 1/1/2099 UTC25Đã khóa",
+      "width": 375
+    },
+    {
+      "case": "settlement-confirmed-desktop",
+      "confirmDisabled": true,
+      "payoutDisabled": true,
+      "recalculateDisabled": true,
+      "scrollWidth": 1265,
+      "summary": "Trạng tháiCONFIRMEDDoanh thu100Đã hoàn vé0Hoa hồng7Thực trả93Đã chi trả0Đang chờ0Có thể chi trả93",
+      "width": 1265
+    },
+    {
+      "case": "audit-detail-desktop",
+      "detail": "Chi tiết nhật kýMã nhật ký00000000-0000-0000-0000-000000000035Thời gian (UTC)2026-10-11T05:32:55.660ZNgười thực hiệna9630489-69e8-491a-81fb-bb33f029f212Thao tácSETTLEMENT_CONFIRMEDLoại đối tượngSettlementMã đối tượnga85dbaa8-8d80-426b-b3e7-95e74676262eThông tin được phép hiển thịSự kiện89dddaae-7cae-4f8a-9fd7-76837db610fd",
+      "footer": "TicketsCenter · Tài chínhSố liệu theo phạm vi và bộ lọc đã chọn",
+      "rows": 20,
+      "scrollWidth": 1265,
+      "width": 1265
+    },
+    {
+      "case": "audit-mobile",
+      "containers": [
+        {
+          "scrollWidth": 1248,
+          "width": 304
+        }
+      ],
+      "scrollWidth": 375,
+      "width": 375
+    },
+    {
+      "case": "overview-mobile",
+      "days": 7,
+      "footer": "TicketsCenter · Tài chínhSố liệu theo phạm vi và bộ lọc đã chọn",
+      "scrollWidth": 375,
+      "summary": "Tổng người dùng4Tổ chức đã duyệt2Tổ chức chờ duyệt0Sự kiện chờ duyệt0Yêu cầu hoàn chờ xử lý0Quyết toán nháp0Cập nhật (UTC)2026-10-11T12:27:46.683599600ZDoanh thu đơn thanh toán hôm nay0 ₫Hoa hồng của đơn thanh toán hôm nay0 ₫Thu tiền vé0 ₫Thu thanh toán thừa0 ₫Chi hoàn vé0 ₫Chi hoàn thanh toán thừa0 ₫Dòng tiền ròng0 ₫",
+      "width": 375
+    },
+    {
+      "case": "manager-report-tablet",
+      "url": "http://127.0.0.1:18082/ticketscenter/finance/reports",
+      "adminBell": false,
+      "footer": "TicketsCenter · Tài chínhSố liệu theo phạm vi và bộ lọc đã chọn",
+      "nav": [
+        "/ticketscenter/finance/reports"
+      ],
+      "notice": "Đã tải báo cáo; tổng hợp gồm toàn bộ dòng theo bộ lọc.",
+      "organizations": "Acceptance finance 1011Vé Hay Event Center",
+      "scrollWidth": 753,
+      "width": 753
+    },
+    {
+      "case": "overview-tablet-after-fix",
+      "scrollWidth": 753,
+      "width": 753
+    },
+    {
+      "case": "overview-small-mobile-notifications",
+      "dropdownWidth": 288,
+      "scrollWidth": 305,
+      "width": 305
+    }
+  ],
+  "consoleErrors": [],
+  "regressions": [
+    {
+      "case": "overview-tablet-before-fix",
+      "width": 753,
+      "scrollWidth": 814,
+      "cause": "Shared navbar remained on one row above the mobile breakpoint"
+    }
+  ]
+}
