@@ -42,7 +42,7 @@ DEC-01 through DEC-05 are covered. Additional SQL cases prove a two-admin approv
 
 No mutating test runs against shared Azure. The project installation adds only schema/runtime contracts and migration history. The private pre-install definition snapshot is Git-ignored under `docs/handoff/`. Azure verification uses database impersonation of the existing restricted ADMIN user; it does not reset credentials or prove separately configured production role-login secrets. The complete WAR acceptance uses a real restricted ADMIN connection in the dedicated loopback database.
 
-GitHub Actions verification is recorded below after the branch run completes. Merge remains subject to the project's review gate.
+GitHub Actions results for the current head are available on [PR #68 checks](https://github.com/devonxjz/TicketCenter/pull/68/checks). The dedicated KHANH-04 job requires real SQL/Redis execution without skips and full-WAR HTTP/browser acceptance; the shared project pipeline, customer-refund and SQL financial regressions also run on this PR. Merge remains subject to green checks and the project's review gate.
 
 ## Reproduction and artifacts
 
@@ -56,4 +56,4 @@ mvn test -Djunit.jupiter.extensions.autodetection.enabled=false -Dtest=AdminRefu
 
 `src/test/resources/refund/khanh04/web-acceptance.py` uses the complete packaged WAR, a fresh isolated Tomcat base and fixed loopback database. Provide disposable OWNER/ADMIN login settings and `TC_ADMIN_REFUND_BROWSER_SCRIPT=src/test/resources/refund/khanh04/browser-acceptance.cjs` to include UI acceptance. The script closes its own Tomcat process when finished. Generated reports and screenshots are under ignored `target/khanh04-*`; CI uploads those reports/screenshots and excludes credentials, fixture identity files and the WAR.
 
-The Azure installer/verification scripts in the same directory enforce the exact project host/database, require matching 031–039 checksums, refuse altered installed migration history and make no business-data updates. Migrations 040–042 are already committed on `dev` and provide the shared runtime projection and Event → User lock order required by the new contract.
+The Azure installer/verification scripts in the same directory enforce the exact project host/database, require matching 031–039 checksums, refuse altered installed migration history and make no business-data updates. Hash validation accepts equivalent Git LF/CRLF checkouts without rewriting recorded history; other content edits still fail. Migrations 040–042 are already committed on `dev` and provide the shared runtime projection and Event → User lock order required by the new contract.
