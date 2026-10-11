@@ -38,15 +38,21 @@ final class ConnectionBudgetDataSource implements DataSource {
         }
         try {
             Connection connection = supplier.get();
+            final boolean sqlServer;
+            try {
+                sqlServer = connection.getMetaData() != null
+                        && connection.getMetaData().getDatabaseProductName().contains("SQL Server");
+                if (sqlServer) setActor(connection, DatabaseActorContext.current());
+            } catch (SQLException exception) { connection.close(); throw exception; }
             AtomicBoolean released = new AtomicBoolean();
             return (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(), new Class<?>[]{Connection.class},
                     (proxy, method, args) -> {
                         if ("close".equals(method.getName())) {
-                            try {
-                                return method.invoke(connection, args);
-                            } finally {
-                                if (released.compareAndSet(false, true)) BUDGET.release();
+                            if (released.compareAndSet(false, true)) {
+                                try { if (sqlServer) setActor(connection, null); }
+                                finally { try { connection.close(); } finally { BUDGET.release(); } }
                             }
+                            return null;
                         }
                         try {
                             return method.invoke(connection, args);
@@ -57,6 +63,15 @@ final class ConnectionBudgetDataSource implements DataSource {
         } catch (SQLException exception) {
             BUDGET.release();
             throw exception;
+        }
+    }
+
+    private static void setActor(Connection connection, java.util.UUID actor) throws SQLException {
+        try (var command = connection.prepareStatement(
+                "EXEC sys.sp_set_session_context @key=N'actor_id',@value=?")) {
+            command.setQueryTimeout(10);
+            command.setString(1, actor == null ? null : actor.toString());
+            command.execute();
         }
     }
 
