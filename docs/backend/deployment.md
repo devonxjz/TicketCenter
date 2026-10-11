@@ -10,7 +10,9 @@ CATALINA_BASE mới `target/full-war-smoke/<guid>`, bind loopback, giữ annotat
 listener/worker và Hibernate validate. Không cài Windows service.
 
 Cấu hình WAR được thay trước startup; biến DB/provider/Java injection kế thừa
-bị loại khỏi child process. Không bật Cloudinary, SMTP/VNPAY ngoài hoặc payout.
+bị loại khỏi child process. Maven cũng loại MAVEN_ARGS/MAVEN_OPTS và ép test
+ngoại vi=false, skipTests=false; khôi phục môi trường terminal khi kết thúc.
+Không bật Cloudinary, SMTP/VNPAY ngoài hoặc payout.
 Refund/cancel worker mô phỏng vẫn chạy trên fixture; chưa nghiệm thu toàn bộ
 scheduler.
 

@@ -2,6 +2,10 @@
 
 This record supplements the per-owner evidence. It is not whole-project acceptance.
 Base: dev7541a65. Work: VUONG-06 local handoff, #33/#28; Native Windows.
+Tested implementation: a3a092d8e2050a7a0c8c2f3e1cad160ebea2ae6d;
+test isolation fix: c5dfdc39674eebf402b1f015f30022d45f552368.
+Date:11/10/2026. Environment: Windows, PowerShell7.6.5, OpenJDK25,
+Maven3.9.16, Tomcat11.0.25, local SQL Server TCP1433.
 
 ## Scope and verification ledger
 
@@ -10,9 +14,28 @@ Base: dev7541a65. Work: VUONG-06 local handoff, #33/#28; Native Windows.
   runner now rejects a wrong/missing JDK before build.
 - New guard tests RED because setup/run did not exist; GREEN local setup name,
   preservation, Git-ignore and missing-JDK checks plus prior JDBC override tests:
-  16/16, zero skips. Windows PowerShell tests explicitly enabled.
-- Fresh checkout + new empty SQL fixture + full WAR smoke: pending this delivery's
-  run; results below will be completed only after running the documented steps.
+  18/18, zero skips. Includes tampered JSTL cache and inherited MAVEN_ARGS/OPTS;
+  fake-Maven regression first failed with inherited settings, then passed after
+  clearing/restoring them and forcing safe-test flags. A temporary port also
+  allows guards to pass while the app is serving on18082.
+  Enabled TC_TEST_POWERSHELL, TC_TEST_JAVA_HOME, TC_TEST_TOMCAT_HOME explicitly.
+- Existing JavaScript contract/UI/report-summary suites:56/56, zero skips.
+- Separate clean clone with no target/config + NEW empty DB
+  `TC_Vuong_Test_Local_Handoff_1791693615653`: documented setup installed all5
+  files and protected the generated JSON. Initial setup at b3817e7; first runner
+  found unavailable remote JSTL.sha512 files. Fixed with pinned hashes in702d17a,
+  pulled into the clone, then Smoke passed16/16 and stopped (exit0).
+- Pulled a3a092d into that clone; documented Serve command rebuilt successfully
+  (335 executed/60 explicit external skips), started full annotation WAR,
+  Hibernate validate/readiness and real login/session/CSRF/finance/JSP smoke
+  passed16/16 with no skips. LOCAL_APP_READY on loopback18082.
+- Ctrl+C then closed18082, retained stdout/stderr, removed auth.json,
+  accounts.json and both runtime properties copies. Runtime directory ACL
+  remains protected with only current-user/SYSTEM. Existing8080 PID28036 was
+  preserved; persistent private database config was retained for reopening.
+- Read-only SQL verified both fixture markers and all5 installed SHA256 hashes.
+  Re-running setup with the existing DB/new config path was rejected before
+  overwrite and produced no new config. No shared DB was used.
 - Setup uses schema-only team snapshot and explicit5-file migration order; no
   shared/Azure mutation or previous migration edit. JSON has current-user/SYSTEM
   ACL. Credential directory and .env.runtime are ignored by Git.
