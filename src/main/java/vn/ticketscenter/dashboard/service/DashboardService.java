@@ -15,5 +15,11 @@ public final class DashboardService {
         FinanceAuthorization.requireAdmin(db,actor);String hit=cache.get();if(hit!=null)return hit;
         String json=FinanceJson.write(Map.of("data",repository.overview(db,null,clock.instant())));cache.put(json);return json;
     }}
-    public String organization(UserPrincipal actor,UUID org)throws SQLException{try(var db=database.open()){FinanceAuthorization.requireManager(db,actor,org);return FinanceJson.write(Map.of("data",repository.overview(db,org,clock.instant())));}}
+    public String organization(UserPrincipal actor,UUID org)throws SQLException{try(var db=database.open()){
+        FinanceAuthorization.requireManager(db,actor,org);
+        try(var query=db.prepareStatement("SELECT 1 FROM dbo.tc_organizations WHERE id=?")){
+            query.setString(1,org.toString());try(var row=query.executeQuery()){if(!row.next())throw new FinanceException("NOT_FOUND",404);}
+        }
+        return FinanceJson.write(Map.of("data",repository.overview(db,org,clock.instant())));
+    }}
 }

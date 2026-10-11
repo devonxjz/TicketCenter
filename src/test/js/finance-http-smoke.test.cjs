@@ -91,7 +91,24 @@ test('CSV HTTP streams BOM, exact values and Excel-safe formula cells',async()=>
 });
 
 test('report JSP renders authorized scope and actual summary/export UI',async()=>{await login(fixture.admin);let result=await request('/finance/reports');assert.equal(result.status,200);assert.match(result.data,/finance-reports\.js/);assert.match(result.data,/id="summary"/);assert.match(result.data,/id="top-events"/);await login(fixture.manager);result=await request('/finance/reports?organizationId='+fixture.org);assert.equal(result.status,200);await login(fixture.staff);result=await request('/finance/reports');assert.equal(result.status,403);});
-test('manager cannot export another organization and unknown format fails before CSV bytes',async()=>{await login(fixture.manager);let result=await request('/api/reports/export?'+filters().replace(fixture.org,fixture.otherOrg));assert.equal(result.status,403);assert.match(result.response.headers.get('content-type'),/application\/json/);result=await request('/api/reports/export?'+filters()+'&format=xlsx');assert.equal(result.status,400);result=await request('/api/organizations/'+fixture.org+'/overview');assert.equal(result.status,404);});
+test('manager cannot export another organization and unknown format fails before CSV bytes',async()=>{await login(fixture.manager);let result=await request('/api/reports/export?'+filters().replace(fixture.org,fixture.otherOrg));assert.equal(result.status,403);assert.match(result.response.headers.get('content-type'),/application\/json/);result=await request('/api/reports/export?'+filters()+'&format=xlsx');assert.equal(result.status,400);result=await request('/api/organizations/'+fixture.org+'/members');assert.equal(result.status,404);});
+
+test('organization overview HTTP returns only authorized live counters and exact UTC money',async()=>{
+ await login(fixture.manager);let result=await request('/api/organizations/'+fixture.org+'/overview');assert.equal(result.status,200);
+ const data=result.data.data;assert.equal(data.organizationId,fixture.org);assert.equal(data.eventCount,3);assert.equal(data.paidOrders,2);assert.equal(data.timezone,'UTC');assert.equal(data.dailyMetrics.length,7);
+ assert.equal(data.totalUsers,undefined);assert.equal(data.activeOrganizations,undefined);assert.equal(data.pendingOrganizations,undefined);assert.equal(data.draftSettlements,undefined);
+ for(const value of Object.values(data.todayCashFlow))assert.match(value,/^-?\d+$/);
+ assert.match(data.todayCohortGrossRevenue,/^\d+$/);assert.match(data.todayCohortCommission,/^\d+$/);assert.equal(result.response.headers.get('cache-control'),'no-store');
+ await login(fixture.admin);result=await request('/api/organizations/'+fixture.otherOrg+'/overview');assert.equal(result.status,200);assert.equal(result.data.data.eventCount,0);assert.equal(result.data.data.organizationId,fixture.otherOrg);
+});
+test('organization overview HTTP denies absent session, other tenant and staff and validates scope',async()=>{
+ const path='/api/organizations/'+fixture.org+'/overview';assert.equal((await request(path,'GET',undefined,undefined,false)).status,401);
+ await login(fixture.manager);assert.equal((await request('/api/organizations/'+fixture.otherOrg+'/overview')).status,403);
+ await login(fixture.staff);assert.equal((await request('/api/organizations/'+fixture.otherOrg+'/overview')).status,403);
+ await login(fixture.admin);let result=await request('/api/organizations/'+crypto.randomUUID()+'/overview');assert.equal(result.status,404);assert.equal(result.data.error.code,'NOT_FOUND');
+ for(const suffix of ['?organizationId='+fixture.otherOrg,'?from=2026-01-01T00:00:00Z','?eventId=A&eventId=B'])assert.equal((await request(path+suffix)).status,400);
+ assert.equal((await request(path+'/extra')).status,404);result=await request('/api/organizations/not-a-uuid/overview');assert.equal(result.status,400);assert.equal(result.data.error.code,'INVALID_REPORT_FILTER');
+});
 
 test('admin overview HTTP returns real UTC KPI and seven exact-money chart days',async()=>{
  await login(fixture.admin);const result=await request('/api/admin/overview');assert.equal(result.status,200);

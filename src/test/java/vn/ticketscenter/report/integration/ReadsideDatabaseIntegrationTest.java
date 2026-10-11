@@ -71,6 +71,19 @@ class ReadsideDatabaseIntegrationTest {
         sql("EXEC dbo.usp_RecalculateSettlement @event_id=?,@actor_id=?,@emit_result=0",eventA,admin);
         String json=service.json(managerActor(),filter("SETTLEMENT_BALANCE",orgA));assertTrue(json.contains("\"netPayable\":\"109\""),json);
     }
+    @Test void organizationOverviewReloadsMembershipAndUserAuthorityAndRejectsMissingOrganization()throws Exception{
+        var overview=new DashboardService(database,Clock.fixed(Instant.parse("2026-10-01T14:00:00Z"),ZoneOffset.UTC));
+        assertEquals(403,assertThrows(FinanceException.class,()->overview.organization(managerActor(),orgB)).status());
+        var own=new org.json.JSONObject(overview.organization(managerActor(),orgA)).getJSONObject("data");
+        assertEquals(orgA.toString(),own.getString("organizationId"));assertEquals(2,own.getInt("eventCount"));assertEquals(3,own.getInt("paidOrders"));
+        assertFalse(own.has("totalUsers"));assertFalse(own.has("activeOrganizations"));assertEquals(7,own.getJSONArray("dailyMetrics").length());
+        sql("UPDATE dbo.tc_organization_memberships SET active=0 WHERE user_id=? AND organization_id=?",manager,orgA);
+        assertEquals(403,assertThrows(FinanceException.class,()->overview.organization(managerActor(),orgA)).status());
+        sql("UPDATE dbo.tc_users SET auth_version=1 WHERE id=?",admin);
+        assertEquals(401,assertThrows(FinanceException.class,()->overview.organization(adminActor(),orgA)).status());
+        sql("UPDATE dbo.tc_users SET auth_version=0 WHERE id=?",admin);
+        assertEquals(404,assertThrows(FinanceException.class,()->overview.organization(adminActor(),UUID.randomUUID())).status());
+    }
     @Test void selectorOptionsAndAdminEndpointRespectCurrentTenantAuthority()throws Exception{
         var service=new ReportService(database,ReportCache.none());
         String options=service.options(managerActor(),orgA);
