@@ -25,13 +25,13 @@
 <div id="order-recovery" hidden class="hold-notice"><p>Yêu cầu chưa rõ kết quả. Thử lại cùng mã yêu cầu đã lưu.</p><button id="order-retry" type="button" class="btn btn-dark">Thử lại yêu cầu đơn hàng</button></div>
 <button id="order-create" hidden type="button" class="btn btn-dark">Xác nhận tạo đơn từ vé đang giữ</button>
 <div id="order-summary" hidden>
-<p id="order-code" class="hold-id"></p><p id="order-id" class="hold-id"></p><p id="order-status"></p>
+<p id="order-code" class="hold-id"></p><p id="order-status"></p>
 <ul id="order-items" class="hold-items"></ul>
 <dl><dt>Tiền vé</dt><dd id="order-subtotal"></dd><dt>Giảm giá</dt><dd id="order-discount"></dd><dt>Tổng cần thanh toán</dt><dd id="order-total" class="h4"></dd></dl>
 <p id="order-applied-coupon"></p>
 <form id="order-coupon-form"><label for="order-coupon-code" class="form-label">Mã giảm giá</label><input id="order-coupon-code" class="form-control" type="text" maxlength="80" autocomplete="off" aria-describedby="order-coupon-help"><p id="order-coupon-help" class="text-muted">Mã được gửi đúng như bạn nhập. Xem trước không giữ lượt sử dụng.</p><button id="order-preview" type="button" class="btn btn-outline-dark">Xem trước</button> <button id="order-apply" type="submit" class="btn btn-dark">Áp dụng mã</button> <button id="order-remove" type="button" class="btn btn-outline-danger">Gỡ mã</button></form>
 <p id="order-preview-result" role="status" aria-live="polite"></p>
-<p>Đơn được tạo nhưng lượt giữ vẫn có thời hạn. Thanh toán sẽ được nối ở task tiếp theo.</p>
+<p>Đơn chưa thanh toán. Thời hạn giữ vé không thay đổi khi tạo đơn hoặc áp dụng mã giảm giá.</p>
 </div>
 <button id="order-refresh" type="button" class="btn btn-outline-dark mt-3">Đối chiếu đơn hàng</button>
 </section>

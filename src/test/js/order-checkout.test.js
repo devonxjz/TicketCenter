@@ -256,7 +256,7 @@ function browserFixture() {
         fire(name) { this.handlers.get(name)?.({ preventDefault() {} }); }
     }
     const ids = ["order-checkout", "order-message", "order-recovery", "order-retry", "order-create", "order-refresh", "order-summary",
-        "order-coupon-code", "order-preview", "order-apply", "order-remove", "order-preview-result", "order-code", "order-id", "order-status",
+        "order-coupon-code", "order-preview", "order-apply", "order-remove", "order-preview-result", "order-code", "order-status",
         "order-items", "order-subtotal", "order-discount", "order-total", "order-applied-coupon", "order-coupon-form", "hold-cancel", "hold-retry", "hold-refresh"];
     const elements = Object.fromEntries(ids.map(id => [id, new Element()]));
     const document = { body: { dataset: { context: "" } }, visibilityState: "visible", getElementById: id => elements[id], createElement: () => new Element(),

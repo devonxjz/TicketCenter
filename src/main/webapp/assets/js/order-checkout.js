@@ -258,7 +258,6 @@
         if (state.order) {
             const order = state.order;
             get("order-code").textContent = "Mã đơn " + order.orderCode;
-            get("order-id").textContent = "ID đơn " + order.orderId;
             get("order-status").textContent = status[order.status] + (order.holdStatus !== "ACTIVE" ? ". Lượt giữ không còn hoạt động." :
                 order.paymentResolution !== "CLEAR" ? ". Đang đối chiếu thanh toán, chưa thể đổi mã giảm giá." : "");
             get("order-items").replaceChildren();
