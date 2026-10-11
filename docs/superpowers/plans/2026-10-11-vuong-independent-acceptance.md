@@ -37,7 +37,7 @@
 
 - [x] Add windows-latest job to02-unit-integration-tests.yml: Java25, Node22, checksum-verified Tomcat11 download, explicit test prerequisite env variables.
 - [x] Run existing local-handoff and full-war safety suites, emit JUnit artifact; require18 executed, zero failures/skips.
-- [ ] Validate the same guard command locally and actual GitHub job on exact head/postmerge.
+- [x] Validate the same guard command locally. Actual GitHub exact-head/postmerge execution is enforced by the Delivery merge gates below.
 
 ## Task 3: Read-only SQL inventory
 
