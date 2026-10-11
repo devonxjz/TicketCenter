@@ -1,6 +1,6 @@
 # Database cho bản bàn giao local
 
-PowerShell7/Windows; SQL Server có TCP127.0.0.1:1433, SQL authentication.
+PowerShell7.4+/Windows; SQL Server có TCP127.0.0.1:1433, SQL authentication.
 Windows account có quyền CREATE DATABASE/LOGIN. Không đổi TCP/service/firewall.
 
 `tools/local/setup.ps1` chỉ tạo DB MỚI `TC_Vuong_Test_Local_<name>`; name gồm

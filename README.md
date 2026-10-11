@@ -7,12 +7,12 @@ Redis phục vụ cache/idempotency.
 
 ## Chạy local trên Windows từ checkout sạch
 
-Cài **JDK25**, **Maven**, **Node.js**, **PowerShell7**, **Tomcat11** và
+Cài **JDK25**, **Maven**, **Node.js**, **PowerShell7.4+**, **Tomcat11** và
 **SQL Server** trước. SQL Server phải cho phép TCP tại `127.0.0.1:1433`,
 SQL authentication; Windows account hiện tại có quyền tạo database/login.
 Bộ chạy không thay cấu hình SQL Server hoặc khởi động lại dịch vụ.
 
-Mở PowerShell7 ở thư mục repository vừa clone:
+Mở PowerShell7.4+ ở thư mục repository vừa clone:
 
 ```powershell
 # Thay hai đường dẫn bằng nơi đã cài trên máy bạn.

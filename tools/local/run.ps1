@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 7.4
 param(
  [Parameter(Mandatory=$true)][string]$TomcatHome,
  [string]$JavaHome=$env:JAVA_HOME,
@@ -24,14 +24,14 @@ $removedEnvironment=@{}
 try {
  # Safe-default Maven tests only; opt-in external fixtures must not be inherited.
  foreach($item in Get-ChildItem Env:) {
-  if($item.Name -match '^(DB_|TC_|APP_|ADMIN_|REDIS_|MAIL_|VNPAY_|CLOUDINARY_|HIKARI_|REFUND_|PAYOUT_|EVENT_)' -or $item.Name -in @('JAVA_TOOL_OPTIONS','JDK_JAVA_OPTIONS','_JAVA_OPTIONS')) {
+  if($item.Name -match '^(DB_|TC_|APP_|ADMIN_|REDIS_|MAIL_|VNPAY_|CLOUDINARY_|HIKARI_|REFUND_|PAYOUT_|EVENT_)' -or $item.Name -in @('JAVA_TOOL_OPTIONS','JDK_JAVA_OPTIONS','_JAVA_OPTIONS','MAVEN_ARGS','MAVEN_OPTS')) {
    $removedEnvironment[$item.Name]=$item.Value;[Environment]::SetEnvironmentVariable($item.Name,$null,'Process')
   }
  }
  $env:JAVA_HOME=$JavaHome;$env:PATH=(Join-Path $JavaHome 'bin')+';'+$oldPath
  Push-Location $repo
  try {
-  & mvn -B clean package
+  & mvn -B clean package '-Dtc.tests.db=false' '-Dtc.tests.smtp=false' '-Dtc.tests.redis=false' '-DskipTests=false' '-Dmaven.test.skip=false' '-DskipITs=false'
   if($LASTEXITCODE -ne 0) {throw 'Build or tests failed; local app was not started.'}
  } finally {Pop-Location}
  $jars=@(& (Join-Path $PSScriptRoot 'jstl.ps1') -LibDirectory (Join-Path $repo '.local/lib'))

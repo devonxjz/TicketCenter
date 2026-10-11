@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 7.4
 param([Parameter(Mandatory=$true)][string]$LibDirectory)
 $ErrorActionPreference='Stop'
 New-Item -ItemType Directory -Path $LibDirectory -Force | Out-Null

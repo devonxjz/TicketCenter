@@ -51,3 +51,31 @@ test('JSTL cache corruption is rejected before reuse or downloads', {skip: !enab
     assert.deepEqual(fs.readdirSync(root), [path.basename(file)]);
   } finally {fs.rmSync(root, {recursive: true, force: true});}
 });
+
+test('local build clears inherited Maven settings and forces safe tests', {
+  skip: !(enabled && process.env.TC_TEST_JAVA_HOME && process.env.TC_TEST_TOMCAT_HOME)
+}, () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tc-maven-probe-'));
+  try {
+    const config = path.join(root, 'database.json'), probe = path.join(root, 'probe.txt');
+    fs.writeFileSync(config, '{}');
+    fs.writeFileSync(path.join(root, 'mvn.cmd'), '@echo off\r\n>"%HANDOFF_BUILD_PROBE%" echo args=[%MAVEN_ARGS%]\r\n>>"%HANDOFF_BUILD_PROBE%" echo opts=[%MAVEN_OPTS%]\r\n>>"%HANDOFF_BUILD_PROBE%" echo cli=%*\r\nexit /b 42\r\n');
+    const result = spawnSync(powershell, ['-NoProfile', '-File', 'tools/local/run.ps1',
+      '-JavaHome', process.env.TC_TEST_JAVA_HOME, '-TomcatHome', process.env.TC_TEST_TOMCAT_HOME,
+      '-ConfigPath', config, '-Smoke'], {
+      encoding: 'utf8', windowsHide: true, timeout: 20000,
+      env: {...process.env, PATH: root + path.delimiter + process.env.PATH,
+        HANDOFF_BUILD_PROBE: probe, MAVEN_ARGS: '-DskipTests -Dtc.tests.db=true',
+        MAVEN_OPTS: '-Dtc.tests.smtp=true'}
+    });
+    assert.ifError(result.error);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /Build or tests failed/);
+    const captured = fs.readFileSync(probe, 'utf8');
+    assert.match(captured, /args=\[\]/);
+    assert.match(captured, /opts=\[\]/);
+    for (const flag of ['tc.tests.db', 'tc.tests.smtp', 'tc.tests.redis', 'skipTests', 'maven.test.skip', 'skipITs']) {
+      assert.ok(captured.includes('-D' + flag + '=false'), flag);
+    }
+  } finally {fs.rmSync(root, {recursive: true, force: true});}
+});

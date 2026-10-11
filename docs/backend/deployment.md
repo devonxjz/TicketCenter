@@ -1,7 +1,7 @@
 # Khởi động và dừng local
 
 [README](../../README.md) là hướng dẫn chính. Native Windows:
-JDK25/Maven/Node/PowerShell7/Tomcat11/SQL Server đã cài, không cần Docker.
+JDK25/Maven/Node/PowerShell7.4+/Tomcat11/SQL Server đã cài, không cần Docker.
 Script fail trước build nếu sai JDK/Tomcat.
 
 `run.ps1` build WAR với safe-default tests, tải hai JSTL jar3.0.1 từ Maven
