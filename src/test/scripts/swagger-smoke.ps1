@@ -75,6 +75,11 @@ $webXml = @'
   <servlet-mapping><servlet-name>Logout</servlet-name><url-pattern>/api/auth/logout</url-pattern></servlet-mapping>
   <servlet><servlet-name>Me</servlet-name><servlet-class>vn.ticketscenter.identity.controller.MeServlet</servlet-class></servlet>
   <servlet-mapping><servlet-name>Me</servlet-name><url-pattern>/api/me</url-pattern></servlet-mapping>
+  <servlet><servlet-name>CheckInEventsServlet</servlet-name><servlet-class>vn.ticketscenter.fulfillment.checkin.controller.CheckInEventsServlet</servlet-class></servlet>
+  <servlet-mapping><servlet-name>CheckInEventsServlet</servlet-name><url-pattern>/api/check-ins/events</url-pattern></servlet-mapping>
+  <servlet><servlet-name>CheckInWindowServlet</servlet-name><servlet-class>vn.ticketscenter.fulfillment.checkin.controller.CheckInWindowServlet</servlet-class></servlet>
+  <filter><filter-name>CheckInEventRoutes</filter-name><filter-class>vn.ticketscenter.fulfillment.checkin.controller.CheckInEventRoutesFilter</filter-class></filter>
+  <filter-mapping><filter-name>CheckInEventRoutes</filter-name><url-pattern>/api/events/*</url-pattern><dispatcher>REQUEST</dispatcher></filter-mapping>
   <filter><filter-name>Validation</filter-name><filter-class>vn.ticketscenter.config.web.RequestValidationFilter</filter-class></filter>
   <filter-mapping><filter-name>Validation</filter-name><url-pattern>/api/*</url-pattern></filter-mapping>
   <filter><filter-name>Csrf</filter-name><filter-class>vn.ticketscenter.identity.security.CsrfFilter</filter-class></filter>

@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "TicketsCenter API",
-    "description": "Tài liệu API của TicketsCenter. “Đã triển khai” đối chiếu với servlet tại commit nền cfd77c6; không đồng nghĩa đã nghiệm thu SQL/SMTP. “Chờ triển khai” và “Legacy” chỉ để tra cứu, chưa bật Try it out. Contract dự kiến cần owner xác nhận schema, route, quyền và Redis invalidation trước khi ghép.",
+    "description": "Tài liệu API của TicketsCenter, đối chiếu source hiện hành tại 28ce056b97d778edcdf99b91e856c017b5c35e7b. “Đã triển khai” nghĩa route/DTO đã khớp mã nguồn; không đồng nghĩa đã nghiệm thu toàn bộ SQL/SMTP hay E2E. “Chờ triển khai” và “Legacy” chỉ để tra cứu, chưa bật Try it out. Contract dự kiến và Redis invalidation liên miền vẫn cần owner phối hợp.",
     "version": "1.0.0"
   },
   "servers": [
@@ -4330,16 +4330,83 @@
         "tags": [
           "Check-in & Refunds"
         ],
-        "summary": "Chờ triển khai · Check-in Event selection và time window cache — GET /api/check-ins/events",
-        "description": "Contract dự kiến từ issue #21. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "summary": "Chọn sự kiện được phép soát vé",
+        "description": "AuthService kiểm phiên; User ACTIVE và membership MANAGER/CHECK_IN_STAFF được kiểm ở SQL kể cả khi có cache. organizationId tùy chọn giới hạn tổ chức; thiếu quyền trả403. data là mảng, không phân trang. Chọn PUBLISHED/CANCELLED có endTime từ đầu ngày UTC hiện tại, sắp startTime rồi eventId. Khung giờ [startTime−60 phút,endTime); bộ đếm vé có thể cache tối đa60 giây, không gia hạn TTL khi hit. Bằng chứng owner: docs/evidence/khanh/KHANH-01-completion.md. Đối chiếu source tại 28ce056b97d778edcdf99b91e856c017b5c35e7b; matched-to-source không thay nghiệm thu E2E toàn sàn.",
         "responses": {
           "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+            "description": "Projection thực tế từ DTO của KHANH-01; không chứa số tiền.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CheckInEventSummary"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_ID: organizationId không phải UUID canonical.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED hoặc SESSION_EXPIRED: chưa đăng nhập hoặc phiên không còn hợp lệ.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "CHECK_IN_FORBIDDEN: thiếu membership ACTIVE MANAGER/CHECK_IN_STAFF của tổ chức hiện tại.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "AUTH_UNAVAILABLE hoặc DATABASE_UNAVAILABLE: phụ thuộc chưa sẵn sàng; lỗi cố định, không trả SQL/secret.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "operationId": "getApiCheckInsEvents",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
         "x-owner": "khanh",
         "externalDocs": {
           "description": "Issue giao việc và contract dự kiến",
@@ -4349,6 +4416,19 @@
           {
             "cookieAuth": []
           }
+        ],
+        "x-source-baseline": "28ce056b97d778edcdf99b91e856c017b5c35e7b",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "query",
+            "required": false,
+            "description": "UUID tổ chức tùy chọn; không gửi tham số để lấy mọi tổ chức được phép. Chuỗi rỗng/sai UUID trả400.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
         ]
       }
     },
@@ -4357,16 +4437,90 @@
         "tags": [
           "Check-in & Refunds"
         ],
-        "summary": "Chờ triển khai · Check-in Event selection và time window cache — GET /api/events/{eventId}/check-in-window",
-        "description": "Contract dự kiến từ issue #21. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "summary": "Kiểm tra khung giờ soát vé hiện tại",
+        "description": "CheckInEventRoutesFilter chuyển đúng route GET tới named CheckInWindowServlet; không chiếm các route Event khác. AuthService kiểm phiên; SQL kiểm User/membership/lịch và UDF mỗi lần gọi, kể cả cache metadata TTL30. isOpen chỉ true với PUBLISHED trong [startTime−60 phút,endTime); currentServerTime là UTC máy chủ. CANCELLED trả400 EVENT_CANCELLED thay vì data thành công. ADMIN không tự được phép nếu không có membership phù hợp. Bằng chứng owner: docs/evidence/khanh/KHANH-01-completion.md. Đối chiếu source tại 28ce056b97d778edcdf99b91e856c017b5c35e7b; matched-to-source không thay nghiệm thu E2E toàn sàn.",
         "responses": {
           "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+            "description": "Projection thực tế từ DTO của KHANH-01; không chứa số tiền.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CheckInWindowStatus"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_ID: eventId không hợp lệ; EVENT_CANCELLED: sự kiện đã hủy.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED hoặc SESSION_EXPIRED: chưa đăng nhập hoặc phiên không còn hợp lệ.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "CHECK_IN_FORBIDDEN: thiếu membership ACTIVE MANAGER/CHECK_IN_STAFF của tổ chức hiện tại.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "EVENT_NOT_FOUND: không tìm thấy sự kiện; membership sai của sự kiện tồn tại trả403.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "AUTH_UNAVAILABLE, DATABASE_UNAVAILABLE hoặc CHECK_IN_CONTRACT_MISMATCH; route khung giờ cũng có CHECK_IN_UNAVAILABLE khi named dispatcher thiếu. Lỗi cố định, không trả SQL/secret.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "operationId": "getApiEventsEventIdCheckInWindow",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
         "x-owner": "khanh",
         "externalDocs": {
           "description": "Issue giao việc và contract dự kiến",
@@ -4387,7 +4541,8 @@
           {
             "cookieAuth": []
           }
-        ]
+        ],
+        "x-source-baseline": "28ce056b97d778edcdf99b91e856c017b5c35e7b"
       }
     },
     "/api/me/orders": {
@@ -7730,6 +7885,114 @@
             "type": "string",
             "format": "binary",
             "description": "PNG/JPEG tối đa 5 MiB và 12 triệu pixel; tùy chọn, tạo mới thiếu ảnh dùng placeholder danh mục"
+          }
+        }
+      },
+      "CheckInEventSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "eventId",
+          "title",
+          "venue",
+          "startTime",
+          "endTime",
+          "checkInOpenTime",
+          "isCheckInOpen",
+          "totalTicketsIssued",
+          "totalCheckedIn",
+          "status"
+        ],
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "venue": {
+            "type": "string"
+          },
+          "startTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "checkInOpenTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isCheckInOpen": {
+            "type": "boolean"
+          },
+          "totalTicketsIssued": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "totalCheckedIn": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "NOT_YET_OPEN",
+              "ENDED",
+              "CANCELLED"
+            ]
+          }
+        }
+      },
+      "CheckInWindowStatus": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "eventId",
+          "isOpen",
+          "status",
+          "windowStart",
+          "windowEnd",
+          "currentServerTime",
+          "message"
+        ],
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "isOpen": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "NOT_YET_OPEN",
+              "ENDED",
+              "UNAVAILABLE"
+            ]
+          },
+          "windowStart": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "windowEnd": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "currentServerTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "message": {
+            "type": "string"
           }
         }
       }
