@@ -64,6 +64,31 @@ class EventHttpWarIT {
         assertEquals(updated,EventResponseValues.string(get(anonymous,"/api/events/"+event).body(),"coverImageUrl").orElseThrow(),"Merged image writes must invalidate the catalog cache after commit");
         assertEquals(cover.body(),multipart(manager,"/api/events/"+event+"/cover",coverFields,DongSqlFixture.png(),coverKey).body());
     }
+    @Test void compatibilityDraftDeleteJournalsCoverAfterCommitAndReplaysWithoutExposingCleanup() throws Exception {
+        base=AppConfig.get("TC_DONG_HTTP_URL");var fixture=new DongSqlFixture();String password=UUID.randomUUID()+"!DongAcceptance";
+        try(Connection c=DongSqlFixture.connection(null)){DongSqlFixture.execute(c,"UPDATE dbo.tc_users SET password_hash=? WHERE id=?",new PasswordHasher().hash(password),fixture.manager);}
+        var manager=client();login(manager,fixture.manager,password);
+        var fields=new TreeMap<>(fixture.create().fields());fields.put("title","Đêm nhạc nghiệm thu Đông xoá ảnh tương thích");
+        var created=post(manager,"/api/organizations/"+fixture.org+"/events",new vn.ticketscenter.event.dto.EventCommand("CREATE",fixture.org,null,null,fields).json(),UUID.randomUUID().toString(),true);
+        assertEquals(201,created.statusCode());UUID event=UUID.fromString(EventResponseValues.string(created.body(),"eventId").orElseThrow());
+        var cover=multipart(manager,"/api/events/"+event+"/cover",Map.of(),DongSqlFixture.png(),UUID.randomUUID().toString());assertEquals(200,cover.statusCode());
+        String publicId;
+        try(Connection c=DongSqlFixture.connection(null);var q=c.prepareStatement("SELECT event_image_public_id FROM dbo.tc_events WHERE id=?")) {
+            q.setString(1,event.toString());try(var rows=q.executeQuery()){rows.next();publicId=rows.getString(1);}
+        }
+        assertTrue(publicId.startsWith("ticketscenter/events/"+event+"/"));
+        String key=UUID.randomUUID().toString();var deleted=post(manager,"/api/events/"+event+"/delete","{}",key,true);assertEquals(200,deleted.statusCode());
+        assertFalse(deleted.body().contains(publicId));assertFalse(deleted.body().contains("cleanup_json"));
+        Path journal=Path.of("target/dong-runtime/cover-orphans",vn.ticketscenter.event.dto.EventCommand.sha256(publicId)+".json");
+        assertTrue(Files.exists(journal),"Production runtime must wire the postcommit orphan journal");
+        assertEquals(publicId,EventResponseValues.string(Files.readString(journal),"publicId").orElseThrow());
+        Files.delete(journal);assertEquals(deleted.body(),post(manager,"/api/events/"+event+"/delete","{}",key,true).body());
+        assertTrue(Files.exists(journal),"Durable replay must repair a lost journal entry without another deletion");
+        try(Connection c=DongSqlFixture.connection(null);var q=c.prepareStatement("SELECT (SELECT COUNT_BIG(*) FROM dbo.tc_events WHERE event_image_public_id=?)+(SELECT COUNT_BIG(*) FROM dbo.tc_users WHERE avatar_public_id=?)")) {
+            q.setString(1,publicId);q.setString(2,publicId);try(var rows=q.executeQuery()){rows.next();assertEquals(0,rows.getLong(1),"Only this unreferenced generated asset may be cleaned");}
+        }
+        vn.ticketscenter.storage.CloudinaryStorageService.fromEnvironment().delete(publicId);
+    }
     @Test void completeDongFlowRunsThroughActualWarAndRendersAllOwnedPages() throws Exception {
         base=AppConfig.get("TC_DONG_HTTP_URL");assertNotNull(base,"Start a dedicated local WAR and provide TC_DONG_HTTP_URL");
         URI uri=URI.create(base);assertTrue(Set.of("127.0.0.1","localhost").contains(uri.getHost()),"Only a local acceptance runtime is allowed");
@@ -86,6 +111,12 @@ class EventHttpWarIT {
         assertEquals(403,post(other,"/api/events/"+event+"/edit","{\"description\":\"Wrong owner\"}",UUID.randomUUID().toString(),true).statusCode());
         var zone=post(manager,"/api/events/"+event+"/zones","{\"name\":\"VIP HTTP\",\"zoneType\":\"SEATED\",\"basePrice\":\"300000\",\"rows\":2,\"seatsPerRow\":2}",UUID.randomUUID().toString(),true);assertEquals(201,zone.statusCode());
         assertTrue(get(manager,"/api/events/"+event+"/layout").body().contains("A1"));
+        String oversizedKey=UUID.randomUUID().toString();
+        var oversized=multipart(manager,"/api/events/"+event+"/cover",Map.of("expectedVersion","0"),new byte[5_242_881],oversizedKey);
+        assertEquals(413,oversized.statusCode(),"Versioned cover parsing must report the upload limit, not a dependency failure");
+        try(Connection c=DongSqlFixture.connection(null);var q=c.prepareStatement("SELECT COUNT_BIG(*) FROM dbo.tc_event_image_requests WHERE actor_id=? AND request_id=?")) {
+            q.setString(1,fixture.manager.toString());q.setString(2,oversizedKey);try(var rows=q.executeQuery()){rows.next();assertEquals(0,rows.getLong(1),"Oversized multipart must fail before the durable image claim");}
+        }
         String token=EventResponseValues.string(get(manager,"/api/auth/csrf").body(),"token").orElseThrow();
         String boundary="dong-"+UUID.randomUUID();var multipart=new java.io.ByteArrayOutputStream();
         multipart.write(("--"+boundary+"\r\nContent-Disposition: form-data; name=\"file\"; filename=\"cover.bin\"\r\nContent-Type: application/octet-stream\r\n\r\n").getBytes(StandardCharsets.UTF_8));

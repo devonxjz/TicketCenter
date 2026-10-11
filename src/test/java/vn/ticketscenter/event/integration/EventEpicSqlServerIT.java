@@ -16,6 +16,20 @@ import static org.junit.jupiter.api.Assertions.*;
 class EventEpicSqlServerIT {
     static DongSqlFixture f;
     @BeforeAll static void setup() throws Exception {f=new DongSqlFixture();}
+    @Test void unknownCategoryIsValidationAndNeverLeavesAReceiptOrChangesTheDraft() {
+        var fields=new TreeMap<>(f.create().fields());fields.put("categoryId",UUID.randomUUID().toString());
+        var create=new EventCommand("CREATE",f.org,null,null,fields);String key=UUID.randomUUID().toString();
+        assertEquals(400,assertThrows(EventProblem.class,()->f.service.mutate(f.actor,key,create)).status());
+        assertTrue(f.repository.receipt(f.actor,"EVENT",key,create.hash()).isEmpty());
+        UUID event=f.draft();
+        assertEquals(400,assertThrows(EventProblem.class,()->f.service.mutate(f.actor,UUID.randomUUID().toString(),f.command("EDIT",event,null,Map.of("categoryId",fields.get("categoryId"))))).status());
+        assertEquals(f.category.toString(),EventResponseValues.string(f.repository.read(f.actor,false,"DETAIL",f.org,event,null,null,1,20),"categoryId").orElseThrow());
+    }
+    @Test void singleEventReadCannotBecomeMalformedJsonBecauseOfListFilters() {
+        UUID event=f.draft();String detail=f.repository.read(f.actor,false,"DETAIL",f.org,event,null,"PUBLISHED",2,20);
+        assertEquals(event.toString(),EventResponseValues.string(detail,"eventId").orElse(null),"Single-resource reads must not inherit list status/page filters");
+        assertTrue(detail.startsWith("{\"data\":{\"eventId\":"),"Detail must always return one valid JSON object or an error");
+    }
     @Test void publicationUsesCurrentRoleWithoutLegacyAdminAndRejectsStaleLegacyGrant() throws Exception {
         var isolated=new DongSqlFixture();UUID event=isolated.draft();isolated.seated(event,"Current role",1,2);
         isolated.covers(new DongSqlFixture.Storage(),(e,a)->{}).upload(isolated.actor,event,UUID.randomUUID().toString(),new ByteArrayInputStream(DongSqlFixture.png()));
@@ -113,14 +127,20 @@ class EventEpicSqlServerIT {
     }
     @Test void failedForeignKeyDeleteRestoresAllChildrenAndDeleteReplayWorks() throws Exception {
         UUID event=f.draft();UUID zone=f.seated(event,"Delete zone",1,2);
+        var storage=new DongSqlFixture.Storage();var orphans=new ArrayList<StoredAsset>();
+        var deleting=new EventManagementService(f.repository,f.idempotency,f.cache,(e,a)->orphans.add(a));
+        f.covers(storage,(e,a)->{}).upload(f.actor,event,UUID.randomUUID().toString(),new ByteArrayInputStream(DongSqlFixture.png()));
         try(Connection c=DongSqlFixture.connection(null);var q=c.createStatement()) {
             q.execute("IF OBJECT_ID('dbo.tc_dong_delete_guard','U') IS NULL CREATE TABLE dbo.tc_dong_delete_guard(event_id uniqueidentifier NOT NULL REFERENCES dbo.tc_events(id))");
             DongSqlFixture.execute(c,"INSERT dbo.tc_dong_delete_guard(event_id) VALUES(?)",event);
-            assertEquals(409,assertThrows(EventProblem.class,()->f.service.mutate(f.actor,"fk-delete-"+event,f.command("DELETE",event,null,Map.of()))).status());
+            assertEquals(409,assertThrows(EventProblem.class,()->deleting.mutate(f.actor,"fk-delete-"+event,f.command("DELETE",event,null,Map.of()))).status());assertTrue(orphans.isEmpty(),"Rolled-back deletion must not queue the referenced cover");
             assertTrue(f.repository.read(f.actor,false,"LAYOUT",null,event,null,null,1,20).contains(zone.toString()));
             DongSqlFixture.execute(c,"DELETE dbo.tc_dong_delete_guard WHERE event_id=?",event);
         }
-        String key=UUID.randomUUID().toString();var command=f.command("DELETE",event,null,Map.of());var result=f.service.mutate(f.actor,key,command);assertEquals(result,f.service.mutate(f.actor,key,command));
+        String key=UUID.randomUUID().toString();var command=f.command("DELETE",event,null,Map.of());var result=deleting.mutate(f.actor,key,command);
+        assertEquals(1,orphans.size(),"Committed deletion must journal its cover for reference-safe cleanup");assertEquals(storage.lastUrl,orphans.getFirst().secureUrl());
+        assertNotNull(result.cleanupJson());assertFalse(result.json().contains(orphans.getFirst().publicId()),"Internal cleanup metadata must not appear in the HTTP response");
+        assertEquals(result,deleting.mutate(f.actor,key,command));assertEquals(2,orphans.size(),"Replay repairs cleanup journaling after a lost acknowledgement");assertEquals(0,storage.deletes);
         assertEquals(404,assertThrows(EventProblem.class,()->f.repository.read(f.actor,false,"DETAIL",null,event,null,null,1,20)).status());
     }
     @Test void uploadDoesNotHoldTransactionAndStaleCoverCannotOverwriteConcurrentEdit() throws Exception {

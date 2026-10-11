@@ -29,6 +29,7 @@ $env:HIKARI_MAXIMUM_POOL_SIZE='4';$env:HIKARI_MINIMUM_IDLE='0';$env:HIKARI_POOL_
 $env:ADMIN_SEED_ENABLED='false';$env:MAIL_SMTP_HOST='127.0.0.1';$env:MAIL_SMTP_PORT='1'
 $env:APP_BASE_URL='http://127.0.0.1:18082/ticketscenter'
 $env:REFUND_SIMULATED_STATE_DIRECTORY="$runtime/refund-state"
+$env:EVENT_COVER_ORPHAN_DIRECTORY="$runtime/cover-orphans"
 $arguments=@('--enable-native-access=ALL-UNNAMED', ('"-Djava.library.path='+$NativeDirectory+'"'),
  '-Dcatalina.home=.', '-Dcatalina.base=.',
  '-Djava.util.logging.config.file=conf/logging.properties',

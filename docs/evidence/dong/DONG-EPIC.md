@@ -4,7 +4,18 @@ Verified locally on 11 October 2026 (UTC+7). Integrated with `origin/dev` at `28
 
 Implementation and local acceptance are complete; remote delivery is [PR #51](https://github.com/devonxjz/TicketCenter/pull/51). Shared SQL integration and merge remain open gates; this is not a merged release or a claim that all project tests/CI passed.
 
-## Current integration checkpoint — 11 October 2026
+## Thorough review checkpoint — 11 October 2026
+
+[DONG-REVIEW-20261011.md](DONG-REVIEW-20261011.md) records six reproduced/fixed
+defects after dev3e380bf integration: cache retry loss, stale admin review,
+deletion cleanup loss, oversized upload503, unknown category409 and malformed
+detail JSON under list filters. Local verification:385 Java executed/60 guarded
+skips;59 Node;18 platform guard;19 real SQL/Redis/Cloudinary/WAR tests; migration
+and fixture cleanup1/1 each. All executed checks pass. Shared metadata read now
+returns SQL40615; schema/logins and independent review remain external gates.
+SQL is separately published as draft [PR56](https://github.com/devonxjz/TicketCenter/pull/56).
+
+## Previous integration checkpoint — 11 October 2026
 
 Integrated newer `origin/dev`7541a65 (PR52/53/54). Its Report named dispatcher now
 owns only reports/overview, so EventApiServlet again owns the organization

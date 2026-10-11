@@ -46,7 +46,10 @@ Every mutation needs the current authenticated session, `X-CSRF-Token` and
 `Idempotency-Key`. JSON commands accept case-sensitive `[A-Za-z0-9._:-]{1,128}`;
 immutable image requests use UUID keys. Hashes include normalized operation,
 resource and scope. Replay rechecks current SQL rights; changed payload409.
-Private responses use no-store and never cache permission decisions.
+Private responses use no-store and never cache permission decisions. Detail
+ignores list status/page filters; disappearance returns404. Unknown category on
+create/edit returns400 without mutation/receipt. Oversized versioned multipart
+returns413 before image intent/provider work.
 
 Catalog errors: `INVALID_EVENT_QUERY`400, `EVENT_NOT_FOUND`404,
 `EVENT_CATALOG_UNAVAILABLE`503. Management errors include `AUTH_REQUIRED`401,
@@ -98,8 +101,9 @@ are shared. Never call before commit or while provider I/O holds a DB transactio
 | Lookup owner | Category changes also delete `tc:event:categories:v1`; Event mutation does not delete stable lookups. |
 
 Generation increments before scanning old keys, preventing stale in-flight
-reads from refilling. Failed invalidation makes the shared instance bypass cache
-and retry. Hard crashes/multiple nodes still require TTL bounds or a durable
+reads from refilling. Requested/completed epochs prevent an older scan from
+clearing a newer failed invalidation. Pending work makes the shared instance
+bypass cache and retry. Hard crashes/multiple nodes still require TTL bounds or a durable
 cross-domain invalidation mechanism; this handoff does not claim one is present.
 The owner hooks above are integration obligations, not changes to their code.
 
@@ -111,6 +115,13 @@ as the only publication path, but aligns its authority with current ACTIVE
 `tc_users.platform_role`, rather than the stale legacy role table. It also checks
 approved organization and rule validity at Event start. It does not synchronize
 or grant any user role. Other legacy procedures are outside this change.
+
+New draft deletions atomically retain private cleanup_json in the SQL receipt.
+Runtime journals it after commit and again on authorized replay; journal failure
+preserves successful deletion and recovery data. This fifth JDBC column never
+appears in HTTP JSON. Verify all asset references before provider deletion;
+automatic deletion of compatibility assets is not claimed. Pair updated SQL and
+caller during adoption.
 
 Apply the separately reviewed new Event migration after baseline027/028 and
 before deploying PR51. Do not rewrite applied migrations, apply this proposal to

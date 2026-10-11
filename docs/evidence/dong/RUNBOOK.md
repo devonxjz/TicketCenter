@@ -10,7 +10,7 @@ node --check src/main/webapp/assets/js/dong-events.js
 node src/test/resources/event/dong-01-ui-check.cjs
 ```
 
-Expected on dev7541a65 integration:383 executed tests pass,60 external tests explicitly skip (443 total), WAR package succeeds. Earlier375/59 and selected143 counts are historical checkpoints. Skipped DB/SMTP/Redis suites are not evidence for this epic; run them only in their owners' configured environments.
+Expected on dev3e380bf/review integration:385 executed tests pass,60 external tests explicitly skip (445 total), WAR package succeeds. Earlier375/59 and selected143 counts are historical checkpoints. Skipped DB/SMTP/Redis suites are not evidence for this epic; run them only in their owners' configured environments.
 
 ## Dedicated SQL/Redis/provider environment
 
@@ -32,7 +32,7 @@ $env:TC_DONG_CLOUDINARY_ACCEPTANCE='true'
 mvn '-Djunit.jupiter.extensions.autodetection.enabled=false' '-Dit.test=EventCloudinarySqlServerIT' "-DargLine=--enable-native-access=ALL-UNNAMED -Djava.library.path=$native" failsafe:integration-test failsafe:verify
 ```
 
-Expected:13 SQL/Redis tests +1 real Cloudinary test. Current ADMIN fixture has no legacy role row; role-revocation regression includes direct SP12 denial despite a stale legacy ADMIN row. The inherited global test extension only accepts Vương's fixture marker; exactly these Dong ITs use their own explicit opt-in, loopback/dedicated-DB guard instead of that auto-discovered extension. Do not turn off discovery for unrelated suites. `trustServerCertificate=true` applies to this loopback test endpoint only; production requires a trusted certificate. Recompile test sources if changed before direct failsafe execution.
+Expected:15 SQL/Redis tests +1 real Cloudinary test. Current ADMIN fixture has no legacy role row; role-revocation regression includes direct SP12 denial despite a stale legacy ADMIN row. The inherited global test extension only accepts Vương's fixture marker; exactly these Dong ITs use their own explicit opt-in, loopback/dedicated-DB guard instead of that auto-discovered extension. Do not turn off discovery for unrelated suites. `trustServerCertificate=true` applies to this loopback test endpoint only; production requires a trusted certificate. Recompile test sources if changed before direct failsafe execution.
 
 ## WAR and browser acceptance
 
@@ -44,7 +44,7 @@ $env:TC_DONG_HTTP_URL='http://127.0.0.1:18082/ticketscenter'
 mvn '-Djunit.jupiter.extensions.autodetection.enabled=false' '-Dit.test=EventHttpWarIT' "-DargLine=--enable-native-access=ALL-UNNAMED -Djava.library.path=$native" failsafe:integration-test failsafe:verify
 ```
 
-Wait for the deployed app before invoking the HTTP test. Expected: 2 complete HTTP tests. They exercise real auth cookies, CSRF, current roles, owner checks, JSP rendering, UTF8 JSON, idempotent creation, seats, actual multipart/Cloudinary, canonical publish/public read/image302, auth-version revocation, Report pass-through, merged default artwork and published versioned cover replay/cache refresh. They intentionally retain fixtures for browser checks and write fake credentials only to ignored `target/dong-runtime/browser-fixture.json`.
+Wait for the deployed app before invoking the HTTP test. Expected: 3 complete HTTP tests, including oversized upload413 and production deletion-journal/replay repair. They exercise real auth cookies, CSRF, current roles, owner checks, JSP rendering, UTF8 JSON, idempotent creation, seats, actual multipart/Cloudinary, canonical publish/public read/image302, auth-version revocation, Report pass-through, merged default artwork and published versioned cover replay/cache refresh. They intentionally retain fixtures for browser checks and write fake credentials only to ignored `target/dong-runtime/browser-fixture.json`.
 
 Browser paths: `/events/manage`, `/events/manage/editor?organizationId=...&eventId=...`, `/events/review?eventId=...`, `/event-detail?eventId=...`. Existing organizer/admin page routes render the same owned JSPs. Test manager list/create/SEATED/STANDING/submit/PENDING locks; admin full schedule/layout/missing-cover error/rejection; manager rejected form; published description-only edit and public immediate refresh; empty/error/403 states; mobile layout and keyboard focus. The common dashboard is another owner's prototype and is not this epic's delivered UI.
 
@@ -57,3 +57,10 @@ The SQL proposal is not deployed to the shared application. New migration030 is 
 Set `event.cover.orphan.directory` through existing configuration lookup to a persistent writable directory. Journal contains only Event/publicId metadata. For each record, verify **all** `tc_events.event_image_public_id` references after any ambiguous operation settles. Delete only an unreferenced asset, then mark/clear its record after successful provider acknowledgement. If SQL/provider/journal is unavailable, retain the asset and reconcile later. Cover replacement and draft deletion require this lifecycle review; do not delete an old/current image before SQL commit or trust a URL comparison without decoding SQL JSON.
 
 Hook other owners' committed hold/release/refund/cancellation changes into the Event cache namespaces; catalog TTL alone is not an immediate cross-domain invalidation guarantee. Obtain independent review and real CI before merge/issue closure.
+
+Latest review: DONG-REVIEW-20261011.md. Existing Node Event entrypoint includes3
+admin response-race regressions (59 total). Draft deletion stores cleanup_json
+privately in its receipt; journal failure never reverses a committed deletion.
+Replay can repair the journal. Verify Event/user and URL references before image
+delete. Shared metadata read currently returns SQL40615; actual schema/logins
+and independent review remain gates. No shared SQL was applied.

@@ -8,7 +8,9 @@ import java.util.*;
 
 public class EventManagementRepository {
     public record Actor(UUID id,int authVersion) { }
-    public record Result(int status,String json,UUID organizationId,UUID eventId) { }
+    public record Result(int status,String json,UUID organizationId,UUID eventId,String cleanupJson) {
+        public Result(int status,String json,UUID organizationId,UUID eventId) {this(status,json,organizationId,eventId,null);}
+    }
     public record Context(UUID organizationId,UUID eventId) { }
     public record CoverContext(UUID organizationId,String status,long version,String publicId,String coverUrl) { }
     private final EventTransactions transactions;
@@ -58,7 +60,7 @@ public class EventManagementRepository {
                 while(true) {
                     if(more) try(var rows=q.getResultSet()) {
                         // Publish's canonical SP emits an intermediate result set; consume it, then the durable receipt.
-                        if(rows.getMetaData().getColumnCount()==4 && rows.getMetaData().getColumnLabel(1).equalsIgnoreCase("status_code") && rows.next()) return result(rows);
+                        if(rows.getMetaData().getColumnCount()>=4 && rows.getMetaData().getColumnLabel(1).equalsIgnoreCase("status_code") && rows.next()) return result(rows);
                     }
                     else if(q.getUpdateCount()==-1) break;
                     more=q.getMoreResults();
@@ -67,7 +69,7 @@ public class EventManagementRepository {
             }
         });
     }
-    private static Result result(ResultSet rows) throws SQLException { return new Result(rows.getInt(1),rows.getString(2),uuid(rows.getString(3)),uuid(rows.getString(4))); }
+    private static Result result(ResultSet rows) throws SQLException { return new Result(rows.getInt(1),rows.getString(2),uuid(rows.getString(3)),uuid(rows.getString(4)),rows.getMetaData().getColumnCount()>4?rows.getString(5):null); }
     private static UUID uuid(String value) { return value==null?null:UUID.fromString(value); }
     private static void id(PreparedStatement q,int index,UUID id) throws SQLException { q.setString(index,id==null?null:id.toString()); }
 }

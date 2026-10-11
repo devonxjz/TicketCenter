@@ -19,7 +19,8 @@ public final class EventManagementRuntime {
             if(!(value instanceof PersistenceRegistry registry)) throw EventProblem.unavailable();
             var repository=new EventManagementRepository(new EventTransactions(registry.transactionManager()));
             var idempotency=new RedisEventIdempotencyStore();
-            var management=new EventManagementService(repository,idempotency,EventCatalogRuntime.cache(context));
+            var orphans=new EventCoverOrphanJournal();
+            var management=new EventManagementService(repository,idempotency,EventCatalogRuntime.cache(context),orphans);
             // Missing provider credentials must not disable draft/inventory/review endpoints.
             StorageService storage=new StorageService() {
                 public StoredAsset upload(InputStream content,String folder) throws IOException { return CloudinaryStorageService.fromEnvironment().upload(content,folder); }
@@ -28,7 +29,7 @@ public final class EventManagementRuntime {
                 public void delete(String publicId) throws IOException { CloudinaryStorageService.fromEnvironment().delete(publicId); }
                 public String getUrl(String publicId) { return CloudinaryStorageService.fromEnvironment().getUrl(publicId); }
             };
-            var services=new Services(management,new EventCoverService(repository,idempotency,management,storage,new EventCoverOrphanJournal()));
+            var services=new Services(management,new EventCoverService(repository,idempotency,management,storage,orphans));
             context.setAttribute(ATTRIBUTE,services);return services;
         }
     }

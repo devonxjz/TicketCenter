@@ -4,9 +4,48 @@ import org.junit.jupiter.api.Test;
 import redis.clients.jedis.Jedis;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
+import redis.clients.jedis.params.ScanParams;
+import redis.clients.jedis.resps.ScanResult;
 import static org.junit.jupiter.api.Assertions.*;
 
 class RedisEventCatalogCacheTest {
+    @Test void olderSuccessfulInvalidationCannotClearNewerFailedInvalidation() throws Exception {
+        var scanStarted=new CountDownLatch(1);var releaseScan=new CountDownLatch(1);
+        var firstScan=new AtomicBoolean(true);
+        var older=new Redis() {
+            @Override public long incr(String key) {return 1;}
+            @Override public ScanResult<String> scan(String cursor,ScanParams params) {
+                if(firstScan.getAndSet(false)) {
+                    scanStarted.countDown();
+                    try {assertTrue(releaseScan.await(5,TimeUnit.SECONDS));}
+                    catch(InterruptedException e) {Thread.currentThread().interrupt();throw new IllegalStateException(e);}
+                }
+                return new ScanResult<>("0",List.of());
+            }
+        };
+        var readableButCannotInvalidate=new Redis() {
+            @Override public long incr(String key) {throw new IllegalStateException("Redis mutation unavailable");}
+        };
+        readableButCannotInvalidate.values.put("key","{\"data\":[\"stale projection\"]}");
+        var calls=new AtomicInteger();var cache=new RedisEventCatalogCache(()->{
+            int call=calls.incrementAndGet();if(call==1)return older;
+            if(call==2)throw new IllegalStateException("Newer invalidation failed");
+            return readableButCannotInvalidate;
+        });
+        try(var pool=Executors.newSingleThreadExecutor()) {
+            Future<?> first=pool.submit(()->cache.invalidateCommitted(null,null));
+            try {
+                assertTrue(scanStarted.await(5,TimeUnit.SECONDS));
+                cache.invalidateCommitted(null,null);
+            } finally {releaseScan.countDown();}
+            first.get(5,TimeUnit.SECONDS);
+            assertTrue(cache.get("key").isEmpty(),"A newer failed invalidation must keep reads on SQL fallback");
+        }
+    }
     static class Redis extends Jedis {
         final Map<String, String> values = new HashMap<>(); int ttl;
         @Override public String get(String key) { return values.get(key); }
