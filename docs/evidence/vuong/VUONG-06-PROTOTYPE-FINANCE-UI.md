@@ -75,6 +75,13 @@ raw provider responses and private database configuration are not published.
 
 ## Remaining acceptance
 
+During delivery, dev received Liêm's Hold runtime through PR#58 (3a79b6b).
+Merged that base into the finance branch without conflicts; the reviewed finance
+file contents stayed identical. Fresh combined Native package: 435 Java cases
+executed/60 guarded external skips, zero failure/error; all89 JavaScript cases
+(59 finance/shared checks +30 Hold checks) and full WAR17/17 passed. Earlier408
+and59 counts above record the original finance revision, not the larger base.
+
 This implements the finance UI slice. It does not accept all24 UI flows,
 connected purchase/payment/ticket/check-in/refund/cancellation workers or real
 providers. #28 still needs cross-owner OpenAPI/Redis reconciliation; #33 still

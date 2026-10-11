@@ -55,8 +55,9 @@ acceptance do not close24UI/business E2E or #28/#33; whole progress stays4/6.
 
 [Live finance prototype UI](vuong/VUONG-06-PROTOTYPE-FINANCE-UI.md): five pages
 share the existing design tokens and Admin navbar; original menu URLs enter
-the same authorized live pages. Native full WAR17/17 and safeJS59/59; Java408
-executed/60 explicit external skips. Browser observations cover filters,
+the same authorized live pages. Native full WAR17/17, combinedJS89/89 and Java435
+executed/60 explicit external skips after incorporating Liêm Hold PR#58;
+original finance baselineJS59/Java408. Browser observations cover filters,
 pagination, CSV, locked controls and Manager navigation. This is a scoped UI
 slice; #28/#33 remain open and whole progress stays4/6.
 
