@@ -34,28 +34,8 @@ try {
   & mvn -B clean package
   if($LASTEXITCODE -ne 0) {throw 'Build or tests failed; local app was not started.'}
  } finally {Pop-Location}
- $lib=Join-Path $repo '.local/lib';New-Item -ItemType Directory -Path $lib -Force | Out-Null
- $artifacts=@(
-  @{path='jakarta/servlet/jsp/jstl/jakarta.servlet.jsp.jstl-api/3.0.1';name='jakarta.servlet.jsp.jstl-api-3.0.1.jar'},
-  @{path='org/glassfish/web/jakarta.servlet.jsp.jstl/3.0.1';name='jakarta.servlet.jsp.jstl-3.0.1.jar'}
- )
- foreach($artifact in $artifacts) {
-  $destination=Join-Path $lib $artifact.name
-  $url='https://repo.maven.apache.org/maven2/'+$artifact.path+'/'+$artifact.name
-  # Validate cached copies too. Maven Central provides the checksum over HTTPS.
-  $expected=(Invoke-WebRequest ($url+'.sha512')).Content.Trim().Split(' ')[0]
-  if($expected -notmatch '^[a-fA-F0-9]{128}$') {throw 'Invalid JSTL artifact checksum.'}
-  if(-not(Test-Path -LiteralPath $destination)) {
-   $temporary=Join-Path $lib ([guid]::NewGuid().ToString('N')+'.part')
-   try {
-    Invoke-WebRequest $url -OutFile $temporary
-    if((Get-FileHash -LiteralPath $temporary -Algorithm SHA512).Hash -ine $expected) {throw 'JSTL checksum mismatch.'}
-    Move-Item -LiteralPath $temporary -Destination $destination
-   } finally {if(Test-Path -LiteralPath $temporary){Remove-Item -LiteralPath $temporary}}
-  }
-  if((Get-FileHash -LiteralPath $destination -Algorithm SHA512).Hash -ine $expected) {throw 'JSTL checksum mismatch.'}
- }
- & (Join-Path $repo 'src/test/scripts/full-war-smoke.ps1') -ConfigPath $ConfigPath -TomcatHome $TomcatHome -JavaHome $JavaHome -Port $Port -JstlApiJar (Join-Path $lib $artifacts[0].name) -JstlImplementationJar (Join-Path $lib $artifacts[1].name) -Serve:(-not $Smoke)
+ $jars=@(& (Join-Path $PSScriptRoot 'jstl.ps1') -LibDirectory (Join-Path $repo '.local/lib'))
+ & (Join-Path $repo 'src/test/scripts/full-war-smoke.ps1') -ConfigPath $ConfigPath -TomcatHome $TomcatHome -JavaHome $JavaHome -Port $Port -JstlApiJar $jars[0] -JstlImplementationJar $jars[1] -Serve:(-not $Smoke)
 } finally {
  foreach($entry in $removedEnvironment.GetEnumerator()) {[Environment]::SetEnvironmentVariable($entry.Key,$entry.Value,'Process')}
  $env:JAVA_HOME=$oldJava;$env:PATH=$oldPath

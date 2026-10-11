@@ -41,3 +41,13 @@ test('local setup will not write credentials to an unignored checkout path', {sk
   assert.match(run('tools/local/setup.ps1', ['-Database', 'TC_Vuong_Test_Local_Guard', '-ConfigPath', config]), /must be git-ignored/);
   assert.equal(fs.existsSync(config), false);
 });
+test('JSTL cache corruption is rejected before reuse or downloads', {skip: !enabled}, () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tc-jstl-'));
+  try {
+    const file = path.join(root, 'jakarta.servlet.jsp.jstl-api-3.0.1.jar');
+    fs.writeFileSync(file, 'not-a-trusted-jar');
+    assert.match(run('tools/local/jstl.ps1', ['-LibDirectory', root]), /JSTL checksum mismatch/);
+    assert.equal(fs.readFileSync(file, 'utf8'), 'not-a-trusted-jar');
+    assert.deepEqual(fs.readdirSync(root), [path.basename(file)]);
+  } finally {fs.rmSync(root, {recursive: true, force: true});}
+});
