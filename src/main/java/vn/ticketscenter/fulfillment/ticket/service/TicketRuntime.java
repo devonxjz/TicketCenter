@@ -8,7 +8,6 @@ import jakarta.servlet.ServletContextListener;
 import jakarta.servlet.annotation.WebListener;
 import vn.ticketscenter.config.AppConfig;
 import vn.ticketscenter.config.DatabaseConfig;
-import vn.ticketscenter.config.ServerConfig;
 import vn.ticketscenter.config.persistence.ConnectionBudgets;
 import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.fulfillment.ticket.cache.RedisTicketCache;
@@ -48,12 +47,7 @@ public final class TicketRuntime implements ServletContextListener {
                 config.setAutoCommit(true);
                 pool = new HikariDataSource(config);
 
-                String secret = ServerConfig.getSecretKey();
-                if (secret == null || secret.isBlank()) {
-                    secret = AppConfig.get("ticket.qr.secret", "dev-secret-key-ticketscenter-2026");
-                }
-
-                SignedTicketQrSigner signer = new SignedTicketQrSigner(secret);
+                SignedTicketQrSigner signer = SignedTicketQrSigner.configured();
                 var redis = RedisClientProvider.getInstance();
                 RedisTicketCache cache = new RedisTicketCache(redis::getResource);
                 TicketRepository repository = new TicketRepository(ConnectionBudgets.wrap(pool));

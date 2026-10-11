@@ -226,7 +226,19 @@ public class EventRepository {
                             command.kind() == EventSave.Kind.CREATE
                                     ? null
                                     : find(c, claim.eventId(), false).imagePublicId();
-                    if (command.kind() == EventSave.Kind.CREATE) {
+                    if (!maintenance) {
+                        EventFields f = command.fields();
+                        execute(c,
+                                "EXEC dbo.usp_SaveEventDraft ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?",
+                                claim.eventId(), claim.organizationId(), actor.actorId(),
+                                command.kind() == EventSave.Kind.CREATE, command.expectedVersion(),
+                                f == null ? null : f.categoryId(), f == null ? null : f.title(),
+                                f == null ? null : f.description(), f == null ? null : f.venueName(),
+                                f == null ? null : f.venueAddress(), f == null ? null : f.saleStart(),
+                                f == null ? null : f.saleEnd(), f == null ? null : f.startTime(),
+                                f == null ? null : f.endTime(), asset == null ? null : asset.secureUrl(),
+                                asset == null ? null : asset.publicId(), command.kind() == EventSave.Kind.COVER);
+                    } else if (command.kind() == EventSave.Kind.CREATE) {
                         EventFields f = command.fields();
                         execute(
                                 c,

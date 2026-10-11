@@ -32,6 +32,7 @@ public class OrganizationRepositoryTest {
     }
 
     @Test
+    @org.junit.jupiter.api.Tag("db")
     @DisplayName("Verify repository integration with real database")
     void testRepositoryIntegration() {
         try (PersistenceRegistry registry = new PersistenceRegistry()) {

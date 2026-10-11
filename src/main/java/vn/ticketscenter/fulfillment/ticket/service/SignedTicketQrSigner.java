@@ -29,6 +29,10 @@ public final class SignedTicketQrSigner {
 
     private final String secretKey;
 
+    public static SignedTicketQrSigner configured() {
+        return new SignedTicketQrSigner(vn.ticketscenter.config.TicketQrConfig.signingSecret());
+    }
+
     public SignedTicketQrSigner(String secretKey) {
         if (secretKey == null || secretKey.isBlank()) {
             throw new IllegalArgumentException("Secret key for ticket QR must not be empty");
