@@ -35,8 +35,8 @@ public class AdminServlet extends HttpServlet {
             view = "/WEB-INF/views/admin/event-approval.jsp";
             activeTab = "event-approval";
         } else if (path.contains("refund")) {
-            view = "/WEB-INF/views/admin/refund-approval.jsp";
-            activeTab = "refund-approval";
+            resp.sendRedirect(req.getContextPath() + "/admin/refund-requests");
+            return;
         } else if (path.contains("settlement")) {
             view = "/WEB-INF/views/admin/settlements.jsp";
             activeTab = "settlements";
