@@ -102,8 +102,9 @@
   function svgNode(tag,attributes,text) {const el=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [key,value]of Object.entries(attributes))el.setAttribute(key,String(value));if(text!=null)el.textContent=String(text);return el;}
   function overview(result) {
     const summary=document.getElementById('summary');
-    for(const key of ['totalUsers','activeOrganizations','pendingOrganizations','pendingEvents','pendingRefunds','draftSettlements','asOf','todayCohortGrossRevenue','todayCohortCommission'])if(result[key]!=null)summary.append(node('dt',labels[key]),node('dd',display(key,result[key])));
-    for(const [key,value]of Object.entries(result.todayCashFlow||{}))summary.append(node('dt',labels[key]||key),node('dd',display(key,value)));
+    function stat(key,value){const card=node('div');card.className=key==='asOf'?'finance-stat finance-stat-wide':'finance-stat';card.append(node('dt',labels[key]||key),node('dd',display(key,value)));summary.append(card);}
+    for(const key of ['totalUsers','activeOrganizations','pendingOrganizations','pendingEvents','pendingRefunds','draftSettlements','asOf','todayCohortGrossRevenue','todayCohortCommission'])if(result[key]!=null)stat(key,result[key]);
+    for(const [key,value]of Object.entries(result.todayCashFlow||{}))stat(key,value);
     const bars=chartBars(result.dailyMetrics||[]),svg=svgNode('svg',{viewBox:'0 0 640 310',role:'img','aria-label':'Doanh thu và dòng tiền trong 7 ngày UTC'});
     svg.append(svgNode('line',{x1:20,y1:150,x2:620,y2:150,stroke:'#555'}));
     const rows=document.getElementById('daily-values');

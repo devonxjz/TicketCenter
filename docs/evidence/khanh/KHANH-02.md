@@ -3,6 +3,9 @@
 Issue [#22](https://github.com/devonxjz/TicketCenter/issues/22).
 Branch `feat/khanh/khanh-02-qr-checkin` starts from `origin/dev` at `cdaa0b4`;
 PR targets `dev`. Runbook: `src/test/resources/checkin/khanh02/README.md`.
+Integrated updated dev `92cb2f7` after its new JSP dependencies caused duplicate
+declarations in the first PR merge build. Kept dev's JSTL declarations once;
+order/hold/finance implementation files from dev are unmodified.
 
 ## Delivered behavior
 
@@ -35,14 +38,17 @@ authoritative even on a durable replay or Redis outage.
 
 - **46 new Java tests + 14 existing check-in servlet tests passed**, zero
   failures/errors/skips with dedicated SQL Server and Redis; log
-  `target/khanh02-feature-final.log`. The 46 include 14 SQL integration cases,
+  `target/khanh02-feature-dev.log`. The 46 include 14 SQL integration cases,
   two real concurrency cases and three Redis cases.
-- Full default regression: **514 tests discovered, 435 executed, 79 skipped**,
-  zero failures/errors, BUILD SUCCESS; `target/khanh02-regression.log`.
+- Full default regression after dev integration: **624 tests discovered, 545
+  executed, 79 skipped**, zero failures/errors, BUILD SUCCESS;
+  `target/khanh02-regression-dev.log`.
   Skips are external-service opt-ins, including the feature tests separately
   executed above. Skipped tests are not counted as passed.
-- Node regression: **63 passed, eight existing opt-in safety cases skipped**,
-  zero failures. All **seven scanner UI tests ran and passed**.
+- Node regression including newly merged order/hold UI cases: **126 passed**,
+  zero skips/failures; `target/khanh02-node-dev.log`. All **seven scanner UI tests
+  ran and passed**. Earlier native-safety opt-ins were skipped locally and are
+  separately executed by the project's Windows CI job.
 - Full production WAR on Tomcat 11.0.25: **24 HTTP/JSP checks passed**, covering
   real auth/login JSP, current membership, scanner routes/assets, signed QR,
   durable replay, duplicate original time, fake signature, CSRF and private
@@ -64,6 +70,11 @@ Read-only verification confirmed UUID ticket IDs, both procedures, durable
 receipt table, zero duplicate successful-ticket logs and EXECUTE grants to the
 existing check-in role. Existing business rows, logins and earlier migrations
 were not changed; synthetic ticket mutations are isolated to loopback test DB.
+Executed the history SP read-only under existing `tc_checkin_user` with an
+eligible existing event member. Verified the limited seven-column projection,
+both procedure EXECUTE permissions and denial of ticket UPDATE/financial-column
+SELECT. This impersonation proves database-role permissions without creating
+a shared account or consuming a real ticket.
 
 ## CI / review
 

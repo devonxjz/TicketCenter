@@ -20,10 +20,11 @@
 <dt class="col-sm-4">Địa điểm</dt><dd id="event-venue" class="col-sm-8"></dd>
 <dt class="col-sm-4">Địa chỉ</dt><dd id="event-address" class="col-sm-8"></dd>
 <dt class="col-sm-4">Mở bán</dt><dd id="event-sale" class="col-sm-8"></dd>
-</dl></div></div><section class="panel-box bg-white"><h2 class="h5 fw-bold">Giới thiệu chương trình</h2><p id="event-description" style="white-space:pre-wrap"></p></section></article>
+</dl><a id="event-hold-link" class="btn btn-danger" hidden>Chọn vé</a></div></div><section class="panel-box bg-white"><h2 class="h5 fw-bold">Giới thiệu chương trình</h2><p id="event-description" style="white-space:pre-wrap"></p></section></article>
 <noscript>Vui lòng bật JavaScript để xem chi tiết sự kiện.</noscript>
 </main><jsp:include page="/WEB-INF/views/layout/footer.jsp" />
 <script src="${pageContext.request.contextPath}/assets/js/event-images.js" defer></script>
+<script src="${pageContext.request.contextPath}/assets/js/ticket-hold-link.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

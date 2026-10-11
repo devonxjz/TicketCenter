@@ -107,8 +107,9 @@ The shared `web.xml` and `OrganizationApiRoutesFilter` resolve the existing
 Event/Report `/api/organizations/*` registration collision without editing their
 module implementations. Descriptor precedence keeps Event's wildcard; the
 filter forwards only the report subresource after validating the session.
-JSTL dependencies allow the existing auth JSP to compile on Tomcat 11. These
-small deployment prerequisites match KHANH-03's independent integration glue.
+JSTL dependencies from the current dev branch allow the existing auth JSP to
+compile on Tomcat 11; no duplicate dependency declarations are added. The shared
+route prerequisites match KHANH-03's independent integration glue.
 The check-in-owned filter forwards the scanner alias by servlet name to avoid
 colliding with OrganizerServlet. Resource version query strings prevent stale
 JavaScript when reproducible WAR timestamps are identical across builds.

@@ -131,7 +131,8 @@
 
             showAdminToast('Đã phê duyệt yêu cầu và cập nhật lịch sự kiện thành công.', 'success');
 
-            const tableRow = document.querySelector('tr[data-org-id="' + organizationId + '"]');
+            // Finance audit/report tables may also contain this organization UUID.
+            const tableRow = document.querySelector('#pendingOrgTableBody tr[data-org-id="' + organizationId + '"]');
             if (tableRow) {
                 tableRow.remove();
                 const tbody = document.getElementById('pendingOrgTableBody');
@@ -139,7 +140,7 @@
                     tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">Không có hồ sơ nào đang chờ xét duyệt.</td></tr>';
                 }
             } else {
-                const allRows = document.querySelectorAll('table tbody tr');
+                const allRows = document.querySelectorAll('#pendingOrgTableBody tr');
                 for (const r of allRows) {
                     if (r.textContent.includes(organizationId)) {
                         r.remove();
