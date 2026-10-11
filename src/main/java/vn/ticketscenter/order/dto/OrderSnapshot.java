@@ -20,7 +20,7 @@ public record OrderSnapshot(
         OrderRequests.requireId(buyerId);
         OrderRequests.requireId(eventId);
         OrderRequests.requireId(holdId);
-        OrderRequests.requireText(orderCode, 50);
+        OrderRequests.requireText(orderCode, 64);
         Objects.requireNonNull(status, "status");
         Objects.requireNonNull(expiresAt, "expiresAt");
         Objects.requireNonNull(totals, "totals");
@@ -40,14 +40,17 @@ public record OrderSnapshot(
         if (!subtotal.equals(totals.subtotal())) throw new IllegalArgumentException("Item subtotal differs from Order");
     }
 
-    public record Item(UUID orderItemId, String zoneNameSnapshot,
+    public record Item(UUID orderItemId, UUID zoneId, UUID seatId, String zoneNameSnapshot,
                        Optional<String> seatLabelSnapshot, int quantity, BigDecimal unitPrice) {
         public Item {
             OrderRequests.requireId(orderItemId);
-            OrderRequests.requireText(zoneNameSnapshot, 200);
+            OrderRequests.requireId(zoneId);
+            if (seatId != null) OrderRequests.requireId(seatId);
+            OrderRequests.requireText(zoneNameSnapshot, 120);
             Objects.requireNonNull(seatLabelSnapshot, "seatLabelSnapshot");
-            seatLabelSnapshot.ifPresent(label -> OrderRequests.requireText(label, 100));
-            if (quantity < 1 || quantity > 8 || (seatLabelSnapshot.isPresent() && quantity != 1)) {
+            seatLabelSnapshot.ifPresent(label -> OrderRequests.requireText(label, 50));
+            if (quantity < 1 || quantity > 8 || (seatId != null && quantity != 1)
+                    || (seatId == null && seatLabelSnapshot.isPresent())) {
                 throw new IllegalArgumentException("Invalid item quantity");
             }
             unitPrice = money(unitPrice);

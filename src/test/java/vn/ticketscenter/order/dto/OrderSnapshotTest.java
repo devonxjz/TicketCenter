@@ -19,7 +19,7 @@ class OrderSnapshotTest {
 
     @Test void copiesItemsAndRetainsStoredMoneyAndLabels() {
         var items = new ArrayList<>(List.of(item(ID, 2, "100.00"),
-                new OrderSnapshot.Item(SECOND, "VIP at booking", Optional.of("A1 at booking"), 1, new BigDecimal("101"))));
+                new OrderSnapshot.Item(SECOND, ID, SECOND, "VIP at booking", Optional.of("A1 at booking"), 1, new BigDecimal("101"))));
         var snapshot = snapshot(items, new OrderSnapshot.Totals(new BigDecimal("301.00"),
                 new BigDecimal("60.00"), new BigDecimal("241.00")));
         items.clear();
@@ -77,7 +77,7 @@ class OrderSnapshotTest {
         assertThrows(IllegalArgumentException.class, () -> snapshot(List.of(item(ID, 1, "99")), hundred));
         assertThrows(IllegalArgumentException.class, () -> item(ID, 0, "100"));
         assertThrows(IllegalArgumentException.class, () -> item(ID, 9, "100"));
-        assertThrows(IllegalArgumentException.class, () -> new OrderSnapshot.Item(ID, "VIP", Optional.of("A1"), 2, BigDecimal.ONE));
+        assertThrows(IllegalArgumentException.class, () -> new OrderSnapshot.Item(ID, ID, ID, "VIP", Optional.of("A1"), 2, BigDecimal.ONE));
         assertThrows(IllegalArgumentException.class, () -> snapshot(List.of(item(ID, 8, "0"), item(SECOND, 1, "0")),
                 new OrderSnapshot.Totals(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO)));
         assertEquals(8, snapshot(List.of(item(ID, 8, "0")),
@@ -99,9 +99,9 @@ class OrderSnapshotTest {
             assertThrows(IllegalArgumentException.class, () -> new OrderSnapshot(
                     ID, "ORDER", ID, ID, invalid, OrderStatus.PENDING_PAYMENT, EXPIRY, items, totals, Optional.empty()));
         }
-        assertThrows(NullPointerException.class, () -> new OrderSnapshot.Item(ID, "VIP", null, 1, BigDecimal.ONE));
-        assertThrows(IllegalArgumentException.class, () -> new OrderSnapshot.Item(ID, "", Optional.empty(), 1, BigDecimal.ONE));
-        assertThrows(IllegalArgumentException.class, () -> new OrderSnapshot.Item(ID, "VIP", Optional.of("\uD800"), 1, BigDecimal.ONE));
+        assertThrows(NullPointerException.class, () -> new OrderSnapshot.Item(ID, ID, ID, "VIP", null, 1, BigDecimal.ONE));
+        assertThrows(IllegalArgumentException.class, () -> new OrderSnapshot.Item(ID, ID, ID, "", Optional.empty(), 1, BigDecimal.ONE));
+        assertThrows(IllegalArgumentException.class, () -> new OrderSnapshot.Item(ID, ID, ID, "VIP", Optional.of("\uD800"), 1, BigDecimal.ONE));
         assertThrows(NullPointerException.class, () -> snapshot(null, totals));
         assertThrows(NullPointerException.class, () -> snapshot(items, null));
         assertThrows(NullPointerException.class, () -> new OrderSnapshot(
@@ -113,23 +113,23 @@ class OrderSnapshotTest {
     }
 
     @Test void enforcesLockedSnapshotTextLengths() {
-        var item = new OrderSnapshot.Item(ID, "Z".repeat(200), Optional.of("S".repeat(100)), 1, BigDecimal.ONE);
+        var item = new OrderSnapshot.Item(ID, ID, ID, "Z".repeat(120), Optional.of("S".repeat(50)), 1, BigDecimal.ONE);
         var totals = new OrderSnapshot.Totals(BigDecimal.ONE, BigDecimal.ZERO, BigDecimal.ONE);
-        var order = new OrderSnapshot(ID, "O".repeat(50), ID, ID, ID,
+        var order = new OrderSnapshot(ID, "O".repeat(64), ID, ID, ID,
                 OrderStatus.PENDING_PAYMENT, EXPIRY, List.of(item), totals, Optional.empty());
-        assertEquals("O".repeat(50), order.orderCode());
-        assertEquals("Z".repeat(200), order.items().getFirst().zoneNameSnapshot());
-        assertEquals(Optional.of("S".repeat(100)), order.items().getFirst().seatLabelSnapshot());
-        assertThrows(IllegalArgumentException.class, () -> new OrderSnapshot(ID, "O".repeat(51), ID, ID, ID,
+        assertEquals("O".repeat(64), order.orderCode());
+        assertEquals("Z".repeat(120), order.items().getFirst().zoneNameSnapshot());
+        assertEquals(Optional.of("S".repeat(50)), order.items().getFirst().seatLabelSnapshot());
+        assertThrows(IllegalArgumentException.class, () -> new OrderSnapshot(ID, "O".repeat(65), ID, ID, ID,
                 OrderStatus.PENDING_PAYMENT, EXPIRY, List.of(item), totals, Optional.empty()));
         assertThrows(IllegalArgumentException.class,
-                () -> new OrderSnapshot.Item(ID, "Z".repeat(201), Optional.empty(), 1, BigDecimal.ONE));
+                () -> new OrderSnapshot.Item(ID, ID, ID, "Z".repeat(121), Optional.empty(), 1, BigDecimal.ONE));
         assertThrows(IllegalArgumentException.class,
-                () -> new OrderSnapshot.Item(ID, "Z", Optional.of("S".repeat(101)), 1, BigDecimal.ONE));
+                () -> new OrderSnapshot.Item(ID, ID, ID, "Z", Optional.of("S".repeat(51)), 1, BigDecimal.ONE));
     }
 
     private static OrderSnapshot.Item item(UUID id, int quantity, String price) {
-        return new OrderSnapshot.Item(id, "Standing at booking", Optional.empty(), quantity, new BigDecimal(price));
+        return new OrderSnapshot.Item(id, ID, null, "Standing at booking", Optional.empty(), quantity, new BigDecimal(price));
     }
 
     private static OrderSnapshot snapshot(List<OrderSnapshot.Item> items, OrderSnapshot.Totals totals) {

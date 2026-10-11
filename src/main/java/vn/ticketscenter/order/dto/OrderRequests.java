@@ -17,9 +17,13 @@ import java.util.Objects;
 import java.util.UUID;
 
 public final class OrderRequests {
-    private static final int MAX_BODY_BYTES = 16 * 1024;
+    public static final int MAX_BODY_BYTES = 16 * 1024;
 
     private OrderRequests() {}
+
+    public static final class BodyTooLargeException extends IllegalArgumentException {
+        public BodyTooLargeException() { super("Order body exceeds 16384 bytes"); }
+    }
 
     public static CreateOrderRequest create(InputStream body) throws IOException {
         String value = member(body, "holdId");
@@ -99,7 +103,7 @@ public final class OrderRequests {
     private static String member(InputStream body, String name) throws IOException {
         if (body == null) throw invalid("Missing body");
         byte[] bytes = body.readNBytes(MAX_BODY_BYTES + 1);
-        if (bytes.length > MAX_BODY_BYTES) throw invalid("Order body exceeds 16384 bytes");
+        if (bytes.length > MAX_BODY_BYTES) throw new BodyTooLargeException();
         String json;
         try {
             json = StandardCharsets.UTF_8.newDecoder()
