@@ -34,7 +34,7 @@ Local verification on 2026-10-12:
 | Focused Java acceptance | 39 cases: 15 real SQL Server, 1 real Redis, 21 parser/service, 2 OpenAPI; no failures/errors/skips |
 | Project Java regression | 810 cases, 690 executed, 120 other opt-in infrastructure cases skipped; no failures/errors |
 | JavaScript unit regression | 66 passed, 9 platform-specific native guards skipped on Windows; no failures |
-| Packaged complete WAR on Tomcat 11 | 39 HTTP/JSP checks passed using actual login and a restricted ADMIN SQL login |
+| Packaged complete WAR on Tomcat 11 | 40 HTTP/JSP checks passed using actual login and a restricted ADMIN SQL login; retry supports an empty POST body |
 | Browser | 12 checks passed, desktop/mobile screenshots, no JavaScript errors |
 | Azure contract | 040–043 installed atomically; all SHA-256 history verified; existing restricted ADMIN projections/procedure permissions and direct-write denials verified read-only |
 

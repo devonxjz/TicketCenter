@@ -19,6 +19,7 @@ class AdminRefundOpenApiContractTest {
             var envelope=responses.getJSONObject("200").getJSONObject("content").getJSONObject("application/json").getJSONObject("schema");
             assertEquals(Set.of("data"),new HashSet<>(envelope.getJSONArray("required").toList()));
             if(suffix.endsWith("decision")||suffix.endsWith("retry")){assertTrue(responses.has("409"));assertTrue(op.has("requestBody"));}
+            if(suffix.endsWith("retry"))assertFalse(op.getJSONObject("requestBody").getBoolean("required"),"Explicit retry can use an empty POST body");
         }
     }
     @Test void actualSummaryMatchesDocumentedNamesAndPreservesUuidIntegerMoneyUtc()throws Exception{

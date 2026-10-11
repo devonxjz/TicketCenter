@@ -95,8 +95,8 @@ def main():
             def session():
                 return urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 
-            def call(client, name, path, expected=200, body=None, headers=None):
-                request = urllib.request.Request(root + path, data=None if body is None else json.dumps(body).encode('utf-8'), headers=headers or {})
+            def call(client, name, path, expected=200, body=None, headers=None, method=None):
+                request = urllib.request.Request(root + path, data=None if body is None else json.dumps(body).encode('utf-8'), headers=headers or {}, method=method)
                 try:
                     response = client.open(request, timeout=25)
                 except urllib.error.HTTPError as error:
@@ -161,6 +161,9 @@ def main():
             retried = call(admin, 'explicit retry', '/api/admin/refund-requests/' + fixture['retry'] + '/retry', body={}, headers=headers)['data']
             assert retried['refundId'] == fixture['retry'] and retried['attemptId'] != failed_detail['currentAttemptId']
             assert retried == call(admin, 'retry replay', '/api/admin/refund-requests/' + fixture['retry'] + '/retry', body={}, headers=headers)['data']
+            headers['Idempotency-Key'] = str(uuid.uuid4())
+            empty_retry = call(admin, 'explicit retry with empty POST body', '/api/admin/refund-requests/' + fixture['retryEmpty'] + '/retry', headers=headers, method='POST')['data']
+            assert empty_retry['refundId'] == fixture['retryEmpty'] and empty_retry['canonicalStatus'] == 'PROCESSING'
             headers['Idempotency-Key'] = str(uuid.uuid4())
             call(admin, 'UNKNOWN cannot retry', '/api/admin/refund-requests/' + fixture['unknown'] + '/retry', 409, {}, headers)
             call(admin, 'internal decision URL blocked', '/api/admin/refund-decision-internal', 404, body, headers)
