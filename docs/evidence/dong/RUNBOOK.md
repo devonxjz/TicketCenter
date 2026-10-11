@@ -1,5 +1,9 @@
 # Running the Dong acceptance checks
 
+Current completion checklist and source-head CI snapshot:
+[DONG-ACCEPTANCE-20261011.md](DONG-ACCEPTANCE-20261011.md). The latest read-only
+shared metadata retry returned40613/S0001;40615 below is an earlier checkpoint.
+
 Run from repository root with Java25 and Maven. All generated binaries, logs, fake-account credentials and screenshots live under ignored `target/`. Do not upload these raw outputs or commit `application.properties` credentials.
 
 ## Local build (no external email/DB seed tests)

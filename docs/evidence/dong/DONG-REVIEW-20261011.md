@@ -51,6 +51,12 @@ failures are retained, not disguised as skips;19 supersedes the17-test checkpoin
 
 ## External gates
 
+Acceptance-checklist update: [DONG-ACCEPTANCE-20261011.md](DONG-ACCEPTANCE-20261011.md).
+Source heads d43250e (Event) and68cc3e9 (SQL) each have12 successful and10 skipped
+CI checks; neither has an independent review and both remain draft. New shared
+metadata retry around19:01 returned40613/S0001; the40615 result below belongs to
+the earlier review. Shared schema/login acceptance is still unproven.
+
 Read-only shared metadata probe returned SQL40615 (previous checkpoint40613).
 No shared firewall, credentials, grants or data were changed; actual schema/login
 compatibility is not proven. Tests use restricted database-user impersonation

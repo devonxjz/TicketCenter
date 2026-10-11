@@ -1,5 +1,11 @@
 # DONG-02 — Draft lifecycle
 
+- [x] Implementation and dedicated local acceptance complete. Current evidence:
+  [DONG-ACCEPTANCE-20261011.md](DONG-ACCEPTANCE-20261011.md).
+- [ ] Shared SQL/runtime acceptance, independent review, merge and final dev UI
+  acceptance. Issue stays open. Push approval and remote publication are complete;
+  older checkpoint statements below retain their historical status.
+
 Verified locally on 11 October 2026 (UTC+7). Issue #9.
 
 Organization-scoped list/detail/create/edit/delete/submit; current membership and authVersion; CSRF; chronological validation; pending/published locks; Redis lease plus atomic SQL receipts.

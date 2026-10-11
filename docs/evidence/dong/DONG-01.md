@@ -1,5 +1,11 @@
 # DONG-01 — Public catalog/detail and Redis
 
+- [x] Implementation and dedicated local acceptance complete. Current evidence:
+  [DONG-ACCEPTANCE-20261011.md](DONG-ACCEPTANCE-20261011.md).
+- [ ] Shared SQL/runtime acceptance, independent review, merge and final dev UI
+  acceptance. Issue stays open. Push approval and remote publication are complete;
+  older checkpoint statements below retain their historical status.
+
 Updated 11 October 2026 (UTC+7). [Issue #8](https://github.com/devonxjz/TicketCenter/issues/8). Initial local commit `d84c4eff3055312eda2c28706c131d7699369400` on `feat/dong/dong-01-event-catalog-cache`, based on `origin/dev` `71e02ad`. Final integration is on `feat/dong/dong-epic-event-integration`; see [DONG-EPIC.md](DONG-EPIC.md) and [RUNBOOK.md](RUNBOOK.md).
 
 The initial 126-test milestone lacked SQL/browser acceptance. Those gaps have now been exercised locally on the epic integration: **143 selected unit tests + WAR package**, **12 real SQL/Redis tests**, **1 real Cloudinary test**, **1 actual WAR HTTP test**, all pass without skips. Public detail/seat rows and immediate description refresh were also verified in the actual browser. The older fixture-variable-dependent `EventCatalogSqlServerIT` was not rerun; the new epic suite verifies catalog visibility on restricted SQL execution contexts after canonical publication. No claim is made for full default suite, separate SQL-auth logins, CI or merge.

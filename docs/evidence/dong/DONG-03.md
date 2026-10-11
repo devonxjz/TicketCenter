@@ -1,5 +1,11 @@
 # DONG-03 — Zone and seat inventory
 
+- [x] Implementation and dedicated local acceptance complete. Current evidence:
+  [DONG-ACCEPTANCE-20261011.md](DONG-ACCEPTANCE-20261011.md).
+- [ ] Shared SQL/runtime acceptance, independent review, merge and final dev UI
+  acceptance. Issue stays open. Push approval and remote publication are complete;
+  older checkpoint statements below retain their historical status.
+
 Verified locally on 11 October 2026 (UTC+7). Issue #10.
 
 SEATED row matrix, STANDING capacity, integer VND price, safe deletion/regeneration, held+sold quota floor, immutable published layout.

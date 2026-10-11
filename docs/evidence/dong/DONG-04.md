@@ -1,5 +1,11 @@
 # DONG-04 — Event cover
 
+- [x] Implementation and dedicated local acceptance complete. Current evidence:
+  [DONG-ACCEPTANCE-20261011.md](DONG-ACCEPTANCE-20261011.md).
+- [ ] Shared SQL/runtime acceptance, independent review, merge and final dev UI
+  acceptance. Issue stays open. Push approval and remote publication are complete;
+  older checkpoint statements below retain their historical status.
+
 Verified locally on 11 October 2026 (UTC+7). Issue #11.
 
 Actual multipart content validation and Cloudinary, authorization before provider, upload outside SQL transaction, version-aware save, durable replay, old/unused cover journal and sanitized errors.

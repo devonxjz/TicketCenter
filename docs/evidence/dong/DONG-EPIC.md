@@ -1,6 +1,13 @@
 # DONG-EPIC — Event integration handoff
 
-Verified locally on 11 October 2026 (UTC+7). Integrated with `origin/dev` at `28ce056` after the initial acceptance checkpoint. Scope is the live epic [#13](https://github.com/devonxjz/TicketCenter/issues/13), DONG-01–05 (#8–12), not the older thirteen-task organization assignment in the reference documents.
+Verified locally on 11 October 2026 (UTC+7). Current source integrates `origin/dev` at `3e380bf`. Scope is the live epic [#13](https://github.com/devonxjz/TicketCenter/issues/13), DONG-01–05 (#8–12), not the older thirteen-task organization assignment in the reference documents.
+
+[DONG-ACCEPTANCE-20261011.md](DONG-ACCEPTANCE-20261011.md) is the current task
+checklist: all five implementation/local-acceptance tasks are checked. Issues
+stay open for independent review, shared SQL/runtime adoption, merge and final
+dev acceptance. At the recorded Event/SQL source heads, each PR has12 successful
+CI checks and10 skipped checks. The newest read-only shared probe returned40613;
+earlier40615 and counts/routing below are historical checkpoints.
 
 Implementation and local acceptance are complete; remote delivery is [PR #51](https://github.com/devonxjz/TicketCenter/pull/51). Shared SQL integration and merge remain open gates; this is not a merged release or a claim that all project tests/CI passed.
 
