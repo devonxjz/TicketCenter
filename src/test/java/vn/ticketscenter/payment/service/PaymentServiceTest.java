@@ -379,6 +379,7 @@ class PaymentServiceTest {
         var invalidReturn = service.processReturn(invalidParams);
         assertFalse(invalidReturn.validSignature());
         assertFalse(invalidReturn.success());
+        assertTrue(invalidReturn.orderId().isEmpty());
     }
 
     @Test

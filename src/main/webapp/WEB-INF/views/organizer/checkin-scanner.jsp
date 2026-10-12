@@ -5,119 +5,190 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Soát vé — TicketsCenter</title>
+    <title>Máy Quét Soát Vé — TicketsCenter Staff</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
     <style>
-        body { min-height: 100vh; background: #101114; color: #fff; }
-        .camera { width: 100%; max-width: 480px; aspect-ratio: 1; background: #050505; object-fit: cover; }
-        .scan-card { max-width: 480px; }
+        .scanner-viewfinder {
+            position: relative;
+            width: 100%;
+            max-width: 440px;
+            aspect-ratio: 1;
+            background: #000000;
+            margin: 0 auto;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid var(--black);
+        }
+        .scanner-reticle {
+            width: 70%;
+            height: 70%;
+            border: 2px solid rgba(255,255,255,0.7);
+            position: relative;
+        }
+        .scanner-reticle::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: var(--primary);
+            box-shadow: 0 0 8px var(--primary);
+            animation: scanLaser 2s infinite ease-in-out;
+        }
+        @keyframes scanLaser {
+            0% { top: 0%; }
+            50% { top: 100%; }
+            100% { top: 0%; }
+        }
     </style>
 </head>
-<body data-context="<c:out value='${pageContext.request.contextPath}'/>"
-      data-event="<c:out value='${param.eventId}'/>"
-      data-csrf="<c:out value='${sessionScope.TC_CSRF_TOKEN}'/>">
-<header class="container py-4 d-flex align-items-center justify-content-between">
-    <a class="text-white" href="${pageContext.request.contextPath}/organizer/checkin/select">Đổi sự kiện</a>
-    <strong>Soát vé</strong>
-</header>
-<main class="container pb-5"><div class="scan-card mx-auto">
-    <p id="cameraStatus" class="text-white-50" role="status">Đang khởi động camera…</p>
-    <video id="camera" class="camera border border-secondary" autoplay playsinline muted aria-label="Camera quét mã QR"></video>
-    <div class="d-flex gap-2 my-3">
-        <button id="startCamera" type="button" class="btn btn-outline-light">Bật camera</button>
-        <button id="switchCamera" type="button" class="btn btn-outline-light">Đổi camera</button>
-    </div>
-    <form id="manualForm" class="border border-secondary p-3">
-        <label for="manualCode" class="form-label">Nhập mã vé khi không thể quét QR</label>
-        <div class="input-group">
-            <input id="manualCode" class="form-control" autocomplete="off" maxlength="100" required placeholder="TC-…">
-            <button class="btn btn-danger" type="submit">Soát vé</button>
+<body class="bg-black text-white min-h-screen d-flex flex-column justify-content-between">
+    <div class="small text-center py-2 bg-light text-muted" role="note">Prototype tĩnh • Dữ liệu và thao tác mô phỏng • Chưa kết nối backend, email hoặc cổng thanh toán.</div>
+
+    <!-- Mobile-First Header -->
+    <header class="p-3 bg-black border-bottom border-dark d-flex align-items-center justify-content-between">
+        <a href="${pageContext.request.contextPath}/organizer/checkin/select" class="text-white text-decoration-none small fw-bold">
+             Đổi sự kiện
+        </a>
+        <div class="text-center">
+            <span class="d-block small text-white-50">CỔNG SOÁT VÉ</span>
+            <strong class="small text-white">Bảo tàng Phụ nữ VN</strong>
         </div>
-    </form>
-    <div id="result" class="alert mt-3 d-none" role="alert" aria-live="assertive"></div>
-</div></main>
-<script>
-(() => {
-    const settings = document.body.dataset;
-    const video = document.getElementById('camera');
-    const status = document.getElementById('cameraStatus');
-    const result = document.getElementById('result');
-    const eventId = settings.event;
-    const eventValid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
-    let stream = null, detector = null, timer = null, busy = false, detecting = false, facing = 'environment';
-    function show(message, success) {
-        result.textContent = message;
-        result.className = 'alert mt-3 ' + (success ? 'alert-success' : 'alert-danger');
-    }
-    function stopCamera() {
-        if (timer) clearInterval(timer);
-        timer = null;
-        if (stream) stream.getTracks().forEach(track => track.stop());
-        stream = null;
-        video.srcObject = null;
-    }
-    async function submit(payload) {
-        if (busy) return;
-        busy = true;
-        try {
-            const response = await fetch(settings.context + '/api/check-ins', {
-                method: 'POST', credentials: 'same-origin',
-                headers: {'Content-Type': 'application/json', 'X-CSRF-Token': settings.csrf},
-                body: JSON.stringify({eventId, ...payload})
-            });
-            const json = await response.json();
-            if (!response.ok) { show(json.error?.message || 'Không thể soát vé. Vui lòng thử lại.', false); return; }
-            const outcome = json.data.result;
-            const messages = {
-                SUCCESS: 'Vé hợp lệ — mời khách vào cổng.', ALREADY_USED: 'Vé đã được sử dụng.',
-                WRONG_EVENT: 'Vé thuộc sự kiện khác.', NOT_FOUND: 'Không tìm thấy vé.',
-                EVENT_CANCELLED: 'Sự kiện đã bị hủy.', TOO_EARLY: 'Chưa đến giờ mở cổng.',
-                TOO_LATE: 'Cổng soát vé đã đóng.', NOT_ACTIVE: 'Vé không còn hiệu lực.'
-            };
-            show(messages[outcome] || 'Không thể xác nhận vé.', outcome === 'SUCCESS');
-        } catch (_) { show('Mất kết nối đến máy chủ. Kiểm tra mạng rồi thử lại.', false); }
-        finally { busy = false; }
-    }
-    async function startCamera() {
-        stopCamera();
-        if (!eventValid) { status.textContent = 'Hãy chọn một sự kiện trước khi soát vé.'; return; }
-        if (!('BarcodeDetector' in window) || !navigator.mediaDevices?.getUserMedia) {
-            status.textContent = 'Trình duyệt không hỗ trợ quét QR. Hãy nhập mã vé bên dưới.'; return;
+        <span class="status-pill status-dark border-white text-white">Mô phỏng</span>
+    </header>
+
+    <!-- Scanner Main Area -->
+    <main class="container my-auto py-4">
+        
+        <!-- Viewfinder -->
+        <div class="scanner-viewfinder mb-4 shadow">
+            <div class="scanner-reticle"></div>
+            <div class="position-absolute bottom-0 mb-3 small text-white-50">
+                Hướng camera về phía mã QR trên điện thoại của khách
+            </div>
+        </div>
+
+        <!-- Camera Controls -->
+        <div class="d-flex justify-content-center gap-3 mb-4">
+            <button class="btn btn-outline-light rounded-0 px-4 py-2 small" onclick="alert('Mô phỏng: Mô phỏng bật đèn; chưa truy cập camera thật.')">
+                 Bật đèn Flash
+            </button>
+            <button class="btn btn-outline-light rounded-0 px-4 py-2 small" onclick="alert('Mô phỏng: Mô phỏng đổi camera; chưa truy cập camera thật.')">
+                 Đổi Camera
+            </button>
+        </div>
+
+        <!-- Manual Ticket Code Input Fallback -->
+        <div class="card bg-black border-secondary rounded-0 p-4 mx-auto" style="max-width: 440px;">
+            <label class="small text-uppercase fw-bold text-white-50 mb-2">Hoặc nhập mã vé bằng tay nếu màn hình mờ:</label>
+            <div class="input-group">
+                <input type="text" id="manualCode" class="form-control rounded-0 bg-dark text-white border-secondary py-2" placeholder="VD: TC-A5-9921" value="TC-A5-9921">
+                <button class="btn btn-danger rounded-0 fw-bold px-4" onclick="checkTicket(document.getElementById('manualCode').value)">
+                    Kiểm tra
+                </button>
+            </div>
+        </div>
+
+        <!-- Quick Test Buttons for Demonstration -->
+        <div class="text-center mt-4 small text-white-50">
+            <span>Trạng thái mô phỏng:</span>
+            <div class="d-flex justify-content-center gap-2 mt-2">
+                <button class="btn btn-sm btn-outline-light rounded-0" onclick="showResult('VALID')">Vé hợp lệ</button>
+                <button class="btn btn-sm btn-outline-danger rounded-0" onclick="showResult('ALREADY_USED')">Đã quét trước đó</button>
+                <button class="btn btn-sm btn-outline-secondary rounded-0" onclick="showResult('INVALID')">Mã không đúng</button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Check-in Result Modal -->
+    <div id="resultModal" class="d-none position-fixed top-0 start-0 w-100 h-100 bg-black bg-opacity-75 d-flex align-items-center justify-content-center p-3" style="z-index: 1050;">
+        <div class="card bg-white text-dark rounded-0 border-2 p-4 w-100" style="max-width: 460px;" id="modalCard">
+            <div class="text-center mb-4">
+                <div id="modalIcon" class="d-inline-flex align-items-center justify-content-center rounded-circle text-white mb-2" style="width: 60px; height: 60px;"></div>
+                <h4 class="fw-bold mb-1" id="modalTitle">KẾT QUẢ QUÉT VÉ</h4>
+                <p class="small text-muted mb-0" id="modalSub">Thông tin đối soát vé</p>
+            </div>
+
+            <div class="p-3 bg-light border small mb-4" id="modalDetails"></div>
+
+            <button class="btn btn-dark rounded-0 w-100 py-3 fw-bold fs-6" onclick="closeModal()">
+                Tiếp tục soát vé tiếp theo 
+            </button>
+        </div>
+    </div>
+
+    <!-- Mobile Footer -->
+    <footer class="p-3 bg-black border-top border-dark text-center small text-white-50">
+        TicketsCenter Scanner v2.0 • Prototype kiểm soát ra vào • dữ liệu mẫu
+    </footer>
+
+    <script>
+        function checkTicket(code) {
+            if (code.includes('A5')) {
+                showResult('VALID');
+            } else if (code.includes('A2')) {
+                showResult('ALREADY_USED');
+            } else {
+                showResult('INVALID');
+            }
         }
-        try {
-            detector = new BarcodeDetector({formats: ['qr_code']});
-            stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: facing}, audio: false});
-            video.srcObject = stream;
-            await video.play();
-            status.textContent = 'Đưa mã QR vào khung camera.';
-            timer = setInterval(async () => {
-                if (busy || detecting || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
-                detecting = true;
-                const activeStream = stream;
-                try {
-                    const codes = await detector.detect(video);
-                    if (stream === activeStream && codes.length && codes[0].rawValue) {
-                        stopCamera();
-                        status.textContent = 'Đã đọc QR. Bấm Bật camera để quét vé tiếp theo.';
-                        await submit({qrEnvelope: codes[0].rawValue});
-                    }
-                } catch (_) { status.textContent = 'Không đọc được camera. Hãy nhập mã vé bên dưới.'; stopCamera(); }
-                finally { detecting = false; }
-            }, 600);
-        } catch (_) { status.textContent = 'Không thể mở camera. Hãy cấp quyền hoặc nhập mã vé bên dưới.'; stopCamera(); }
-    }
-    document.getElementById('startCamera').addEventListener('click', startCamera);
-    document.getElementById('switchCamera').addEventListener('click', () => {
-        facing = facing === 'environment' ? 'user' : 'environment'; startCamera();
-    });
-    document.getElementById('manualForm').addEventListener('submit', event => {
-        event.preventDefault();
-        if (!eventValid) { show('Hãy chọn một sự kiện trước khi soát vé.', false); return; }
-        submit({ticketCode: document.getElementById('manualCode').value.trim()});
-    });
-    window.addEventListener('pagehide', stopCamera);
-    startCamera();
-})();
-</script>
+
+        function showResult(status) {
+            const modal = document.getElementById('resultModal');
+            const icon = document.getElementById('modalIcon');
+            const title = document.getElementById('modalTitle');
+            const sub = document.getElementById('modalSub');
+            const details = document.getElementById('modalDetails');
+            const card = document.getElementById('modalCard');
+
+            modal.classList.remove('d-none');
+
+            if (status === 'VALID') {
+                card.className = 'card bg-white text-dark rounded-0 border-2 border-dark p-4 w-100';
+                icon.className = 'd-inline-flex align-items-center justify-content-center rounded-circle bg-dark text-white mb-2';
+                icon.innerHTML = '<i class="fa-solid fa-check fs-2"></i>';
+                title.innerText = 'VÉ HỢP LỆ — MỜI VÀO CỬA';
+                title.className = 'fw-bold text-dark mb-1';
+                sub.innerText = 'Mã vé chính xác, sẵn sàng vào cổng.';
+                details.innerHTML = `
+                    <div class="d-flex justify-content-between py-1"><span>Mã vé:</span><strong class="font-monospace">TC-A5-9921</strong></div>
+                    <div class="d-flex justify-content-between py-1"><span>Vị trí ghế:</span><strong class="text-danger fs-6">GHẾ A5 (VIP)</strong></div>
+                    <div class="d-flex justify-content-between py-1"><span>Họ tên khách:</span><strong>Nguyễn Hoàng Nam</strong></div>
+                    <div class="d-flex justify-content-between py-1"><span>Thời gian vào cổng:</span><span>24/09/2026 14:12</span></div>
+                `;
+            } else if (status === 'ALREADY_USED') {
+                card.className = 'card bg-white text-dark rounded-0 border-2 border-danger p-4 w-100';
+                icon.className = 'd-inline-flex align-items-center justify-content-center rounded-circle bg-danger text-white mb-2';
+                icon.innerHTML = '<i class="fa-solid fa-triangle-exclamation fs-2"></i>';
+                title.innerText = 'CẢNH BÁO: VÉ ĐÃ SỬ DỤNG';
+                title.className = 'fw-bold text-danger mb-1';
+                sub.innerText = 'Mã vé này đã được quét vào cửa trước đó.';
+                details.innerHTML = `
+                    <div class="d-flex justify-content-between py-1"><span>Mã vé:</span><strong class="font-monospace">TC-A2-8810</strong></div>
+                    <div class="d-flex justify-content-between py-1"><span>Thời điểm check-in:</span><strong class="text-danger">09:12 Hôm nay</strong></div>
+                    <div class="d-flex justify-content-between py-1"><span>Nhân viên quét:</span><span>Lê Văn Hùng (Cổng số 1)</span></div>
+                `;
+            } else {
+                card.className = 'card bg-white text-dark rounded-0 border-2 border-danger p-4 w-100';
+                icon.className = 'd-inline-flex align-items-center justify-content-center rounded-circle bg-danger text-white mb-2';
+                icon.innerHTML = '<i class="fa-solid fa-xmark fs-2"></i>';
+                title.innerText = 'MÃ VÉ KHÔNG HỢP LỆ';
+                title.className = 'fw-bold text-danger mb-1';
+                sub.innerText = 'Không tìm thấy vé trong hệ thống hoặc không đúng sự kiện này.';
+                details.innerHTML = `
+                    <div class="text-danger small">Mã quét được không tồn tại trong danh sách vé đã thanh toán của Bảo tàng Phụ nữ VN. Vui lòng hướng dẫn khách kiểm tra lại app.</div>
+                `;
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('resultModal').classList.add('d-none');
+        }
+    </script>
+
 </body>
 </html>
