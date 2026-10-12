@@ -170,7 +170,10 @@ public class OrderRepository {
             try (PreparedStatement ps = conn.prepareStatement(orderSql)) {
                 ps.setObject(1, orderId);
                 try (ResultSet rs = ps.executeQuery()) {
-                    if (!rs.next()) return Optional.empty();
+                    if (!rs.next()) {
+                        assertOrderAccess(conn, orderId);
+                        return Optional.empty();
+                    }
                     buyerId = UUID.fromString(rs.getString("buyer_id"));
                     orderCode = rs.getString("order_code");
                     eventId = rs.getString("event_id") != null ? UUID.fromString(rs.getString("event_id")) : null;
@@ -236,6 +239,34 @@ public class OrderRepository {
                     couponCode, paymentStatus, txnRef, providerRef, paymentCapturedAt,
                     items, tickets
             ));
+        } catch (SQLException e) {
+            throw OrderException.unavailable();
+        }
+    }
+
+    public void assertOrderAccess(Connection conn, UUID orderId) {
+        if (conn == null) return;
+        Objects.requireNonNull(orderId, "orderId is required");
+        try (CallableStatement cs = conn.prepareCall("{call dbo.usp_AssertOrderAccess(?)}")) {
+            cs.setObject(1, orderId);
+            cs.execute();
+        } catch (SQLException e) {
+            int code = e.getErrorCode();
+            if (code == 51403) {
+                throw new OrderException(403, "FORBIDDEN", "You do not own this order.");
+            }
+            if (code == 51404) {
+                throw new OrderException(404, "ORDER_NOT_FOUND", "Order was not found.");
+            }
+            throw OrderException.unavailable();
+        }
+    }
+
+    public void assertOrderAccess(UUID orderId, UUID actorId) {
+        if (buyer == null) return;
+        Objects.requireNonNull(orderId, "orderId is required");
+        try (Connection conn = buyer.getConnection()) {
+            assertOrderAccess(conn, orderId);
         } catch (SQLException e) {
             throw OrderException.unavailable();
         }

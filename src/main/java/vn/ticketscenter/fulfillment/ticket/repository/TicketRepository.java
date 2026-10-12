@@ -2,6 +2,7 @@ package vn.ticketscenter.fulfillment.ticket.repository;
 
 import vn.ticketscenter.fulfillment.ticket.dto.TicketDetailDto;
 import vn.ticketscenter.fulfillment.ticket.dto.TicketSummaryDto;
+import vn.ticketscenter.fulfillment.ticket.service.TicketException;
 
 import javax.sql.DataSource;
 import java.sql.*;
@@ -118,32 +119,61 @@ public class TicketRepository {
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setObject(1, ticketId);
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return Optional.of(new TicketRecord(
-                            UUID.fromString(rs.getString("id")),
-                            UUID.fromString(rs.getString("order_id")),
-                            UUID.fromString(rs.getString("buyer_id")),
-                            rs.getString("order_code"),
-                            rs.getString("ticket_code"),
-                            UUID.fromString(rs.getString("event_id")),
-                            rs.getString("event_title"),
-                            rs.getString("venue_name"),
-                            rs.getString("venue_address"),
-                            toInstant(rs.getTimestamp("start_time", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
-                            toInstant(rs.getTimestamp("end_time", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
-                            rs.getString("zone_name_snapshot"),
-                            rs.getString("seat_label_snapshot"),
-                            rs.getLong("paid_amount"),
-                            rs.getString("status"),
-                            toInstant(rs.getTimestamp("issued_at", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
-                            rs.getLong("version")
-                    ));
+                    if (rs.next()) {
+                        return Optional.of(new TicketRecord(
+                                UUID.fromString(rs.getString("id")),
+                                UUID.fromString(rs.getString("order_id")),
+                                UUID.fromString(rs.getString("buyer_id")),
+                                rs.getString("order_code"),
+                                rs.getString("ticket_code"),
+                                UUID.fromString(rs.getString("event_id")),
+                                rs.getString("event_title"),
+                                rs.getString("venue_name"),
+                                rs.getString("venue_address"),
+                                toInstant(rs.getTimestamp("start_time", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
+                                toInstant(rs.getTimestamp("end_time", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
+                                rs.getString("zone_name_snapshot"),
+                                rs.getString("seat_label_snapshot"),
+                                rs.getLong("paid_amount"),
+                                rs.getString("status"),
+                                toInstant(rs.getTimestamp("issued_at", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
+                                rs.getLong("version")
+                        ));
+                    }
                 }
+                assertTicketAccess(conn, ticketId);
+                return Optional.empty();
+            } catch (SQLException e) {
+                throw new IllegalStateException("Failed to query ticket by id", e);
             }
-        } catch (SQLException e) {
-            throw new IllegalStateException("Failed to query ticket by id", e);
         }
-        return Optional.empty();
+
+    public void assertTicketAccess(Connection conn, UUID ticketId) {
+        if (conn == null) return;
+        Objects.requireNonNull(ticketId, "ticketId is required");
+        try (CallableStatement cs = conn.prepareCall("{call dbo.usp_AssertTicketAccess(?)}")) {
+            cs.setObject(1, ticketId);
+            cs.execute();
+        } catch (SQLException e) {
+            int code = e.getErrorCode();
+            if (code == 51403) {
+                throw TicketException.forbidden();
+            }
+            if (code == 51404) {
+                throw TicketException.notFound();
+            }
+            throw TicketException.unavailable();
+        }
+    }
+
+    public void assertTicketAccess(UUID ticketId, UUID actorId) {
+        if (dataSource == null) return;
+        Objects.requireNonNull(ticketId, "ticketId is required");
+        try (Connection conn = dataSource.getConnection()) {
+            assertTicketAccess(conn, ticketId);
+        } catch (SQLException e) {
+            throw TicketException.unavailable();
+        }
     }
 
     /**

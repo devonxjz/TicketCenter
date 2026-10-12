@@ -173,6 +173,64 @@ class PaymentCrossDomainSqlTest {
         }
     }
 
+    @Test void otherBuyerAccessingOrderOrTicketReturnsForbiddenWhileNonExistentReturnsNotFound() throws Exception {
+        var f=SqlReportSafetyIT.fixture();
+        new PaymentRepository(source("buyer",f.user()),source("worker",null))
+                .applyPaymentResult(f.order(),f.payment(),"CAPTURED",f.payment().toString());
+
+        var ownTicketRepo = new vn.ticketscenter.fulfillment.ticket.repository.TicketRepository(source("buyer",f.user()));
+        var ticket = ownTicketRepo.findTicketsByOrderId(f.order()).getFirst();
+
+        var foreignId = UUID.randomUUID();
+        var foreignOrderRepo = new vn.ticketscenter.order.repository.OrderRepository(source("buyer",foreignId));
+        var foreignOrderService = new vn.ticketscenter.order.service.OrderService(foreignOrderRepo, new vn.ticketscenter.order.cache.RedisOrderCache(()->null, java.time.Clock.systemUTC()));
+
+        // Accessing other's order returns 403
+        var exOrder403 = assertThrows(vn.ticketscenter.order.service.OrderException.class,
+                () -> foreignOrderService.orderDetail(new vn.ticketscenter.order.dto.OrderActor(foreignId, 1), f.order()));
+        assertEquals(403, exOrder403.status());
+        assertEquals("FORBIDDEN", exOrder403.code());
+
+        // Accessing non-existent order returns 404
+        var exOrder404 = assertThrows(vn.ticketscenter.order.service.OrderException.class,
+                () -> foreignOrderService.orderDetail(new vn.ticketscenter.order.dto.OrderActor(foreignId, 1), UUID.randomUUID()));
+        assertEquals(404, exOrder404.status());
+        assertEquals("ORDER_NOT_FOUND", exOrder404.code());
+
+        // Accessing other's ticket returns 403
+        var foreignTicketRepo = new vn.ticketscenter.fulfillment.ticket.repository.TicketRepository(source("buyer",foreignId));
+        var foreignTicketService = new vn.ticketscenter.fulfillment.ticket.service.TicketService(foreignTicketRepo, vn.ticketscenter.fulfillment.ticket.service.SignedTicketQrSigner.configured(), new vn.ticketscenter.fulfillment.ticket.cache.RedisTicketCache(()->null));
+
+        var exTicket403 = assertThrows(vn.ticketscenter.fulfillment.ticket.service.TicketException.class,
+                () -> foreignTicketService.getTicketDetail(foreignId, 1, ticket.id()));
+        assertEquals(403, exTicket403.httpStatus());
+
+        // Accessing non-existent ticket returns 404
+        var exTicket404 = assertThrows(vn.ticketscenter.fulfillment.ticket.service.TicketException.class,
+                () -> foreignTicketService.getTicketDetail(foreignId, 1, UUID.randomUUID()));
+        assertEquals(404, exTicket404.httpStatus());
+
+        // Session without actor_id in SESSION_CONTEXT is rejected with 403 forbidden
+        var unauthenticatedOrderRepo = new vn.ticketscenter.order.repository.OrderRepository(source("buyer", null));
+        var unauthenticatedOrderService = new vn.ticketscenter.order.service.OrderService(unauthenticatedOrderRepo, new vn.ticketscenter.order.cache.RedisOrderCache(()->null, java.time.Clock.systemUTC()));
+        var exUnauthOrder = assertThrows(vn.ticketscenter.order.service.OrderException.class,
+                () -> unauthenticatedOrderService.orderDetail(new vn.ticketscenter.order.dto.OrderActor(UUID.randomUUID(), 1), f.order()));
+        assertEquals(403, exUnauthOrder.status());
+
+        var unauthenticatedTicketRepo = new vn.ticketscenter.fulfillment.ticket.repository.TicketRepository(source("buyer", null));
+        var unauthenticatedTicketService = new vn.ticketscenter.fulfillment.ticket.service.TicketService(unauthenticatedTicketRepo, vn.ticketscenter.fulfillment.ticket.service.SignedTicketQrSigner.configured(), new vn.ticketscenter.fulfillment.ticket.cache.RedisTicketCache(()->null));
+        var exUnauthTicket = assertThrows(vn.ticketscenter.fulfillment.ticket.service.TicketException.class,
+                () -> unauthenticatedTicketService.getTicketDetail(UUID.randomUUID(), 1, ticket.id()));
+        assertEquals(403, exUnauthTicket.httpStatus());
+
+        try(var c = source("buyer", null).getConnection()) {
+            var exSqlOrder = assertThrows(SQLException.class, () -> ScanFixture.execute(c, "EXEC dbo.usp_AssertOrderAccess ?", f.order()));
+            assertEquals(51403, exSqlOrder.getErrorCode());
+            var exSqlTicket = assertThrows(SQLException.class, () -> ScanFixture.execute(c, "EXEC dbo.usp_AssertTicketAccess ?", ticket.id()));
+            assertEquals(51403, exSqlTicket.getErrorCode());
+        }
+    }
+
     @Test void staffWhoIsAlsoBuyerWaitsForEventBeforeLockingUser() throws Exception {
         var f=SqlReportSafetyIT.fixture();
         new PaymentRepository(source("buyer",f.user()),source("worker",null)).applyPaymentResult(f.order(),f.payment(),"CAPTURED",f.payment().toString());

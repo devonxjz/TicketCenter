@@ -50,40 +50,46 @@ public class PaymentRepository {
         Objects.requireNonNull(actorId, "actorId is required");
 
         // 1. Kiểm tra chi tiết đơn hàng trước (order_code, total_amount, hold remaining)
-        String orderCode;
-        BigDecimal totalAmount;
-        Duration holdRemaining;
-        try (Connection conn = buyer.getConnection();
-             PreparedStatement ps = conn.prepareStatement(
-                     """
-                     SELECT order_code,total_amount,expires_at,order_status AS status,hold_status,event_status
-                     FROM dbo.vw_PaymentOrderContext WHERE order_id=? AND user_id=?
-                     """)) {
-            ps.setObject(1, orderId);
-            ps.setObject(2, actorId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (!rs.next()) {
-                    throw PaymentException.orderNotFound();
-                }
-                String ordStatus = rs.getString("status");
-                String holdStatus = rs.getString("hold_status");
-                String evtStatus = rs.getString("event_status");
-                Timestamp expiresAt = rs.getTimestamp("expires_at", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")));
+        String orderCode = null;
+        BigDecimal totalAmount = null;
+        Duration holdRemaining = null;
+        try (Connection conn = buyer.getConnection()) {
+            boolean found = false;
+            try (PreparedStatement ps = conn.prepareStatement(
+                    """
+                    SELECT order_code,total_amount,expires_at,order_status AS status,hold_status,event_status
+                    FROM dbo.vw_PaymentOrderContext WHERE order_id=? AND user_id=?
+                    """)) {
+                ps.setObject(1, orderId);
+                ps.setObject(2, actorId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        found = true;
+                        String ordStatus = rs.getString("status");
+                        String holdStatus = rs.getString("hold_status");
+                        String evtStatus = rs.getString("event_status");
+                        Timestamp expiresAt = rs.getTimestamp("expires_at", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")));
 
-                if (!"PENDING_PAYMENT".equals(ordStatus) || !"ACTIVE".equals(holdStatus)) {
-                    throw PaymentException.orderNotPayable();
-                }
-                if (!"PUBLISHED".equals(evtStatus)) {
-                    throw PaymentException.eventUnavailable();
-                }
+                        if (!"PENDING_PAYMENT".equals(ordStatus) || !"ACTIVE".equals(holdStatus)) {
+                            throw PaymentException.orderNotPayable();
+                        }
+                        if (!"PUBLISHED".equals(evtStatus)) {
+                            throw PaymentException.eventUnavailable();
+                        }
 
-                long remainingMs = expiresAt.getTime() - System.currentTimeMillis();
-                if (remainingMs <= 0) {
-                    throw PaymentException.orderNotPayable();
+                        long remainingMs = expiresAt.getTime() - System.currentTimeMillis();
+                        if (remainingMs <= 0) {
+                            throw PaymentException.orderNotPayable();
+                        }
+                        holdRemaining = Duration.ofMillis(remainingMs);
+                        orderCode = rs.getString("order_code");
+                        totalAmount = rs.getBigDecimal("total_amount");
+                    }
                 }
-                holdRemaining = Duration.ofMillis(remainingMs);
-                orderCode = rs.getString("order_code");
-                totalAmount = rs.getBigDecimal("total_amount");
+            }
+            if (!found) {
+                assertOrderAccess(conn, orderId);
+                throw PaymentException.orderNotFound();
             }
         } catch (SQLException failure) {
             PaymentException mapped = domain(failure);
@@ -97,12 +103,14 @@ public class PaymentRepository {
         }
 
         // 2. Gọi procedure usp_BeginOrderPayment
+        final String finalOrderCode = orderCode;
+        final Duration finalHoldRemaining = holdRemaining;
         return call("EXEC dbo.usp_BeginOrderPayment ?, ?", rows -> {
             UUID pid = UUID.fromString(rows.getString("payment_id"));
             String txn = rows.getString("txn_ref");
             BigDecimal amt = rows.getBigDecimal("amount");
             String curr = rows.getString("currency").trim();
-            return new PaymentIntent(pid, txn, amt, curr, orderCode, holdRemaining);
+            return new PaymentIntent(pid, txn, amt, curr, finalOrderCode, finalHoldRemaining);
         }, orderId, actorId);
     }
 
@@ -231,7 +239,10 @@ public class PaymentRepository {
             ps.setObject(1, orderId);
             ps.setObject(2, actorId);
             try (ResultSet rs = ps.executeQuery()) {
-                if (!rs.next()) return Optional.empty();
+                if (!rs.next()) {
+                    assertOrderAccess(conn, orderId);
+                    return Optional.empty();
+                }
                 UUID oid = UUID.fromString(rs.getString("order_id"));
                 String ordStatus = rs.getString("order_status");
                 String paymentId = rs.getString("payment_id");
@@ -344,6 +355,34 @@ public class PaymentRepository {
             }
         }
         throw PaymentException.unavailable();
+    }
+
+    public void assertOrderAccess(Connection conn, UUID orderId) {
+        if (conn == null) return;
+        Objects.requireNonNull(orderId, "orderId is required");
+        try (CallableStatement cs = conn.prepareCall("{call dbo.usp_AssertOrderAccess(?)}")) {
+            cs.setObject(1, orderId);
+            cs.execute();
+        } catch (SQLException e) {
+            int code = e.getErrorCode();
+            if (code == 51403) {
+                throw PaymentException.forbidden();
+            }
+            if (code == 51404) {
+                throw PaymentException.orderNotFound();
+            }
+            throw PaymentException.unavailable();
+        }
+    }
+
+    public void assertOrderAccess(UUID orderId, UUID actorId) {
+        if (buyer == null) return;
+        Objects.requireNonNull(orderId, "orderId is required");
+        try (Connection conn = buyer.getConnection()) {
+            assertOrderAccess(conn, orderId);
+        } catch (SQLException e) {
+            throw PaymentException.unavailable();
+        }
     }
 
     private static boolean retryable(SQLException failure) {
