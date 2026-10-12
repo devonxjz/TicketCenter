@@ -40,7 +40,7 @@ public final class EventRuntime implements ServletContextListener {
                                         ConnectionBudgets.wrap(manager),
                                         ConnectionBudgets.wrap(buyer),
                                         ConnectionBudgets.wrap(worker)),
-                                CloudinaryStorageService.fromEnvironment());
+                                CloudinaryStorageService.fromEnvironment(),new vn.ticketscenter.event.cache.RedisEventIdempotencyStore());
                 context.setAttribute(POOLS_ATTRIBUTE, pools);
                 context.setAttribute(SERVICE_ATTRIBUTE, service);
                 return service;

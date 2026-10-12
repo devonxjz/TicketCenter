@@ -56,6 +56,11 @@ class TicketApiServletTest {
         }
 
         @Override
+        public List<TicketSummaryDto> getMyTickets(UUID actorId, int authVersion) {
+            return getMyTickets(actorId);
+        }
+
+        @Override
         public TicketDetailDto getTicketDetail(UUID actorId, UUID ticketId) {
             if (actorId == null) throw TicketException.unauthenticated();
             if (ticketId == null) throw TicketException.badRequest("ticketId is required");
@@ -67,6 +72,11 @@ class TicketApiServletTest {
         }
 
         @Override
+        public TicketDetailDto getTicketDetail(UUID actorId, int authVersion, UUID ticketId) {
+            return getTicketDetail(actorId, ticketId);
+        }
+
+        @Override
         public byte[] getTicketQrPng(UUID actorId, UUID ticketId, int width, int height) {
             if (actorId == null) throw TicketException.unauthenticated();
             if (ticketId == null) throw TicketException.badRequest("ticketId is required");
@@ -75,6 +85,11 @@ class TicketApiServletTest {
                 return qrBytesToReturn;
             }
             throw TicketException.notFound();
+        }
+
+        @Override
+        public byte[] getTicketQrPng(UUID actorId, int authVersion, UUID ticketId, int width, int height) {
+            return getTicketQrPng(actorId, ticketId, width, height);
         }
     }
 

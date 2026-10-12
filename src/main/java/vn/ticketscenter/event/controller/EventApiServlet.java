@@ -15,10 +15,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @WebServlet(
-        name = "EventApiServlet",
+        name = "EventApiServlet", loadOnStartup=1,
         urlPatterns = {
-            "/api/events",
-            "/api/events/*",
             "/api/organizations/*",
             "/api/manager/events",
             "/api/manager/events/*",
@@ -107,7 +105,15 @@ public class EventApiServlet extends HttpServlet {
             } catch (ServletException | IOException e) {
                 throw new EventException(400, "MULTIPART_INVALID", "Multipart request cannot be read");
             }
-            HttpResponses.data(response, service(request).save(principal, command).toJson());
+            if(command.fields()!=null) {
+                EventFields f=command.fields();
+                EventCommand.input(kind==EventSave.Kind.CREATE?"CREATE":"EDIT",kind==EventSave.Kind.CREATE?target:null,kind==EventSave.Kind.EDIT?target:null,null,
+                    java.util.Map.of("title",f.title(),"description",f.description(),"categoryId",f.categoryId().toString(),"venueName",f.venueName(),"venueAddress",f.venueAddress(),
+                        "saleStartTime",f.saleStart().toString(),"saleEndTime",f.saleEnd().toString(),"startTime",f.startTime().toString(),"endTime",f.endTime().toString()),java.time.Clock.systemUTC());
+            }
+            EventDto saved=service(request).save(principal,command);
+            if(injected==null) EventCatalogRuntime.cache(request.getServletContext()).invalidateCommitted(saved.id(),saved.organizationId());
+            HttpResponses.data(response, saved.toJson());
         } catch (RuntimeException e) {
             error(response, e);
         }
@@ -130,6 +136,8 @@ public class EventApiServlet extends HttpServlet {
             throws IOException {
         if (exception instanceof EventException e)
             HttpResponses.error(response, e.status(), e.code(), e.getMessage());
+        else if(exception instanceof EventProblem e)
+            HttpResponses.error(response,e.status(),e.code(),e.getMessage());
         else if (exception instanceof IllegalArgumentException)
             HttpResponses.error(response, 400, "EVENT_INPUT_INVALID", "Event input is invalid");
         else

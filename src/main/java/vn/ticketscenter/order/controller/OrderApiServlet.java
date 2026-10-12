@@ -63,7 +63,9 @@ public final class OrderApiServlet extends HttpServlet {
             } else if (request.getMethod().equals("GET") && path.matches("/api/orders/[^/]+/coupon-eligibility")) {
                 response.getWriter().write(service().eligibility(actor, uuid(path.split("/")[3]), parameter(request, "couponCode")));
             } else if (request.getMethod().equals("GET") && path.matches("/api/orders/[^/]+/payment-status")) {
-                var paymentStatus = paymentService().getOrderPaymentStatus(actor.id(), uuid(path.split("/")[3]));
+                var paymentStatus = paymentService().getOrderPaymentStatus(
+                        new vn.ticketscenter.payment.dto.PaymentActor(actor.id(), actor.authVersion()),
+                        uuid(path.split("/")[3]));
                 response.getWriter().write(paymentStatus.toJson());
             } else if (request.getMethod().equals("GET") && path.matches("/api/orders/[^/]+")) {
                 UUID orderId = uuid(path.split("/")[3]);

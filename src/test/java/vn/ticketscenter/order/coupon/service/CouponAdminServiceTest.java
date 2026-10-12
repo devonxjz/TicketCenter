@@ -288,30 +288,30 @@ class CouponAdminServiceTest {
         final Map<UUID, CouponAdminDto> coupons = new HashMap<>();
 
         @Override
-        public boolean isManagerOrAdmin(UUID actorId, boolean isAdmin, UUID organizationId) {
-            if (isAdmin) return true;
-            return managers.getOrDefault(actorId, Set.of()).contains(organizationId);
+        public boolean isManagerOrAdmin(UserPrincipal principal, UUID organizationId) {
+            if (principal.isAdmin()) return true;
+            return managers.getOrDefault(principal.actorId(), Set.of()).contains(organizationId);
         }
 
         @Override
-        public List<CouponAdminDto> getAllCoupons(int page, int size, UUID filterOrgId) {
+        public List<CouponAdminDto> getAllCoupons(UserPrincipal principal, int page, int size, UUID filterOrgId) {
             return coupons.values().stream()
                     .filter(c -> filterOrgId == null || c.organizationId().equals(filterOrgId))
                     .toList();
         }
 
         @Override
-        public List<CouponAdminDto> getCouponsByOrganization(UUID organizationId, int page, int size) {
-            return getAllCoupons(page, size, organizationId);
+        public List<CouponAdminDto> getCouponsByOrganization(UserPrincipal principal, UUID organizationId, int page, int size) {
+            return getAllCoupons(principal, page, size, organizationId);
         }
 
         @Override
-        public Optional<CouponAdminDto> findById(UUID couponId) {
+        public Optional<CouponAdminDto> findById(UserPrincipal principal, UUID couponId) {
             return Optional.ofNullable(coupons.get(couponId));
         }
 
         @Override
-        public UUID createCoupon(UUID organizationId, CreateCouponRequest req) {
+        public UUID createCoupon(UserPrincipal principal, UUID organizationId, CreateCouponRequest req) {
             UUID id = UUID.randomUUID();
             CouponAdminDto dto = new CouponAdminDto(
                     id, organizationId, "Org", req.code(), req.discountType(),
@@ -324,7 +324,7 @@ class CouponAdminServiceTest {
         }
 
         @Override
-        public void updateCoupon(UUID couponId, UpdateCouponRequest req) {
+        public void updateCoupon(UserPrincipal principal, UUID couponId, UpdateCouponRequest req) {
             CouponAdminDto cur = coupons.get(couponId);
             if (cur != null) {
                 int maxUses = req.maxUses() != null ? req.maxUses() : cur.maxUses();
@@ -340,7 +340,7 @@ class CouponAdminServiceTest {
         }
 
         @Override
-        public void setActive(UUID couponId, boolean active) {
+        public void setActive(UserPrincipal principal, UUID couponId, boolean active) {
             CouponAdminDto cur = coupons.get(couponId);
             if (cur != null) {
                 coupons.put(couponId, new CouponAdminDto(
@@ -353,7 +353,7 @@ class CouponAdminServiceTest {
         }
 
         @Override
-        public void deleteCoupon(UUID couponId) {
+        public void deleteCoupon(UserPrincipal principal, UUID couponId) {
             coupons.remove(couponId);
         }
     }

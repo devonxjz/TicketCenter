@@ -1,5 +1,8 @@
 "use strict";
 
+// Keep all Event UI regressions in the existing Event CI entrypoint.
+require("./dong-events.test.cjs");
+
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { webcrypto } = require("node:crypto");

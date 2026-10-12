@@ -1,40 +1,18 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Biên tập sự kiện | TicketsCenter</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
-<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/event-images.css">
-</head>
-<body data-event-page="editor" data-context="${pageContext.request.contextPath}">
-<jsp:include page="/WEB-INF/views/layout/header.jsp" />
-<div class="dashboard-layout"><jsp:include page="/WEB-INF/views/layout/organizer-sidebar.jsp" /><main class="dashboard-content">
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4"><h1 id="editor-heading" class="h3 fw-bold mb-0">Tạo mới sự kiện</h1>
-<a href="${pageContext.request.contextPath}/organizer/events" class="btn-outline-custom">Danh sách sự kiện</a></div>
-<p id="event-message" role="status" aria-live="polite">Đang tải...</p><form id="event-form" enctype="multipart/form-data" method="post" hidden><fieldset id="event-fields" disabled>
-<div class="panel-box bg-white mb-4"><div class="row g-4">
-<div class="col-md-6"><label for="event-organization" class="filter-label">Tổ chức *</label><select id="event-organization" name="organizationId" class="form-select rounded-0" required></select></div>
-<div class="col-md-6"><label for="categoryId" class="filter-label">Thể loại *</label><select id="categoryId" name="categoryId" class="form-select rounded-0" required></select></div>
-<div class="col-12"><label for="title" class="filter-label">Tên chương trình *</label><input id="title" name="title" type="text" maxlength="250" class="form-control rounded-0" required></div>
-<div class="col-md-6"><label for="venueName" class="filter-label">Tên địa điểm *</label><input id="venueName" name="venueName" type="text" maxlength="250" class="form-control rounded-0" required></div>
-<div class="col-12"><label for="venueAddress" class="filter-label">Địa chỉ *</label><input id="venueAddress" name="venueAddress" type="text" maxlength="500" class="form-control rounded-0" required></div>
-<div class="col-md-6"><label for="saleStart" class="filter-label">Bắt đầu mở bán *</label><input id="saleStart" name="saleStart" type="datetime-local" step="0.001" class="form-control rounded-0" required></div>
-<div class="col-md-6"><label for="saleEnd" class="filter-label">Kết thúc mở bán *</label><input id="saleEnd" name="saleEnd" type="datetime-local" step="0.001" class="form-control rounded-0" required></div>
-<div class="col-md-6"><label for="startTime" class="filter-label">Bắt đầu sự kiện *</label><input id="startTime" name="startTime" type="datetime-local" step="0.001" class="form-control rounded-0" required></div>
-<div class="col-md-6"><label for="endTime" class="filter-label">Kết thúc sự kiện *</label><input id="endTime" name="endTime" type="datetime-local" step="0.001" class="form-control rounded-0" required></div>
-<div class="col-12"><label for="description" class="filter-label">Giới thiệu chương trình *</label><textarea id="description" name="description" class="form-control rounded-0" rows="5" maxlength="5000" required></textarea></div>
-</div></div><div class="panel-box bg-white mb-4"><h2 class="h5 fw-bold">Ảnh bìa sự kiện</h2>
-<div id="event-cover-preview" class="mb-3"></div><label for="event-file" class="filter-label">Chọn ảnh PNG hoặc JPEG</label>
-<input id="event-file" name="file" type="file" accept="image/png,image/jpeg" class="form-control rounded-0" aria-describedby="event-file-help">
-<p id="event-file-help" class="small text-muted mt-2 mb-0">Tối đa 5 MiB. Không chọn ảnh mới để giữ ảnh hiện tại. Sự kiện mới không có ảnh dùng ảnh mặc định theo thể loại.</p></div>
-<p class="small text-muted">Lịch bán vé phải thỏa mãn mở bán &lt; đóng bán &le; bắt đầu &lt; kết thúc. Sửa thông tin ở trạng thái bản nháp hoặc bị từ chối. Sự kiện đã công bố cho phép thay ảnh bìa.</p>
-<div class="d-flex gap-3"><button id="event-save" type="submit" class="btn-primary-custom">Lưu bản nháp</button><a href="${pageContext.request.contextPath}/organizer/events" class="btn-outline-custom">Quay lại</a></div>
-</fieldset></form><noscript>Vui lòng bật JavaScript để biên tập sự kiện.</noscript>
-</main></div>
-<script src="${pageContext.request.contextPath}/assets/js/event-images.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+<!DOCTYPE html><html lang="vi"><head><title>Hồ sơ và tồn kho sự kiện | TicketsCenter</title><jsp:include page="/WEB-INF/views/layout/meta-head.jsp" /><style>[hidden]{display:none!important}</style><link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/event-images.css"></head>
+<body data-context="${pageContext.request.contextPath}" data-dong-page="editor">
+<nav class="navbar border-bottom bg-white"><div class="container"><a class="navbar-brand fw-bold" href="${pageContext.request.contextPath}/">TicketsCenter</a><a href="${pageContext.request.contextPath}/events/manage">Danh sách sự kiện</a></div></nav>
+<main class="container py-5"><div class="d-flex flex-wrap gap-3 justify-content-between"><h1 class="h2 fw-bold">Hồ sơ và tồn kho sự kiện</h1><span id="draft-state" class="badge bg-dark align-self-start p-2">Nháp mới</span></div><p id="status" role="status" aria-live="polite">Đang tải…</p><p id="rejection" class="text-danger" style="white-space:pre-wrap"></p>
+<form id="event-form" method="post" class="border rounded p-4 mb-4"><div class="row g-3">
+<div class="col-md-6"><label for="organization" class="form-label">Tổ chức</label><select id="organization" class="form-select" required></select></div><div class="col-md-6"><label for="categoryId" class="form-label">Danh mục</label><select id="categoryId" class="form-select" required></select></div>
+<div class="col-12"><label for="title" class="form-label">Tên sự kiện</label><input id="title" class="form-control" required minlength="5" maxlength="200"></div>
+<div class="col-12"><label for="description" class="form-label">Mô tả</label><textarea id="description" class="form-control" required maxlength="5000" rows="5"></textarea></div>
+<div class="col-md-6"><label for="venueName" class="form-label">Tên địa điểm</label><input id="venueName" class="form-control" required maxlength="250"></div><div class="col-md-6"><label for="venueAddress" class="form-label">Địa chỉ</label><input id="venueAddress" class="form-control" required maxlength="500"></div>
+<div class="col-md-3"><label for="saleStartTime" class="form-label">Mở bán</label><input id="saleStartTime" type="datetime-local" step="0.001" class="form-control" required></div><div class="col-md-3"><label for="saleEndTime" class="form-label">Kết thúc bán</label><input id="saleEndTime" type="datetime-local" step="0.001" class="form-control" required></div><div class="col-md-3"><label for="startTime" class="form-label">Bắt đầu sự kiện</label><input id="startTime" type="datetime-local" step="0.001" class="form-control" required></div><div class="col-md-3"><label for="endTime" class="form-label">Kết thúc sự kiện</label><input id="endTime" type="datetime-local" step="0.001" class="form-control" required></div>
+<div class="col-12 text-muted small">Thời gian nhập theo giờ địa phương. Lịch phải thỏa: mở bán &lt; kết thúc bán ≤ bắt đầu &lt; kết thúc sự kiện.</div>
+<div class="col-12 d-flex flex-wrap gap-2"><button id="save-event" class="btn btn-dark" disabled>Lưu hồ sơ</button><button type="button" id="submit-event" class="btn btn-outline-dark" hidden>Gửi duyệt</button><button type="button" id="delete-event" class="btn btn-outline-danger" hidden>Xóa nháp</button></div></div></form>
+<section id="media" hidden class="border rounded p-4 mb-4"><h2 class="h4">Ảnh bìa</h2><p class="small text-muted">PNG/JPEG/WEBP tối đa 5 MB. Sự kiện mới dùng ảnh mặc định theo thể loại nếu chưa chọn ảnh riêng.</p><img id="cover-preview" alt="Ảnh bìa sự kiện" class="mb-3" style="max-width:100%;max-height:240px" hidden><div class="d-flex flex-wrap gap-3"><input type="file" id="cover-file" accept="image/png,image/jpeg,image/webp" class="form-control" style="max-width:450px"><button type="button" id="upload-cover" class="btn btn-dark">Tải ảnh lên</button><progress id="upload-progress" value="0" max="100" aria-label="Tiến trình tải ảnh"></progress></div></section>
+<section id="inventory" hidden><h2 class="h4">Khu vực và sơ đồ ghế</h2><p class="small text-muted">Sau công khai chỉ sửa giá. Chỗ đã giữ/bán hoặc có giao dịch được bảo vệ khi sửa/xóa.</p>
+<form id="zone-form" method="post" class="border rounded p-4 mb-4"><div class="row g-3"><div class="col-md-4"><label for="zone-name" class="form-label">Tên khu</label><input id="zone-name" class="form-control" maxlength="120" required></div><div class="col-md-4"><label for="zoneType" class="form-label">Loại khu</label><select id="zoneType" class="form-select"><option value="SEATED">Có ghế ngồi</option><option value="STANDING">Đứng tự do</option></select></div><div class="col-md-4"><label for="zone-price" class="form-label">Giá VND (số nguyên)</label><input id="zone-price" class="form-control" inputmode="numeric" pattern="[0-9]+" value="0" required></div>
+<div id="seat-fields" class="col-md-8 d-flex gap-3"><div><label for="rows" class="form-label">Số hàng</label><input id="rows" type="number" class="form-control" min="1" max="1000" value="4"></div><div><label for="seatsPerRow" class="form-label">Ghế mỗi hàng</label><input id="seatsPerRow" type="number" class="form-control" min="1" max="1000" value="10"></div></div><div id="standing-fields" class="col-md-8" hidden><label for="capacity" class="form-label">Sức chứa</label><input id="capacity" type="number" class="form-control" min="1" max="10000000" value="100"></div><div class="col-md-4 d-flex align-items-end"><button id="add-zone" class="btn btn-dark w-100">Thêm khu</button></div></div></form>
+<div id="zones"></div></section></main><jsp:include page="/WEB-INF/views/layout/footer.jsp" /><script defer src="${pageContext.request.contextPath}/assets/js/dong-events.js"></script></body></html>

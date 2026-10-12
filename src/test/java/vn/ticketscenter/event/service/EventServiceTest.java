@@ -382,6 +382,26 @@ class EventServiceTest {
                         b.image()));
     }
 
+    @Test void redisOutageLeavesDurableIntentRetryableWithoutFinalizingEvent() {
+        var repository=new Repository();var storage=new Storage();
+        var leases=new vn.ticketscenter.event.cache.EventIdempotencyStore(){
+            public Lease acquire(String key,String hash){throw EventProblem.unavailable();}
+            public void completed(Lease lease,String hash,vn.ticketscenter.event.repository.EventManagementRepository.Result result){fail();}
+            public void release(Lease lease){fail();}
+        };
+        assertEquals(503,assertThrows(EventProblem.class,()->new EventService(repository,storage,leases).save(ACTOR,new EventSave(UUID.randomUUID(),EventSave.Kind.EDIT,EVENT,0,FIELDS,null))).status());
+        assertEquals(0,repository.finalizes);assertEquals(0,storage.uploads);assertEquals(1,repository.releases);assertFalse(repository.aborted);
+    }
+    @Test void redisCompletionFailurePreservesCommittedImageWorkflowResult() {
+        var repository=new Repository();var storage=new Storage();var calls=new ArrayList<String>();
+        var leases=new vn.ticketscenter.event.cache.EventIdempotencyStore(){
+            public Lease acquire(String key,String hash){calls.add("acquire");return new Lease(key,"lease");}
+            public void completed(Lease lease,String hash,vn.ticketscenter.event.repository.EventManagementRepository.Result result){assertEquals(1,repository.finalizes);calls.add("completed");throw new IllegalStateException("Redis lost after commit");}
+            public void release(Lease lease){calls.add("release");}
+        };
+        assertEquals(repository.saved,new EventService(repository,storage,leases).save(ACTOR,new EventSave(UUID.randomUUID(),EventSave.Kind.EDIT,EVENT,0,FIELDS,null)));
+        assertEquals(List.of("acquire","completed","release"),calls);assertEquals(1,repository.finalizes);
+    }
     @Test
     void durableSnapshotRoundTripsUnicodeQuotesAndNewlines() {
         EventDto dto =

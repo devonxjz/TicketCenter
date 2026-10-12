@@ -35,8 +35,18 @@ class TicketServiceTest {
         }
 
         @Override
+        public List<TicketSummaryDto> findTicketsByBuyerId(UUID buyerId, int authVersion) {
+            return findTicketsByBuyerId(buyerId);
+        }
+
+        @Override
         public Optional<TicketRecord> findById(UUID ticketId) {
             return Optional.ofNullable(records.get(ticketId));
+        }
+
+        @Override
+        public Optional<TicketRecord> findById(UUID ticketId, UUID buyerId, int authVersion) {
+            return findById(ticketId);
         }
     }
 
@@ -135,6 +145,20 @@ class TicketServiceTest {
         // Vé không tồn tại -> 404 Not Found
         TicketException notFound = assertThrows(TicketException.class, () -> service.getTicketDetail(BUYER_A, UUID.randomUUID()));
         assertEquals(404, notFound.httpStatus());
+    }
+
+    @Test
+    void detailReflectsCurrentCheckInStateEvenWhenCached() {
+        UUID ticketId = UUID.randomUUID();
+        TicketRecord active = new TicketRecord(ticketId, UUID.randomUUID(), BUYER_A, "ORD-1", "TCK-1",
+                UUID.randomUUID(), "Show A", "Venue A", "Address A", Instant.now(), null,
+                "VIP", "Seat 1", 100000L, "ACTIVE", Instant.now(), 1L);
+        repository.records.put(ticketId, active);
+        assertEquals("ACTIVE", service.getTicketDetail(BUYER_A, ticketId).status());
+        repository.records.put(ticketId, new TicketRecord(ticketId, active.orderId(), BUYER_A, "ORD-1", "TCK-1",
+                active.eventId(), "Show A", "Venue A", "Address A", active.startTime(), null,
+                "VIP", "Seat 1", 100000L, "USED", active.issuedAt(), 2L));
+        assertEquals("USED", service.getTicketDetail(BUYER_A, ticketId).status());
     }
 
     @Test

@@ -34,8 +34,12 @@ public class TicketService {
      * Lấy danh sách vé đã mua của người dùng hiện tại (bảo vệ quyền truy cập).
      */
     public List<TicketSummaryDto> getMyTickets(UUID actorId) {
+        return getMyTickets(actorId, -1);
+    }
+
+    public List<TicketSummaryDto> getMyTickets(UUID actorId, int authVersion) {
         if (actorId == null) throw TicketException.unauthenticated();
-        return repository.findTicketsByBuyerId(actorId);
+        return repository.findTicketsByBuyerId(actorId, authVersion);
     }
 
     /**
@@ -46,11 +50,15 @@ public class TicketService {
      * - Nếu vé thuộc về người khác -> 403 FORBIDDEN.
      */
     public TicketDetailDto getTicketDetail(UUID actorId, UUID ticketId) {
+        return getTicketDetail(actorId, -1, ticketId);
+    }
+
+    public TicketDetailDto getTicketDetail(UUID actorId, int authVersion, UUID ticketId) {
         if (actorId == null) throw TicketException.unauthenticated();
         if (ticketId == null) throw TicketException.badRequest("ticketId is required");
 
         // Luôn đọc từ DB để xác thực owner trước, hoặc đối chiếu quyền
-        TicketRecord record = repository.findById(ticketId)
+        TicketRecord record = repository.findById(ticketId, actorId, authVersion)
                 .orElseThrow(TicketException::notFound);
 
         if (!actorId.equals(record.buyerId())) {
@@ -58,7 +66,9 @@ public class TicketService {
         }
 
         // Kiểm tra cache hoặc nạp vào cache
-        return cache.getTicketDetail(ticketId).orElseGet(() -> {
+        return cache.getTicketDetail(ticketId)
+                .filter(cached -> cached.version() == record.version() && cached.status().equals(record.status()))
+                .orElseGet(() -> {
             TicketDetailDto dto = record.toDetailDto();
             cache.putTicketDetail(dto);
             return dto;
@@ -72,10 +82,14 @@ public class TicketService {
      * - Sinh QR từ Envelope: base64url(payload).base64url(signature).
      */
     public byte[] getTicketQrPng(UUID actorId, UUID ticketId, int width, int height) {
+        return getTicketQrPng(actorId, -1, ticketId, width, height);
+    }
+
+    public byte[] getTicketQrPng(UUID actorId, int authVersion, UUID ticketId, int width, int height) {
         if (actorId == null) throw TicketException.unauthenticated();
         if (ticketId == null) throw TicketException.badRequest("ticketId is required");
 
-        TicketRecord record = repository.findById(ticketId)
+        TicketRecord record = repository.findById(ticketId, actorId, authVersion)
                 .orElseThrow(TicketException::notFound);
 
         if (!actorId.equals(record.buyerId())) {
