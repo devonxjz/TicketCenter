@@ -11,8 +11,8 @@ $b['Data Source']='tcp:'+ $settings['db.host']+',1433';$b['Initial Catalog']=$se
 $c=[System.Data.SqlClient.SqlConnection]::new($b.ConnectionString)
 try {
  $c.Open();$q=$c.CreateCommand();$q.CommandTimeout=15
- $q.CommandText="IF (SELECT COUNT_BIG(*) FROM dbo.tc_schema_migrations WHERE version IN('045_khanh05_refund_worker','045_khanh05_refund_worker.sql'))<>1 THROW 53592,'Missing or ambiguous worker migration',1;SELECT checksum_sha256 FROM dbo.tc_schema_migrations WHERE version IN('045_khanh05_refund_worker','045_khanh05_refund_worker.sql')"
- $lf=[IO.File]::ReadAllText((Resolve-Path database/migrations/045_khanh05_refund_worker.sql).Path).Replace("`r`n","`n").Replace("`r","`n")
+ $q.CommandText="IF (SELECT COUNT_BIG(*) FROM dbo.tc_schema_migrations WHERE version IN('048_khanh05_refund_worker','048_khanh05_refund_worker.sql'))<>1 THROW 53592,'Missing or ambiguous worker migration',1;SELECT checksum_sha256 FROM dbo.tc_schema_migrations WHERE version IN('048_khanh05_refund_worker','048_khanh05_refund_worker.sql')"
+ $lf=[IO.File]::ReadAllText((Resolve-Path database/migrations/048_khanh05_refund_worker.sql).Path).Replace("`r`n","`n").Replace("`r","`n")
  $sha=[Security.Cryptography.SHA256]::Create()
  try {$hash=[BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($lf))).Replace('-','').ToLowerInvariant()}finally{$sha.Dispose()}
  if($q.ExecuteScalar() -ne $hash){throw 'KHANH-05 migration checksum mismatch'}
