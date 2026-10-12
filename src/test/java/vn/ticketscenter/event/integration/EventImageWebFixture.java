@@ -54,6 +54,7 @@ public final class EventImageWebFixture {
                             "org/apache/tomcat/embed/tomcat-embed-el/11.0.25/tomcat-embed-el-11.0.25.jar",
                             "org/apache/tomcat/tomcat-annotations-api/11.0.25/tomcat-annotations-api-11.0.25.jar",
                             "org/eclipse/jdt/ecj/3.46.0/ecj-3.46.0.jar",
+                            "jakarta/servlet/jsp/jakarta.servlet.jsp-api/4.0.0/jakarta.servlet.jsp-api-4.0.0.jar",
                             "jakarta/servlet/jsp/jstl/jakarta.servlet.jsp.jstl-api/3.0.1/jakarta.servlet.jsp.jstl-api-3.0.1.jar",
                             "org/glassfish/web/jakarta.servlet.jsp.jstl/3.0.1/jakarta.servlet.jsp.jstl-3.0.1.jar")) {
                 Path jar = repository.resolve(relative);
@@ -134,14 +135,69 @@ public final class EventImageWebFixture {
                         "editor",
                         forward("/WEB-INF/views/organizer/event-editor.jsp"),
                         "/organizer/event-editor",
-                        "/organizer/events/new");
+                        "/organizer/events/new",
+                        "/events/manage/editor");
                 servlet(
                         type,
                         contextType,
                         context,
                         "manager",
                         forward("/WEB-INF/views/organizer/events.jsp"),
-                        "/organizer/events");
+                        "/organizer/events",
+                        "/events/manage");
+                servlet(
+                        type,
+                        contextType,
+                        context,
+                        "event-organizations",
+                        new HttpServlet() {
+                            @Override
+                            protected void doGet(
+                                    HttpServletRequest request, HttpServletResponse response)
+                                    throws IOException {
+                                response.setContentType("application/json;charset=UTF-8");
+                                response.getWriter()
+                                        .write(
+                                                "{\"data\":[{\"organizationId\":\""
+                                                        + fixture.organization
+                                                        + "\",\"name\":\"Fixture Organization\"}]}");
+                            }
+                        },
+                        "/api/event-organizations");
+                servlet(
+                        type,
+                        contextType,
+                        context,
+                        "event-categories",
+                        new HttpServlet() {
+                            @Override
+                            protected void doGet(
+                                    HttpServletRequest request, HttpServletResponse response)
+                                    throws IOException {
+                                response.setContentType("application/json;charset=UTF-8");
+                                response.getWriter()
+                                        .write(
+                                                "{\"data\":[{\"categoryId\":\""
+                                                        + fixture.category
+                                                        + "\",\"name\":\"Fixture Category\"}]}");
+                            }
+                        },
+                        "/api/event-categories");
+                servlet(
+                        type,
+                        contextType,
+                        context,
+                        "event-layout",
+                        new HttpServlet() {
+                            @Override
+                            protected void doGet(
+                                    HttpServletRequest request, HttpServletResponse response)
+                                    throws IOException {
+                                response.setContentType("application/json;charset=UTF-8");
+                                response.getWriter().write("{\"data\":[]}");
+                            }
+                        },
+                        "/api/events/*/layout");
                 servlet(
                         type,
                         contextType,

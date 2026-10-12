@@ -13,6 +13,8 @@ import java.io.IOException;
         "/admin/dashboard",
         "/admin/org-approval",
         "/admin/orgs/approval",
+        "/admin/organizations",
+        "/admin/organizations/list",
         "/admin/event-approval",
         "/admin/events/approval",
         "/admin/refund-approval",
@@ -29,14 +31,14 @@ public class AdminServlet extends HttpServlet {
         String view;
         String activeTab;
         if (path.contains("org")) {
-            view = "/WEB-INF/views/admin/org-approval.jsp";
+            view = "/WEB-INF/views/admin/organizations/list.jsp";
             activeTab = "org-approval";
         } else if (path.contains("event")) {
             view = "/WEB-INF/views/admin/event-approval.jsp";
             activeTab = "event-approval";
         } else if (path.contains("refund")) {
-            view = "/WEB-INF/views/admin/refund-approval.jsp";
-            activeTab = "refund-approval";
+            resp.sendRedirect(req.getContextPath() + "/admin/refund-requests");
+            return;
         } else if (path.contains("settlement")) {
             view = "/WEB-INF/views/admin/settlements.jsp";
             activeTab = "settlements";

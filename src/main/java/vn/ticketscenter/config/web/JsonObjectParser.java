@@ -47,10 +47,24 @@ public final class JsonObjectParser {
             index += 4;
             return null;
         }
+        if (source.startsWith("true", index)) {
+            index += 4;
+            return "true";
+        }
+        if (source.startsWith("false", index)) {
+            index += 5;
+            return "false";
+        }
         int start = index;
         char open = index < source.length() ? source.charAt(index) : 0;
-        if (open != '[') throw invalid();
-        char close = ']';
+        if (open == '-' || (open >= '0' && open <= '9')) {
+            while (index < source.length() && (Character.isDigit(source.charAt(index)) || source.charAt(index) == '.' || source.charAt(index) == 'e' || source.charAt(index) == 'E' || source.charAt(index) == '+' || source.charAt(index) == '-')) {
+                index++;
+            }
+            return source.substring(start, index);
+        }
+        if (open != '[' && open != '{') throw invalid();
+        char close = open == '[' ? ']' : '}';
         int depth = 0;
         boolean quoted = false;
         while (index < source.length()) {

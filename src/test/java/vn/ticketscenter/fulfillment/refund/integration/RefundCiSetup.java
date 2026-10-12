@@ -32,8 +32,8 @@ public final class RefundCiSetup {
             }
             if(!batches.isEmpty())throw new IllegalStateException("Incomplete base schema");
             for(String batch:split(Files.readString(Path.of("database/migrations/029_khanh03_refund_request.sql"))))q.execute(batch);
-            // Current complete WAR includes Event authorization. Consume its contract unchanged
-            // in this isolated fixture only, never deploy the coordination proposal to Azure.
+            // Full-WAR routing now includes Dong's Event management filter. Fixture only;
+            // consume its committed contract unchanged, never deploy the proposal to Azure.
             for(String batch:split(Files.readString(Path.of("docs/evidence/dong/DONG-DB-CONTRACT.sql"))))q.execute(batch);
             q.execute("ALTER ROLE tc_buyer ADD MEMBER khanh03_buyer;ALTER ROLE tc_platform_admin ADD MEMBER khanh03_admin");
         }

@@ -5,26 +5,38 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import vn.ticketscenter.identity.model.Organization;
-import vn.ticketscenter.persistence.model.BaseEntity;
 import vn.ticketscenter.settlement.model.CommissionRule;
 import vn.ticketscenter.settlement.model.Settlement;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "tc_events", schema = "dbo")
-public class Event extends BaseEntity {
+public class Event {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(nullable = false, updatable = false)
+    private UUID id;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "organization_id", nullable = false)
     private Organization organization;
+
+    @Column(name = "category_id", nullable = false)
+    private UUID categoryId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "commission_rule_id")
@@ -36,8 +48,7 @@ public class Event extends BaseEntity {
     @Column(nullable = false, length = 5000)
     private String description;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
+    @Transient
     private EventCategory category;
 
     @Column(name = "venue_name", nullable = false, length = 300)
@@ -71,6 +82,12 @@ public class Event extends BaseEntity {
     @Column(nullable = false, length = 30)
     private EventStatus status = EventStatus.DRAFT;
 
+    @Column(nullable = false)
+    private long version = 0L;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt = Instant.now();
+
     @Column(name = "rejection_reason", length = 2000)
     private String rejectionReason;
 
@@ -100,6 +117,14 @@ public class Event extends BaseEntity {
         this.saleStart = (startTime != null) ? startTime.minus(java.time.Duration.ofDays(7)) : Instant.now();
         this.saleEnd = (startTime != null) ? startTime : Instant.now().plus(java.time.Duration.ofDays(1));
     }
+
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
+    public UUID getCategoryId() { return categoryId; }
+    public void setCategoryId(UUID categoryId) { this.categoryId = categoryId; }
+    public void setCommissionRule(CommissionRule rule) { this.commissionRule = rule; }
+    public Instant getCreatedAt() { return createdAt; }
+    public long getVersion() { return version; }
 
     public void setSchedule(Instant saleStart, Instant saleEnd, Instant startTime, Instant endTime) {
         this.saleStart = saleStart;

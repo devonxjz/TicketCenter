@@ -17,6 +17,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@org.junit.jupiter.api.extension.ExtendWith(vn.ticketscenter.platform.testsupport.ExternalTestCondition.class)
 public class OtpRepositoryTest {
 
     private final OtpRepository otpRepository = new OtpRepository();

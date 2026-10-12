@@ -15,6 +15,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@org.junit.jupiter.api.extension.ExtendWith(vn.ticketscenter.platform.testsupport.ExternalTestCondition.class)
 public class OrganizationRepositoryTest {
 
     private final OrganizationRepository repository = new OrganizationRepository();
@@ -28,6 +29,8 @@ public class OrganizationRepositoryTest {
         assertThrows(NullPointerException.class, () -> repository.hasPendingRequest(null, UUID.randomUUID()));
         assertThrows(NullPointerException.class, () -> repository.findPending(null));
         assertThrows(NullPointerException.class, () -> repository.countPending(null));
+        assertThrows(NullPointerException.class, () -> repository.findByStatus(null, null, 0, 10));
+        assertThrows(NullPointerException.class, () -> repository.countByStatus(null, null));
         assertThrows(NullPointerException.class, () -> repository.save(null, null));
     }
 

@@ -6,6 +6,7 @@ param(
  [string]$JavaHome=$env:JAVA_HOME,
  [string]$NodePath='node',
  [int]$Port=0,
+ [ValidateRange(1024,65535)][int]$RedisPort=16379,
  [switch]$Serve
 )
 $ErrorActionPreference='Stop'
@@ -69,7 +70,7 @@ $config=[ordered]@{
  'db.encrypt'='false';'db.trustServerCertificate'='true';'db.loginTimeout'='5';'app.env'='test';'app.base.url'="http://127.0.0.1:$Port/ticketscenter";
  'app.secret.key'=[Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(32));'admin.seed.enabled'='true';'admin.email'='vuong.acceptance@test.invalid';'admin.password'=$adminPassword;
  'hikari.maximum-pool-size'='2';'hikari.minimum-idle'='0';'hikari.pool-budget'='24';'hikari.connection-timeout'='5000';
- 'redis.host'='127.0.0.1';'redis.port'='16379';'redis.timeout'='300';'redis.password'='';'finance.redis.enabled'='false';'payout.adapter'='unavailable';
+ 'redis.host'='127.0.0.1';'redis.port'=[string]$RedisPort;'redis.timeout'='300';'redis.password'='';'finance.redis.enabled'='false';'payout.adapter'='unavailable';
  'mail.smtp.host'='127.0.0.1';'mail.smtp.port'='1025';'mail.smtp.user'='local-test';'mail.smtp.password'='local-test';
  'vnpay.pay.url'='http://127.0.0.1:19090/disabled';'vnpay.api.url'='http://127.0.0.1:19090/disabled';'vnpay.return.url'="http://127.0.0.1:$Port/ticketscenter/api/payments/vnpay/return";'vnpay.tmn.code'='LOCAL_TEST';'vnpay.hash.secret'='local-test-only';
  'CLOUDINARY_CLOUD_NAME'='';'CLOUDINARY_API_KEY'='';'CLOUDINARY_API_SECRET'='';
