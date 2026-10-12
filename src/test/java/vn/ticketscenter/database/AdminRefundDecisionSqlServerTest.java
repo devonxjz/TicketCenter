@@ -16,13 +16,21 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @EnabledIfEnvironmentVariable(named="TC_ADMIN_REFUND_TEST",matches="true")
 public class AdminRefundDecisionSqlServerTest {
-    public record Case(UUID admin,UUID event,UUID order,UUID ticket,UUID refund,UUID zone) {
+    public record Case(UUID admin,UUID buyer,UUID event,UUID order,UUID ticket,UUID refund,UUID zone) {
         public UserPrincipal actor(){return new UserPrincipal(admin,PlatformRole.ADMIN,0);}
         public AdminRefundRepository repository(){return new AdminRefundRepository(source("admin",admin));}
         public AdminRefundDecisionService service(){return new AdminRefundDecisionService(repository(),(a,k,r)->{});}
     }
     public static Case fixture(boolean free)throws Exception {
         var f=SqlReportSafetyIT.fixture();
+        UUID admin=UUID.randomUUID();
+        try(var c=ScanFixture.owner()){
+            c.setAutoCommit(false);
+            ScanFixture.execute(c,"DELETE dbo.tc_user_platform_roles WHERE user_id=? AND role='ADMIN'",f.user());
+            ScanFixture.execute(c,"UPDATE dbo.tc_users SET platform_role='CUSTOMER' WHERE id=?",f.user());
+            ScanFixture.execute(c,"INSERT dbo.tc_users(id,email,user_name,password_hash,full_name,email_verified_at,platform_role) VALUES(?,?,?,N'fixture-only',N'HTTP admin',SYSUTCDATETIME(),'ADMIN')",admin,admin+"@fixture.invalid",admin.toString());
+            ScanFixture.execute(c,"INSERT dbo.tc_user_platform_roles(user_id,role) VALUES(?,'ADMIN')",admin);c.commit();
+        }
         if(free)try(var c=ScanFixture.owner()) {
             ScanFixture.execute(c,"UPDATE dbo.tc_order_items SET unit_price=0 WHERE id=?",f.item());
             ScanFixture.execute(c,"UPDATE dbo.tc_orders SET subtotal_amount=0,total_amount=0 WHERE id=?",f.order());
@@ -32,11 +40,12 @@ public class AdminRefundDecisionSqlServerTest {
             ScanFixture.execute(c,"EXEC dbo.usp_CompleteFreeOrder ?,?,?",f.order(),f.user(),"[{\"ticketCode\":\""+UUID.randomUUID()+"\",\"qrSecretHashHex\":\"01020304\"}]");
         }else SqlReportSafetyIT.capture(f,f.payment(),f.payment().toString());
         UUID ticket=UUID.fromString(scalar("SELECT CONVERT(varchar(36),id) FROM dbo.tc_tickets WHERE order_item_id=?",f.item()));
+        int buyerVersion=Integer.parseInt(scalar("SELECT auth_version FROM dbo.tc_users WHERE id=?",f.user()));
         try(var c=source("buyer",f.user()).getConnection()) {
-            ScanFixture.execute(c,"DECLARE @id uniqueidentifier; EXEC dbo.sp_refund_request_for_tickets ?,?,?,?,@id OUTPUT,?,0",f.order(),f.user(),ticket.toString(),"Khách yêu cầu hoàn vé",UUID.randomUUID());
+            ScanFixture.execute(c,"DECLARE @id uniqueidentifier; EXEC dbo.sp_refund_request_for_tickets ?,?,?,?,@id OUTPUT,?,?",f.order(),f.user(),ticket.toString(),"Khách yêu cầu hoàn vé",UUID.randomUUID(),buyerVersion);
         }
         UUID refund=UUID.fromString(scalar("SELECT CONVERT(varchar(36),id) FROM dbo.tc_refund_obligations WHERE order_id=? AND purpose='CUSTOMER_REFUND'",f.order()));
-        return new Case(f.user(),f.event(),f.order(),ticket,refund,f.zone());
+        return new Case(admin,f.user(),f.event(),f.order(),ticket,refund,f.zone());
     }
     public static DataSource source(String role,UUID actor){return PaymentCrossDomainSqlTest.source(role,actor);}
     private static String scalar(String sql,Object...args)throws Exception{return ScanFixture.scalar(sql,args);}
@@ -51,6 +60,7 @@ public class AdminRefundDecisionSqlServerTest {
         assertEquals("REFUND_PENDING",scalar("SELECT status FROM dbo.tc_tickets WHERE id=?",f.ticket()));
         assertEquals("1",scalar("SELECT COUNT(*) FROM dbo.tc_refunds WHERE refund_request_id=(SELECT legacy_request_id FROM dbo.tc_refund_obligations WHERE id=?)",f.refund()));
         var detail=f.service().detail(f.actor(),f.refund());assertEquals("Đã xác minh",detail.adminNote());assertEquals(1,detail.attempts().size());assertFalse(detail.refund().canRetry());
+        assertEquals(f.buyer(),detail.refund().buyerId());assertNotEquals(f.admin(),detail.refund().buyerId());
         outcome(first.attemptId(),"SUCCEEDED");assertEquals("REFUNDED",scalar("SELECT status FROM dbo.tc_tickets WHERE id=?",f.ticket()));
         assertEquals("0",scalar("SELECT sold_quantity FROM dbo.tc_zones WHERE id=?",f.zone()));
     }
