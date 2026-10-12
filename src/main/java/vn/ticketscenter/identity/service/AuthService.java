@@ -116,7 +116,7 @@ public class AuthService {
                 found = userRepository.findByNormalizedUserName(em, identifier).orElse(null);
             }
             if (found == null && "admin".equalsIgnoreCase(identifier)) {
-                String adminEmail = AccountService.normalizeEmail(AppConfig.get("admin.email", "adminTIcket@gmail.com"));
+                String adminEmail = AccountService.normalizeEmail(AppConfig.get("admin.email", "admin@fixture.invalid"));
                 found = userRepository.findByNormalizedEmail(em, adminEmail).orElse(null);
                 if (found == null) {
                     found = em.createQuery("SELECT u FROM User u WHERE u.platformRole = :role ORDER BY CASE WHEN LOWER(u.email) LIKE '%admin%' THEN 0 ELSE 1 END", User.class)

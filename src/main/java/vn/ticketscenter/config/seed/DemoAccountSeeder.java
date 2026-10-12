@@ -58,8 +58,8 @@ public final class DemoAccountSeeder {
             ensureMembership(entityManager, manager, org, OrganizationRole.MANAGER);
             ensureMembership(entityManager, staff, org, OrganizationRole.CHECK_IN_STAFF);
 
-            // 6. Đảm bảo tài khoản adminTIcket@gmail.com có tên đăng nhập là 'admin'
-            User admin = userDAO.findByNormalizedEmail(AccountService.normalizeEmail("adminTIcket@gmail.com")).orElse(null);
+            // 6. Đảm bảo tài khoản admin@fixture.invalid có tên đăng nhập là 'admin'
+            User admin = userDAO.findByNormalizedEmail(AccountService.normalizeEmail(vn.ticketscenter.config.AppConfig.get("admin.email", "admin@fixture.invalid"))).orElse(null);
             if (admin != null && !"admin".equalsIgnoreCase(admin.getUserName())) {
                 Long count = entityManager.createQuery("SELECT COUNT(u) FROM User u WHERE LOWER(u.userName) = 'admin' AND u.id != :id", Long.class)
                         .setParameter("id", admin.getId())

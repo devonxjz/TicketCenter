@@ -53,18 +53,18 @@ class DemoAccountSeederTest {
     }
 
     @Test
-    @DisplayName("Admin: Đăng nhập thành công với adminTIcket@gmail.com và mật khẩu 123123ticketCenter")
+    @DisplayName("Admin: Đăng nhập thành công với admin@fixture.invalid và mật khẩu mật khẩu fixture từ cấu hình")
     void testAdminAccountLogin() {
-        UserPrincipal principal = authService.login(new LoginRequestDto("adminTIcket@gmail.com", "123123ticketCenter"));
+        UserPrincipal principal = authService.login(new LoginRequestDto(vn.ticketscenter.config.AppConfig.get("admin.email", "admin@fixture.invalid"), vn.ticketscenter.config.AppConfig.get("admin.password")));
         assertNotNull(principal);
         assertEquals(PlatformRole.ADMIN, principal.platformRole());
         assertTrue(principal.isAdmin());
     }
 
     @Test
-    @DisplayName("Admin: Đăng nhập thành công với tên đăng nhập 'admin' và mật khẩu 123123ticketCenter")
+    @DisplayName("Admin: Đăng nhập thành công với tên đăng nhập 'admin' và mật khẩu mật khẩu fixture từ cấu hình")
     void testAdminAccountLoginWithUsername() {
-        UserPrincipal principal = authService.login(new LoginRequestDto("admin", "123123ticketCenter"));
+        UserPrincipal principal = authService.login(new LoginRequestDto("admin", vn.ticketscenter.config.AppConfig.get("admin.password")));
         assertNotNull(principal);
         assertEquals(PlatformRole.ADMIN, principal.platformRole());
         assertTrue(principal.isAdmin());

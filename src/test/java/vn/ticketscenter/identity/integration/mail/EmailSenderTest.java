@@ -54,7 +54,7 @@ public class EmailSenderTest {
     void smtpEmailSenderShouldSendRealEmail() {
         SmtpEmailSender sender = new SmtpEmailSender();
         EmailMessage message = new EmailMessage(
-                "tranlethai11102006@gmail.com",
+                "recipient@fixture.invalid",
                 "[TicketsCenter] Kiểm tra mã OTP thực tế",
                 "Xin chào,\n\nĐây là mã OTP kiểm thử thực tế từ TicketsCenter: 889966\nHiệu lực: 5 phút.",
                 null
