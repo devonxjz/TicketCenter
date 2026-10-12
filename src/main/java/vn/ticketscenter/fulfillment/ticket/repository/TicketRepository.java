@@ -2,6 +2,7 @@ package vn.ticketscenter.fulfillment.ticket.repository;
 
 import vn.ticketscenter.fulfillment.ticket.dto.TicketDetailDto;
 import vn.ticketscenter.fulfillment.ticket.dto.TicketSummaryDto;
+import vn.ticketscenter.fulfillment.ticket.service.TicketException;
 
 import javax.sql.DataSource;
 import java.sql.*;
@@ -144,6 +145,34 @@ public class TicketRepository {
             throw new IllegalStateException("Failed to query ticket by id", e);
         }
         return Optional.empty();
+    }
+
+    public void assertTicketAccess(Connection conn, UUID ticketId) {
+        if (conn == null) return;
+        Objects.requireNonNull(ticketId, "ticketId is required");
+        try (CallableStatement cs = conn.prepareCall("{call dbo.usp_AssertTicketAccess(?)}")) {
+            cs.setObject(1, ticketId);
+            cs.execute();
+        } catch (SQLException e) {
+            int code = e.getErrorCode();
+            if (code == 51403) {
+                throw TicketException.forbidden();
+            }
+            if (code == 51404) {
+                throw TicketException.notFound();
+            }
+            throw TicketException.unavailable();
+        }
+    }
+
+    public void assertTicketAccess(UUID ticketId, UUID actorId) {
+        if (dataSource == null) return;
+        Objects.requireNonNull(ticketId, "ticketId is required");
+        try (Connection conn = dataSource.getConnection()) {
+            assertTicketAccess(conn, ticketId);
+        } catch (SQLException e) {
+            throw TicketException.unavailable();
+        }
     }
 
     /**

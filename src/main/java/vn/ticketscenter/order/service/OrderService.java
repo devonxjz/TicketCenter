@@ -42,8 +42,12 @@ public final class OrderService {
     public OrderDetailDto orderDetail(OrderActor actor, UUID orderId) {
         Objects.requireNonNull(actor, "actor is required");
         Objects.requireNonNull(orderId, "orderId is required");
-        OrderDetailDto detail = repository.findOrderDetail(orderId, actor.id(), actor.authVersion())
-                .orElseThrow(() -> new OrderException(404, "ORDER_NOT_FOUND", "Order was not found."));
+        var opt = repository.findOrderDetail(orderId, actor.id(), actor.authVersion());
+        if (opt.isEmpty()) {
+            repository.assertOrderAccess(orderId, actor.id());
+            throw new OrderException(404, "ORDER_NOT_FOUND", "Order was not found.");
+        }
+        OrderDetailDto detail = opt.get();
         if (!actor.id().equals(detail.buyerId())) {
             throw new OrderException(403, "FORBIDDEN", "You do not own this order.");
         }
