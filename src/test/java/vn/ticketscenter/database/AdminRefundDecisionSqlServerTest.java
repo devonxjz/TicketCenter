@@ -113,10 +113,41 @@ public class AdminRefundDecisionSqlServerTest {
         assertEquals("0",scalar("SELECT COUNT(*) FROM dbo.tc_audit_logs WHERE aggregate_id=? AND action='ADMIN_REFUND_APPROVE'",f.refund()));
     }
     @Test void currentRoleAndAuthVersionRecheckedEvenWithCachedPrincipal()throws Exception{
-        var f=fixture(false);try(var c=ScanFixture.owner()){ScanFixture.execute(c,"DELETE dbo.tc_user_platform_roles WHERE user_id=? AND role='ADMIN'",f.admin());}
+        var f=fixture(false);try(var c=ScanFixture.owner()){ScanFixture.execute(c,"UPDATE dbo.tc_users SET platform_role='CUSTOMER' WHERE id=?",f.admin());}
         assertEquals(403,assertThrows(RefundException.class,()->approve(f,UUID.randomUUID())).status());
-        try(var c=ScanFixture.owner()){ScanFixture.execute(c,"INSERT dbo.tc_user_platform_roles(user_id,role) VALUES(?,'ADMIN')",f.admin());ScanFixture.execute(c,"UPDATE dbo.tc_users SET auth_version=auth_version+1 WHERE id=?",f.admin());}
+        try(var c=ScanFixture.owner()){ScanFixture.execute(c,"UPDATE dbo.tc_users SET platform_role='ADMIN',auth_version=auth_version+1 WHERE id=?",f.admin());}
         assertEquals(401,assertThrows(RefundException.class,()->approve(f,UUID.randomUUID())).status());assertEquals("REQUESTED",f.repository().detail(f.refund()).refund().status());
+    }
+    @Test void currentAdminWithoutLegacyGrantCanListAndApprove()throws Exception{
+        var f=fixture(false);try(var c=ScanFixture.owner()){ScanFixture.execute(c,"DELETE dbo.tc_user_platform_roles WHERE user_id=? AND role='ADMIN'",f.admin());}
+        assertTrue(f.service().list(f.actor(),"REQUESTED",1,20).total()>0);
+        assertEquals("APPROVED",approve(f,UUID.randomUUID()).status());
+    }
+    @Test void demotionRejectsListReplayAndDirectReviewDespiteLegacyGrant()throws Exception{
+        var f=fixture(false);var key=UUID.randomUUID();approve(f,key);
+        var pending=fixture(false);
+        try(var c=ScanFixture.owner()){ScanFixture.execute(c,"UPDATE dbo.tc_users SET platform_role='CUSTOMER' WHERE id=?",f.admin());}
+        assertEquals(403,assertThrows(RefundException.class,()->f.service().list(f.actor(),null,1,20)).status());
+        assertEquals(403,assertThrows(RefundException.class,()->approve(f,key)).status());
+        try(var c=ScanFixture.owner()){
+            assertEquals(51402,assertThrows(SQLException.class,()->ScanFixture.execute(c,"DECLARE @request uniqueidentifier=(SELECT legacy_request_id FROM dbo.tc_refund_obligations WHERE id=?); EXEC dbo.usp_ReviewRefundRequest @request_id=@request,@actor_id=?,@decision='APPROVE'",pending.refund(),f.admin())).getErrorCode());
+        }
+        assertEquals("REQUESTED",pending.repository().detail(pending.refund()).refund().status());
+    }
+    @Test void completedReplayRechecksRevocationAfterActorLockWait()throws Exception{
+        var f=fixture(false);var key=UUID.randomUUID();approve(f,key);
+        var pool=Executors.newSingleThreadExecutor();var ready=new CountDownLatch(1);
+        try(var gate=ScanFixture.owner()){
+            gate.setAutoCommit(false);
+            ScanFixture.execute(gate,"UPDATE dbo.tc_events SET version=version WHERE id=?",f.event());
+            ScanFixture.execute(gate,"DECLARE @result int; EXEC @result=sys.sp_getapplock @Resource=?,@LockMode='Exclusive',@LockOwner='Transaction',@LockTimeout=0; IF @result<0 THROW 54310,'Fixture lock failed',1", "admin-refund:"+f.admin().toString().toUpperCase(Locale.ROOT));
+            var replay=pool.submit(()->{ready.countDown();return assertThrows(RefundException.class,()->approve(f,key)).status();});
+            assertTrue(ready.await(5,TimeUnit.SECONDS));Thread.sleep(600);assertFalse(replay.isDone(),"Replay must be waiting on the actor lock");
+            ScanFixture.execute(gate,"UPDATE dbo.tc_users SET auth_version=auth_version+1 WHERE id=?",f.admin());gate.commit();
+            assertEquals(401,replay.get(20,TimeUnit.SECONDS));
+        }finally{pool.shutdownNow();}
+        assertEquals("1",scalar("SELECT COUNT(*) FROM dbo.tc_request_idempotency WHERE actor_id=? AND operation='ADMIN_REFUND_DECISION'",f.admin()));
+        assertEquals(1,f.repository().detail(f.refund()).attempts().size());
     }
     @Test void zeroAmountCompletesWithoutGatewayAttemptAndReturnsInventory()throws Exception{
         var f=fixture(true);var result=approve(f,UUID.randomUUID());assertEquals("COMPLETED",result.canonicalStatus());assertNull(result.attemptId());

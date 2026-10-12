@@ -34,6 +34,7 @@ public final class AdminRefundCiSetup {
                     for(String role:new String[]{"admin","buyer","worker"})q.execute("IF USER_ID('sql_report_"+role+"') IS NULL BEGIN CREATE USER sql_report_"+role+" WITHOUT LOGIN; ALTER ROLE "+(role.equals("admin")?"tc_platform_admin":"tc_"+role)+" ADD MEMBER sql_report_"+role+"; END;");
                 }
                 install(c,"043_khanh04_admin_refund.sql");
+                install(c,"046_admin_refund_current_authority.sql");
                 if(adminPassword!=null)q.execute("CREATE USER khanh04_admin FOR LOGIN khanh04_admin; ALTER ROLE tc_platform_admin ADD MEMBER khanh04_admin; GRANT VIEW DEFINITION TO khanh04_admin;");
                 if(buyerPassword!=null)q.execute("CREATE USER khanh04_buyer FOR LOGIN khanh04_buyer; ALTER ROLE tc_buyer ADD MEMBER khanh04_buyer; GRANT VIEW DEFINITION TO khanh04_buyer;");
                 c.commit();

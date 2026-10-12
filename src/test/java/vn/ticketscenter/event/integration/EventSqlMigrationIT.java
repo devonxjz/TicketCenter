@@ -10,7 +10,7 @@ class EventSqlMigrationIT {
     @Test void reviewedMigrationReappliesWithoutLosingReceiptsAndGrantsOnlyPublicSeatRead() throws Exception {
         try(Connection c=DongFixtureConnectionSettings.configured().open()) {
             long receipts=count(c);String cleanupBefore=cleanupFingerprint(c);
-            String migration=Files.readString(Path.of("database/migrations/045_event_commands_and_public_seats.sql"));
+            String migration=Files.readString(Path.of("database/migrations/045_event_commands_and_public_seats.sql"))+"\n"+Files.readString(Path.of("database/migrations/047_event_authority_lock_order.sql"));
             assertTrue(migration.contains("CREATE OR ALTER PROCEDURE dbo.usp_EventCommand"),"Refuse an incomplete migration artifact" );
             for(int attempt=0;attempt<2;attempt++) {
                 c.setAutoCommit(false);

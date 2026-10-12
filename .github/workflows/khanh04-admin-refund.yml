@@ -4,7 +4,7 @@ on:
     branches: [dev, feat/khanh/khanh-04-admin-refund-decision]
   pull_request:
     branches: [dev]
-    paths: ['src/main/java/vn/ticketscenter/fulfillment/refund/**', 'src/main/java/vn/ticketscenter/admin/controller/AdminServlet.java', 'src/main/resources/openapi.json', 'src/main/webapp/WEB-INF/views/admin/refunds/**', 'src/main/webapp/assets/refund/**', 'src/test/**/refund/**', 'src/test/java/vn/ticketscenter/database/AdminRefund*.java', 'database/migrations/043_khanh04_admin_refund.sql', '.github/workflows/khanh04-admin-refund.yml']
+    paths: ['src/main/java/vn/ticketscenter/fulfillment/refund/**', 'src/main/java/vn/ticketscenter/admin/controller/AdminServlet.java', 'src/main/resources/openapi.json', 'src/main/webapp/WEB-INF/views/admin/refunds/**', 'src/main/webapp/assets/refund/**', 'src/test/**/refund/**', 'src/test/java/vn/ticketscenter/database/AdminRefund*.java', 'database/migrations/043_khanh04_admin_refund.sql', 'database/migrations/046_admin_refund_current_authority.sql', '.github/workflows/khanh04-admin-refund.yml']
   workflow_dispatch:
 permissions:
   contents: read

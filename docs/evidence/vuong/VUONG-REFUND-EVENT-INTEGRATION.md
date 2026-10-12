@@ -67,4 +67,17 @@ Whole-task completion remains4/6. Do not close #28/#33 based on this slice or on
 - Ruling: preserve adopted043 identifiers and renumber only pending Event to045; complete-basename ledger and checksums are authoritative. Cost if wrong: shared rollout-order reconciliation; never rewrite installed history.
 - Ruling: add explicitly guarded SQL authentication for the dedicated Event fixture because Windows TCP authentication fails here. Cost if wrong: this transport does not prove a production login deployment; actual BUYER login and database-role assertions are separately identified.
 
-Fresh whole-branch review and any fix-pass findings are recorded here when available.
+Fresh read-only whole-branch review found three Important issues and one Minor issue. All received one fix pass:
+
+| Finding | Repair | Observed verification |
+|---|---|---|
+| Refund trusted legacy ADMIN grants | Additive046 uses current `tc_users.platform_role`, including underlying review; preserve043 | Demotion/current ADMIN tests RED→GREEN;18 actual Refund cases pass |
+| Event retained User before waiting for Event | Additive047 resolves/locks Event before retaining actor authority; preflight retains no User lock | Command409/direct publication1205/read lock conflict RED→GREEN;21 actual Event cases pass |
+| Completed Refund replay skipped post-wait authority |046 validates status/auth version/current role after actor/receipt waits | Original043 replay returned a receipt after revocation; repaired path401, durable receipt/attempt count unchanged |
+| Rollout recovery snapshot discovered no definitions | Restore regex whitespace and GO escapes; refuse missing expected definitions | Seven043 definitions and nine batches discovered; shared rollout script not executed |
+
+Replay gate fixture uses the uppercase SQL UUID resource and an active transaction, matching the procedure's application lock. Early fixture-only failures were not counted as a product regression. The direct underlying review denial is tested with owner transport; restricted ADMIN facade/list and actual BUYER/ADMIN WAR scope are separately covered.
+
+Ruling: append046 after refund043 and047 after Event045; historical/adopted migration bytes remain intact. The shared rollout must include repairs before acceptance. Local/CI execution is not evidence that the shared Azure database was migrated. No deferred review minors.
+
+The combined review-fix run executed18 Refund +21 Event cases with zero failures/errors/skips. Incorporate dev79a963a (new PR70/71/72 and merged PR68 latest02534f1) before full exact-head CI and re-evaluate affected checks.
