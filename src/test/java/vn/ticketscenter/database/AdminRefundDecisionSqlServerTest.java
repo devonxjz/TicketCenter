@@ -58,7 +58,7 @@ public class AdminRefundDecisionSqlServerTest {
         var f=fixture(false);var key=UUID.randomUUID();var first=approve(f,key);var replay=approve(f,key);
         assertEquals(first,replay);assertEquals("APPROVED",first.status());assertEquals("PROCESSING",first.canonicalStatus());assertNotNull(first.attemptId());
         assertEquals("REFUND_PENDING",scalar("SELECT status FROM dbo.tc_tickets WHERE id=?",f.ticket()));
-        assertEquals("1",scalar("SELECT COUNT(*) FROM dbo.tc_refunds WHERE refund_request_id=(SELECT legacy_request_id FROM dbo.tc_refund_obligations WHERE id=?)",f.refund()));
+        assertEquals("1",scalar("SELECT COUNT(*) FROM dbo.tc_refund_transfer_logs WHERE refund_id=?",f.refund()));
         var detail=f.service().detail(f.actor(),f.refund());assertEquals("Đã xác minh",detail.adminNote());assertEquals(1,detail.attempts().size());assertFalse(detail.refund().canRetry());
         assertEquals(f.buyer(),detail.refund().buyerId());assertNotEquals(f.admin(),detail.refund().buyerId());
         outcome(first.attemptId(),"SUCCEEDED");assertEquals("REFUNDED",scalar("SELECT status FROM dbo.tc_tickets WHERE id=?",f.ticket()));

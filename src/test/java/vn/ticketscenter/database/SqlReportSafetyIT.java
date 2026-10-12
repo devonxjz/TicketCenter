@@ -54,11 +54,11 @@ public class SqlReportSafetyIT {
             var b=pool.submit(()->{start.countDown();return capture(f,f.payment,f.payment.toString());});
             assertTrue(start.await(5,TimeUnit.SECONDS));Thread.sleep(750);gate.commit();
             int setsA=a.get(25,TimeUnit.SECONDS),setsB=b.get(25,TimeUnit.SECONDS);
-            assertEquals("0",scalar("SELECT COUNT(*) FROM dbo.tc_refunds WHERE payment_id=?",f.payment),"A repeated callback must not compensate the accepted payment");
+            assertEquals("0",scalar("SELECT COUNT(*) FROM dbo.vw_RefundAttemptLedger WHERE payment_id=?",f.payment),"A repeated callback must not compensate the accepted payment");
             assertEquals(1,setsA);assertEquals(1,setsB);
         }finally{pool.shutdownNow();}
         assertEquals("1",scalar("SELECT COUNT(*) FROM dbo.tc_tickets WHERE order_item_id=?",f.item));
-        assertEquals("0",scalar("SELECT COUNT(*) FROM dbo.tc_refunds WHERE payment_id=?",f.payment));
+        assertEquals("0",scalar("SELECT COUNT(*) FROM dbo.vw_RefundAttemptLedger WHERE payment_id=?",f.payment));
         assertEquals(f.payment.toString().toUpperCase(Locale.ROOT),scalar("SELECT CONVERT(varchar(36),accepted_payment_id) FROM dbo.tc_orders WHERE id=?",f.order).toUpperCase(Locale.ROOT));
     }
     @Test void secondRealCaptureIsRecordedAndCompensatedExactlyOnce()throws Exception {
@@ -66,19 +66,20 @@ public class SqlReportSafetyIT {
         try(var c=owner()){sql(c,"INSERT dbo.tc_payments(id,order_id,txn_ref,amount) VALUES(?,?,?,1000)",extra,f.order,extra.toString());}
         capture(f,extra,extra.toString());capture(f,extra,extra.toString());
         assertEquals("2",scalar("SELECT COUNT(*) FROM dbo.tc_payments WHERE order_id=? AND status='CAPTURED'",f.order));
-        assertEquals("1",scalar("SELECT COUNT(*) FROM dbo.tc_refunds WHERE payment_id=? AND purpose='PAYMENT_COMPENSATION'",extra));
+        assertEquals("1",scalar("SELECT COUNT(*) FROM dbo.vw_RefundAttemptLedger WHERE payment_id=? AND purpose='PAYMENT_COMPENSATION'",extra));
         assertEquals("1",scalar("SELECT COUNT(*) FROM dbo.tc_tickets WHERE order_item_id=?",f.item));
     }
     static UUID compensation(Fixture f)throws Exception {
         UUID r=UUID.randomUUID();try(var c=owner()){
             sql(c,"UPDATE dbo.tc_payments SET status='CAPTURED',captured_at=SYSUTCDATETIME(),provider_reference=? WHERE id=?",f.payment.toString(),f.payment);
-            sql(c,"INSERT dbo.tc_refunds(id,payment_id,purpose,amount) VALUES(?,?,'PAYMENT_COMPENSATION',1000)",r,f.payment);
+            sql(c,"INSERT dbo.tc_refund_obligations(id,order_id,payment_id,amount,purpose,status,current_attempt_id) SELECT ?,order_id,id,1000,'PAYMENT_COMPENSATION','PROCESSING',? FROM dbo.tc_payments WHERE id=?",r,r,f.payment);
+            sql(c,"INSERT dbo.tc_refund_transfer_logs(id,refund_id,attempt_no,status,result) VALUES(?,?,1,'PENDING','PENDING')",r,r);
         }return r;
     }
     static void refund(UUID id,String status,String reference)throws Exception {try(var c=owner()){sql(c,"EXEC dbo.usp_ApplyRefundResult ?,?",id,"{\"status\":\""+status+"\",\"providerReference\":\""+reference+"\"}");}}
     @Test void failedRefundAcceptsVerifiedLateSuccessAndReplay()throws Exception {
         var f=fixture();UUID r=compensation(f);refund(r,"FAILED","REF-"+r);refund(r,"SUCCEEDED","REF-"+r);refund(r,"SUCCEEDED","REF-"+r);
-        assertEquals("SUCCEEDED",scalar("SELECT status FROM dbo.tc_refunds WHERE id=?",r));
+        assertEquals("SUCCEEDED",scalar("SELECT status FROM dbo.tc_refund_transfer_logs WHERE id=?",r));
         assertEquals("2",scalar("SELECT COUNT(*) FROM dbo.tc_gateway_refund_receipts WHERE refund_id=?",r));
         assertEquals("1",scalar("SELECT COUNT(*) FROM dbo.tc_outbox WHERE idempotency_key=?","refund-succeeded:"+r));
     }
@@ -118,7 +119,6 @@ public class SqlReportSafetyIT {
     }
     @Test void buyerCannotApplyPaidCaptureOrInvokeLegacyFinance()throws Exception{
         var f=fixture();deny("sql_report_buyer","EXEC dbo.usp_ApplyPaymentResult @order_id=?,@payment_id=?,@verified_result=N'{\"status\":\"CAPTURED\"}'",f.order,f.payment);
-        deny("sql_report_admin","EXEC dbo.usp_CalculateEventSettlement ?,?",f.event,f.user);
         deny("sql_report_worker","EXEC dbo.usp_ReviewRefundRequest @request_id=?,@decision='REJECT'",UUID.randomUUID());
     }
     @Test void scopedMemberProcedureRejectsForeignOrganization()throws Exception{

@@ -13,9 +13,9 @@ CREATE OR ALTER VIEW dbo.vw_OutboxEmailContext AS
 UNION ALL
  SELECT x.id,x.event_type,u.email,u.full_name,o.order_code,e.title,r.amount
  FROM dbo.tc_outbox x
- JOIN dbo.tc_refunds r ON r.id=x.aggregate_id
- JOIN dbo.tc_payments p ON p.id=r.payment_id
- JOIN dbo.tc_orders o ON o.id=p.order_id
+ JOIN dbo.tc_refund_transfer_logs l ON l.id=x.aggregate_id
+ JOIN dbo.tc_refund_obligations r ON r.id=l.refund_id
+ JOIN dbo.tc_orders o ON o.id=r.order_id
  JOIN dbo.tc_users u ON u.id=o.user_id
  JOIN dbo.tc_events e ON e.id=o.event_id
  WHERE x.event_type='REFUND_SUCCEEDED' AND x.aggregate_type='REFUND';

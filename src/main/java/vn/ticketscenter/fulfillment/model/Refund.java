@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "tc_refunds", schema = "dbo")
+@Table(name = "tc_refund_obligations", schema = "dbo")
 public class Refund extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "order_id", nullable = false)
@@ -53,6 +53,17 @@ public class Refund extends BaseEntity {
     @Column(nullable = false, length = 40)
     private RefundStatus status = RefundStatus.REQUESTED;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "requester_id")
+    private vn.ticketscenter.identity.model.User requester;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reviewer_id")
+    private vn.ticketscenter.identity.model.User reviewer;
+
+    @Column(name = "decided_at")
+    private Instant decidedAt;
+
     @Column(name = "current_attempt_id")
     private UUID currentAttemptId;
 
@@ -80,6 +91,9 @@ public class Refund extends BaseEntity {
         this.reason = reason;
     }
 
+    public vn.ticketscenter.identity.model.User getRequester() { return requester; }
+    public vn.ticketscenter.identity.model.User getReviewer() { return reviewer; }
+    public Instant getDecidedAt() { return decidedAt; }
     public Order getOrder() { return order; }
     public Payment getPayment() { return payment; }
     public long getAmount() { return amount; }

@@ -20,12 +20,10 @@
         <class>vn.ticketscenter.order.model.Payment</class>
         <class>vn.ticketscenter.order.model.Coupon</class>
         <class>vn.ticketscenter.fulfillment.model.Ticket</class>
-        <class>vn.ticketscenter.fulfillment.model.RefundRequest</class>
         <class>vn.ticketscenter.fulfillment.model.Refund</class>
         <class>vn.ticketscenter.settlement.model.CommissionRule</class>
         <class>vn.ticketscenter.settlement.model.Settlement</class>
         <class>vn.ticketscenter.settlement.model.SettlementItem</class>
-        <class>vn.ticketscenter.settlement.model.Payout</class>
         <class>vn.ticketscenter.persistence.model.RefundTicket</class>
         <class>vn.ticketscenter.persistence.model.RefundTransferLog</class>
         <class>vn.ticketscenter.persistence.model.SettlementTransferLog</class>

@@ -67,7 +67,7 @@ class PaymentCrossDomainSqlTest {
         assertEquals("PAID",ScanFixture.scalar("SELECT status FROM dbo.tc_orders WHERE id=?",f.order()));
         assertEquals(f.payment().toString(),ScanFixture.scalar("SELECT CONVERT(varchar(36),accepted_payment_id) FROM dbo.tc_orders WHERE id=?",f.order()).toLowerCase());
         assertEquals("1",ScanFixture.scalar("SELECT COUNT(*) FROM dbo.tc_tickets WHERE order_item_id=?",f.item()));
-        assertEquals("0",ScanFixture.scalar("SELECT COUNT(*) FROM dbo.tc_refunds WHERE payment_id=?",f.payment()));
+        assertEquals("0",ScanFixture.scalar("SELECT COUNT(*) FROM dbo.vw_RefundAttemptLedger WHERE payment_id=?",f.payment()));
     }
 
     @Test void freeCheckoutUsesBuyerFacadeAndIssuesTicketsWithoutPaymentCapture() throws Exception {
