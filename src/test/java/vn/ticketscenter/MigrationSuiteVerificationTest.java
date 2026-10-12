@@ -17,6 +17,7 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Tag("db")
+@org.junit.jupiter.api.extension.ExtendWith(vn.ticketscenter.platform.testsupport.ExternalTestCondition.class)
 public class MigrationSuiteVerificationTest {
 
     private static final String[] MIGRATION_FILES = {

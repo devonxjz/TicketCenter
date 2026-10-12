@@ -1668,19 +1668,107 @@
         "summary": "Danh sách sự kiện đã xuất bản",
         "responses": {
           "200": {
-            "description": "Tối đa 100 EventDto trong data, xếp theo startTime và id. API này chưa hỗ trợ tìm kiếm hoặc phân trang."
+            "description": "Runtime public data projection. UUID strings, exact VND strings and UTC timestamps.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicEventPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_EVENT_QUERY: malformed UUID, invalid or repeated filter, unsupported sort or pagination."
+          },
+          "503": {
+            "description": "EVENT_CATALOG_UNAVAILABLE: dependency failure."
           }
         },
         "operationId": "getApiEvents",
         "x-implementation-status": "implemented",
         "x-contract-status": "matched-to-source",
-        "x-owner": "liem",
+        "x-owner": "dong",
         "externalDocs": {
-          "description": "Event image workflow task",
-          "url": "https://github.com/devonxjz/TicketCenter/issues/43"
+          "description": "Event catalogue delivery",
+          "url": "https://github.com/devonxjz/TicketCenter/issues/8"
         },
-        "description": "EventApiServlet and EventService. Verified with isolated SQL Server and HTTP fixtures. Production login and hosting are outside this verification.",
-        "security": []
+        "description": "EventCatalogServlet / EventCatalogService. Public SQL projections hide unpublished events; Redis miss/outage falls back to SQL. Inventory and authority are rechecked by mutations. If both dates are supplied, from must precede to. Maximum offset is 1,000,000; ordering uses event UUID as a stable tiebreaker.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 100,
+              "default": ""
+            }
+          },
+          {
+            "name": "categoryId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "startTime_asc",
+                "startTime_desc",
+                "price_asc",
+                "price_desc"
+              ],
+              "default": "startTime_asc"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 12
+            }
+          }
+        ]
       }
     },
     "/api/events/{eventId}": {
@@ -1691,21 +1779,34 @@
         "summary": "Chi tiết sự kiện công khai",
         "responses": {
           "200": {
-            "description": "Sự kiện PUBLISHED"
+            "description": "Runtime public data projection. UUID strings, exact VND strings and UTC timestamps.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicEventResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_EVENT_QUERY: malformed UUID, invalid or repeated filter, unsupported sort or pagination."
           },
           "404": {
-            "description": "Không tìm thấy"
+            "description": "EVENT_NOT_FOUND: event/zone is missing or not publicly visible."
+          },
+          "503": {
+            "description": "EVENT_CATALOG_UNAVAILABLE: dependency failure."
           }
         },
         "operationId": "getApiEventsEventId",
         "x-implementation-status": "implemented",
         "x-contract-status": "matched-to-source",
-        "x-owner": "liem",
+        "x-owner": "dong",
         "externalDocs": {
-          "description": "Event image workflow task",
-          "url": "https://github.com/devonxjz/TicketCenter/issues/43"
+          "description": "Event catalogue delivery",
+          "url": "https://github.com/devonxjz/TicketCenter/issues/8"
         },
-        "description": "EventApiServlet and EventService. Verified with isolated SQL Server and HTTP fixtures. Production login and hosting are outside this verification.",
+        "description": "EventCatalogServlet / EventCatalogService. Public SQL projections hide unpublished events; Redis miss/outage falls back to SQL. Inventory and authority are rechecked by mutations.",
         "parameters": [
           {
             "$ref": "#/components/parameters/EventTarget"
@@ -1731,18 +1832,34 @@
         "summary": "Chờ triển khai · Sơ đồ khu, tồn chỗ và ghế",
         "responses": {
           "200": {
-            "description": "Khu và ghế"
+            "description": "Runtime public data projection. UUID strings, exact VND strings and UTC timestamps.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicEventZonesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_EVENT_QUERY: malformed UUID, invalid or repeated filter, unsupported sort or pagination."
+          },
+          "404": {
+            "description": "EVENT_NOT_FOUND: event/zone is missing or not publicly visible."
+          },
+          "503": {
+            "description": "EVENT_CATALOG_UNAVAILABLE: dependency failure."
           }
         },
         "operationId": "getApiEventsEventIdZones",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
         "x-owner": "dong",
         "externalDocs": {
-          "description": "Issue giao việc và contract dự kiến",
+          "description": "Event catalogue delivery",
           "url": "https://github.com/devonxjz/TicketCenter/issues/8"
         },
-        "description": "\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "description": "EventCatalogServlet / EventCatalogService. Public SQL projections hide unpublished events; Redis miss/outage falls back to SQL. Inventory and authority are rechecked by mutations.",
         "parameters": [
           {
             "name": "eventId",
@@ -2027,18 +2144,31 @@
         "summary": "Chờ triển khai · Danh mục sự kiện",
         "responses": {
           "200": {
-            "description": "Danh mục seed"
+            "description": "Runtime public data projection. UUID strings, exact VND strings and UTC timestamps.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicEventCategoriesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_EVENT_QUERY: malformed UUID, invalid or repeated filter, unsupported sort or pagination."
+          },
+          "503": {
+            "description": "EVENT_CATALOG_UNAVAILABLE: dependency failure."
           }
         },
         "operationId": "getApiEventCategories",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
         "x-owner": "dong",
         "externalDocs": {
-          "description": "Issue giao việc và contract dự kiến",
+          "description": "Event catalogue delivery",
           "url": "https://github.com/devonxjz/TicketCenter/issues/8"
         },
-        "description": "\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "description": "EventCatalogServlet / EventCatalogService. Public SQL projections hide unpublished events; Redis miss/outage falls back to SQL. Inventory and authority are rechecked by mutations.",
         "security": []
       }
     },
@@ -4321,16 +4451,6 @@
               }
             }
           },
-          "503": {
-            "description": "Hệ thống xác thực/database chưa sẵn sàng.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "409": {
             "description": "Trạng thái đã thay đổi, chưa rõ kết quả, hoặc cùng key khác payload.",
             "content": {
@@ -4353,6 +4473,16 @@
           },
           "415": {
             "description": "Content-Type phải là application/json.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Hệ thống xác thực/database chưa sẵn sàng.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4498,16 +4628,6 @@
               }
             }
           },
-          "503": {
-            "description": "Hệ thống xác thực/database chưa sẵn sàng.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "409": {
             "description": "Trạng thái đã thay đổi, chưa rõ kết quả, hoặc cùng key khác payload.",
             "content": {
@@ -4530,6 +4650,16 @@
           },
           "415": {
             "description": "Content-Type phải là application/json.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Hệ thống xác thực/database chưa sẵn sàng.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6011,18 +6141,34 @@
           "Events"
         ],
         "summary": "Chờ triển khai · Event catalog, detail và Redis cache — GET /api/zones/{zoneId}/seats",
-        "description": "Contract dự kiến từ issue #8. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "description": "EventCatalogServlet / EventCatalogService. Public SQL projections hide unpublished events; Redis miss/outage falls back to SQL. Inventory and authority are rechecked by mutations.",
         "responses": {
           "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+            "description": "Runtime public data projection. UUID strings, exact VND strings and UTC timestamps.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicEventSeatsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_EVENT_QUERY: malformed UUID, invalid or repeated filter, unsupported sort or pagination."
+          },
+          "404": {
+            "description": "EVENT_NOT_FOUND: event/zone is missing or not publicly visible."
+          },
+          "503": {
+            "description": "EVENT_CATALOG_UNAVAILABLE: dependency failure."
           }
         },
         "operationId": "getApiZonesZoneIdSeats",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
         "x-owner": "dong",
         "externalDocs": {
-          "description": "Issue giao việc và contract dự kiến",
+          "description": "Event catalogue delivery",
           "url": "https://github.com/devonxjz/TicketCenter/issues/8"
         },
         "parameters": [
@@ -9021,6 +9167,340 @@
             "additionalProperties": false
           }
         ]
+      },
+      "PublicEvent": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "eventId",
+          "id",
+          "categoryId",
+          "title",
+          "description",
+          "coverImageUrl",
+          "venueName",
+          "venueAddress",
+          "venue",
+          "saleStartTime",
+          "saleEndTime",
+          "saleStart",
+          "saleEnd",
+          "startTime",
+          "endTime",
+          "minPrice",
+          "maxPrice",
+          "category",
+          "organizationName",
+          "isSaleActive",
+          "status"
+        ],
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "coverImageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "venueName": {
+            "type": "string"
+          },
+          "venueAddress": {
+            "type": "string"
+          },
+          "venue": {
+            "type": "string"
+          },
+          "saleStartTime": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "Z$"
+          },
+          "saleEndTime": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "Z$"
+          },
+          "saleStart": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "Z$"
+          },
+          "saleEnd": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "Z$"
+          },
+          "startTime": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "Z$"
+          },
+          "endTime": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "Z$"
+          },
+          "minPrice": {
+            "type": "string",
+            "pattern": "^[0-9]{1,19}$",
+            "nullable": true,
+            "description": "Exact integer VND; never a JavaScript floating-point money value."
+          },
+          "maxPrice": {
+            "type": "string",
+            "pattern": "^[0-9]{1,19}$",
+            "nullable": true,
+            "description": "Exact integer VND; never a JavaScript floating-point money value."
+          },
+          "category": {
+            "type": "string"
+          },
+          "organizationName": {
+            "type": "string"
+          },
+          "isSaleActive": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PUBLISHED"
+            ]
+          }
+        }
+      },
+      "PublicEventZone": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "zoneId",
+          "eventId",
+          "name",
+          "zoneType",
+          "basePrice",
+          "totalCapacity",
+          "heldQuantity",
+          "soldQuantity",
+          "availableSeats"
+        ],
+        "properties": {
+          "zoneId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "zoneType": {
+            "type": "string",
+            "enum": [
+              "STANDING",
+              "SEATED"
+            ]
+          },
+          "basePrice": {
+            "type": "string",
+            "pattern": "^[0-9]{1,19}$",
+            "nullable": false,
+            "description": "Exact integer VND; never a JavaScript floating-point money value."
+          },
+          "totalCapacity": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "heldQuantity": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "soldQuantity": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "availableSeats": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "PublicEventSeat": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "seatId",
+          "zoneId",
+          "rowName",
+          "seatNumber",
+          "seatLabel",
+          "status"
+        ],
+        "properties": {
+          "seatId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "zoneId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rowName": {
+            "type": "string"
+          },
+          "seatNumber": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "seatLabel": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "AVAILABLE",
+              "HELD",
+              "SOLD"
+            ]
+          }
+        }
+      },
+      "PublicEventCategory": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "categoryId",
+          "name",
+          "slug"
+        ],
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        }
+      },
+      "PublicEventPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data",
+          "page",
+          "pageSize",
+          "total",
+          "totalPages"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicEvent"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "PublicEventResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PublicEvent"
+          }
+        }
+      },
+      "PublicEventZonesResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicEventZone"
+            }
+          }
+        }
+      },
+      "PublicEventSeatsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicEventSeat"
+            }
+          }
+        }
+      },
+      "PublicEventCategoriesResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicEventCategory"
+            }
+          }
+        }
       }
     },
     "parameters": {

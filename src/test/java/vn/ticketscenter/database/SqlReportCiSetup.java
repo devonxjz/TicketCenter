@@ -22,7 +22,8 @@ public final class SqlReportCiSetup {
                     String dbRole=role.equals("admin")?"tc_platform_admin":"tc_"+role;
                     q.execute("CREATE USER sql_report_"+role+" WITHOUT LOGIN; ALTER ROLE "+dbRole+" ADD MEMBER sql_report_"+role+";");
                 }
-                for(String name:new String[]{"040_payment_ticket_runtime_reads.sql","041_hold_refund_runtime_compatibility.sql","042_checkin_event_user_lock_order.sql","043_coupon_admin.sql","044_buyer_order_history_views.sql","045_order_ticket_access_assertions.sql"})
+                // Ledger identities are complete basenames; preserve installed refund043.
+                for(String name:new String[]{"040_payment_ticket_runtime_reads.sql","041_hold_refund_runtime_compatibility.sql","042_checkin_event_user_lock_order.sql","043_coupon_admin.sql","044_buyer_order_history_views.sql","045_order_ticket_access_assertions.sql","043_khanh04_admin_refund.sql","045_event_commands_and_public_seats.sql","046_admin_refund_current_authority.sql","047_event_authority_lock_order.sql"})
                     for(String batch:Files.readString(Path.of("database/migrations",name)).split("(?im)^\\s*GO\\s*\\r?$",-1))if(!batch.isBlank())q.execute(batch);
                 c.commit();
             }catch(Exception ex){c.rollback();throw ex;}

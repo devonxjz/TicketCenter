@@ -11,10 +11,10 @@ test('full WAR uses real identity, session, CSRF and finance authorization', {sk
  assert.equal(fixture.adminEmail,'vuong.acceptance@test.invalid');
  class Browser {
   cookie='';csrf='';
-  async request(path,method='GET',body,csrf=true) {
+  async request(path,method='GET',body,csrf=true,contentType='application/json') {
    const headers={Accept:'application/json'};
    if(this.cookie)headers.Cookie=this.cookie;
-   if(body!==undefined)headers['Content-Type']='application/json';
+   if(body!==undefined)headers['Content-Type']=contentType;
    if(csrf&&this.csrf)headers['X-CSRF-Token']=this.csrf;
    const response=await fetch(fixture.origin+path,{method,headers,body:body===undefined?undefined:JSON.stringify(body),redirect:'manual',signal:AbortSignal.timeout(15000)});
    const cookie=response.headers.getSetCookie().find(value=>value.startsWith('JSESSIONID='));
@@ -67,7 +67,11 @@ test('full WAR uses real identity, session, CSRF and finance authorization', {sk
  await t.test('CUSTOMER login does not confer finance access',async()=>{await buyer.login('buyer@ticketscenter.vn','123','CUSTOMER');for(const path of ['/api/organizations/'+org+'/overview','/api/admin/audit-logs'+period,'/finance/reports'])assert.equal((await buyer.request(path)).status,403,path);});
  await t.test('real manager session can export CSV while STAFF is rejected before CSV bytes',async()=>{const path='/api/reports/export'+period+'&organizationId='+org;const good=await manager.request(path);assert.equal(good.status,200);assert.match(good.response.headers.get('content-type'),/^text\/csv/);assert.match(good.response.headers.get('content-disposition'),/attachment/);const denied=await staff.request(path);assert.equal(denied.status,403);assert.match(denied.response.headers.get('content-type'),/^application\/json/);assert.equal(denied.data.error.code,'FORBIDDEN');});
  await t.test('authenticated mutation without CSRF is rejected before business execution',async()=>{const r=await admin.request('/api/admin/settlements/'+crypto.randomUUID()+'/confirm','POST',{},false);assert.equal(r.status,403);assert.equal((await admin.request('/api/me')).status,200);});
- await t.test('Event organization POST remains with its owner servlet',async()=>{const r=await manager.request('/api/organizations/'+org+'/events','POST',{});assert.equal(r.status,415);assert.equal(r.data.error.code,'CONTENT_TYPE_INVALID');});
+ await t.test('Event organization POST remains with its owner servlet',async()=>{
+  const path='/api/organizations/'+org+'/events';
+  const invalid=await manager.request(path,'POST',{});assert.equal(invalid.status,400);assert.equal(invalid.data.error.code,'INVALID_EVENT_INPUT');
+  const media=await manager.request(path,'POST',{},true,'text/plain');assert.equal(media.status,415);assert.equal(media.data.error.code,'CONTENT_TYPE_INVALID');
+ });
  await t.test('existing prototype menu entries lead to the live finance pages',async()=>{
   for(const [oldPath,target] of [['/admin','/finance/overview'],['/admin/dashboard','/finance/overview'],['/admin/settlements','/finance/settlements'],['/admin/audit-logs','/finance/audit']]){
    const r=await admin.request(oldPath);assert.equal(r.status,302,oldPath);assert.equal(r.response.headers.get('location'),'/ticketscenter'+target);

@@ -43,17 +43,22 @@ def main():
             package.extractall(runtime)
         home = runtime / 'apache-tomcat-11.0.25'
     base = runtime / 'instance'
-    shutil.copytree(home / 'conf', base / 'conf')
+    # A locally supplied Tomcat may include unrelated application descriptors.
+    # The owned fixture deploys only this WAR; never import external docBases.
+    shutil.copytree(home / 'conf', base / 'conf', ignore=shutil.ignore_patterns('Catalina'))
     for folder in ('logs', 'temp', 'work', 'webapps'):
         (base / folder).mkdir()
     server_path = base / 'conf/server.xml'
-    server = ET.parse(server_path)
-    server.getroot().set('port', '-1')
-    for connector in server.findall('./Service/Connector'):
-        if connector.get('protocol') == 'HTTP/1.1':
-            connector.set('port', '18084')
-            connector.set('address', '127.0.0.1')
-    server.write(server_path, encoding='utf-8', xml_declaration=True)
+    # Match the established Native smoke: one loopback NIO2 connector and one owned host.
+    # NIO's selector pipe cannot establish its loopback socket on this Windows/JDK25 host.
+    server = ET.Element('Server', {'port': '-1'})
+    service = ET.SubElement(server, 'Service', {'name': 'Catalina'})
+    ET.SubElement(service, 'Connector', {'port': '18084', 'address': '127.0.0.1',
+        'protocol': 'org.apache.coyote.http11.Http11Nio2Protocol', 'connectionTimeout': '5000'})
+    engine = ET.SubElement(service, 'Engine', {'name': 'Catalina', 'defaultHost': 'localhost'})
+    ET.SubElement(engine, 'Host', {'name': 'localhost', 'appBase': 'webapps',
+        'autoDeploy': 'false', 'deployOnStartup': 'true'})
+    ET.ElementTree(server).write(server_path, encoding='utf-8', xml_declaration=True)
     deployment = base / 'webapps/ticketscenter'
     with zipfile.ZipFile(target / 'ticketscenter.war') as war:
         if any(deployment not in (deployment / entry.filename).resolve().parents for entry in war.infolist()):
@@ -67,6 +72,11 @@ def main():
         env['DB' + role + '_PASSWORD'] = env['TC_SCAN_OWNER_PASSWORD']
     env['DB_ADMIN_USER'] = env['TC_ADMIN_REFUND_DB_USER']
     env['DB_ADMIN_PASSWORD'] = env['TC_ADMIN_REFUND_DB_PASSWORD']
+    if env.get('TC_ADMIN_REFUND_BUYER_DB_USER'):
+        if not env.get('TC_ADMIN_REFUND_BUYER_DB_PASSWORD'):
+            raise RuntimeError('Complete restricted BUYER fixture credentials required')
+        env['DB_BUYER_USER'] = env['TC_ADMIN_REFUND_BUYER_DB_USER']
+        env['DB_BUYER_PASSWORD'] = env['TC_ADMIN_REFUND_BUYER_DB_PASSWORD']
     env.update({'HIKARI_MAXIMUM-POOL-SIZE': '3', 'HIKARI_MINIMUM-IDLE': '0', 'HIKARI_POOL-BUDGET': '24', 'HIKARI_CONNECTION-TIMEOUT': '5000'})
     java = str(Path(env['JAVA_HOME']) / ('bin/java.exe' if os.name == 'nt' else 'bin/java'))
     classpath = os.pathsep.join((str(target / 'test-classes'), str(target / 'classes'), (target / 'khanh04-classpath.txt').read_text().strip()))
@@ -116,10 +126,22 @@ def main():
                 return client, token
 
             anonymous = session()
+            call(anonymous, 'public Event categories', '/api/event-categories')
+            events = call(anonymous, 'public Event filtered pagination', '/api/events?page=1&pageSize=1&sort=startTime_asc')
+            assert events['pageSize'] == 1 and len(events['data']) <= 1
+            public_event = call(anonymous, 'public Event detail', '/api/events/' + fixture['event'])['data']
+            assert public_event['eventId'] == fixture['event'] and public_event['status'] == 'PUBLISHED'
+            zones = call(anonymous, 'public Event zones', '/api/events/' + fixture['event'] + '/zones')['data']
+            assert any(zone['zoneId'] == fixture['zone'] for zone in zones)
+            call(anonymous, 'public Event malformed UUID', '/api/events/not-a-uuid', 400)
             call(anonymous, 'anonymous list denied', '/api/admin/refund-requests', 401)
             anonymous_token = call(anonymous, 'anonymous csrf boundary', '/api/auth/csrf')['data']['token']
             admin, token = login('admin')
             buyer, buyer_token = login('buyer')
+            history = call(buyer, 'actual buyer order history', '/api/me/orders')
+            assert any(order['id'] == fixture['order'] for order in history['orders'])
+            detail = call(buyer, 'actual buyer order detail', '/api/orders/' + fixture['order'])
+            assert detail['id'] == fixture['order']
             for client, name, csrf in ((buyer, 'customer', buyer_token), (anonymous, 'anonymous', anonymous_token)):
                 expected = 403 if name == 'customer' else 401
                 for path in ('', '/' + fixture['approve'], '/' + fixture['approve'] + '/decision', '/' + fixture['retry'] + '/retry'):

@@ -11,7 +11,7 @@ permissions:
 jobs:
   sql-regression:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     services:
       sql:
         image: mcr.microsoft.com/mssql/server:2022-latest
@@ -19,13 +19,35 @@ jobs:
           ACCEPT_EULA: 'Y'
           MSSQL_SA_PASSWORD: ${{ format('SqlReport_{0}_Aa!', github.run_id) }}
         ports: ['1433:1433']
+      redis:
+        image: redis:7.4
+        ports: ['16379:6379']
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10
+      event-redis:
+        image: redis:7.4
+        ports: ['16479:6379']
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10
     env:
       TC_SQL_REPORT_TEST: 'true'
+      TC_ADMIN_REFUND_TEST: 'true'
       TC_SCAN_INTEGRATION: 'true'
       TC_SCAN_TEST_URL: 'jdbc:sqlserver://127.0.0.1:1433;databaseName=TicketCenter_Khanh02_Test;encrypt=true;trustServerCertificate=true;loginTimeout=5'
       TC_SCAN_SA_PASSWORD: ${{ format('SqlReport_{0}_Aa!', github.run_id) }}
       TC_SCAN_OWNER_USER: khanh02_owner
       TC_SCAN_CHECKIN_USER: khanh02_checkin
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: '16379'
+      REDIS_PASSWORD: ''
+      TC_DONG_ACCEPTANCE: 'true'
+      TC_DONG_SQL_URL: 'jdbc:sqlserver://127.0.0.1:1433;databaseName=TicketCenter_Dong_Vuong_Ci;encrypt=true;trustServerCertificate=true;loginTimeout=5'
+      TC_DONG_DB_USER: khanh02_owner
+      TC_DONG_REDIS_HOST: 127.0.0.1
+      TC_DONG_REDIS_PORT: '16479'
+      DB_HOST: 127.0.0.1
+      DB_PORT: '1433'
+      DB_TRUSTSERVERCERTIFICATE: 'true'
+      TC_SQL_TEST_DB: TicketCenter_Dong_Vuong_Ci
+      TC_SQL_TEST_LOGIN: dong_runtime_buyer
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -40,11 +62,13 @@ jobs:
         shell: python
         run: |
           import os, secrets
-          values = {key: 'K02!' + secrets.token_hex(24) for key in ('TC_SCAN_OWNER_PASSWORD','TC_SCAN_CHECKIN_PASSWORD','TC_SCAN_FIXTURE_PASSWORD','TC_TICKET_SIGNING_SECRET')}
+          values = {key: 'K02!' + secrets.token_hex(24) for key in ('TC_SCAN_OWNER_PASSWORD','TC_SCAN_CHECKIN_PASSWORD','TC_SCAN_FIXTURE_PASSWORD','TC_TICKET_SIGNING_SECRET','TC_DONG_BUYER_PASSWORD')}
           for value in [os.environ['TC_SCAN_SA_PASSWORD'], *values.values()]:
               print('::add-mask::' + value)
           with open(os.environ['GITHUB_ENV'], 'a') as out:
               for key, value in values.items(): out.write(key + '=' + value + '\n')
+              out.write('TC_DONG_DB_PASSWORD=' + values['TC_SCAN_OWNER_PASSWORD'] + '\n')
+              out.write('TC_SQL_TEST_PASSWORD=' + values['TC_DONG_BUYER_PASSWORD'] + '\n')
       - name: Build test harness
         run: mvn -B -DskipTests test-compile dependency:build-classpath -Dmdep.outputFile=target/sql-report-classpath.txt -Dmdep.includeScope=test
       - name: Wait for isolated SQL Server
@@ -59,13 +83,22 @@ jobs:
           test "$ready" = true
       - name: Install canonical schema and all report migrations atomically
         run: java -cp "target/test-classes:target/classes:$(cat target/sql-report-classpath.txt)" vn.ticketscenter.database.SqlReportCiSetup
+      - name: Clone the combined schema into a second isolated Event fixture
+        run: java -cp "target/test-classes:target/classes:$(cat target/sql-report-classpath.txt)" vn.ticketscenter.database.EventCombinedCiSetup
       - name: Test role boundaries, races, refunds, settlement, 1000 holds and check-in regression
-        run: mvn -B test -Djunit.jupiter.extensions.autodetection.enabled=false -Dtest=SqlReportSafetyIT,TicketCheckInSqlServerTest,PaymentCrossDomainSqlTest,TicketQrInteroperabilityTest
+        run: mvn -B test -Djunit.jupiter.extensions.autodetection.enabled=false -Dtest=SqlReportSafetyIT,TicketCheckInSqlServerTest,PaymentCrossDomainSqlTest,TicketQrInteroperabilityTest,RefundEventSqlIntegrationTest,AdminRefundDecisionSqlServerTest,RedisAdminRefundCacheTest
       - name: Require actual SQL execution without skips
         if: always()
-        run: node src/test/scripts/test-report-summary.cjs target/surefire-reports --require-no-skips --require-suite=vn.ticketscenter.database.SqlReportSafetyIT --require-suite=vn.ticketscenter.database.PaymentCrossDomainSqlTest --require-suite=vn.ticketscenter.fulfillment.checkin.security.TicketQrInteroperabilityTest --require-suite=vn.ticketscenter.fulfillment.checkin.integration.TicketCheckInSqlServerTest --summary="$GITHUB_STEP_SUMMARY"
+        run: node src/test/scripts/test-report-summary.cjs target/surefire-reports --require-no-skips --require-suite=vn.ticketscenter.database.SqlReportSafetyIT --require-suite=vn.ticketscenter.database.PaymentCrossDomainSqlTest --require-suite=vn.ticketscenter.database.RefundEventSqlIntegrationTest --require-suite=vn.ticketscenter.database.AdminRefundDecisionSqlServerTest --require-suite=vn.ticketscenter.fulfillment.refund.service.RedisAdminRefundCacheTest --require-suite=vn.ticketscenter.fulfillment.checkin.security.TicketQrInteroperabilityTest --require-suite=vn.ticketscenter.fulfillment.checkin.integration.TicketCheckInSqlServerTest --summary="$GITHUB_STEP_SUMMARY"
+      - name: Actual Event mutations, restricted buyer reads, Redis and migration replay
+        run: mvn -B -Djunit.jupiter.extensions.autodetection.enabled=false -Dit.test=EventEpicSqlServerIT,EventCatalogSqlServerIT,EventSqlMigrationIT failsafe:integration-test failsafe:verify
+      - name: Require actual Event execution without skips
+        if: always()
+        run: node src/test/scripts/test-report-summary.cjs target/failsafe-reports --require-no-skips --require-suite=vn.ticketscenter.event.integration.EventEpicSqlServerIT --require-suite=vn.ticketscenter.event.integration.EventCatalogSqlServerIT --require-suite=vn.ticketscenter.event.integration.EventSqlMigrationIT --summary="$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: sql-report-safety
-          path: target/surefire-reports/
+          path: |
+            target/surefire-reports/
+            target/failsafe-reports/

@@ -52,6 +52,38 @@ class EventEpicSqlServerIT {
             assertTrue(rows.next());assertEquals(expected.toString(),rows.getString(1));
         }
     }
+    @Test void eventCommandWaitAllowsRevocationAndRejectsExpiredActor() throws Exception {
+        var isolated=new DongSqlFixture();UUID event=isolated.draft();
+        assertEventWait(isolated,event,isolated.manager,()->assertThrows(EventProblem.class,()->isolated.repository.command(isolated.actor,UUID.randomUUID().toString(),"a".repeat(64),isolated.command("EDIT",event,null,Map.of("description","Revocation race")))).status(),401);
+    }
+    @Test void eventReadWaitAllowsRevocationAndRejectsExpiredActor() throws Exception {
+        var isolated=new DongSqlFixture();UUID event=isolated.draft();
+        assertEventWait(isolated,event,isolated.manager,()->assertThrows(EventProblem.class,()->isolated.repository.read(isolated.actor,false,"DETAIL",isolated.org,event,null,null,1,20)).status(),401);
+    }
+    @Test void directPublishWaitAllowsDemotionAndRejectsStaleLegacyGrant() throws Exception {
+        var isolated=new DongSqlFixture();UUID event=isolated.draft();
+        try(var c=DongSqlFixture.connection(null)){DongSqlFixture.execute(c,"INSERT dbo.tc_user_platform_roles(user_id,role) VALUES(?,'ADMIN')",isolated.admin);}
+        assertEventWait(isolated,event,isolated.admin,()->{
+            try(var c=DongSqlFixture.connection("dong_admin")){
+                return assertThrows(SQLException.class,()->DongSqlFixture.execute(c,"EXEC dbo.usp_PublishEvent ?,?,?",event,isolated.admin,isolated.rule)).getErrorCode();
+            }
+        },51520);
+    }
+    private static void assertEventWait(DongSqlFixture isolated,UUID event,UUID user,Callable<Integer> action,int expected)throws Exception{
+        var pool=Executors.newSingleThreadExecutor();var ready=new CountDownLatch(1);
+        try(var gate=DongSqlFixture.connection(null)){
+            gate.setAutoCommit(false);
+            DongSqlFixture.execute(gate,"SET LOCK_TIMEOUT 3000; SET DEADLOCK_PRIORITY HIGH; UPDATE dbo.tc_events SET version=version WHERE id=?",event);
+            var pending=pool.submit(()->{ready.countDown();return action.call();});
+            assertTrue(ready.await(5,TimeUnit.SECONDS));Thread.sleep(600);assertFalse(pending.isDone(),"Request must wait for Event");
+            // The revocation write must succeed while the Event is held, rather than deadlocking on a retained User lock.
+            DongSqlFixture.execute(gate,"UPDATE dbo.tc_users SET auth_version=auth_version+1,platform_role='CUSTOMER' WHERE id=?",user);
+            gate.commit();assertEquals(expected,pending.get(20,TimeUnit.SECONDS));
+        }finally{pool.shutdownNow();}
+        try(var c=DongSqlFixture.connection(null);var q=c.prepareStatement("SELECT status FROM dbo.tc_events WHERE id=?")){
+            q.setString(1,event.toString());try(var rows=q.executeQuery()){assertTrue(rows.next());assertEquals("DRAFT",rows.getString(1));}
+        }
+    }
     @Test void unknownCategoryIsValidationAndNeverLeavesAReceiptOrChangesTheDraft() {
         var fields=new TreeMap<>(f.create().fields());fields.put("categoryId",UUID.randomUUID().toString());
         var create=new EventCommand("CREATE",f.org,null,null,fields);String key=UUID.randomUUID().toString();
