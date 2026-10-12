@@ -269,6 +269,28 @@ public class PaymentRepository {
         }
     }
 
+    public record ReconcileCandidate(UUID paymentId, UUID orderId, String txnRef, BigDecimal amount, java.time.Instant createdAt) { }
+
+    public java.util.List<ReconcileCandidate> findPaymentsToReconcile(int limit) {
+        try (Connection conn = worker.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                     "SELECT TOP (?) id,order_id,txn_ref,amount,created_at FROM dbo.vw_PaymentsToReconcile ORDER BY created_at")) {
+            ps.setInt(1, limit);
+            ps.setQueryTimeout(20);
+            java.util.List<ReconcileCandidate> out = new java.util.ArrayList<>();
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    out.add(new ReconcileCandidate(UUID.fromString(rs.getString("id")), UUID.fromString(rs.getString("order_id")),
+                            rs.getString("txn_ref"), rs.getBigDecimal("amount"),
+                            rs.getTimestamp("created_at", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"))).toInstant()));
+                }
+            }
+            return out;
+        } catch (SQLException failure) {
+            throw PaymentException.unavailable();
+        }
+    }
+
     public void applyPaymentResult(UUID orderId, UUID paymentId, String status, String providerReference) {
         Objects.requireNonNull(orderId, "orderId is required");
         Objects.requireNonNull(paymentId, "paymentId is required");

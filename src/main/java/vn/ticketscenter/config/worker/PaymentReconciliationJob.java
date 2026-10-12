@@ -1,3 +1,54 @@
 package vn.ticketscenter.config.worker;
-import vn.ticketscenter.config.persistence.*;import java.util.*;
-public final class PaymentReconciliationJob {public interface Gateway{String status(UUID paymentId);}private final TransactionManager tx;private final Gateway gateway;public PaymentReconciliationJob(TransactionManager tx,Gateway gateway){this.tx=tx;this.gateway=gateway;}public int runOnce(){return tx.execute(DatabasePrincipal.WORKER,em->{List<Object[]> rows=em.createNativeQuery("SELECT id,order_id FROM dbo.tc_payments WHERE status IN ('PENDING','UNKNOWN') AND created_at<DATEADD(minute,-5,SYSUTCDATETIME())").getResultList();for(Object[]r:rows){String status=gateway.status((UUID)r[0]);if(!List.of("CAPTURED","FAILED","UNKNOWN").contains(status))continue;String json="{\"status\":\""+status+"\",\"providerReference\":\"reconciled\"}";var q=em.createStoredProcedureQuery("dbo.usp_ApplyPaymentResult").registerStoredProcedureParameter("order_id",UUID.class,jakarta.persistence.ParameterMode.IN).registerStoredProcedureParameter("actor_id",UUID.class,jakarta.persistence.ParameterMode.IN).registerStoredProcedureParameter("payment_id",UUID.class,jakarta.persistence.ParameterMode.IN).registerStoredProcedureParameter("verified_result",String.class,jakarta.persistence.ParameterMode.IN).registerStoredProcedureParameter("ticket_codes",String.class,jakarta.persistence.ParameterMode.IN).registerStoredProcedureParameter("retry_failed_compensation",Boolean.class,jakarta.persistence.ParameterMode.IN).setParameter("order_id",r[1]).setParameter("actor_id",null).setParameter("payment_id",r[0]).setParameter("verified_result",json).setParameter("ticket_codes","[]").setParameter("retry_failed_compensation",false);q.execute();}return rows.size();});}}
+
+import vn.ticketscenter.payment.integration.VnpayQueryClient;
+import vn.ticketscenter.payment.repository.PaymentRepository.ReconcileCandidate;
+
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+/**
+ * Settles payments stuck in PENDING/UNKNOWN by asking VNPAY for the truth. The gateway call happens
+ * outside any database transaction; one failing payment never blocks the rest of the batch.
+ */
+public final class PaymentReconciliationJob {
+    private static final Logger LOGGER = Logger.getLogger(PaymentReconciliationJob.class.getName());
+
+    public interface Source { List<ReconcileCandidate> findBatch(int limit); }
+    public interface Gateway { VnpayQueryClient.Result query(ReconcileCandidate candidate); }
+    public interface Applier { void apply(ReconcileCandidate candidate, String status, String providerReference); }
+    public interface OrderLocks { AutoCloseable acquire(java.util.UUID orderId) throws Exception; }
+
+    private final Source source;
+    private final Gateway gateway;
+    private final Applier applier;
+    private final OrderLocks locks;
+    private final int batchSize;
+
+    public PaymentReconciliationJob(Source source, Gateway gateway, Applier applier, OrderLocks locks, int batchSize) {
+        this.source = source;
+        this.gateway = gateway;
+        this.applier = applier;
+        this.locks = locks;
+        this.batchSize = batchSize;
+    }
+
+    /** @return number of payments settled to a final status in this run */
+    public int runOnce() {
+        int settled = 0;
+        for (ReconcileCandidate candidate : source.findBatch(batchSize)) {
+            if (Thread.currentThread().isInterrupted()) break;
+            try {
+                VnpayQueryClient.Result result = gateway.query(candidate);
+                if (result == null || result.outcome() == VnpayQueryClient.Outcome.UNKNOWN) continue;
+                try (AutoCloseable lock = locks.acquire(candidate.orderId())) {
+                    applier.apply(candidate, result.outcome().name(), result.providerReference());
+                    settled++;
+                }
+            } catch (Exception failure) {
+                LOGGER.log(Level.WARNING, "Payment reconciliation failed for payment " + candidate.paymentId() + "; will retry", failure);
+            }
+        }
+        return settled;
+    }
+}

@@ -40,7 +40,7 @@ Representation: GET/events và /events/{id} mặc định JSP, explicit Accept a
 | Đường chạy | Việc cần làm | Task |
 |---|---|---|
 | GET /health/live; GET /health/ready | Liveness/readiness nhẹ, không secret; readiness DB timeout hữu hạn | D01-T02, D03-T04, D20-T02 |
-| HoldExpiryJob | SP07 từng batch; không thay kiểm expiry trong request | D12-T02 |
+| HoldRuntime | SP07 từng batch; không thay kiểm expiry trong request | D12-T02 |
 | PaymentReconciliationJob | Query gateway → verified result → SP09, xử lý UNKNOWN/late | D12-T02 |
 | OutboxWorker/EmailJob | Claim lease, retry bounded, email sau commit | D12-T01/T03 |
 | RefundJob | Refund APPROVED chưa attempt khởi tạo qua SP09 bù trừ; PROCESSING/NEEDS_RECONCILIATION tra currentAttemptId + RefundTransferLog → submit/query → SP11; không tự bật retry FAILED | D15-T03 |

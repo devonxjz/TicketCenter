@@ -13,13 +13,24 @@ import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.payment.cache.RedisPaymentIdempotency;
 import vn.ticketscenter.payment.repository.PaymentRepository;
 
+import vn.ticketscenter.config.worker.PaymentReconciliationJob;
+import vn.ticketscenter.payment.integration.VnpayQueryClient;
+
 import java.time.Clock;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @WebListener
 public final class PaymentRuntime implements ServletContextListener {
     public static final String SERVICE_ATTRIBUTE = PaymentService.class.getName();
     private static final String POOL_ATTRIBUTE = PaymentRuntime.class.getName() + ".pool";
     private static final String WORKER_POOL_ATTRIBUTE = PaymentRuntime.class.getName() + ".workerPool";
+    private static final Logger LOGGER = Logger.getLogger(PaymentRuntime.class.getName());
+    private static final String RECONCILE_POOL_ATTRIBUTE = PaymentRuntime.class.getName() + ".reconcilePool";
+    private static final String RECONCILE_EXECUTOR_ATTRIBUTE = PaymentRuntime.class.getName() + ".reconcileExecutor";
     private static final String CLOSED_ATTRIBUTE = PaymentRuntime.class.getName() + ".closed";
 
     public static PaymentService resolve(ServletContext context) {
@@ -75,12 +86,59 @@ public final class PaymentRuntime implements ServletContextListener {
     @Override
     public void contextInitialized(ServletContextEvent event) {
         event.getServletContext().setAttribute(CLOSED_ATTRIBUTE, false);
+        startReconciliation(event.getServletContext());
+    }
+
+    /** Off unless payment.reconciliation.enabled=true (default: on only when VNPAY query config exists). */
+    private static void startReconciliation(ServletContext context) {
+        String tmnCode = AppConfig.get(AppConfig.Keys.VNPAY_TMN_CODE);
+        String hashSecret = AppConfig.get(AppConfig.Keys.VNPAY_HASH_SECRET);
+        String apiUrl = AppConfig.get(AppConfig.Keys.VNPAY_API_URL);
+        boolean configured = tmnCode != null && hashSecret != null && apiUrl != null
+                && !tmnCode.isBlank() && !hashSecret.isBlank() && !apiUrl.isBlank();
+        String flag = AppConfig.get("payment.reconciliation.enabled");
+        boolean enabled = flag == null || flag.isBlank() ? configured : Boolean.parseBoolean(flag.trim());
+        if (!enabled || !configured) {
+            LOGGER.info("Payment reconciliation disabled");
+            return;
+        }
+        HikariDataSource pool = null;
+        try {
+            pool = createPool("worker");
+            var redis = RedisClientProvider.getInstance();
+            RedisPaymentIdempotency idempotency = new RedisPaymentIdempotency(redis::getResource);
+            var javaPool = ConnectionBudgets.wrap(pool);
+            PaymentRepository repository = new PaymentRepository(javaPool, javaPool);
+            VnpayQueryClient client = VnpayQueryClient.create(apiUrl, tmnCode, hashSecret);
+            PaymentReconciliationJob job = new PaymentReconciliationJob(
+                    repository::findPaymentsToReconcile,
+                    c -> client.query(c.txnRef(), c.amount(), c.createdAt()),
+                    (c, status, ref) -> repository.applyPaymentResult(c.orderId(), c.paymentId(), status, ref),
+                    idempotency::acquireOrderLock,
+                    20);
+            ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(
+                    Thread.ofPlatform().name("payment-reconciliation").daemon(true).factory());
+            executor.scheduleWithFixedDelay(() -> {
+                try {
+                    job.runOnce();
+                } catch (RuntimeException failure) {
+                    LOGGER.log(Level.WARNING, "Payment reconciliation batch failed; it will be retried", failure);
+                }
+            }, 30, 60, TimeUnit.SECONDS);
+            context.setAttribute(RECONCILE_POOL_ATTRIBUTE, pool);
+            context.setAttribute(RECONCILE_EXECUTOR_ATTRIBUTE, executor);
+        } catch (RuntimeException failure) {
+            if (pool != null) pool.close();
+            LOGGER.log(Level.WARNING, "Payment reconciliation could not start", failure);
+        }
     }
 
     @Override
     public void contextDestroyed(ServletContextEvent event) {
         synchronized (event.getServletContext()) {
             event.getServletContext().setAttribute(CLOSED_ATTRIBUTE, true);
+            if (event.getServletContext().getAttribute(RECONCILE_EXECUTOR_ATTRIBUTE) instanceof ScheduledExecutorService executor) executor.shutdownNow();
+            if (event.getServletContext().getAttribute(RECONCILE_POOL_ATTRIBUTE) instanceof HikariDataSource pool) pool.close();
             if (event.getServletContext().getAttribute(POOL_ATTRIBUTE) instanceof HikariDataSource pool) {
                 pool.close();
             }
