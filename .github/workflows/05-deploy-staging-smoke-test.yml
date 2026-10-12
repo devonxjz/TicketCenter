@@ -25,7 +25,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           Invoke-WebRequest 'https://archive.apache.org/dist/tomcat/tomcat-11/v11.0.25/bin/apache-tomcat-11.0.25.zip' -OutFile 'target/tomcat-smoke.zip'
           Expand-Archive -LiteralPath 'target/tomcat-smoke.zip' -DestinationPath 'target/tomcat-smoke-runtime'
-      - name: Run ROOT and WAR context boundary smoke
+      - name: Run default web context and WAR context boundary smoke
         id: smoke
         shell: pwsh
         run: ./src/test/scripts/swagger-smoke.ps1 -TomcatHome 'target/tomcat-smoke-runtime/apache-tomcat-11.0.25'

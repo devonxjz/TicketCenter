@@ -1,32 +1,32 @@
 # ===================================================================
 # TicketsCenter — application.properties.example
 # File mẫu cấu hình hệ thống TicketsCenter (Không chứa mật khẩu thật)
-# Copy file này thành application.properties và điền thông tin thực tế
+# Lưu cấu hình thật ngoài Git/WAR trong .local/application.properties; chọn bằng TC_CONFIG_FILE
 # ===================================================================
 
 # 1. Cơ sở dữ liệu Microsoft SQL Server (Azure SQL / Local)
-db.host=devonxjz.database.windows.net
+db.host=localhost
 db.port=1433
-db.name=TicketCenterticke
-db.user=adminTicket@devonxjz
-db.password=<your_password_here>
+db.name=TicketsCenter_Dev
+db.user=
+db.password=
 db.encrypt=true
 db.trustServerCertificate=false
 db.loginTimeout=30
 
 # URL kết nối JDBC trực tiếp
-db.url=jdbc:sqlserver://devonxjz.database.windows.net:1433;database=TicketCenterticke;user=adminTicket@devonxjz;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;
+db.url=
 
 # Tương thích với các biến TC_SQL_*
-TC_SQL_HOST=devonxjz.database.windows.net
+TC_SQL_HOST=localhost
 TC_SQL_PORT=1433
-TC_SQL_DEV_DB=TicketCenterticke
-TC_SQL_TEST_DB=TicketCenterticke
-TC_SQL_BENCH_DB=TicketCenterticke
-TC_SQL_LOGIN=adminTicket@devonxjz
-TC_SQL_PASSWORD=<your_password_here>
-TC_SQL_MIGRATION_LOGIN=adminTicket@devonxjz
-TC_SQL_MIGRATION_PASSWORD=<your_password_here>
+TC_SQL_DEV_DB=TicketsCenter_Dev
+TC_SQL_TEST_DB=TicketsCenter_Test
+TC_SQL_BENCH_DB=TicketsCenter_Bench
+TC_SQL_LOGIN=
+TC_SQL_PASSWORD=
+TC_SQL_MIGRATION_LOGIN=
+TC_SQL_MIGRATION_PASSWORD=
 TC_SQL_ENCRYPT=true
 TC_SQL_TRUST_SERVER_CERT=false
 TC_SQL_CONNECT_TIMEOUT_SEC=30
@@ -56,8 +56,8 @@ event.image.directory=/var/lib/ticketscenter/event-images
 
 # Demo admin seed. Keep disabled unless explicitly needed.
 admin.seed.enabled=false
-admin.email=adminTIcket@gmail.com
-admin.password=<your_non_demo_admin_password>
+admin.email=admin@fixture.invalid
+admin.password=
 
 # 3. Cấu hình Cổng Thanh Toán VNPAY Sandbox
 vnpay.tmn.code=<sandbox_code>
@@ -69,8 +69,8 @@ vnpay.api.url=https://sandbox.vnpayment.vn/merchant_webapi/api/transaction
 # 4. Cấu hình Dịch vụ Gửi Email (SMTP)
 mail.smtp.host=smtp.gmail.com
 mail.smtp.port=587
-mail.smtp.user=no-reply@ticketscenter.vn
-mail.smtp.password=<your_smtp_password>
+mail.smtp.user=
+mail.smtp.password=
 # Simulated refund provider; never expose these controls through buyer requests.
 refund.simulated.state.directory=data/refund-gateway
 refund.simulated.outcome=SUCCEEDED

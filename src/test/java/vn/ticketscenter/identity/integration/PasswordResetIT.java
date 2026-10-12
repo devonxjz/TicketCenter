@@ -40,7 +40,7 @@ public class PasswordResetIT {
 
             OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpCryptoHelper, smtpEmailSender);
 
-            String targetEmail = "tranlethai11102006@gmail.com";
+            String targetEmail = "recipient@fixture.invalid";
 
             // Đảm bảo user tồn tại trong hệ thống
             tm.execute(DatabasePrincipal.AUTH, em -> {

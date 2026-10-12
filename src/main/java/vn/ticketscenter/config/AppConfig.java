@@ -2,6 +2,8 @@ package vn.ticketscenter.config;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -107,6 +109,18 @@ public final class AppConfig {
 
     private static void loadProperties() {
         ClassLoader classLoader = AppConfig.class.getClassLoader();
+
+        // Private configuration is explicitly selected, outside Git and outside the WAR.
+        String external = System.getProperty("tc.config.file");
+        if (external == null || external.isBlank()) external = System.getenv("TC_CONFIG_FILE");
+        if (external != null && !external.isBlank()) {
+            try (InputStream input = Files.newInputStream(Path.of(external))) {
+                PROPERTIES.load(input);
+                return;
+            } catch (IOException failure) {
+                throw new IllegalStateException("Private application configuration could not be loaded");
+            }
+        }
 
         // 1. Thử nạp từ file cấu hình chính application.properties
         try (InputStream is = classLoader.getResourceAsStream(PROPERTIES_FILE)) {

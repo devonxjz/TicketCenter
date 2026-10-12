@@ -53,19 +53,46 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Scan for Uncommitted Sensitive Files (.env, keys)
+      - name: Reject tracked private configuration and credentials including YAML
         run: |
-          echo "Kiểm tra không tồn tại file .env thực tế hoặc private key trong repo..."
-          if find . -maxdepth 2 -name ".env" -not -name ".env.example" | grep -q ".env"; then
-            echo "::error::Phát hiện file .env thực tế chưa được loại trừ!" >&2
-            exit 1
-          fi
+          python3 - <<'PY'
+          import pathlib, re, subprocess, sys
 
-          if grep -rnw --exclude-dir={.git,target,.mvn,.github} --exclude="*.example" --exclude="*.yml" -e "BEGIN RSA PRIVATE KEY" -e "BEGIN OPENSSH PRIVATE KEY" .; then
-            echo "::error::Phát hiện Private Key chưa được bảo vệ!" >&2
-            exit 1
-          fi
-          echo "=> Kiểm tra an toàn: Không có private key hoặc live env file."
+          tracked = subprocess.check_output(['git', 'ls-files', '-z']).decode('utf-8').split('\0')
+          key = re.compile(r'-----BEGIN (?:(?:RSA|DSA|EC|OPENSSH|ENCRYPTED) )?PRIVATE KEY-----')
+          email = re.compile(r'[A-Za-z0-9._%+-]+@([A-Za-z0-9.-]+\.[A-Za-z]{2,})')
+          findings = set()
+          for name in filter(None, tracked):
+              path = pathlib.Path(name)
+              if ('.local' in path.parts
+                  or name == 'src/main/resources/application.properties'
+                  or (path.name.startswith('.env') and not path.name.endswith('.example'))):
+                  findings.add(name)
+              if not path.is_file():
+                  continue
+              content = path.read_bytes()
+              if b'\0' in content:
+                  continue
+              text = content.decode('utf-8', errors='replace')
+              if key.search(text):
+                  findings.add(name)
+              if path.suffix.lower() in ('.yml', '.yaml'):
+                  # Real service settings belong in Secrets/environment; CI uses disposable fixtures.
+                  if re.search(r'[A-Za-z0-9-]+\.database\.windows\.net', text, re.IGNORECASE):
+                      findings.add(name)
+                  for domain in email.findall(text):
+                      domain = domain.lower()
+                      if not (domain.endswith(('.invalid', '.test', '.example'))
+                              or domain in ('example.com', 'example.net', 'example.org')
+                              or domain.endswith(('.example.com', '.example.net', '.example.org'))):
+                          findings.add(name)
+          if findings:
+              # Never print matching lines: they may contain an actual account or secret.
+              for name in sorted(findings):
+                  print('::error file=' + name + '::Private configuration or credentials detected; use external configuration or reserved test data.')
+              sys.exit(1)
+          print('Tracked configuration check passed, including all YAML files; no credential contents were logged.')
+          PY
 
       - name: Run Gitleaks Secret Scanner
         uses: gitleaks/gitleaks-action@v2

@@ -12,6 +12,8 @@ database/
 *.txt
 taikhoan.txt
 .env*
+.local/
+src/main/resources/application.properties
 !*.example
 .idea/
 .vscode/
