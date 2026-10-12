@@ -2,6 +2,8 @@
 
 Issue: [#24](https://github.com/devonxjz/TicketCenter/issues/24). Branch: `feat/khanh/khanh-04-admin-refund-decision`, based on updated `dev` (`c1d7e0a`). PR targets `dev`.
 
+Final integration also incorporates updated `dev` at `80079d1` (Event and coupon/order runtime work). The KHANH-03 full-WAR fixture now consumes the upstream Event SQL contract unchanged, exclusively in the dedicated loopback database; its organization-event routing check expects the current `403 EVENT_FORBIDDEN` authorization behavior. The KHANH-04 fixture also installs those committed upstream runtime dependencies. Event implementation/proposal files are unchanged, and the Event coordination proposal is not installed on shared Azure by this task.
+
 ## Delivered behavior
 
 UI-21 is available at `/admin/refund-requests` and `/admin/refund-requests/{refundId}`. Existing admin refund navigation redirects to this portal. List filtering, stable paging, empty/error/loading states, buyer email, order/event/reason, ticket amounts/statuses, approval notes, rejection reasons, reviewer/time and transfer history are included. Confirmations require a rejection reason, disable controls while sending and retain the same UUID key for repeated payloads after a lost response. User-provided text is rendered as text, including stored HTML-looking buyer names. VND formatting uses integer strings/BigInt; displayed dates use `Asia/Ho_Chi_Minh`.
@@ -32,8 +34,8 @@ Local verification on 2026-10-12:
 | Check | Result |
 |---|---|
 | Focused Java acceptance | 39 cases: 15 real SQL Server, 1 real Redis, 21 parser/service, 2 OpenAPI; no failures/errors/skips |
-| Project Java regression | 810 cases, 690 executed, 120 other opt-in infrastructure cases skipped; no failures/errors |
-| JavaScript unit regression | 66 passed, 9 platform-specific native guards skipped on Windows; no failures |
+| Project Java regression | 862 cases, 741 executed, 121 other opt-in infrastructure cases skipped; no failures/errors |
+| JavaScript unit regression | 72 passed, 9 platform-specific native guards skipped on Windows; no failures |
 | Packaged complete WAR on Tomcat 11 | 40 HTTP/JSP checks passed using actual login and a restricted ADMIN SQL login; retry supports an empty POST body |
 | Browser | 12 checks passed, desktop/mobile screenshots, no JavaScript errors |
 | Azure contract | 040–043 installed atomically; all SHA-256 history verified; existing restricted ADMIN projections/procedure permissions and direct-write denials verified read-only |
