@@ -1,6 +1,6 @@
 # Private application configuration
 
-Actual connection credentials, mail passwords and provider keys belong outside Git and outside the WAR. `src/main/resources/application.properties.example` contains only public placeholders; `application.properties` is ignored, excluded from Maven resources and excluded from the packaged WAR, including stale build copies.
+Actual connection credentials, mail passwords and provider keys belong outside Git and outside the WAR. `src/main/resources/application.properties.example` contains only public placeholders; `application.properties` is ignored, excluded from Maven resources and excluded from the packaged WAR, including stale build copies. `.dockerignore` excludes that file and `.local` from the build context, so a local Docker build cannot copy them into its builder layers/cache either.
 
 Keep local settings in `.local/application.properties` and select the file with the environment variable `TC_CONFIG_FILE`, or JVM property `-Dtc.config.file=<absolute-path>`. System properties and environment overrides still take precedence over values in the private file. An explicitly selected missing/unreadable file fails closed without printing its path/content or falling back to a different database.
 
