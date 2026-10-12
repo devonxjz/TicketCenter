@@ -13,6 +13,10 @@ import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.UUID;
+import java.util.Map;
+import java.util.List;
+import com.google.zxing.DecodeHintType;
+import com.google.zxing.BarcodeFormat;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -107,7 +111,8 @@ class SignedTicketQrSignerTest {
 
     @Test
     void generatesValidQrPngAndDecodesBackWithZXing() throws Exception {
-        UUID id = UUID.randomUUID();
+        // This envelope exposes false finder detection in the generic image scanner.
+        UUID id = UUID.fromString("493b2d44-7acc-3fca-9fb7-43b1cda41a1b");
         String name = "Live Show 2026";
         String envelope = signer.buildEnvelope(id, name);
 
@@ -121,7 +126,11 @@ class SignedTicketQrSignerTest {
 
         var source = new BufferedImageLuminanceSource(image);
         var bitmap = new BinaryBitmap(new HybridBinarizer(source));
-        Result result = new MultiFormatReader().decode(bitmap);
+        // A generated, unrotated PNG is a pure QR image. Decode its modules directly;
+        // camera/perspective acquisition requires separate scanner acceptance.
+        Result result = new MultiFormatReader().decode(bitmap, Map.of(
+                DecodeHintType.PURE_BARCODE, true,
+                DecodeHintType.POSSIBLE_FORMATS, List.of(BarcodeFormat.QR_CODE)));
 
         assertEquals(envelope, result.getText());
 

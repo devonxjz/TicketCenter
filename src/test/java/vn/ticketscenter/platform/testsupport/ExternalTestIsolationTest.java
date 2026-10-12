@@ -17,10 +17,40 @@ class ExternalTestIsolationTest {
     private static final AtomicInteger setupCalls = new AtomicInteger();
     private static final AtomicInteger pureCalls = new AtomicInteger();
 
+    @Test void legacyTargetsRegisterGuardEvenWhenDiscoveryIsDisabled() throws Exception {
+        for(String name:List.of("vn.ticketscenter.MigrationSuiteVerificationTest",
+                "vn.ticketscenter.config.seed.DemoAccountSeederTest",
+                "vn.ticketscenter.identity.repository.OtpRepositoryTest",
+                "vn.ticketscenter.identity.repository.OrganizationRepositoryTest",
+                "vn.ticketscenter.identity.repository.OrganizationMembershipRepositoryTest",
+                "vn.ticketscenter.identity.service.OtpServiceTest",
+                "vn.ticketscenter.identity.service.PasswordResetServiceTest",
+                "vn.ticketscenter.identity.service.AuthServiceTest",
+                "vn.ticketscenter.config.persistence.JpaConnectionTest",
+                "vn.ticketscenter.identity.integration.mail.EmailSenderTest")) {
+            var type=Class.forName(name,false,getClass().getClassLoader());
+            var annotation=type.getAnnotation(org.junit.jupiter.api.extension.ExtendWith.class);
+            assertNotNull(annotation,"Explicit external guard required for "+name);
+            assertTrue(Arrays.asList(annotation.value()).contains(ExternalTestCondition.class),name);
+        }
+    }
+
     @Test void mergedOwnerMigrationSuiteIsDisabledBeforeOpeningItsDatabase() {
         ProbeResult result=execute(vn.ticketscenter.MigrationSuiteVerificationTest.class,Map.of());
         assertEquals(1,result.skipped,"Owner migration verification must obey the default DB gate");
         assertEquals(0,result.failed,"Default tests must never open or alter the owner database");
+    }
+    @Test void directMigrationGuardSurvivesDisabledAutomaticDiscovery() {
+        ProbeResult result=execute(vn.ticketscenter.MigrationSuiteVerificationTest.class,
+                Map.of("junit.jupiter.extensions.autodetection.enabled","false"));
+        assertEquals(1,result.skipped,"Explicit guard must stop migration before a connection is opened");
+        assertEquals(0,result.failed);
+    }
+    @Test void directMembershipGuardSurvivesDisabledAutomaticDiscovery() {
+        ProbeResult result=execute(vn.ticketscenter.identity.repository.OrganizationMembershipRepositoryTest.class,
+                Map.of("junit.jupiter.extensions.autodetection.enabled","false"));
+        assertEquals(1,result.skipped,"Real membership writes require an isolated DB opt-in");
+        assertEquals(0,result.failed);
     }
 
     @Test void defaultDbGateStopsBeforeAll() {
@@ -82,7 +112,7 @@ class ExternalTestIsolationTest {
 
     private ProbeResult execute(Class<?> probe, Map<String, String> supplied) {
         Map<String, String> values = new HashMap<>(supplied);
-        values.put("junit.jupiter.extensions.autodetection.enabled", "true");
+        values.putIfAbsent("junit.jupiter.extensions.autodetection.enabled", "true");
         ConfigurationParameters parameters = new ConfigurationParameters() {
             public Optional<String> get(String key) { return Optional.ofNullable(values.get(key)); }
             public Optional<Boolean> getBoolean(String key) { return get(key).map(Boolean::parseBoolean); }

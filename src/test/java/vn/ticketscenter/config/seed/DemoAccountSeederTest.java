@@ -24,6 +24,7 @@ import java.time.Clock;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DisplayName("DemoAccountSeederTest - Kiểm tra và thực thi Seed tài khoản dùng thử")
+@org.junit.jupiter.api.extension.ExtendWith(vn.ticketscenter.platform.testsupport.ExternalTestCondition.class)
 class DemoAccountSeederTest {
 
     private static PersistenceRegistry registry;

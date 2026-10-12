@@ -16,12 +16,17 @@ Install canonical001–008 first, then retained029 Hold/refund and030 Order/sign
 3. `042_checkin_event_user_lock_order.sql`
 4. `043_coupon_admin.sql`
 5. `044_buyer_order_history_views.sql`
-6. `043_khanh04_admin_refund.sql`
-7. `045_event_commands_and_public_seats.sql`
+6. `045_order_ticket_access_assertions.sql` (merged Liêm access assertions)
+7. `043_khanh04_admin_refund.sql`
+8. `045_event_commands_and_public_seats.sql`
+9. `046_admin_refund_current_authority.sql`
+10. `047_event_authority_lock_order.sql`
 
 Keep the deployed adapter/image prerequisites for the shared schema; do not reinstall historical functions after their later refinements. The ledger key is the complete basename with checksum. Preserve the two043 domain identities: Khánh reports refund043 already installed on Azure; coupon043/history044 are merged. Only the pending Event043 is adopted as045. Installed bytes are not changed. Event045 SHA256 (LF): `499dc87fe6a55d52f16bc23f3e05ea4292b5225f8e1204b06536c4904cca6b3f`.
 
-All local writes in this run use owned loopback fixtures. No shared database schema/business rows, firewall or existing credentials are changed. Separate OWNER/BUYER/ADMIN test logins are recorded privately with Windows-protected passwords. Actual BUYER login proves public Event projection permissions; other Event mutation cases impersonate restricted database users over the dedicated owner connection.
+Accepted integration checks use owned loopback fixtures. **A later local package invocation incorrectly disabled Jupiter's external-test discovery guard and ran legacy tests against the configured shared Azure database.** It re-executed001–008 at06:13 UTC,12/10/2026, resetting70 module definitions while17 table metadata timestamps also changed. Legacy identity/demo tests ran too; their row effects require audit. That failed run is excluded from acceptance. The shared DB has not been restored; its subscription owner must provide a pre-06:05 UTC copy so recovery can preserve newer legitimate team work. The private assessment/audit is outside Git. No further shared writes were performed after discovery.
+
+The repair explicitly registers the external-test guard on10 legacy DB/mail target classes and verifies migration/membership suppression even when automatic discovery is disabled. The private fixture loader also pins the complete main DB URL/name/credentials to the owned loopback fixture. Separate OWNER/BUYER/ADMIN test logins remain recorded privately with Windows-protected passwords. Actual BUYER login proves public Event projection permissions; other Event mutations impersonate restricted users over owner transport.
 
 ## Verification ledger
 
@@ -81,3 +86,9 @@ Replay gate fixture uses the uppercase SQL UUID resource and an active transacti
 Ruling: append046 after refund043 and047 after Event045; historical/adopted migration bytes remain intact. The shared rollout must include repairs before acceptance. Local/CI execution is not evidence that the shared Azure database was migrated. No deferred review minors.
 
 The combined review-fix run executed18 Refund +21 Event cases with zero failures/errors/skips. Incorporate dev79a963a (new PR70/71/72 and merged PR68 latest02534f1) before full exact-head CI and re-evaluate affected checks.
+
+Dev79a963a was incorporated atc221cc7, with both distinct045 basenames installed explicitly. Its three expanded dispatch runs passed, including fresh Linux clone, actual restricted WAR logins and browser checks. One default push pipeline exposed an intermittent generic ZXing finder failure; a fixed UUID reproduced it. The same original PNG decodes and verifies exactly with `PURE_BARCODE`, including signature/id/name; changing the margin did not resolve finder acquisition, so production generation remains unchanged. The signer round-trip test now declares a generated, unrotated QR fixture rather than generic camera acquisition. Real camera/perspective acceptance is a separate gate.
+
+Safe default package after guard/QR repairs:915 discovered,788 executed,127 explicitly guarded skips,zero failures/errors. JavaScript/Native163/163 pass with supplied PowerShell/JDK/Tomcat. New final CI is required on the repaired head. The failed global local run's914/31 failures/8 errors is not a product acceptance result and must not be substituted for this safe run.
+
+Ruling: explicit per-class guards protect legacy shared-target tests even when automatic discovery is disabled; selective real SQL suites retain their exact owned-target guards. Cost if wrong: newly introduced external tests need the same registration/target review. Ruling: generated PNG validation uses pure QR decoding, with production bytes unchanged; this proves encoding/signature interoperability, not camera detection robustness. No deferred review minors; shared recovery/data audit remains a material open gate.
