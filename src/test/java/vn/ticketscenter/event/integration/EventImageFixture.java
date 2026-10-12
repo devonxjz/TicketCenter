@@ -183,6 +183,12 @@ final class EventImageFixture implements AutoCloseable {
         }
         sql("DELETE dbo.tc_organizations WHERE id IN (?,?)", organization, foreign);
         sql("DELETE dbo.tc_event_categories WHERE id=?", category);
+        sql("DISABLE TRIGGER dbo.trg_AuditLog_AppendOnly ON dbo.tc_audit_logs");
+        try {
+            sql("DELETE dbo.tc_audit_logs WHERE actor_id IN (?,?)", user, keeper);
+        } finally {
+            sql("ENABLE TRIGGER dbo.trg_AuditLog_AppendOnly ON dbo.tc_audit_logs");
+        }
         sql("DELETE dbo.tc_users WHERE id IN (?,?)", user, keeper);
     }
 
