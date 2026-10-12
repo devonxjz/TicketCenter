@@ -67,13 +67,16 @@ public class TicketRepository {
 
     public List<TicketSummaryDto> findTicketsByBuyerId(UUID buyerId, int authVersion) {
         Objects.requireNonNull(buyerId, "buyerId is required");
-        String sql = "EXEC dbo.usp_ListBuyerTickets ?, ?";
+        String sql = """
+                SELECT id,ticket_code,paid_amount,status,issued_at,version,
+                       order_id,zone_name_snapshot,seat_label_snapshot,event_title,venue_name,start_time
+                FROM dbo.vw_TicketRuntimeDetails WHERE buyer_id=? ORDER BY issued_at DESC
+                """;
 
         List<TicketSummaryDto> result = new ArrayList<>();
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setObject(1, buyerId);
-            ps.setInt(2, authVersion);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     result.add(new TicketSummaryDto(
@@ -82,12 +85,12 @@ public class TicketRepository {
                             rs.getString("ticket_code"),
                             rs.getString("event_title"),
                             rs.getString("venue_name"),
-                            toInstant(rs.getTimestamp("start_time")),
+                            toInstant(rs.getTimestamp("start_time", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
                             rs.getString("zone_name_snapshot"),
                             rs.getString("seat_label_snapshot"),
                             rs.getLong("paid_amount"),
                             rs.getString("status"),
-                            toInstant(rs.getTimestamp("issued_at")),
+                            toInstant(rs.getTimestamp("issued_at", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
                             rs.getLong("version")
                     ));
                 }
@@ -107,13 +110,13 @@ public class TicketRepository {
 
     public Optional<TicketRecord> findById(UUID ticketId, UUID buyerId, int authVersion) {
         Objects.requireNonNull(ticketId, "ticketId is required");
-        String sql = "EXEC dbo.usp_ReadBuyerTicket ?, ?, ?";
+        String sql = """
+                SELECT * FROM dbo.vw_TicketRuntimeDetails WHERE id=?
+                """;
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setObject(1, ticketId);
-            ps.setObject(2, buyerId);
-            ps.setInt(3, authVersion);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return Optional.of(new TicketRecord(
@@ -126,13 +129,13 @@ public class TicketRepository {
                             rs.getString("event_title"),
                             rs.getString("venue_name"),
                             rs.getString("venue_address"),
-                            toInstant(rs.getTimestamp("start_time")),
-                            toInstant(rs.getTimestamp("end_time")),
+                            toInstant(rs.getTimestamp("start_time", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
+                            toInstant(rs.getTimestamp("end_time", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
                             rs.getString("zone_name_snapshot"),
                             rs.getString("seat_label_snapshot"),
                             rs.getLong("paid_amount"),
                             rs.getString("status"),
-                            toInstant(rs.getTimestamp("issued_at")),
+                            toInstant(rs.getTimestamp("issued_at", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
                             rs.getLong("version")
                     ));
                 }
@@ -152,14 +155,14 @@ public class TicketRepository {
 
     public List<TicketRecord> findTicketsByOrderId(UUID orderId, UUID buyerId, int authVersion) {
         Objects.requireNonNull(orderId, "orderId is required");
-        String sql = "EXEC dbo.usp_ListBuyerOrderTicketsDetailed ?, ?, ?";
+        String sql = """
+                SELECT * FROM dbo.vw_TicketRuntimeDetails WHERE order_id=? ORDER BY issued_at ASC
+                """;
 
         List<TicketRecord> result = new ArrayList<>();
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setObject(1, orderId);
-            ps.setObject(2, buyerId);
-            ps.setInt(3, authVersion);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     result.add(new TicketRecord(
@@ -172,13 +175,13 @@ public class TicketRepository {
                             rs.getString("event_title"),
                             rs.getString("venue_name"),
                             rs.getString("venue_address"),
-                            toInstant(rs.getTimestamp("start_time")),
-                            toInstant(rs.getTimestamp("end_time")),
+                            toInstant(rs.getTimestamp("start_time", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
+                            toInstant(rs.getTimestamp("end_time", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
                             rs.getString("zone_name_snapshot"),
                             rs.getString("seat_label_snapshot"),
                             rs.getLong("paid_amount"),
                             rs.getString("status"),
-                            toInstant(rs.getTimestamp("issued_at")),
+                            toInstant(rs.getTimestamp("issued_at", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
                             rs.getLong("version")
                     ));
                 }
