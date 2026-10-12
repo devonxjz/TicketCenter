@@ -15,6 +15,13 @@ public final class AdminRefundCiSetup {
                 q.execute("CREATE LOGIN khanh04_admin WITH PASSWORD='"+adminPassword+"',CHECK_POLICY=ON;");
             }
         }
+        String buyerPassword=System.getenv("TC_ADMIN_REFUND_BUYER_DB_PASSWORD");
+        if(buyerPassword!=null) {
+            if(!buyerPassword.matches("K04![a-fA-F0-9]{48}"))throw new IllegalArgumentException("Disposable buyer credential required");
+            try(var master=java.sql.DriverManager.getConnection("jdbc:sqlserver://127.0.0.1:1433;databaseName=master;encrypt=true;trustServerCertificate=true;loginTimeout=5","sa",ScanFixture.required("TC_SCAN_SA_PASSWORD"));var q=master.createStatement()) {
+                q.execute("CREATE LOGIN khanh04_buyer WITH PASSWORD='"+buyerPassword+"',CHECK_POLICY=ON;");
+            }
+        }
         try(var c=ScanFixture.owner();var q=c.createStatement()) {
             c.setAutoCommit(false);
             try {
@@ -28,6 +35,7 @@ public final class AdminRefundCiSetup {
                 }
                 install(c,"043_khanh04_admin_refund.sql");
                 if(adminPassword!=null)q.execute("CREATE USER khanh04_admin FOR LOGIN khanh04_admin; ALTER ROLE tc_platform_admin ADD MEMBER khanh04_admin; GRANT VIEW DEFINITION TO khanh04_admin;");
+                if(buyerPassword!=null)q.execute("CREATE USER khanh04_buyer FOR LOGIN khanh04_buyer; ALTER ROLE tc_buyer ADD MEMBER khanh04_buyer; GRANT VIEW DEFINITION TO khanh04_buyer;");
                 c.commit();
             }catch(Exception failure){c.rollback();throw failure;}
         }

@@ -53,11 +53,7 @@ final class DongSqlFixture {
         try(Jedis redis=redis()){assertEquals("PONG",redis.ping(),"Dedicated Redis fixture required");}
     }
     static Connection connection(String user) throws SQLException {
-        String url=AppConfig.get("TC_DONG_SQL_URL");assertNotNull(url,"Provide dedicated TC_DONG_SQL_URL; this integration suite never skips");
-        assertTrue(AppConfig.getBoolean("TC_DONG_ACCEPTANCE",false),"Explicit Dong test-workflow opt-in required");
-        assertTrue(url.matches("jdbc:sqlserver://(?:127\\.0\\.0\\.1|localhost):[0-9]{1,5};.*databaseName=TicketCenter_Dong_[A-Za-z0-9_]+;.*"),"Only an explicit loopback Dong fixture URL is allowed");
-        Connection c=DriverManager.getConnection(url);
-        try(var q=c.createStatement();var r=q.executeQuery("SELECT DB_NAME()")) {r.next();if(!r.getString(1).startsWith("TicketCenter_Dong_")){c.close();throw new SQLException("Refusing non-Dong test database");}}
+        Connection c=DongFixtureConnectionSettings.configured().open();
         if(user!=null){if(!Set.of("dong_buyer","dong_manager","dong_admin").contains(user))throw new SQLException("Invalid test principal");try(var q=c.createStatement()){q.execute("EXECUTE AS USER='"+user+"'");}}
         return c;
     }

@@ -1,5 +1,13 @@
 # Running the Dong acceptance checks
 
+Current integration adoption: pending Event SQL is
+`045_event_commands_and_public_seats.sql`; earlier043 references below are
+historical checkpoints. A guarded SQL-login alternative to Windows auth uses
+the exact loopback `TC_DONG_SQL_URL` without `integratedSecurity=true`, with
+`TC_DONG_DB_USER`/`TC_DONG_DB_PASSWORD` supplied separately. The database must
+still be `TicketCenter_Dong_*`; overrides, shared hosts and embedded credentials
+are rejected. [Combined acceptance and limits](../vuong/VUONG-REFUND-EVENT-INTEGRATION.md).
+
 Current completion checklist and source-head CI snapshot:
 [DONG-ACCEPTANCE-20261011.md](DONG-ACCEPTANCE-20261011.md). The latest read-only
 shared metadata retry returned40613/S0001;40615 below is an earlier checkpoint.

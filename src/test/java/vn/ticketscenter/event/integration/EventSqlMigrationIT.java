@@ -1,24 +1,16 @@
 package vn.ticketscenter.event.integration;
 
 import org.junit.jupiter.api.Test;
-import vn.ticketscenter.config.AppConfig;
 import java.nio.file.*;
 import java.sql.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-/** Opt-in migration smoke against an explicit isolated Windows-auth Dong fixture. */
+/** Opt-in migration smoke against an exact isolated Dong fixture target. */
 class EventSqlMigrationIT {
     @Test void reviewedMigrationReappliesWithoutLosingReceiptsAndGrantsOnlyPublicSeatRead() throws Exception {
-        assertTrue(AppConfig.getBoolean("TC_DONG_ACCEPTANCE",false),"Explicit dedicated acceptance required");
-        String url=AppConfig.get("TC_DONG_SQL_URL");assertNotNull(url);
-        var target=java.util.regex.Pattern.compile("jdbc:sqlserver://(?:127\\.0\\.0\\.1|localhost):[0-9]{1,5};databaseName=(TicketCenter_Dong_[A-Za-z0-9_]+);integratedSecurity=true;encrypt=true;trustServerCertificate=true;loginTimeout=5;?").matcher(url);
-        assertTrue(target.matches(),"Only the exact dedicated loopback URL format is allowed; no JDBC overrides");
-        try(Connection c=DriverManager.getConnection(url)) {
-            try(var q=c.createStatement();var rows=q.executeQuery("SELECT DB_NAME()")) {
-                assertTrue(rows.next());assertEquals(target.group(1),rows.getString(1),"Refuse unexpected database");
-            }
+        try(Connection c=DongFixtureConnectionSettings.configured().open()) {
             long receipts=count(c);String cleanupBefore=cleanupFingerprint(c);
-            String migration=Files.readString(Path.of("database/migrations/043_event_commands_and_public_seats.sql"));
+            String migration=Files.readString(Path.of("database/migrations/045_event_commands_and_public_seats.sql"));
             assertTrue(migration.contains("CREATE OR ALTER PROCEDURE dbo.usp_EventCommand"),"Refuse an incomplete migration artifact" );
             for(int attempt=0;attempt<2;attempt++) {
                 c.setAutoCommit(false);

@@ -1,4 +1,4 @@
-/* #45 Event SQL coordination. New migration043;029-042 are integrated on dev, including PR67.
+/* #45 Event SQL coordination. Pending Event043 is adopted as045; merged043/044 remain unchanged.
    Requires the canonical baseline and027/028 adapters/image workflow.
    Apply only through the reviewed shared rollout, before Event PR51 WAR.
    No user roles are granted or synchronized by this migration. */

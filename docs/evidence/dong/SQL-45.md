@@ -1,5 +1,13 @@
 # Event SQL coordination — issue45 / PR56
 
+Integration adoption12 October: the **pending** Event artifact is now
+`045_event_commands_and_public_seats.sql`. Preserve installed/merged
+`043_coupon_admin.sql`, `044_buyer_order_history_views.sql` and
+`043_khanh04_admin_refund.sql`; ledger identities are complete basenames, not
+numeric prefixes. The sections below retain the owner's original043 checkpoint.
+See [combined evidence](../vuong/VUONG-REFUND-EVENT-INTEGRATION.md) for the current
+install order and fresh acceptance; do not rename or rewrite installed history.
+
 Updated12 October2026 (UTC+7). Scope: Event command/public Seat contract for
 DONG-01–05. Feature delivery is PR51; database changes are kept in this separate
 PR. Both now integrate dev c1d7e0af7d308226224b76928a2e2607326249ec.

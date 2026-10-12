@@ -17,11 +17,12 @@ Owner tích hợp: Vương. Nguồn: [#28](https://github.com/devonxjz/TicketCen
 |---|---|---|---:|---|
 | `auth:user:<userId>` | Thái | `status:authVersion` của User | 180 | `AuthService.evictUserCache`, revoke sessions, password reset; **hiện có** |
 | `tc:user:auth-version:<userId>` | Thái | Theo bảng #28 | 86400 | **Cần phối hợp:** không có producer; không đổi key/TTL của auth đã merge trong PR VUONG-01 |
-| `tc:event:list:v1:<filterHash>` | Đông | Public Event list, filter/page/order | 60 | Publish/edit/cancel, invalidate theo generation/index; dự kiến #8 |
-| `tc:event:detail:v1:<eventId>` | Đông | Public Event projection | 120 | Edit/publish/reject/cancel; dự kiến #8 |
-| `tc:event:zones:v1:<eventId>` | Đông | Zone projection | 60 | Inventory/pricing đổi; dự kiến #8/#10 |
-| `tc:zone:seats:v1:<zoneId>` | Đông | Seat projection | 30 | Hold/cancel/issue/refund/check-in theo contract inventory; dự kiến #8 |
-| `tc:event:categories:v1` | Đông | Danh mục | Chưa chốt | Owner xác nhận TTL trước ghép; dự kiến #8 |
+| `tc:event:list:v1:<filterHash>` | Đông | Public Event list; hash của filter/page/order đã chuẩn hóa | 30 | **Hiện có:** EventCatalogService; Event writes invalidate generation sau commit. Hook Hold/payment/refund/cancel liên miền còn phải nghiệm thu |
+| `tc:event:detail:v1:<eventId>` | Đông | Public Event projection | 120 | **Hiện có:** EventCatalogService; Event writes invalidate sau commit |
+| `tc:event:zones:v1:<eventId>` | Đông | Public Zone projection | 30 | **Hiện có:** EventCatalogService; hook inventory từ miền khác còn là gate |
+| `tc:zone:seats:v1:<zoneId>` | Đông | Public Seat projection | 30 | **Hiện có:** EventCatalogService; không thay SQL kiểm tồn kho ở mutation |
+| `tc:event:categories:v1` | Đông | Public category projection | 300 | **Hiện có:** EventCatalogService |
+| `tc:event:cache-generation:v1` | Đông | Generation chống publish lại cache cũ sau mutation | Không TTL | **Hiện có:** RedisEventCatalogCache; Redis lỗi giữ SQL fallback |
 | `tc:user:active-hold:<userId>` | Liêm | Chỉ holdId | 600, không quá expiry DB | Replace/cancel/expire/order; dự kiến #14 |
 | `tc:order:summary:<orderId>` | Liêm | DTO đơn hàng; kiểm quyền buyer | Thời gian còn lại của Hold | Coupon/payment/expire/refund; dự kiến #15 |
 | `tc:user:orders:v1:<actorId>:<page>` | Liêm | Order history, scope actor | Chưa chốt | Thêm filter/order vào scope nếu API có; payment/refund; dự kiến #19 |
@@ -41,6 +42,8 @@ Owner tích hợp: Vương. Nguồn: [#28](https://github.com/devonxjz/TicketCen
 
 | Key | Owner | TTL giây | Nguồn / trạng thái |
 |---|---|---:|---|
+| `tc:idem:event:<actorId>:<key>` / `tc:idem:event-review:<actorId>:<key>` | Đông | 120 PROCESSING / 86400 COMPLETED | **Hiện có:** RedisEventIdempotencyStore; SQL receipt và current authority quyết định replay, release lease kiểm token |
+| `tc:idem:refund-decision:<adminId>:<key>` | Khánh | 86400 | **Hiện có:** RedisAdminRefundCache sau commit; payload kết quả đã lọc, SQL giữ quyết định/replay; Redis lỗi không đảo commit |
 | `tc:idem:hold:<actorId>:<key>` | Liêm | 600 | #14, dự kiến |
 | `tc:idem:order:<actorId>:<key>` | Liêm | 600 | #15, dự kiến |
 | `tc:idem:vnpay:init:<actorId>:<key>` | Liêm | 600 | #16, dự kiến |
