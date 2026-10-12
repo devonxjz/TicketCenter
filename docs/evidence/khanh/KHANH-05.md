@@ -65,6 +65,12 @@ The updated combined opt-in run passed **77 tests with no failures/errors/skips*
 
 ## Reproduction and runbook
 
+### YAML privacy follow-up — 2026-10-13
+
+Fetched the remote and pulled the current task branch before editing; it already includes the latest `dev`. All 15 tracked YAML files contain zero exact matches of the current or previously committed private database accounts/passwords, provider keys or Azure hosts. The CI secret check previously excluded YAML and printed matching key lines; it now checks all tracked files, rejects private configuration/key material and live account email/Azure literals in YAML, and reports filenames only. The confusing ROOT step label now says default web context; its command, fixtures and assertions are identical. Compose continues to resolve credentials from environment/ignored `.env`, and GHCR uses the same runtime identity/token.
+
+Local verification: actionlint passes for all workflows; the exact embedded check passes on this checkout and nine synthetic accepted/rejected cases verify fixture/Secrets compatibility, private file/YAML rejection and absence of credential contents in diagnostics. The filtered result is `target/yaml-configuration-guard-check.txt`. No Java, SQL, application configuration values or business behavior changed in this follow-up; updated GitHub Actions results are recorded on PR #75.
+
 Fresh CI: `.github/workflows/khanh05-refund-worker.yml` creates SQL Server/Redis services and masked disposable credentials, installs the full schema, requires all four acceptance suites with zero skipped tests, packages the complete WAR and runs real Tomcat restart acceptance. Artifacts contain sanitized reports/Tomcat logs and acceptance summary, excluding credentials and fixture files.
 
 Local with the existing private secret loader:
