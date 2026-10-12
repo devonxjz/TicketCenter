@@ -10,9 +10,11 @@ import vn.ticketscenter.config.ServerConfig;
 import vn.ticketscenter.config.persistence.PersistenceListener;
 import vn.ticketscenter.config.persistence.PersistenceRegistry;
 import vn.ticketscenter.config.redis.RedisClientProvider;
+import vn.ticketscenter.identity.repository.OrganizationMembershipRepository;
 import vn.ticketscenter.identity.repository.OrganizationRepository;
 import vn.ticketscenter.identity.repository.UserRepository;
 import vn.ticketscenter.identity.service.AuthService;
+import vn.ticketscenter.identity.service.OrganizationMembershipService;
 import vn.ticketscenter.identity.service.OrganizationRequestService;
 import vn.ticketscenter.identity.service.PasswordHasher;
 
@@ -24,6 +26,7 @@ public final class AuthSecurityListener implements ServletContextListener {
     private static final Logger LOGGER = Logger.getLogger(AuthSecurityListener.class.getName());
     public static final String AUTH_SERVICE_ATTRIBUTE = "vn.ticketscenter.identity.AUTH_SERVICE";
     public static final String ORGANIZATION_REQUEST_SERVICE_ATTRIBUTE = "vn.ticketscenter.identity.ORGANIZATION_REQUEST_SERVICE";
+    public static final String ORGANIZATION_MEMBERSHIP_SERVICE_ATTRIBUTE = "vn.ticketscenter.identity.ORGANIZATION_MEMBERSHIP_SERVICE";
 
     @Override
     public void contextInitialized(ServletContextEvent sce) {
@@ -95,6 +98,34 @@ public final class AuthSecurityListener implements ServletContextListener {
                         RedisClientProvider.getInstance()
                 );
                 context.setAttribute(ORGANIZATION_REQUEST_SERVICE_ATTRIBUTE, service);
+                return service;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Lấy hoặc khởi tạo duy nhất một OrganizationMembershipService singleton gắn với ServletContext.
+     */
+    public static OrganizationMembershipService resolveOrganizationMembershipService(ServletContext context) {
+        if (context == null) return null;
+        Object existing = context.getAttribute(ORGANIZATION_MEMBERSHIP_SERVICE_ATTRIBUTE);
+        if (existing instanceof OrganizationMembershipService service) {
+            return service;
+        }
+        synchronized (context) {
+            existing = context.getAttribute(ORGANIZATION_MEMBERSHIP_SERVICE_ATTRIBUTE);
+            if (existing instanceof OrganizationMembershipService service) {
+                return service;
+            }
+            Object regObj = context.getAttribute(PersistenceListener.REGISTRY_ATTRIBUTE);
+            if (regObj instanceof PersistenceRegistry registry && registry.isReady()) {
+                OrganizationMembershipService service = new OrganizationMembershipService(
+                        registry.transactionManager(),
+                        new OrganizationMembershipRepository(),
+                        new UserRepository()
+                );
+                context.setAttribute(ORGANIZATION_MEMBERSHIP_SERVICE_ATTRIBUTE, service);
                 return service;
             }
         }

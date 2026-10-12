@@ -16,4 +16,17 @@
         <url-pattern>/api/reports/export</url-pattern>
         <url-pattern>/api/reports/options</url-pattern>
     </servlet-mapping>
+
+    <servlet>
+        <servlet-name>OrganizationMembersServlet</servlet-name>
+        <servlet-class>vn.ticketscenter.identity.controller.OrganizationMembersServlet</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>MyMembershipsServlet</servlet-name>
+        <servlet-class>vn.ticketscenter.identity.controller.MyMembershipsServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>MyMembershipsServlet</servlet-name>
+        <url-pattern>/api/me/memberships</url-pattern>
+    </servlet-mapping>
 </web-app>
