@@ -20,6 +20,7 @@ import zipfile
 
 def main():
     env = os.environ.copy()
+    env.pop('TC_CONFIG_FILE', None)  # Never read the operator's private project configuration.
     if not env['TC_SCAN_TEST_URL'].startswith('jdbc:sqlserver://127.0.0.1:') or 'databaseName=TicketCenter_Khanh02_Test;' not in env['TC_SCAN_TEST_URL']:
         raise RuntimeError('Dedicated loopback fixture required')
     with socket.socket() as check:

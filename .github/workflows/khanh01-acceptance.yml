@@ -13,10 +13,10 @@ jobs:
         image: mcr.microsoft.com/mssql/server:2022-latest
         env:
           ACCEPT_EULA: Y
-          MSSQL_SA_PASSWORD: YourStrong@Password123
+          MSSQL_SA_PASSWORD: ${{ format('Khanh01_{0}_Aa!', github.run_id) }}
         ports: ['1433:1433']
         options: >-
-          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'YourStrong@Password123' -C -Q 'SELECT 1'"
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P '${{ format('Khanh01_{0}_Aa!', github.run_id) }}' -C -Q 'SELECT 1'"
           --health-interval 5s --health-timeout 5s --health-retries 20
       redis:
         image: redis:7.4
@@ -30,7 +30,7 @@ jobs:
       DB_NAME: TicketCenter_Khanh01_Test
       DB_URL: jdbc:sqlserver://127.0.0.1:1433;databaseName=TicketCenter_Khanh01_Test;encrypt=true;trustServerCertificate=true;loginTimeout=15
       DB_USER: sa
-      DB_PASSWORD: YourStrong@Password123
+      DB_PASSWORD: ${{ format('Khanh01_{0}_Aa!', github.run_id) }}
       DB_CHECK_IN_USER: khanh01_checkin
       DB_TRUSTSERVERCERTIFICATE: 'true'
       TC_SQL_TEST_DB: TicketCenter_Khanh01_Test
@@ -43,8 +43,7 @@ jobs:
       MAIL_SMTP_USER: capture@fixture.invalid
       MAIL_SMTP_PASSWORD: local-fixture-only
       ADMIN_SEED_ENABLED: 'true'
-      ADMIN_EMAIL: adminTIcket@gmail.com
-      ADMIN_PASSWORD: 123123ticketCenter
+      ADMIN_EMAIL: khanh01-admin@fixture.invalid
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -57,7 +56,11 @@ jobs:
         run: |
           set -euo pipefail
           password="K01!$(openssl rand -hex 20)"
+          admin_password="K01!$(openssl rand -hex 24)"
           echo "::add-mask::$password"
+          echo "::add-mask::$admin_password"
+          echo "::add-mask::$DB_PASSWORD"
+          printf 'ADMIN_PASSWORD=%s\n' "$admin_password" >> "$GITHUB_ENV"
           printf 'DB_CHECK_IN_PASSWORD=%s\nTC_SQL_TEST_PASSWORD=%s\nTC_CHECKIN_FIXTURE_PASSWORD=%s\n' "$password" "$password" "$password" >> "$GITHUB_ENV"
       - name: Create isolated SQL schema and fixture
         env:

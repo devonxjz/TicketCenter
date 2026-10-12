@@ -26,7 +26,7 @@ public final class AdminSeeder {
         validateProductionSecret(ServerConfig.getEnv(), password);
         if (!AppConfig.getBoolean("admin.seed.enabled", false)) return;
         if (password == null || password.isBlank()) throw new IllegalStateException("Admin seed password is required");
-        String email = AppConfig.get("admin.email", "adminTIcket@gmail.com");
+        String email = AppConfig.get("admin.email", "admin@fixture.invalid");
         String normalizedEmail = AccountService.normalizeEmail(email);
         transactions.execute(DatabasePrincipal.AUTH, entityManager -> {
             UserDAO users = new UserDAO(entityManager);

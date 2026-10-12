@@ -11,10 +11,12 @@ function Get-Hashes([string]$path) {
  } finally {$sha.Dispose()}
 }
 $settings=@{}
-Get-Content src/main/resources/application.properties | ForEach-Object {
+$configPath=$env:TC_CONFIG_FILE
+if([string]::IsNullOrWhiteSpace($configPath)){$configPath='.local/application.properties'}
+Get-Content -LiteralPath $configPath | ForEach-Object {
  if($_ -match '^(db\.(?:host|name|user|password))=(.*)$'){$settings[$Matches[1]]=$Matches[2].Trim()}
 }
-if($settings['db.host'] -ne 'devonxjz.database.windows.net' -or $settings['db.name'] -ne 'TicketCenterticke'){throw 'Unexpected project target'}
+if($settings['db.host'] -ne 'ticketscenter.database.windows.net' -or $settings['db.name'] -ne 'TicketsCenter'){throw 'Unexpected project target'}
 $builder=[System.Data.SqlClient.SqlConnectionStringBuilder]::new()
 $builder['Data Source']='tcp:'+ $settings['db.host']+',1433';$builder['Initial Catalog']=$settings['db.name']
 $builder['User ID']=$settings['db.user'];$builder['Password']=$settings['db.password'];$builder['Encrypt']=$true;$builder['TrustServerCertificate']=$false;$builder['Connect Timeout']=30;$builder['Pooling']=$false
@@ -29,12 +31,12 @@ try {
   $q=Query "DECLARE @r int;EXEC @r=sys.sp_getapplock @Resource=N'tc:migrations',@LockMode='Exclusive',@LockOwner='Transaction',@LockTimeout=15000;IF @r<0 THROW 53590,'Migration lock unavailable',1;"
   [void]$q.ExecuteNonQuery();$q.Dispose()
   foreach($name in @('031_sql_report_financial_safety','032_sql_report_permissions','033_sql_report_indexes','039_sql_report_contract_consistency')) {
-   $q=Query 'SELECT checksum_sha256 FROM dbo.tc_schema_migrations WHERE version=@v';[void]$q.Parameters.AddWithValue('@v',$name);$old=$q.ExecuteScalar();$q.Dispose()
+   $q=Query "IF (SELECT COUNT_BIG(*) FROM dbo.tc_schema_migrations WHERE version=@v OR version=@v+'.sql')<>1 THROW 53592,'Missing or ambiguous prerequisite migration',1;SELECT checksum_sha256 FROM dbo.tc_schema_migrations WHERE version=@v OR version=@v+'.sql'";[void]$q.Parameters.AddWithValue('@v',$name);$old=$q.ExecuteScalar();$q.Dispose()
    if($null -eq $old -or $old -is [DBNull] -or $old -notin @(Get-Hashes "database/migrations/$name.sql")){throw "Missing or mismatched required migration: $name"}
   }
-  $migration='database/migrations/045_khanh05_refund_worker.sql';$version=[IO.Path]::GetFileNameWithoutExtension($migration)
+  $migration='database/migrations/045_khanh05_refund_worker.sql';$version=[IO.Path]::GetFileName($migration)
   $hashes=@(Get-Hashes $migration)
-  $q=Query 'SELECT checksum_sha256 FROM dbo.tc_schema_migrations WITH(UPDLOCK,HOLDLOCK) WHERE version=@v';[void]$q.Parameters.AddWithValue('@v',$version);$old=$q.ExecuteScalar();$q.Dispose()
+  $q=Query "IF (SELECT COUNT_BIG(*) FROM dbo.tc_schema_migrations WITH(UPDLOCK,HOLDLOCK) WHERE version=@v OR version=REPLACE(@v,'.sql',''))>1 THROW 53592,'Ambiguous worker migration identity',1;SELECT checksum_sha256 FROM dbo.tc_schema_migrations WITH(UPDLOCK,HOLDLOCK) WHERE version=@v OR version=REPLACE(@v,'.sql','')";[void]$q.Parameters.AddWithValue('@v',$version);$old=$q.ExecuteScalar();$q.Dispose()
   if($null -ne $old -and $old -isnot [DBNull]) {
    if($old -notin $hashes){throw 'KHANH-05 checksum conflict; refusing migration rewrite'}
    $transaction.Commit();Write-Output 'KHANH-05 already installed with matching checksum.';return
