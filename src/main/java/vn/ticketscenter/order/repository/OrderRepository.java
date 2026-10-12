@@ -69,18 +69,15 @@ public class OrderRepository {
         int offset = (targetPage - 1) * targetSize;
 
         String countSql = """
-                SELECT COUNT_BIG(*) FROM dbo.tc_orders o WITH (NOLOCK)
-                WHERE o.user_id = ? AND (? IS NULL OR o.status = ?)
+                SELECT COUNT_BIG(*) FROM dbo.vw_BuyerOrderDetails o
+                WHERE o.buyer_id = ? AND (? IS NULL OR o.status = ?)
                 """;
         String selectSql = """
-                SELECT o.id, o.order_code, o.event_id, e.title as event_title, e.venue_name, e.start_time,
+                SELECT o.id, o.order_code, o.event_id, o.event_title, o.venue_name, o.start_time,
                        o.subtotal_amount, o.discount_amount, o.total_amount, o.status,
-                       o.created_at, o.paid_at, c.code as coupon_code,
-                       (SELECT COUNT_BIG(*) FROM dbo.tc_tickets t JOIN dbo.tc_order_items oi ON oi.id = t.order_item_id WHERE oi.order_id = o.id) as ticket_count
-                FROM dbo.tc_orders o WITH (NOLOCK)
-                JOIN dbo.tc_events e WITH (NOLOCK) ON e.id = o.event_id
-                LEFT JOIN dbo.tc_coupons c WITH (NOLOCK) ON c.id = o.coupon_id
-                WHERE o.user_id = ? AND (? IS NULL OR o.status = ?)
+                       o.created_at, o.paid_at, o.coupon_code, o.ticket_count
+                FROM dbo.vw_BuyerOrderDetails o
+                WHERE o.buyer_id = ? AND (? IS NULL OR o.status = ?)
                 ORDER BY o.created_at DESC
                 OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
                 """;
@@ -142,28 +139,24 @@ public class OrderRepository {
     public Optional<OrderDetailDto> findOrderDetail(UUID orderId, UUID actorId, int authVersion) {
         Objects.requireNonNull(orderId, "orderId is required");
         String orderSql = """
-                SELECT o.id, o.user_id as buyer_id, o.order_code, o.event_id, e.title as event_title,
-                       e.venue_name, e.venue_address, e.start_time, e.end_time,
+                SELECT o.id, o.buyer_id, o.order_code, o.event_id, o.event_title,
+                       o.venue_name, o.venue_address, o.start_time, o.end_time,
                        o.subtotal_amount, o.discount_amount, o.total_amount, o.status,
-                       o.created_at, o.paid_at, c.code as coupon_code,
-                       p.status as payment_status, p.txn_ref, p.provider_reference, p.captured_at
-                FROM dbo.tc_orders o WITH (NOLOCK)
-                JOIN dbo.tc_events e WITH (NOLOCK) ON e.id = o.event_id
-                LEFT JOIN dbo.tc_coupons c WITH (NOLOCK) ON c.id = o.coupon_id
-                LEFT JOIN dbo.tc_payments p WITH (NOLOCK) ON p.id = o.accepted_payment_id
+                       o.created_at, o.paid_at, o.coupon_code,
+                       o.payment_status, o.txn_ref, o.provider_reference, o.captured_at
+                FROM dbo.vw_BuyerOrderDetails o
                 WHERE o.id = ?
                 """;
         String itemsSql = """
                 SELECT oi.id, oi.zone_name_snapshot, oi.seat_label_snapshot, oi.quantity, oi.unit_price,
                        (oi.quantity * oi.unit_price) as line_total
-                FROM dbo.tc_order_items oi WITH (NOLOCK)
+                FROM dbo.vw_BuyerOrderItems oi
                 WHERE oi.order_id = ?
                 """;
         String ticketsSql = """
                 SELECT t.id, t.ticket_code, t.status, t.paid_amount
-                FROM dbo.tc_tickets t WITH (NOLOCK)
-                JOIN dbo.tc_order_items oi WITH (NOLOCK) ON oi.id = t.order_item_id
-                WHERE oi.order_id = ?
+                FROM dbo.vw_TicketRuntimeDetails t
+                WHERE t.order_id = ?
                 ORDER BY t.issued_at ASC
                 """;
 
