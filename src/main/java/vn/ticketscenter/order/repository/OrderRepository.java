@@ -241,6 +241,34 @@ public class OrderRepository {
         }
     }
 
+    public void assertOrderAccess(Connection conn, UUID orderId) {
+        if (conn == null) return;
+        Objects.requireNonNull(orderId, "orderId is required");
+        try (CallableStatement cs = conn.prepareCall("{call dbo.usp_AssertOrderAccess(?)}")) {
+            cs.setObject(1, orderId);
+            cs.execute();
+        } catch (SQLException e) {
+            int code = e.getErrorCode();
+            if (code == 51403) {
+                throw new OrderException(403, "FORBIDDEN", "You do not own this order.");
+            }
+            if (code == 51404) {
+                throw new OrderException(404, "ORDER_NOT_FOUND", "Order was not found.");
+            }
+            throw OrderException.unavailable();
+        }
+    }
+
+    public void assertOrderAccess(UUID orderId, UUID actorId) {
+        if (buyer == null) return;
+        Objects.requireNonNull(orderId, "orderId is required");
+        try (Connection conn = buyer.getConnection()) {
+            assertOrderAccess(conn, orderId);
+        } catch (SQLException e) {
+            throw OrderException.unavailable();
+        }
+    }
+
     public static CurrentCheckout checkout(String body) {
         JSONObject root = new JSONObject(body);
         Instant now = Instant.parse(root.getString("serverTime"));
