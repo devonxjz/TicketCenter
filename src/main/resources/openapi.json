@@ -4025,24 +4025,129 @@
         "tags": [
           "Check-in & Refunds"
         ],
-        "summary": "Chờ triển khai · Admin Refund decision và explicit retry — GET /api/admin/refund-requests",
-        "description": "Contract dự kiến từ issue #24. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "summary": "Danh sách hồ sơ hoàn tiền có phân trang",
+        "description": "Chỉ ADMIN đang hoạt động; kiểm tra lại role/authVersion trong database. UUID dạng chuỗi, tiền VND là chuỗi số nguyên, thời gian UTC. Hợp đồng KHANH-04, issue #24. Trạng thái theo SPEC canonical; FAILED và UNKNOWN được chấp nhận làm alias bộ lọc RETRYABLE và NEEDS_RECONCILIATION. Phương thức hoàn luôn là phương thức thanh toán gốc; không nhập tài khoản ngân hàng mới.",
         "responses": {
           "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+            "description": "Kết quả được bao trong data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AdminRefundPage"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dữ liệu, UUID, phân trang hoặc lý do từ chối không hợp lệ.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chưa đăng nhập hoặc phiên hết hạn.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Không có quyền ADMIN hiện tại hoặc CSRF không hợp lệ.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Hồ sơ hoặc đường dẫn không tồn tại.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Hệ thống xác thực/database chưa sẵn sàng.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "operationId": "getApiAdminRefundRequests",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "verified",
         "x-owner": "khanh",
         "externalDocs": {
-          "description": "Issue giao việc và contract dự kiến",
+          "description": "Yêu cầu KHANH-04 và tiêu chí nghiệm thu",
           "url": "https://github.com/devonxjz/TicketCenter/issues/24"
         },
         "security": [
           {
             "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "REQUESTED",
+                "APPROVED",
+                "PROCESSING",
+                "COMPLETED",
+                "REJECTED",
+                "RETRYABLE",
+                "NEEDS_RECONCILIATION",
+                "FAILED",
+                "UNKNOWN"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
           }
         ]
       }
@@ -4052,19 +4157,84 @@
         "tags": [
           "Check-in & Refunds"
         ],
-        "summary": "Chờ triển khai · Admin Refund decision và explicit retry — GET /api/admin/refund-requests/{refundId}",
-        "description": "Contract dự kiến từ issue #24. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "summary": "Chi tiết hồ sơ và lịch sử lần chuyển",
+        "description": "Chỉ ADMIN đang hoạt động; kiểm tra lại role/authVersion trong database. UUID dạng chuỗi, tiền VND là chuỗi số nguyên, thời gian UTC. Hợp đồng KHANH-04, issue #24. Trạng thái theo SPEC canonical; FAILED và UNKNOWN được chấp nhận làm alias bộ lọc RETRYABLE và NEEDS_RECONCILIATION. Phương thức hoàn luôn là phương thức thanh toán gốc; không nhập tài khoản ngân hàng mới.",
         "responses": {
           "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+            "description": "Kết quả được bao trong data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AdminRefundDetail"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dữ liệu, UUID, phân trang hoặc lý do từ chối không hợp lệ.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chưa đăng nhập hoặc phiên hết hạn.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Không có quyền ADMIN hiện tại hoặc CSRF không hợp lệ.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Hồ sơ hoặc đường dẫn không tồn tại.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Hệ thống xác thực/database chưa sẵn sàng.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "operationId": "getApiAdminRefundRequestsRefundId",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "verified",
         "x-owner": "khanh",
         "externalDocs": {
-          "description": "Issue giao việc và contract dự kiến",
+          "description": "Yêu cầu KHANH-04 và tiêu chí nghiệm thu",
           "url": "https://github.com/devonxjz/TicketCenter/issues/24"
         },
         "parameters": [
@@ -4090,19 +4260,114 @@
         "tags": [
           "Check-in & Refunds"
         ],
-        "summary": "Chờ triển khai · Admin Refund decision và explicit retry — POST /api/admin/refund-requests/{refundId}/decision",
-        "description": "Contract dự kiến từ issue #24. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "summary": "Duyệt hoặc từ chối yêu cầu hoàn tiền",
+        "description": "Chỉ ADMIN đang hoạt động; kiểm tra lại role/authVersion trong database. UUID dạng chuỗi, tiền VND là chuỗi số nguyên, thời gian UTC. Hợp đồng KHANH-04, issue #24. Quyết định trả status của request (APPROVED); canonicalStatus có thể đã PROCESSING vì attempt PENDING được tạo cùng transaction. Retry chỉ cho canonical RETRYABLE với attempt FAILED đã xác minh; UNKNOWN/NEEDS_RECONCILIATION bị chặn. Vé REFUND_PENDING cho đến xác nhận thành công. Vé 0 đồng hoàn tất không tạo attempt. Cùng admin/key/payload trả lại kết quả bền vững ngay cả khi Redis mất kết nối.",
         "responses": {
           "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+            "description": "Kết quả được bao trong data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AdminRefundMutation"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dữ liệu, UUID, phân trang hoặc lý do từ chối không hợp lệ.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chưa đăng nhập hoặc phiên hết hạn.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Không có quyền ADMIN hiện tại hoặc CSRF không hợp lệ.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Hồ sơ hoặc đường dẫn không tồn tại.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Hệ thống xác thực/database chưa sẵn sàng.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Trạng thái đã thay đổi, chưa rõ kết quả, hoặc cùng key khác payload.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload quá lớn.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type phải là application/json.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "operationId": "postApiAdminRefundRequestsRefundIdDecision",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "verified",
         "x-owner": "khanh",
         "externalDocs": {
-          "description": "Issue giao việc và contract dự kiến",
+          "description": "Yêu cầu KHANH-04 và tiêu chí nghiệm thu",
           "url": "https://github.com/devonxjz/TicketCenter/issues/24"
         },
         "parameters": [
@@ -4114,6 +4379,24 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Giữ nguyên key và payload khi gửi lại sau lỗi mạng. Key chung cho quyết định và retry của cùng admin."
           }
         ],
         "security": [
@@ -4122,7 +4405,31 @@
             "csrfToken": [],
             "idempotencyKey": []
           }
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminRefundDecision"
+              },
+              "examples": {
+                "approve": {
+                  "value": {
+                    "decision": "APPROVE",
+                    "note": "Đã xác minh điều kiện hoàn vé"
+                  }
+                },
+                "reject": {
+                  "value": {
+                    "decision": "REJECT",
+                    "rejectReason": "Hồ sơ không đủ điều kiện"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/admin/refund-requests/{refundId}/retry": {
@@ -4130,19 +4437,114 @@
         "tags": [
           "Check-in & Refunds"
         ],
-        "summary": "Chờ triển khai · Admin Refund decision và explicit retry — POST /api/admin/refund-requests/{refundId}/retry",
-        "description": "Contract dự kiến từ issue #24. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "summary": "Thử lại lần chuyển đã xác nhận thất bại",
+        "description": "Chỉ ADMIN đang hoạt động; kiểm tra lại role/authVersion trong database. UUID dạng chuỗi, tiền VND là chuỗi số nguyên, thời gian UTC. Hợp đồng KHANH-04, issue #24. Quyết định trả status của request (APPROVED); canonicalStatus có thể đã PROCESSING vì attempt PENDING được tạo cùng transaction. Retry chỉ cho canonical RETRYABLE với attempt FAILED đã xác minh; UNKNOWN/NEEDS_RECONCILIATION bị chặn. Vé REFUND_PENDING cho đến xác nhận thành công. Vé 0 đồng hoàn tất không tạo attempt. Cùng admin/key/payload trả lại kết quả bền vững ngay cả khi Redis mất kết nối.",
         "responses": {
           "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+            "description": "Kết quả được bao trong data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AdminRefundMutation"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dữ liệu, UUID, phân trang hoặc lý do từ chối không hợp lệ.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chưa đăng nhập hoặc phiên hết hạn.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Không có quyền ADMIN hiện tại hoặc CSRF không hợp lệ.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Hồ sơ hoặc đường dẫn không tồn tại.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Hệ thống xác thực/database chưa sẵn sàng.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Trạng thái đã thay đổi, chưa rõ kết quả, hoặc cùng key khác payload.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload quá lớn.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type phải là application/json.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "operationId": "postApiAdminRefundRequestsRefundIdRetry",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "verified",
         "x-owner": "khanh",
         "externalDocs": {
-          "description": "Issue giao việc và contract dự kiến",
+          "description": "Yêu cầu KHANH-04 và tiêu chí nghiệm thu",
           "url": "https://github.com/devonxjz/TicketCenter/issues/24"
         },
         "parameters": [
@@ -4154,6 +4556,24 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Giữ nguyên key và payload khi gửi lại sau lỗi mạng. Key chung cho quyết định và retry của cùng admin."
           }
         ],
         "security": [
@@ -4162,7 +4582,23 @@
             "csrfToken": [],
             "idempotencyKey": []
           }
-        ]
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              },
+              "examples": {
+                "retry": {
+                  "value": {}
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/orders/{orderId}/refundable-tickets": {
@@ -8216,6 +8652,375 @@
             }
           }
         }
+      },
+      "AdminRefundSummary": {
+        "type": "object",
+        "properties": {
+          "refundId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "orderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "buyer": {
+            "type": "object",
+            "properties": {
+              "userId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "fullName": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string",
+                "format": "email"
+              }
+            },
+            "required": [
+              "userId",
+              "fullName",
+              "email"
+            ]
+          },
+          "eventName": {
+            "type": "string"
+          },
+          "totalAmount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "ticketCount": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "REQUESTED",
+              "APPROVED",
+              "PROCESSING",
+              "COMPLETED",
+              "REJECTED",
+              "RETRYABLE",
+              "NEEDS_RECONCILIATION"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "rejectionReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "canDecide": {
+            "type": "boolean"
+          },
+          "canRetry": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "refundId",
+          "orderId",
+          "buyer",
+          "eventName",
+          "totalAmount",
+          "ticketCount",
+          "reason",
+          "status",
+          "createdAt",
+          "rejectionReason",
+          "canDecide",
+          "canRetry"
+        ]
+      },
+      "AdminRefundTicket": {
+        "type": "object",
+        "properties": {
+          "ticketId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ticketCode": {
+            "type": "string"
+          },
+          "seatLabel": {
+            "type": "string",
+            "nullable": true
+          },
+          "paidAmount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "status": {
+            "type": "string"
+          },
+          "isRefundable": {
+            "type": "boolean"
+          },
+          "unrefundableReason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "ticketId",
+          "ticketCode",
+          "seatLabel",
+          "paidAmount",
+          "status",
+          "isRefundable",
+          "unrefundableReason"
+        ]
+      },
+      "AdminRefundAttempt": {
+        "type": "object",
+        "properties": {
+          "attemptId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "attemptNo": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "FAILED",
+              "UNKNOWN",
+              "SUCCEEDED"
+            ]
+          },
+          "providerReference": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "processedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "attemptId",
+          "attemptNo",
+          "status",
+          "providerReference",
+          "createdAt",
+          "processedAt"
+        ]
+      },
+      "AdminRefundDetail": {
+        "type": "object",
+        "properties": {
+          "refund": {
+            "$ref": "#/components/schemas/AdminRefundSummary"
+          },
+          "currentAttemptId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "reviewerId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "decidedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "adminNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "repaymentMethod": {
+            "type": "string"
+          },
+          "tickets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminRefundTicket"
+            }
+          },
+          "attempts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminRefundAttempt"
+            }
+          }
+        },
+        "required": [
+          "refund",
+          "currentAttemptId",
+          "reviewerId",
+          "decidedAt",
+          "adminNote",
+          "repaymentMethod",
+          "tickets",
+          "attempts"
+        ]
+      },
+      "AdminRefundPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminRefundSummary"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize"
+        ]
+      },
+      "AdminRefundMutation": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "refundId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "APPROVED",
+              "REJECTED",
+              "COMPLETED"
+            ]
+          },
+          "canonicalStatus": {
+            "type": "string",
+            "enum": [
+              "REQUESTED",
+              "APPROVED",
+              "PROCESSING",
+              "COMPLETED",
+              "REJECTED",
+              "RETRYABLE",
+              "NEEDS_RECONCILIATION"
+            ]
+          },
+          "attemptId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "success",
+          "refundId",
+          "status",
+          "canonicalStatus",
+          "attemptId",
+          "message"
+        ]
+      },
+      "AdminRefundDecision": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "decision": {
+                "type": "string",
+                "enum": [
+                  "APPROVE"
+                ]
+              },
+              "note": {
+                "type": "string",
+                "nullable": true,
+                "maxLength": 500
+              }
+            },
+            "required": [
+              "decision"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "decision": {
+                "type": "string",
+                "enum": [
+                  "REJECT"
+                ]
+              },
+              "rejectReason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000,
+                "pattern": "\\S"
+              }
+            },
+            "required": [
+              "decision",
+              "rejectReason"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "decision": {
+                "type": "string",
+                "enum": [
+                  "REJECT"
+                ]
+              },
+              "rejectionReason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000,
+                "pattern": "\\S"
+              }
+            },
+            "required": [
+              "decision",
+              "rejectionReason"
+            ],
+            "additionalProperties": false
+          }
+        ]
       }
     },
     "parameters": {

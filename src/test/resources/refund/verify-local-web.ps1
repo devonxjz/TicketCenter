@@ -18,7 +18,9 @@ $buyer=Login $fixture.buyer;$other=Login $fixture.other
 $orgRoute="$base/api/organizations/$($fixture.order)"
 Check 'organization reports anonymous denied' (Invoke-WebRequest "$orgRoute/reports" -SkipHttpErrorCheck) 401
 Check 'organization reports reach original filter validation' (Invoke-WebRequest "$orgRoute/reports" -WebSession $buyer -SkipHttpErrorCheck) 400
-Check 'other organization routes retain event routing' (Invoke-WebRequest "$orgRoute/events" -WebSession $buyer -SkipHttpErrorCheck) 404
+$eventDenied=Invoke-WebRequest "$orgRoute/events" -WebSession $buyer -SkipHttpErrorCheck
+Check 'non-report organization route reaches current event authorization' $eventDenied 403
+if(($eventDenied.Content | ConvertFrom-Json).error.code -ne 'EVENT_FORBIDDEN'){throw 'Organization event route did not reach its current owner implementation'}
 Check 'owner tickets' (Invoke-WebRequest "$base/api/orders/$($fixture.order)/refundable-tickets" -WebSession $buyer -SkipHttpErrorCheck) 200
 Check 'other owner denied' (Invoke-WebRequest "$base/api/orders/$($fixture.order)/refundable-tickets" -WebSession $other -SkipHttpErrorCheck) 403
 $page=Invoke-WebRequest "$base/refund-requests?orderId=$($fixture.order)" -WebSession $buyer -SkipHttpErrorCheck
