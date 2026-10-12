@@ -20,7 +20,10 @@ class AppConfigPrivateConfigurationTest {
         var args=new java.util.ArrayList<>(java.util.List.of(javaExecutable,"-cp",System.getProperty("java.class.path"),"-Dtc.config.file="+config));
         if(override)args.add("-Ddb.host=overridden.invalid");
         args.add(Probe.class.getName());args.add(override?"overridden.invalid":"private.invalid");
-        return new ProcessBuilder(args).redirectErrorStream(true).redirectOutput(log.toFile()).start();
+        var builder=new ProcessBuilder(args).redirectErrorStream(true).redirectOutput(log.toFile());
+        // This probe tests file selection, independent of a CI job's live fixture overrides.
+        for(String key:new String[]{"DB_HOST","db.host","DB_PASSWORD","db.password","TC_CONFIG_FILE"})builder.environment().remove(key);
+        return builder.start();
     }
     @Test void externalConfigurationLoadsAndSystemOverrideStillWins() throws Exception {
         Path config=directory.resolve("private.properties");
