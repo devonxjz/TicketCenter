@@ -170,10 +170,7 @@ public class OrderRepository {
             try (PreparedStatement ps = conn.prepareStatement(orderSql)) {
                 ps.setObject(1, orderId);
                 try (ResultSet rs = ps.executeQuery()) {
-                    if (!rs.next()) {
-                        assertOrderAccess(conn, orderId);
-                        return Optional.empty();
-                    }
+                    if (!rs.next()) return Optional.empty();
                     buyerId = UUID.fromString(rs.getString("buyer_id"));
                     orderCode = rs.getString("order_code");
                     eventId = rs.getString("event_id") != null ? UUID.fromString(rs.getString("event_id")) : null;

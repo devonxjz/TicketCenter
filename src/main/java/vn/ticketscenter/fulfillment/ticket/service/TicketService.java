@@ -57,9 +57,12 @@ public class TicketService {
         if (actorId == null) throw TicketException.unauthenticated();
         if (ticketId == null) throw TicketException.badRequest("ticketId is required");
 
-        // Luôn đọc từ DB để xác thực owner trước, hoặc đối chiếu quyền
-        TicketRecord record = repository.findById(ticketId, actorId, authVersion)
-                .orElseThrow(TicketException::notFound);
+        var opt = repository.findById(ticketId, actorId, authVersion);
+        if (opt.isEmpty()) {
+            repository.assertTicketAccess(ticketId, actorId);
+            throw TicketException.notFound();
+        }
+        TicketRecord record = opt.get();
 
         if (!actorId.equals(record.buyerId())) {
             throw TicketException.forbidden();

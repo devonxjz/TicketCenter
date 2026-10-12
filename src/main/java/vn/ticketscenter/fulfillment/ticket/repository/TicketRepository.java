@@ -140,8 +140,6 @@ public class TicketRepository {
                                 rs.getLong("version")
                         ));
                     }
-                }
-                assertTicketAccess(conn, ticketId);
                 return Optional.empty();
             } catch (SQLException e) {
                 throw new IllegalStateException("Failed to query ticket by id", e);
