@@ -1,37 +1,9 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sự kiện tổ chức | TicketsCenter</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
-<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/event-images.css">
-</head>
-<body data-event-page="manager-list" data-context="${pageContext.request.contextPath}">
-<jsp:include page="/WEB-INF/views/layout/header.jsp" />
-<div class="dashboard-layout"><jsp:include page="/WEB-INF/views/layout/organizer-sidebar.jsp" /><main class="dashboard-content">
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4"><h1 class="h3 fw-bold mb-0">Sự kiện tổ chức</h1>
-<a id="event-create-link" href="${pageContext.request.contextPath}/organizer/events/new" class="btn-primary-custom">Tạo mới sự kiện</a></div>
-<label for="event-organization" class="filter-label">Tổ chức</label><select id="event-organization" class="form-select rounded-0 mb-4" disabled></select>
-<p id="event-message" role="status" aria-live="polite">Đang tải...</p>
-<div class="panel-box">
-    <div class="panel-header">
-        <span class="panel-title">Tất cả chương trình</span>
-        <label class="visually-hidden" for="event-search">Tìm kiếm sự kiện</label>
-        <input id="event-search" type="search" class="form-control form-control-sm rounded-0" placeholder="Tìm kiếm sự kiện..." style="max-width:220px">
-    </div>
-    <div class="table-responsive">
-        <table class="table-custom">
-            <thead><tr><th>Ảnh bìa</th><th>Tên sự kiện</th><th>Thời gian diễn ra</th><th>Địa điểm</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
-            <tbody id="event-list"></tbody>
-        </table>
-    </div>
-</div>
-<noscript>Vui lòng bật JavaScript để quản lý sự kiện.</noscript>
-</main></div>
-<script src="${pageContext.request.contextPath}/assets/js/event-images.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+<!DOCTYPE html><html lang="vi"><head><title>Sự kiện của tổ chức | TicketsCenter</title><jsp:include page="/WEB-INF/views/layout/meta-head.jsp" /><style>[hidden]{display:none!important}</style><link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/event-images.css"></head>
+<body data-context="${pageContext.request.contextPath}" data-dong-page="list">
+<nav class="navbar border-bottom bg-white"><div class="container"><a class="navbar-brand fw-bold" href="${pageContext.request.contextPath}/">TicketsCenter</a><a href="${pageContext.request.contextPath}/events/manage">Sự kiện của tôi</a><a style="display:${sessionScope.TC_CURRENT_USER.isAdmin() ? 'inline' : 'none'}" href="${pageContext.request.contextPath}/events/review">Duyệt sự kiện</a></div></nav>
+<main class="container py-5"><div class="d-flex flex-wrap justify-content-between gap-3 mb-4"><div><h1 class="h2 fw-bold">Sự kiện của tổ chức</h1><p class="text-muted mb-0">Tạo hồ sơ, thiết lập khu/ghế và theo dõi trạng thái duyệt.</p></div><a id="create-event" href="#" class="btn btn-dark align-self-start">Tạo sự kiện</a></div>
+<form id="filters" method="post" class="row g-3 mb-4"><div class="col-md-6"><label class="form-label" for="organization">Tổ chức đang quản lý</label><select id="organization" class="form-select"></select></div><div class="col-md-4"><label class="form-label" for="filter-status">Trạng thái</label><select id="filter-status" class="form-select"><option value="">Tất cả</option><option value="DRAFT">Bản nháp</option><option value="PENDING_APPROVAL">Chờ duyệt</option><option value="REJECTED">Bị từ chối</option><option value="PUBLISHED">Đã công khai</option><option value="CANCELLED">Đã hủy</option></select></div><div class="col-md-2 d-flex align-items-end"><button class="btn btn-dark w-100">Lọc</button></div></form>
+<p id="status" role="status" aria-live="polite">Đang tải…</p><div class="table-responsive"><table class="table align-middle"><thead><tr><th>Ảnh bìa</th><th>Sự kiện</th><th>Trạng thái</th><th>Thời gian</th><th>Sức chứa</th><th>Thao tác</th></tr></thead><tbody id="events"></tbody></table></div>
+<nav class="d-flex justify-content-center gap-3 align-items-center mt-4" aria-label="Phân trang"><button id="previous" class="btn btn-outline-dark" disabled>Trang trước</button><span id="page-label"></span><button id="next" class="btn btn-outline-dark" disabled>Trang sau</button></nav></main>
+<jsp:include page="/WEB-INF/views/layout/footer.jsp" /><script defer src="${pageContext.request.contextPath}/assets/js/dong-events.js"></script></body></html>

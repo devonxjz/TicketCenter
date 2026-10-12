@@ -17,15 +17,21 @@ public class EventService {
     private final EventRepository repository;
     private final StorageService storage;
     private final boolean maintenance;
+    private final vn.ticketscenter.event.cache.EventIdempotencyStore redisLeases;
 
     public EventService(EventRepository repository, StorageService storage) {
         this(repository, storage, false);
+    }
+
+    public EventService(EventRepository repository,StorageService storage,vn.ticketscenter.event.cache.EventIdempotencyStore redisLeases) {
+        this.repository=Objects.requireNonNull(repository);this.storage=Objects.requireNonNull(storage);this.maintenance=false;this.redisLeases=Objects.requireNonNull(redisLeases);
     }
 
     private EventService(EventRepository repository, StorageService storage, boolean maintenance) {
         this.repository = Objects.requireNonNull(repository);
         this.storage = Objects.requireNonNull(storage);
         this.maintenance = maintenance;
+        this.redisLeases=null;
     }
 
     public static EventService maintenance(EventRepository repository, StorageService storage) {
@@ -71,6 +77,12 @@ public class EventService {
                         image != null || defaultImage,
                         maintenanceCall);
         if (claim.replay() != null) return claim.replay();
+        vn.ticketscenter.event.cache.EventIdempotencyStore.Lease redisLease=null;
+        if(redisLeases!=null) {
+            try { redisLease=redisLeases.acquire("tc:idem:event-image:"+actor.actorId()+":"+command.requestId(),fingerprint); }
+            catch(RuntimeException e) {release(claim,false);throw e;}
+        }
+        try {
         StoredAsset asset = null;
         if (image != null || defaultImage) {
             try {
@@ -95,12 +107,18 @@ public class EventService {
             }
         }
         try {
-            return repository.finalizeSave(actor, command, claim, asset, maintenanceCall);
+            EventDto saved=repository.finalizeSave(actor, command, claim, asset, maintenanceCall);
+            if(redisLease!=null) {
+                try {redisLeases.completed(redisLease,fingerprint,new vn.ticketscenter.event.repository.EventManagementRepository.Result(200,"{\"data\":"+saved.toJson()+"}",saved.organizationId(),saved.id()));}
+                catch(RuntimeException ignored) { }
+            }
+            return saved;
         } catch (EventException e) {
             if (e.status() < 500 && !e.code().equals("STALE_REQUEST")) release(claim, true);
             else release(claim, false);
             throw e;
         }
+        } finally { if(redisLease!=null) {try {redisLeases.release(redisLease);} catch(RuntimeException ignored) { }} }
     }
 
     private void release(EventRepository.Claim claim, boolean abort) {

@@ -140,18 +140,17 @@ class EventNavigationWebFlowTest {
     }
 
     @Test
-    @DisplayName("EventDetailServlet chuyển hướng đến trang đăng nhập khi chưa đăng nhập")
-    void testEventDetailRedirectsToLoginWhenUnauthenticated() throws Exception {
+    @DisplayName("EventDetailServlet cho phép khách xem trang chi tiết công khai")
+    void testEventDetailIsPublicWhenUnauthenticated() throws Exception {
         EventDetailServlet servlet = new EventDetailServlet();
         HttpServletRequest req = createMockRequest("GET", "/event-detail", false);
         HttpServletResponse resp = createMockResponse();
 
         servlet.doGet(req, resp);
 
-        assertEquals(302, responseStatus.get());
-        String location = responseHeaders.get("Location");
-        assertNotNull(location);
-        assertTrue(location.contains("/auth/login?redirect="), "Phải chuyển hướng đến login kèm param redirect");
+        assertEquals(200, responseStatus.get());
+        assertEquals("/WEB-INF/views/public/event-detail.jsp", requestAttributes.get("FORWARDED_TO"));
+        assertEquals("no-store", responseHeaders.get("Cache-Control"));
     }
 
     @Test
