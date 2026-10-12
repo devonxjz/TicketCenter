@@ -28,6 +28,8 @@ public class OrganizationRepositoryTest {
         assertThrows(NullPointerException.class, () -> repository.hasPendingRequest(null, UUID.randomUUID()));
         assertThrows(NullPointerException.class, () -> repository.findPending(null));
         assertThrows(NullPointerException.class, () -> repository.countPending(null));
+        assertThrows(NullPointerException.class, () -> repository.findByStatus(null, null, 0, 10));
+        assertThrows(NullPointerException.class, () -> repository.countByStatus(null, null));
         assertThrows(NullPointerException.class, () -> repository.save(null, null));
     }
 

@@ -60,6 +60,37 @@ public class OrganizationRepository {
         return count != null ? count : 0L;
     }
 
+    public List<Organization> findByStatus(EntityManager em, vn.ticketscenter.identity.model.OrganizationStatus status, int offset, int limit) {
+        Objects.requireNonNull(em, "EntityManager must not be null.");
+        String q = status != null
+                ? "SELECT o FROM Organization o WHERE o.status = :status ORDER BY o.submittedAt DESC, o.createdAt DESC"
+                : "SELECT o FROM Organization o ORDER BY o.submittedAt DESC, o.createdAt DESC";
+        var query = em.createQuery(q, Organization.class);
+        if (status != null) {
+            query.setParameter("status", status);
+        }
+        if (offset > 0) {
+            query.setFirstResult(offset);
+        }
+        if (limit > 0) {
+            query.setMaxResults(limit);
+        }
+        return query.getResultList();
+    }
+
+    public long countByStatus(EntityManager em, vn.ticketscenter.identity.model.OrganizationStatus status) {
+        Objects.requireNonNull(em, "EntityManager must not be null.");
+        String q = status != null
+                ? "SELECT COUNT(o) FROM Organization o WHERE o.status = :status"
+                : "SELECT COUNT(o) FROM Organization o";
+        var query = em.createQuery(q, Long.class);
+        if (status != null) {
+            query.setParameter("status", status);
+        }
+        Long count = query.getSingleResult();
+        return count != null ? count : 0L;
+    }
+
     public Organization save(EntityManager em, Organization organization) {
         Objects.requireNonNull(em, "EntityManager must not be null.");
         Objects.requireNonNull(organization, "Organization must not be null.");

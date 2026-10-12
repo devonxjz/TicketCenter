@@ -32,9 +32,7 @@ import java.util.stream.Collectors;
         urlPatterns = {
                 "/api/organization-requests",
                 "/api/organization-requests/*",
-                "/api/me/organization-requests",
-                "/api/admin/organization-requests",
-                "/api/admin/organization-requests/*"
+                "/api/me/organization-requests"
         }
 )
 public class OrganizationRequestServlet extends HttpServlet {

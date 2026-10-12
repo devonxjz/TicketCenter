@@ -21,6 +21,7 @@ import vn.ticketscenter.identity.repository.OrganizationRepository;
 import vn.ticketscenter.identity.repository.UserRepository;
 
 import java.io.StringReader;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -264,11 +265,58 @@ public class OrganizationRequestService {
         });
     }
 
+    public List<OrganizationRequestSummaryDto> getRequestsForAdmin(UUID adminId, OrganizationStatus status, int page, int pageSize) {
+        if (adminId == null) {
+            throw new IllegalArgumentException("adminId must not be null.");
+        }
+        return transactions.execute(DatabasePrincipal.AUTH, em -> {
+            User user = userRepository.findById(em, adminId)
+                    .orElseThrow(() -> new IllegalArgumentException("USER_NOT_FOUND: Người dùng không tồn tại"));
+            if (user.getPlatformRole() != PlatformRole.ADMIN) {
+                throw new SecurityException("FORBIDDEN: Chỉ quản trị viên mới có quyền xem danh sách yêu cầu");
+            }
+            int p = Math.max(1, page);
+            int size = Math.max(1, pageSize);
+            int offset = (p - 1) * size;
+            List<Organization> list = organizationRepository.findByStatus(em, status, offset, size);
+            if (list == null) {
+                return List.of();
+            }
+            return list.stream().map(OrganizationRequestSummaryDto::from).toList();
+        });
+    }
+
+    public long countRequestsForAdmin(UUID adminId, OrganizationStatus status) {
+        if (adminId == null) {
+            throw new IllegalArgumentException("adminId must not be null.");
+        }
+        return transactions.execute(DatabasePrincipal.AUTH, em -> {
+            User user = userRepository.findById(em, adminId)
+                    .orElseThrow(() -> new IllegalArgumentException("USER_NOT_FOUND: Người dùng không tồn tại"));
+            if (user.getPlatformRole() != PlatformRole.ADMIN) {
+                throw new SecurityException("FORBIDDEN: Chỉ quản trị viên mới có quyền xem danh sách yêu cầu");
+            }
+            return organizationRepository.countByStatus(em, status);
+        });
+    }
+
     /**
      * Approves an organization request, promotes the requester to manager,
      * and sets up the initial event for the organization.
      */
     public OrganizationRequestDetailDto approveRequest(UUID adminId, UUID organizationId) {
+        return approveRequest(adminId, organizationId, null, null, null);
+    }
+
+    public OrganizationRequestDetailDto approveRequest(UUID adminId, UUID organizationId,
+                                                      BigDecimal ratePercent, Long fixedFee,
+                                                      Instant effectiveFrom) {
+        return approveRequest(adminId, organizationId, ratePercent, fixedFee, effectiveFrom, null);
+    }
+
+    public OrganizationRequestDetailDto approveRequest(UUID adminId, UUID organizationId,
+                                                      BigDecimal ratePercent, Long fixedFee,
+                                                      Instant effectiveFrom, Instant effectiveTo) {
         if (adminId == null) {
             throw new IllegalArgumentException("adminId must not be null.");
         }
@@ -284,7 +332,7 @@ public class OrganizationRequestService {
             Organization org = organizationRepository.findById(em, organizationId)
                     .orElseThrow(() -> new NoSuchElementException("ORGANIZATION_NOT_FOUND: Không tìm thấy hồ sơ yêu cầu"));
             if (org.getStatus() != OrganizationStatus.PENDING_APPROVAL) {
-                throw new IllegalStateException("Yêu cầu không ở trạng thái PENDING_APPROVAL");
+                throw new IllegalStateException("CONFLICT: Yêu cầu không ở trạng thái PENDING_APPROVAL");
             }
             org.approve();
 
@@ -292,6 +340,14 @@ public class OrganizationRequestService {
             if (requester != null) {
                 OrganizationMembership membership = new OrganizationMembership(requester, org, OrganizationRole.MANAGER);
                 em.persist(membership);
+            }
+
+            vn.ticketscenter.settlement.model.CommissionRule rule = null;
+            if (ratePercent != null && fixedFee != null) {
+                Instant from = effectiveFrom != null ? effectiveFrom : Instant.now();
+                Instant to = effectiveTo != null ? effectiveTo : from.plus(java.time.Duration.ofDays(3650));
+                rule = new vn.ticketscenter.settlement.model.CommissionRule(org, ratePercent, fixedFee, from, to);
+                em.persist(rule);
             }
 
             Instant startTime = Instant.now().plus(java.time.Duration.ofDays(14));
@@ -362,6 +418,20 @@ public class OrganizationRequestService {
                 }
             }
 
+            UUID categoryId = null;
+            try {
+                List<?> cats = em.createNativeQuery("SELECT TOP 1 id FROM dbo.tc_event_categories").getResultList();
+                if (cats != null && !cats.isEmpty()) {
+                    categoryId = UUID.fromString(cats.get(0).toString());
+                } else {
+                    categoryId = UUID.randomUUID();
+                    em.createNativeQuery("INSERT INTO dbo.tc_event_categories (id, name, slug) VALUES (:id, N'Hòa nhạc', 'concert')")
+                            .setParameter("id", categoryId).executeUpdate();
+                }
+            } catch (Exception e) {
+                categoryId = UUID.randomUUID();
+            }
+
             Event initialEvent = new Event(
                     org,
                     title,
@@ -372,10 +442,26 @@ public class OrganizationRequestService {
                     startTime,
                     endTime
             );
+            initialEvent.setCategoryId(categoryId);
+            if (rule != null) {
+                initialEvent.setCommissionRule(rule);
+            }
             em.persist(initialEvent);
 
             Organization saved = organizationRepository.save(em, org);
-            return OrganizationRequestDetailDto.from(saved);
+            UUID ruleId = rule != null ? rule.getId() : null;
+            return new OrganizationRequestDetailDto(
+                    saved.getId(),
+                    saved.getName(),
+                    saved.getContactEmail(),
+                    saved.getContactPhone(),
+                    saved.getDescription(),
+                    saved.getStatus(),
+                    requester != null ? requester.getId() : null,
+                    saved.getSubmittedAt(),
+                    saved.getRejectionReason(),
+                    ruleId
+            );
         });
     }
 
@@ -397,6 +483,36 @@ public class OrganizationRequestService {
                 throw new SecurityException("FORBIDDEN: Bạn không có quyền truy cập hồ sơ này");
             }
             return OrganizationRequestDetailDto.from(org);
+        });
+    }
+
+    /**
+     * Rejects an organization request with a required reason.
+     */
+    public OrganizationRequestDetailDto rejectRequest(UUID adminId, UUID organizationId, String reason) {
+        if (adminId == null) {
+            throw new IllegalArgumentException("adminId must not be null.");
+        }
+        if (organizationId == null) {
+            throw new IllegalArgumentException("organizationId must not be null.");
+        }
+        if (reason == null || reason.trim().length() < 10 || reason.trim().length() > 500) {
+            throw new IllegalArgumentException("Lý do từ chối phải từ 10 đến 500 ký tự");
+        }
+        return transactions.execute(DatabasePrincipal.AUTH, em -> {
+            User admin = userRepository.findById(em, adminId)
+                    .orElseThrow(() -> new IllegalArgumentException("USER_NOT_FOUND: Người dùng không tồn tại"));
+            if (admin.getPlatformRole() != PlatformRole.ADMIN) {
+                throw new SecurityException("FORBIDDEN: Chỉ quản trị viên mới có quyền từ chối yêu cầu");
+            }
+            Organization org = organizationRepository.findById(em, organizationId)
+                    .orElseThrow(() -> new NoSuchElementException("ORGANIZATION_NOT_FOUND: Không tìm thấy hồ sơ yêu cầu"));
+            if (org.getStatus() != OrganizationStatus.PENDING_APPROVAL) {
+                throw new IllegalStateException("CONFLICT: Yêu cầu không ở trạng thái PENDING_APPROVAL");
+            }
+            org.reject(reason.trim());
+            Organization saved = organizationRepository.save(em, org);
+            return OrganizationRequestDetailDto.from(saved);
         });
     }
 

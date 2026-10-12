@@ -559,7 +559,12 @@ public class AdminOrganizationApprovalAndScheduleE2ETest {
 
     private static void setEntityId(Object entity, UUID id) {
         try {
-            Field idField = BaseEntity.class.getDeclaredField("id");
+            Field idField;
+            try {
+                idField = entity.getClass().getDeclaredField("id");
+            } catch (NoSuchFieldException ignored) {
+                idField = BaseEntity.class.getDeclaredField("id");
+            }
             idField.setAccessible(true);
             idField.set(entity, id);
         } catch (Exception e) {
