@@ -119,32 +119,33 @@ public class TicketRepository {
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setObject(1, ticketId);
             try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        return Optional.of(new TicketRecord(
-                                UUID.fromString(rs.getString("id")),
-                                UUID.fromString(rs.getString("order_id")),
-                                UUID.fromString(rs.getString("buyer_id")),
-                                rs.getString("order_code"),
-                                rs.getString("ticket_code"),
-                                UUID.fromString(rs.getString("event_id")),
-                                rs.getString("event_title"),
-                                rs.getString("venue_name"),
-                                rs.getString("venue_address"),
-                                toInstant(rs.getTimestamp("start_time", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
-                                toInstant(rs.getTimestamp("end_time", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
-                                rs.getString("zone_name_snapshot"),
-                                rs.getString("seat_label_snapshot"),
-                                rs.getLong("paid_amount"),
-                                rs.getString("status"),
-                                toInstant(rs.getTimestamp("issued_at", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
-                                rs.getLong("version")
-                        ));
-                    }
-                return Optional.empty();
-            } catch (SQLException e) {
-                throw new IllegalStateException("Failed to query ticket by id", e);
+                if (rs.next()) {
+                    return Optional.of(new TicketRecord(
+                            UUID.fromString(rs.getString("id")),
+                            UUID.fromString(rs.getString("order_id")),
+                            UUID.fromString(rs.getString("buyer_id")),
+                            rs.getString("order_code"),
+                            rs.getString("ticket_code"),
+                            UUID.fromString(rs.getString("event_id")),
+                            rs.getString("event_title"),
+                            rs.getString("venue_name"),
+                            rs.getString("venue_address"),
+                            toInstant(rs.getTimestamp("start_time", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
+                            toInstant(rs.getTimestamp("end_time", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
+                            rs.getString("zone_name_snapshot"),
+                            rs.getString("seat_label_snapshot"),
+                            rs.getLong("paid_amount"),
+                            rs.getString("status"),
+                            toInstant(rs.getTimestamp("issued_at", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
+                            rs.getLong("version")
+                    ));
+                }
             }
+        } catch (SQLException e) {
+            throw new IllegalStateException("Failed to query ticket by id", e);
         }
+        return Optional.empty();
+    }
 
     public void assertTicketAccess(Connection conn, UUID ticketId) {
         if (conn == null) return;
