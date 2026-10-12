@@ -155,7 +155,7 @@ public final class SignedTicketQrSigner {
             Map<EncodeHintType, Object> hints = new EnumMap<>(EncodeHintType.class);
             hints.put(EncodeHintType.CHARACTER_SET, StandardCharsets.UTF_8.name());
             hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.M);
-            hints.put(EncodeHintType.MARGIN, 1);
+            hints.put(EncodeHintType.MARGIN, 2);
 
             QRCodeWriter writer = new QRCodeWriter();
             BitMatrix bitMatrix = writer.encode(envelope, BarcodeFormat.QR_CODE, targetWidth, targetHeight, hints);
