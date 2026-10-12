@@ -70,9 +70,9 @@ public class OrganizationMembership {
     public User getUser() { return user; }
     public Organization getOrganization() { return organization; }
     public OrganizationRole getRole() { return role; }
+    public void changeRole(OrganizationRole role) { this.role = role; }
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
     public Instant getJoinedAt() { return joinedAt; }
     public Long getVersion() { return version; }
-    public UUID getUserId() { return user == null ? null : user.getId(); }
 }
