@@ -93,8 +93,18 @@ class PaymentServiceTest {
         }
 
         @Override
+        public PaymentIntent beginOrderPayment(UUID orderId, UUID actorId, int authVersion) {
+            return beginOrderPayment(orderId, actorId);
+        }
+
+        @Override
         public void completeZeroOrder(UUID orderId, UUID actorId) {
             zeroCompleted.set(true);
+        }
+
+        @Override
+        public void completeZeroOrder(UUID orderId, UUID actorId, int authVersion) {
+            completeZeroOrder(orderId, actorId);
         }
     }
 

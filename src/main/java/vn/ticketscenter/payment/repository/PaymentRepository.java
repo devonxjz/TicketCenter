@@ -15,7 +15,7 @@ public class PaymentRepository {
     private final DataSource worker;
 
     public PaymentRepository(DataSource buyer) {
-        this(buyer,buyer);
+        this(buyer, buyer);
     }
 
     public PaymentRepository(DataSource buyer, DataSource worker) {
@@ -42,6 +42,10 @@ public class PaymentRepository {
     }
 
     public PaymentIntent beginOrderPayment(UUID orderId, UUID actorId) {
+        return beginOrderPayment(orderId, actorId, -1);
+    }
+
+    public PaymentIntent beginOrderPayment(UUID orderId, UUID actorId, int authVersion) {
         Objects.requireNonNull(orderId, "orderId is required");
         Objects.requireNonNull(actorId, "actorId is required");
 
@@ -103,10 +107,14 @@ public class PaymentRepository {
     }
 
     public void completeZeroOrder(UUID orderId, UUID actorId) {
+        completeZeroOrder(orderId, actorId, -1);
+    }
+
+    public void completeZeroOrder(UUID orderId, UUID actorId, int authVersion) {
         Objects.requireNonNull(orderId, "orderId is required");
         Objects.requireNonNull(actorId, "actorId is required");
 
-        String ticketsJson = generateTicketsForOrder(orderId,buyer);
+        String ticketsJson = generateTicketsForOrder(orderId, buyer);
         try (Connection conn = buyer.getConnection();
              CallableStatement cs = conn.prepareCall("{call dbo.usp_CompleteFreeOrder(?, ?, ?)}")) {
             cs.setObject(1, orderId);
@@ -121,6 +129,10 @@ public class PaymentRepository {
     }
 
     public Optional<PaymentIntent> findExistingPayment(UUID orderId, UUID actorId) {
+        return findExistingPayment(orderId, actorId, -1);
+    }
+
+    public Optional<PaymentIntent> findExistingPayment(UUID orderId, UUID actorId, int authVersion) {
         Objects.requireNonNull(orderId, "orderId is required");
         Objects.requireNonNull(actorId, "actorId is required");
 
@@ -199,6 +211,10 @@ public class PaymentRepository {
     }
 
     public Optional<vn.ticketscenter.payment.dto.PaymentStatusResult> getOrderPaymentStatus(UUID orderId, UUID actorId) {
+        return getOrderPaymentStatus(orderId, actorId, -1);
+    }
+
+    public Optional<vn.ticketscenter.payment.dto.PaymentStatusResult> getOrderPaymentStatus(UUID orderId, UUID actorId, int authVersion) {
         Objects.requireNonNull(orderId, "orderId is required");
         Objects.requireNonNull(actorId, "actorId is required");
         try (Connection conn = buyer.getConnection();
@@ -218,8 +234,8 @@ public class PaymentRepository {
                 if (!rs.next()) return Optional.empty();
                 UUID oid = UUID.fromString(rs.getString("order_id"));
                 String ordStatus = rs.getString("order_status");
-                String paymentId=rs.getString("payment_id");
-                UUID pid = paymentId==null?null:UUID.fromString(paymentId);
+                String paymentId = rs.getString("payment_id");
+                UUID pid = paymentId == null ? null : UUID.fromString(paymentId);
                 String payStatus = rs.getString("payment_status");
                 BigDecimal amt = rs.getBigDecimal("payment_amount");
                 if (amt == null) amt = rs.getBigDecimal("total_amount");
@@ -249,7 +265,7 @@ public class PaymentRepository {
 
         String ticketsJson = "[]";
         if ("CAPTURED".equals(status)) {
-            ticketsJson = generateTicketsForOrder(orderId,worker);
+            ticketsJson = generateTicketsForOrder(orderId, worker);
         }
 
         org.json.JSONObject verifiedResultJson = new org.json.JSONObject();
@@ -272,7 +288,7 @@ public class PaymentRepository {
         }
     }
 
-    private String generateTicketsForOrder(UUID orderId,DataSource source) {
+    private String generateTicketsForOrder(UUID orderId, DataSource source) {
         int expected = 0;
         try (Connection conn = source.getConnection();
              PreparedStatement ps = conn.prepareStatement(
@@ -284,7 +300,7 @@ public class PaymentRepository {
                 }
             }
         } catch (SQLException failure) { throw PaymentException.unavailable(); }
-        if(expected<1)throw PaymentException.unavailable();
+        if (expected < 1) throw PaymentException.unavailable();
 
         org.json.JSONArray tickets = new org.json.JSONArray();
         for (int i = 0; i < expected; i++) {

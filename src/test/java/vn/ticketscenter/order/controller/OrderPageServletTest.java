@@ -138,8 +138,18 @@ class OrderPageServletTest {
         }
 
         @Override
+        public OrderHistoryPage findOrdersByBuyerId(UUID buyerId, int authVersion, int page, int size, String status) {
+            return findOrdersByBuyerId(buyerId, page, size, status);
+        }
+
+        @Override
         public Optional<OrderDetailDto> findOrderDetail(UUID orderId) {
             return Optional.ofNullable(details.get(orderId));
+        }
+
+        @Override
+        public Optional<OrderDetailDto> findOrderDetail(UUID orderId, UUID buyerId, int authVersion) {
+            return findOrderDetail(orderId);
         }
     }
 }

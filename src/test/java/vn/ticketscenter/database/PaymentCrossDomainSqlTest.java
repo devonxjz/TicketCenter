@@ -149,6 +149,30 @@ class PaymentCrossDomainSqlTest {
         assertEquals("USED",ScanFixture.scalar("SELECT status FROM dbo.tc_tickets WHERE id=?",ticket.id()));
     }
 
+    @Test void buyerCanReadOwnOrderHistoryAndDetailWithoutBaseTableGrants() throws Exception {
+        var f=SqlReportSafetyIT.fixture();
+        new PaymentRepository(source("buyer",f.user()),source("worker",null))
+                .applyPaymentResult(f.order(),f.payment(),"CAPTURED",f.payment().toString());
+
+        var own=new vn.ticketscenter.order.repository.OrderRepository(source("buyer",f.user()));
+        var history=own.findOrdersByBuyerId(f.user(),0,1,20,null);
+        assertEquals(1,history.total());
+        assertEquals(f.order(),history.orders().getFirst().id());
+        assertEquals(1,history.orders().getFirst().ticketCount());
+        var detail=own.findOrderDetail(f.order(),f.user(),0).orElseThrow();
+        assertEquals(f.user(),detail.buyerId());
+        assertEquals(1,detail.items().size());
+        assertEquals(1,detail.tickets().size());
+
+        var foreignId=UUID.randomUUID();
+        var foreign=new vn.ticketscenter.order.repository.OrderRepository(source("buyer",foreignId));
+        assertEquals(0,foreign.findOrdersByBuyerId(f.user(),0,1,20,null).total());
+        assertTrue(foreign.findOrderDetail(f.order(),foreignId,0).isEmpty());
+        try(var c=source("buyer",f.user()).getConnection()) {
+            assertThrows(SQLException.class,()->ScanFixture.execute(c,"SELECT id FROM dbo.tc_orders WHERE id=?",f.order()));
+        }
+    }
+
     @Test void staffWhoIsAlsoBuyerWaitsForEventBeforeLockingUser() throws Exception {
         var f=SqlReportSafetyIT.fixture();
         new PaymentRepository(source("buyer",f.user()),source("worker",null)).applyPaymentResult(f.order(),f.payment(),"CAPTURED",f.payment().toString());

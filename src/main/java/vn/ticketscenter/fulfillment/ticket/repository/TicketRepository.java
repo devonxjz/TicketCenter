@@ -62,6 +62,10 @@ public class TicketRepository {
      * Lấy danh sách tất cả vé thuộc về người mua (buyerId).
      */
     public List<TicketSummaryDto> findTicketsByBuyerId(UUID buyerId) {
+        return findTicketsByBuyerId(buyerId, -1);
+    }
+
+    public List<TicketSummaryDto> findTicketsByBuyerId(UUID buyerId, int authVersion) {
         Objects.requireNonNull(buyerId, "buyerId is required");
         String sql = """
                 SELECT id,ticket_code,paid_amount,status,issued_at,version,
@@ -101,6 +105,10 @@ public class TicketRepository {
      * Tìm thông tin đầy đủ của một vé theo ticketId.
      */
     public Optional<TicketRecord> findById(UUID ticketId) {
+        return findById(ticketId, null, -1);
+    }
+
+    public Optional<TicketRecord> findById(UUID ticketId, UUID buyerId, int authVersion) {
         Objects.requireNonNull(ticketId, "ticketId is required");
         String sql = """
                 SELECT * FROM dbo.vw_TicketRuntimeDetails WHERE id=?
@@ -142,6 +150,10 @@ public class TicketRepository {
      * Lấy tất cả các vé thuộc về một đơn hàng (orderId).
      */
     public List<TicketRecord> findTicketsByOrderId(UUID orderId) {
+        return findTicketsByOrderId(orderId, null, -1);
+    }
+
+    public List<TicketRecord> findTicketsByOrderId(UUID orderId, UUID buyerId, int authVersion) {
         Objects.requireNonNull(orderId, "orderId is required");
         String sql = """
                 SELECT * FROM dbo.vw_TicketRuntimeDetails WHERE order_id=? ORDER BY issued_at ASC
