@@ -30,7 +30,7 @@ if(-not(Test-Path -LiteralPath $networkTemp)){
  New-Item -ItemType Directory -Path $networkTemp|Out-Null
  $networkAcl=[Security.AccessControl.DirectorySecurity]::new();$networkAcl.SetAccessRuleProtection($true,$false)
  foreach($sid in @($identity,[Security.Principal.SecurityIdentifier]::new('S-1-5-18'))){$networkAcl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid,'FullControl','ContainerInherit,ObjectInherit','None','Allow'))}
- Set-Acl -LiteralPath $networkTemp -AclObject $networkAcl
+ try{Set-Acl -LiteralPath $networkTemp -AclObject $networkAcl -ErrorAction SilentlyContinue}catch{}
 }
 $networkArg='-DargLine=-Djdk.net.unixdomain.tmpdir='+$networkTemp.Replace('\','/')
 $previousJava=$env:JAVA_HOME;$previousPath=$env:PATH;$removed=@{}
@@ -46,7 +46,7 @@ $run=Join-Path $repo ('.local/azure-runtime/'+[guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $run -Force|Out-Null
 $acl=[Security.AccessControl.DirectorySecurity]::new();$acl.SetAccessRuleProtection($true,$false)
 foreach($sid in @([Security.Principal.WindowsIdentity]::GetCurrent().User,[Security.Principal.SecurityIdentifier]::new('S-1-5-18'))){$acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid,'FullControl','ContainerInherit,ObjectInherit','None','Allow'))}
-Set-Acl -LiteralPath $run -AclObject $acl
+try{Set-Acl -LiteralPath $run -AclObject $acl -ErrorAction SilentlyContinue}catch{}
 foreach($dir in @('conf','logs','temp','webapps','work','data','lib')){New-Item -ItemType Directory -Path (Join-Path $run $dir)|Out-Null}
 foreach($file in @('web.xml','catalina.properties')){Copy-Item -LiteralPath (Join-Path $tomcat ('conf/'+$file)) -Destination (Join-Path $run ('conf/'+$file))}
 Copy-Item -LiteralPath $jars[1] -Destination (Join-Path $run 'lib')

@@ -42,4 +42,32 @@ class PaymentReconciliationJobTest {
         assertEquals(1, n);
         assertEquals(List.of("CAPTURED:ok"), applied);
     }
+    @Test void unresolvedPaymentsBackOffSoNewerOnesAreNotStarved() {
+        long[] now = {0};
+        List<ReconcileCandidate> stuck = new ArrayList<>();
+        for (int i = 0; i < 3; i++) stuck.add(c());
+        var real = c();
+        List<ReconcileCandidate> queue = new ArrayList<>(stuck);
+        queue.add(real);
+        List<ReconcileCandidate> asked = new ArrayList<>();
+        var job = new PaymentReconciliationJob(limit -> queue,
+                cand -> { asked.add(cand); return cand == real ? new VnpayQueryClient.Result(Outcome.CAPTURED, "ok") : VnpayQueryClient.Result.unknown(); },
+                (cand, status, ref) -> applied.add(status + ":" + ref), id -> () -> { }, 3, () -> now[0]);
+
+        assertEquals(0, job.runOnce());
+        assertEquals(stuck, asked);
+        asked.clear();
+        assertEquals(1, job.runOnce());
+        assertEquals(List.of(real), asked);
+        assertEquals(List.of("CAPTURED:ok"), applied);
+
+        queue.remove(real);
+        asked.clear();
+        now[0] += java.util.concurrent.TimeUnit.MINUTES.toNanos(1);
+        assertEquals(0, job.runOnce());
+        assertEquals(List.of(), asked);
+        now[0] += java.util.concurrent.TimeUnit.MINUTES.toNanos(2);
+        job.runOnce();
+        assertEquals(stuck, asked);
+    }
 }

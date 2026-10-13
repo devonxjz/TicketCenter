@@ -18,19 +18,34 @@ public final class EventManagementRuntime {
             Object value=context.getAttribute(PersistenceListener.REGISTRY_ATTRIBUTE);
             if(!(value instanceof PersistenceRegistry registry)) throw EventProblem.unavailable();
             var repository=new EventManagementRepository(new EventTransactions(registry.transactionManager()));
-            var idempotency=new RedisEventIdempotencyStore();
+            EventIdempotencyStore idempotency=resolveIdempotency();
             var orphans=new EventCoverOrphanJournal();
             var management=new EventManagementService(repository,idempotency,EventCatalogRuntime.cache(context),orphans);
             // Missing provider credentials must not disable draft/inventory/review endpoints.
             StorageService storage=new StorageService() {
-                public StoredAsset upload(InputStream content,String folder) throws IOException { return CloudinaryStorageService.fromEnvironment().upload(content,folder); }
-                public StoredAsset ensure(InputStream content,String id) throws IOException { return CloudinaryStorageService.fromEnvironment().ensure(content,id); }
-                public java.util.Optional<StoredAsset> find(String id) throws IOException { return CloudinaryStorageService.fromEnvironment().find(id); }
-                public void delete(String publicId) throws IOException { CloudinaryStorageService.fromEnvironment().delete(publicId); }
-                public String getUrl(String publicId) { return CloudinaryStorageService.fromEnvironment().getUrl(publicId); }
+                public StoredAsset upload(InputStream content,String folder) throws IOException { return resolveStorage().upload(content,folder); }
+                public StoredAsset ensure(InputStream content,String id) throws IOException { return resolveStorage().ensure(content,id); }
+                public java.util.Optional<StoredAsset> find(String id) throws IOException { return resolveStorage().find(id); }
+                public void delete(String publicId) throws IOException { resolveStorage().delete(publicId); }
+                public String getUrl(String publicId) { return resolveStorage().getUrl(publicId); }
             };
             var services=new Services(management,new EventCoverService(repository,idempotency,management,storage,orphans));
             context.setAttribute(ATTRIBUTE,services);return services;
         }
+    }
+
+    private static EventIdempotencyStore resolveIdempotency() {
+        if (vn.ticketscenter.config.AppConfig.getBoolean("event.redis.enabled", false)) {
+            return new RedisEventIdempotencyStore();
+        }
+        return new InMemoryEventIdempotencyStore();
+    }
+
+    private static StorageService resolveStorage() {
+        String cloudName = vn.ticketscenter.config.AppConfig.get(vn.ticketscenter.config.AppConfig.Keys.CLOUDINARY_CLOUD_NAME);
+        if (cloudName != null && !cloudName.isBlank()) {
+            return CloudinaryStorageService.fromEnvironment();
+        }
+        return new EventRuntime.LocalSimulatedStorage();
     }
 }

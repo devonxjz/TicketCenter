@@ -54,7 +54,7 @@ try {
   [void]$command.ExecuteNonQuery();$command.Parameters.Clear()
   Write-Output ('Installed '+$file)
  }
- $command.CommandText="CREATE USER [$login] FOR LOGIN [$login]; ALTER ROLE db_owner ADD MEMBER [$login];";[void]$command.ExecuteNonQuery()
+ $command.CommandText="CREATE USER [$login] FOR LOGIN [$login]; ALTER ROLE db_owner ADD MEMBER [$login]; ALTER ROLE tc_platform_admin ADD MEMBER [$login]; ALTER ROLE tc_manager ADD MEMBER [$login]; ALTER ROLE tc_checkin ADD MEMBER [$login]; ALTER ROLE tc_buyer ADD MEMBER [$login]; ALTER ROLE tc_auth ADD MEMBER [$login]; ALTER ROLE tc_worker ADD MEMBER [$login];";[void]$command.ExecuteNonQuery()
 } catch {throw "Local schema installation failed; database $Database was retained for inspection. Choose a NEW name for retry; this tool never drops databases."}
 finally {$connection.Dispose()}
 $fixture=[ordered]@{database=$Database;url="jdbc:sqlserver://127.0.0.1:1433;databaseName=$Database;encrypt=false;trustServerCertificate=true;loginTimeout=5;";user=$login;password=$password}

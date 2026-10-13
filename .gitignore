@@ -54,3 +54,6 @@ code
 # Local account/credential notes
 /taikhoan.txt
 /userdemo.txt
+
+target/
+/data/

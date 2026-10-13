@@ -82,4 +82,15 @@
         <servlet-name>MyMembershipsServlet</servlet-name>
         <url-pattern>/api/me/memberships</url-pattern>
     </servlet-mapping>
+
+    <!-- Servlet chỉ được gọi qua getNamedDispatcher (không có URL riêng). Phải khai báo ở đây vì
+         @WebServlet với urlPatterns rỗng bị container bỏ qua, khiến route filter trả 503. -->
+    <servlet>
+        <servlet-name>OrderRefundableTicketsServlet</servlet-name>
+        <servlet-class>vn.ticketscenter.fulfillment.refund.controller.OrderRefundableTicketsServlet</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>CheckInWindowServlet</servlet-name>
+        <servlet-class>vn.ticketscenter.fulfillment.checkin.controller.CheckInWindowServlet</servlet-class>
+    </servlet>
 </web-app>

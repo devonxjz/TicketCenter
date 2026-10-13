@@ -2,7 +2,9 @@
     (function() {
         'use strict';
 
-        const contextPath = document.querySelector('meta[name=context-path]').content;
+        const contextPath = window.TC_CONTEXT_PATH
+            || document.querySelector('meta[name=context-path]')?.getAttribute('content')
+            || (window.location.pathname.startsWith('/ticketscenter') ? '/ticketscenter' : '');
         let currentMembers = [];
         let activeManagerCount = 0;
         let selectedMemberForEdit = null;

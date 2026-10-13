@@ -142,4 +142,64 @@ class RedisPaymentIdempotencyTest {
         idempotency.cacheIpn("TXN-2", null, "{\"RspCode\":\"02\"}");
         assertEquals("{\"RspCode\":\"02\"}", idempotency.getCachedIpn("TXN-2", null));
     }
+
+    @Test
+    void inMemoryIdempotencyAcquiresReplaysAndDetectsConflict() {
+        RedisPaymentIdempotency idempotency = RedisPaymentIdempotency.inMemory();
+
+        var first = idempotency.checkOrClaim(ACTOR, KEY, HASH, Duration.ofMinutes(10));
+        assertTrue(first instanceof RedisPaymentIdempotency.Acquired);
+        var claim = ((RedisPaymentIdempotency.Acquired) first).claim();
+
+        var pending = idempotency.checkOrClaim(ACTOR, KEY, HASH, Duration.ofMinutes(10));
+        assertTrue(pending instanceof RedisPaymentIdempotency.InProgress);
+
+        var conflict = idempotency.checkOrClaim(ACTOR, KEY, DIFF_HASH, Duration.ofMinutes(10));
+        assertTrue(conflict instanceof RedisPaymentIdempotency.Conflict);
+
+        String responseBody = "{\"redirectUrl\":\"https://pay\"}";
+        assertTrue(claim.complete(responseBody, Duration.ofMinutes(10)));
+
+        var replay = idempotency.checkOrClaim(ACTOR, KEY, HASH, Duration.ofMinutes(10));
+        assertTrue(replay instanceof RedisPaymentIdempotency.Replay);
+        assertEquals(responseBody, ((RedisPaymentIdempotency.Replay) replay).cachedBody());
+    }
+
+    @Test
+    void inMemoryCancellingClaimRemovesPendingKey() {
+        RedisPaymentIdempotency idempotency = RedisPaymentIdempotency.inMemory();
+
+        var first = idempotency.checkOrClaim(ACTOR, KEY, HASH, Duration.ofMinutes(10));
+        assertTrue(first instanceof RedisPaymentIdempotency.Acquired);
+        var claim = ((RedisPaymentIdempotency.Acquired) first).claim();
+
+        claim.cancel();
+        var second = idempotency.checkOrClaim(ACTOR, KEY, HASH, Duration.ofMinutes(10));
+        assertTrue(second instanceof RedisPaymentIdempotency.Acquired);
+    }
+
+    @Test
+    void inMemoryOrderLockPreventsConcurrentExecution() throws Exception {
+        RedisPaymentIdempotency idempotency = RedisPaymentIdempotency.inMemory();
+
+        AutoCloseable lock1 = idempotency.acquireOrderLock(ORDER);
+        assertNotNull(lock1);
+
+        AutoCloseable lock2 = idempotency.acquireOrderLock(ORDER);
+        assertNull(lock2);
+
+        lock1.close();
+        AutoCloseable lock3 = idempotency.acquireOrderLock(ORDER);
+        assertNotNull(lock3);
+        lock3.close();
+    }
+
+    @Test
+    void inMemoryCachesAndRetrievesIpnResult() {
+        RedisPaymentIdempotency idempotency = RedisPaymentIdempotency.inMemory();
+
+        assertNull(idempotency.getCachedIpn("TXN-1", "PROV-1"));
+        idempotency.cacheIpn("TXN-1", "PROV-1", "{\"RspCode\":\"00\"}");
+        assertEquals("{\"RspCode\":\"00\"}", idempotency.getCachedIpn("TXN-1", "PROV-1"));
+    }
 }

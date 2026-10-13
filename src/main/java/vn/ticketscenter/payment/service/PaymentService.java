@@ -46,7 +46,12 @@ public class PaymentService {
         InitiatePaymentRequest request = new InitiatePaymentRequest(bankCode);
         String fingerprint = request.fingerprint(actor.id(), orderId);
 
-        var check = idempotency.checkOrClaim(actor.id(), idempotencyKey, fingerprint, Duration.ofMinutes(10));
+        RedisPaymentIdempotency.Result check;
+        try {
+            check = idempotency.checkOrClaim(actor.id(), idempotencyKey, fingerprint, Duration.ofMinutes(10));
+        } catch (redis.clients.jedis.exceptions.JedisException redisDown) {
+            throw PaymentException.unavailable();
+        }
         if (check instanceof RedisPaymentIdempotency.Replay replay) {
             return PaymentInitiationResult.fromReplay(replay.cachedBody());
         }

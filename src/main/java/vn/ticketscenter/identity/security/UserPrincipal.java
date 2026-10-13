@@ -49,4 +49,32 @@ public record UserPrincipal(
     public boolean isCustomerOnly() {
         return !isAdmin() && organizationRole == null;
     }
+
+    public String fullName() {
+        return email != null ? email : "Thành viên";
+    }
+
+    public String getFullName() {
+        return fullName();
+    }
+
+    public UUID getActorId() {
+        return actorId;
+    }
+
+    public PlatformRole getPlatformRole() {
+        return platformRole;
+    }
+
+    public int getAuthVersion() {
+        return authVersion;
+    }
+
+    public OrganizationRole getOrganizationRole() {
+        return organizationRole;
+    }
+
+    public String getEmail() {
+        return email;
+    }
 }

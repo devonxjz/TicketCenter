@@ -24,7 +24,7 @@ public class EventService {
     }
 
     public EventService(EventRepository repository,StorageService storage,vn.ticketscenter.event.cache.EventIdempotencyStore redisLeases) {
-        this.repository=Objects.requireNonNull(repository);this.storage=Objects.requireNonNull(storage);this.maintenance=false;this.redisLeases=Objects.requireNonNull(redisLeases);
+        this.repository=Objects.requireNonNull(repository);this.storage=Objects.requireNonNull(storage);this.maintenance=false;this.redisLeases=redisLeases;
     }
 
     private EventService(EventRepository repository, StorageService storage, boolean maintenance) {

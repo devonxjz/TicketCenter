@@ -112,7 +112,14 @@ public class EventApiServlet extends HttpServlet {
                         "saleStartTime",f.saleStart().toString(),"saleEndTime",f.saleEnd().toString(),"startTime",f.startTime().toString(),"endTime",f.endTime().toString()),java.time.Clock.systemUTC());
             }
             EventDto saved=service(request).save(principal,command);
-            if(injected==null) EventCatalogRuntime.cache(request.getServletContext()).invalidateCommitted(saved.id(),saved.organizationId());
+            if(injected==null) {
+                try {
+                    EventCatalogRuntime.cache(request.getServletContext()).invalidateCommitted(saved.id(),saved.organizationId());
+                } catch(Exception e) {
+                    java.util.logging.Logger.getLogger(EventApiServlet.class.getName())
+                            .log(java.util.logging.Level.WARNING, "Event catalog cache invalidation skipped", e);
+                }
+            }
             HttpResponses.data(response, saved.toJson());
         } catch (RuntimeException e) {
             error(response, e);
@@ -140,8 +147,11 @@ public class EventApiServlet extends HttpServlet {
             HttpResponses.error(response,e.status(),e.code(),e.getMessage());
         else if (exception instanceof IllegalArgumentException)
             HttpResponses.error(response, 400, "EVENT_INPUT_INVALID", "Event input is invalid");
-        else
+        else {
+            java.util.logging.Logger.getLogger(EventApiServlet.class.getName())
+                    .log(java.util.logging.Level.SEVERE, "Unexpected event service error", exception);
             HttpResponses.error(
                     response, 503, "EVENT_UNAVAILABLE", "Event service is temporarily unavailable");
+        }
     }
 }
