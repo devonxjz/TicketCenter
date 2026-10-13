@@ -5,18 +5,15 @@ import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.config.web.JsonObjectParser;
-import vn.ticketscenter.event.model.Event;
-import vn.ticketscenter.event.model.EventCategory;
 import vn.ticketscenter.identity.dto.OrganizationRequestCreateDto;
 import vn.ticketscenter.identity.dto.OrganizationRequestDetailDto;
 import vn.ticketscenter.identity.dto.OrganizationRequestSummaryDto;
 import vn.ticketscenter.identity.model.Organization;
-import vn.ticketscenter.identity.model.OrganizationMembership;
-import vn.ticketscenter.identity.model.OrganizationRole;
 import vn.ticketscenter.identity.model.OrganizationStatus;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.model.User;
 import vn.ticketscenter.identity.model.UserStatus;
+import vn.ticketscenter.identity.repository.OrganizationDecisionRepository;
 import vn.ticketscenter.identity.repository.OrganizationRepository;
 import vn.ticketscenter.identity.repository.UserRepository;
 
@@ -53,23 +50,33 @@ public class OrganizationRequestService {
     private final UserRepository userRepository;
     private final RedisClientProvider redisProvider;
     private final RedisStore redisStore;
+    private final OrganizationDecisionRepository decisions;
 
     private OrganizationRequestService(TransactionManager transactions,
                                       OrganizationRepository organizationRepository,
                                       UserRepository userRepository,
                                       RedisClientProvider redisProvider,
-                                      RedisStore redisStore) {
+                                      RedisStore redisStore,
+                                      OrganizationDecisionRepository decisions) {
         this.transactions = Objects.requireNonNull(transactions, "transactions must not be null.");
         this.organizationRepository = Objects.requireNonNull(organizationRepository, "organizationRepository must not be null.");
         this.userRepository = Objects.requireNonNull(userRepository, "userRepository must not be null.");
         this.redisProvider = redisProvider;
         this.redisStore = redisStore;
+        this.decisions = Objects.requireNonNull(decisions, "decisions must not be null.");
     }
 
     public OrganizationRequestService(TransactionManager transactions,
                                       OrganizationRepository organizationRepository,
                                       UserRepository userRepository) {
-        this(transactions, organizationRepository, userRepository, null, null);
+        this(transactions, organizationRepository, userRepository, null, null, new OrganizationDecisionRepository());
+    }
+
+    public OrganizationRequestService(TransactionManager transactions,
+                                      OrganizationRepository organizationRepository,
+                                      UserRepository userRepository,
+                                      OrganizationDecisionRepository decisions) {
+        this(transactions, organizationRepository, userRepository, null, null, decisions);
     }
 
     public OrganizationRequestService(TransactionManager transactions,
@@ -91,14 +98,22 @@ public class OrganizationRequestService {
                             jedis.setex(key, seconds, value);
                         }
                     }
-                } : null);
+                } : null, new OrganizationDecisionRepository());
     }
 
     static OrganizationRequestService withRedisStore(TransactionManager transactions,
                                                      OrganizationRepository organizationRepository,
                                                      UserRepository userRepository,
                                                      RedisStore redisStore) {
-        return new OrganizationRequestService(transactions, organizationRepository, userRepository, null, redisStore);
+        return withRedisStore(transactions, organizationRepository, userRepository, redisStore, new OrganizationDecisionRepository());
+    }
+
+    static OrganizationRequestService withRedisStore(TransactionManager transactions,
+                                                     OrganizationRepository organizationRepository,
+                                                     UserRepository userRepository,
+                                                     RedisStore redisStore,
+                                                     OrganizationDecisionRepository decisions) {
+        return new OrganizationRequestService(transactions, organizationRepository, userRepository, null, redisStore, decisions);
     }
 
     /**
@@ -139,7 +154,7 @@ public class OrganizationRequestService {
             }
         }
 
-        OrganizationRequestDetailDto result = transactions.execute(DatabasePrincipal.AUTH, em -> {
+        String submittedDescription = transactions.execute(DatabasePrincipal.AUTH, em -> {
             User user = userRepository.findById(em, actorId)
                     .orElseThrow(() -> new IllegalArgumentException("USER_NOT_FOUND: Người dùng không tồn tại"));
 
@@ -151,9 +166,6 @@ public class OrganizationRequestService {
                 throw new IllegalStateException("ORGANIZATION_REQUEST_EXISTS: Bạn đang có một yêu cầu tạo tổ chức đang chờ xét duyệt");
             }
 
-            String contactPhone = (dto.contactPhone() != null && !dto.contactPhone().isBlank())
-                    ? dto.contactPhone().trim()
-                    : null;
             String description = (dto.description() != null && !dto.description().isBlank())
                     ? dto.description().trim()
                     : null;
@@ -188,17 +200,17 @@ public class OrganizationRequestService {
                 }
             }
 
-            Organization org = new Organization(
-                    dto.name().trim(),
-                    dto.contactEmail().trim(),
-                    contactPhone,
-                    description,
-                    user
-            );
-            org.submitForApproval();
-            Organization saved = organizationRepository.save(em, org);
-            return OrganizationRequestDetailDto.from(saved);
+            return description;
         });
+
+        String submittedPhone = (dto.contactPhone() != null && !dto.contactPhone().isBlank())
+                ? dto.contactPhone().trim()
+                : null;
+        UUID organizationId = decisions.submit(transactions, actorId, dto.name().trim(), dto.contactEmail().trim(),
+                submittedPhone, submittedDescription);
+        OrganizationRequestDetailDto result = transactions.execute(DatabasePrincipal.AUTH, em ->
+                OrganizationRequestDetailDto.from(organizationRepository.findById(em, organizationId)
+                        .orElseThrow(() -> new NoSuchElementException("ORGANIZATION_NOT_FOUND: Không tìm thấy hồ sơ yêu cầu"))));
 
         if (redisKey != null && redisStore != null) {
             try {
@@ -323,7 +335,7 @@ public class OrganizationRequestService {
         if (organizationId == null) {
             throw new IllegalArgumentException("organizationId must not be null.");
         }
-        return transactions.execute(DatabasePrincipal.AUTH, em -> {
+        OrganizationDecisionRepository.InitialEvent initialEvent = transactions.execute(DatabasePrincipal.AUTH, em -> {
             User admin = userRepository.findById(em, adminId)
                     .orElseThrow(() -> new IllegalArgumentException("USER_NOT_FOUND: Người dùng không tồn tại"));
             if (admin.getPlatformRole() != PlatformRole.ADMIN) {
@@ -334,22 +346,6 @@ public class OrganizationRequestService {
             if (org.getStatus() != OrganizationStatus.PENDING_APPROVAL) {
                 throw new IllegalStateException("CONFLICT: Yêu cầu không ở trạng thái PENDING_APPROVAL");
             }
-            org.approve();
-
-            User requester = org.getRequester();
-            if (requester != null) {
-                OrganizationMembership membership = new OrganizationMembership(requester, org, OrganizationRole.MANAGER);
-                em.persist(membership);
-            }
-
-            vn.ticketscenter.settlement.model.CommissionRule rule = null;
-            if (ratePercent != null && fixedFee != null) {
-                Instant from = effectiveFrom != null ? effectiveFrom : Instant.now();
-                Instant to = effectiveTo != null ? effectiveTo : from.plus(java.time.Duration.ofDays(3650));
-                rule = new vn.ticketscenter.settlement.model.CommissionRule(org, ratePercent, fixedFee, from, to);
-                em.persist(rule);
-            }
-
             Instant startTime = Instant.now().plus(java.time.Duration.ofDays(14));
             Instant endTime = startTime.plus(java.time.Duration.ofHours(3));
             String title = "Sự kiện khởi tạo - " + org.getName();
@@ -418,38 +414,21 @@ public class OrganizationRequestService {
                 }
             }
 
-            UUID categoryId = null;
-            try {
-                List<?> cats = em.createNativeQuery("SELECT TOP 1 id FROM dbo.tc_event_categories").getResultList();
-                if (cats != null && !cats.isEmpty()) {
-                    categoryId = UUID.fromString(cats.get(0).toString());
-                } else {
-                    categoryId = UUID.randomUUID();
-                    em.createNativeQuery("INSERT INTO dbo.tc_event_categories (id, name, slug) VALUES (:id, N'Hòa nhạc', 'concert')")
-                            .setParameter("id", categoryId).executeUpdate();
-                }
-            } catch (Exception e) {
-                categoryId = UUID.randomUUID();
-            }
+            return new OrganizationDecisionRepository.InitialEvent(title, venue, startTime, endTime);
+        });
 
-            Event initialEvent = new Event(
-                    org,
-                    title,
-                    org.getDescription() != null ? org.getDescription() : "Sự kiện được phê duyệt",
-                    EventCategory.CONCERT,
-                    venue,
-                    venue != null ? venue : "Hà Nội",
-                    startTime,
-                    endTime
-            );
-            initialEvent.setCategoryId(categoryId);
-            if (rule != null) {
-                initialEvent.setCommissionRule(rule);
-            }
-            em.persist(initialEvent);
+        OrganizationDecisionRepository.CommissionPolicy policy = null;
+        if (ratePercent != null && fixedFee != null) {
+            Instant from = effectiveFrom != null ? effectiveFrom : Instant.now();
+            Instant to = effectiveTo != null ? effectiveTo : from.plus(java.time.Duration.ofDays(3650));
+            policy = new OrganizationDecisionRepository.CommissionPolicy(ratePercent, fixedFee, from, to);
+        }
+        OrganizationDecisionRepository.Approval approval =
+                decisions.approve(transactions, organizationId, adminId, policy, initialEvent);
 
-            Organization saved = organizationRepository.save(em, org);
-            UUID ruleId = rule != null ? rule.getId() : null;
+        return transactions.execute(DatabasePrincipal.AUTH, em -> {
+            Organization saved = organizationRepository.findById(em, organizationId)
+                    .orElseThrow(() -> new NoSuchElementException("ORGANIZATION_NOT_FOUND: Không tìm thấy hồ sơ yêu cầu"));
             return new OrganizationRequestDetailDto(
                     saved.getId(),
                     saved.getName(),
@@ -457,10 +436,10 @@ public class OrganizationRequestService {
                     saved.getContactPhone(),
                     saved.getDescription(),
                     saved.getStatus(),
-                    requester != null ? requester.getId() : null,
+                    approval.managerId(),
                     saved.getSubmittedAt(),
                     saved.getRejectionReason(),
-                    ruleId
+                    approval.commissionRuleId()
             );
         });
     }
@@ -499,7 +478,7 @@ public class OrganizationRequestService {
         if (reason == null || reason.trim().length() < 10 || reason.trim().length() > 500) {
             throw new IllegalArgumentException("Lý do từ chối phải từ 10 đến 500 ký tự");
         }
-        return transactions.execute(DatabasePrincipal.AUTH, em -> {
+        transactions.execute(DatabasePrincipal.AUTH, em -> {
             User admin = userRepository.findById(em, adminId)
                     .orElseThrow(() -> new IllegalArgumentException("USER_NOT_FOUND: Người dùng không tồn tại"));
             if (admin.getPlatformRole() != PlatformRole.ADMIN) {
@@ -510,10 +489,12 @@ public class OrganizationRequestService {
             if (org.getStatus() != OrganizationStatus.PENDING_APPROVAL) {
                 throw new IllegalStateException("CONFLICT: Yêu cầu không ở trạng thái PENDING_APPROVAL");
             }
-            org.reject(reason.trim());
-            Organization saved = organizationRepository.save(em, org);
-            return OrganizationRequestDetailDto.from(saved);
+            return null;
         });
+        decisions.reject(transactions, organizationId, adminId, reason.trim());
+        return transactions.execute(DatabasePrincipal.AUTH, em -> OrganizationRequestDetailDto.from(
+                organizationRepository.findById(em, organizationId)
+                        .orElseThrow(() -> new NoSuchElementException("ORGANIZATION_NOT_FOUND: Không tìm thấy hồ sơ yêu cầu"))));
     }
 
     private static String computePayloadHash(OrganizationRequestCreateDto dto) {
