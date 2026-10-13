@@ -561,7 +561,7 @@ test("production summary renders optional snapshot labels as text and omits raw 
     ]);
     assert.equal(nodes.get("hold-items").children.every(node => node.tag === "li" && node.children.length === 0), true);
     assert.equal(nodes.get("hold-total").textContent, "500.000 đ");
-    assert.equal(nodes.get("hold-id").textContent, "Mã lượt giữ " + HOLD);
+    assert.equal(nodes.get("hold-id").textContent, "Concert <img src=x onerror=alert(1)>");
     const visible = [nodes.get("hold-heading").textContent, nodes.get("hold-id").textContent,
         ...nodes.get("hold-items").children.map(node => node.textContent)].join(" ");
     for (const id of [EVENT, STANDING, SEATED, SEAT]) assert.equal(visible.includes(id), false);

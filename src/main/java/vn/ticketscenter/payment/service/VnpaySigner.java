@@ -42,6 +42,17 @@ public final class VnpaySigner {
             String clientIp,
             Optional<String> bankCode
     ) {
+        return buildPaymentUrl(txnRef,amount,orderInfo,clientIp,bankCode,clock.instant());
+    }
+
+    public boolean isSandbox() {
+        java.net.URI uri=java.net.URI.create(payUrl);
+        return "https".equalsIgnoreCase(uri.getScheme()) && "sandbox.vnpayment.vn".equalsIgnoreCase(uri.getHost());
+    }
+    public String merchantCode() { return tmnCode; }
+
+    public String buildPaymentUrl(String txnRef, BigDecimal amount, String orderInfo, String clientIp,
+                                  Optional<String> bankCode, java.time.Instant createdAt) {
         Objects.requireNonNull(txnRef, "txnRef is required");
         Objects.requireNonNull(amount, "amount is required");
         Objects.requireNonNull(orderInfo, "orderInfo is required");
@@ -62,7 +73,8 @@ public final class VnpaySigner {
         params.put("vnp_Locale", LOCALE);
         params.put("vnp_ReturnUrl", returnUrl);
         params.put("vnp_IpAddr", ip);
-        params.put("vnp_CreateDate", DATE_FORMATTER.format(clock.instant()));
+        params.put("vnp_CreateDate", DATE_FORMATTER.format(createdAt));
+        params.put("vnp_ExpireDate", DATE_FORMATTER.format(createdAt.plus(java.time.Duration.ofMinutes(15))));
 
         bankCode.ifPresent(code -> {
             if (!code.isBlank()) {

@@ -417,7 +417,7 @@
         if (!state.hold) return;
         const hold = state.hold;
         if (page === "selection" && document.body.dataset.publicPage !== 'detail') get("hold-heading").textContent = displayText(hold.eventTitle) || "Lượt giữ vé";
-        get("hold-id").textContent = "Mã lượt giữ " + hold.id;
+        get("hold-id").textContent = displayText(hold.eventTitle);
         get("hold-deadline").textContent = "Hết hạn lúc " + dateText(hold.expiresAt);
         get("hold-items").replaceChildren();
         for (const item of hold.items) {

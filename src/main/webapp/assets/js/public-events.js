@@ -87,7 +87,7 @@
             for (const [key, value] of new FormData(form)) if (value.trim()) {
                 if (key === 'from' || key === 'to') query.set(key, new Date(value).toISOString()); else query.set(key, value.trim());
             }
-            get('previous').disabled = get('next').disabled = true; cards.setAttribute('aria-busy', 'true');
+            get('page-label').replaceChildren(); get('previous').disabled = get('next').disabled = true; cards.setAttribute('aria-busy', 'true');
             status.textContent = 'Đang tải sự kiện…'; get('retry-events').hidden = true;
             try {
                 const result = await api('/api/events?' + query);
@@ -95,7 +95,7 @@
                 cards.replaceChildren(...result.data.map(eventCard));banner(result.data);
                 status.textContent = result.total ? 'Tìm thấy ' + result.total + ' sự kiện.' : 'Không có sự kiện phù hợp. Thử đổi bộ lọc hoặc từ khóa.';
                 if (!result.data.length) cards.append(node('p', 'Không có sự kiện trong khoảng đã chọn.', 'tc-empty-state'));
-                get('page-label').textContent = 'Trang ' + pageNumber + (result.totalPages ? ' / ' + result.totalPages : '');
+                root.TicketUI?.renderPagination(get('page-label'), {page:pageNumber,total:result.total,pageSize:result.pageSize,previous:get('previous'),next:get('next'),onPageChange:target=>{pageNumber=target;void load();}});
                 get('previous').disabled = pageNumber <= 1; get('next').disabled = pageNumber * result.pageSize >= result.total;
             } catch (error) {
                 if (current !== revision) return;

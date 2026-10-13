@@ -62,7 +62,7 @@
     async function listPage() {
         let page=1,revision=0;await organizations($('organization'),new URLSearchParams(location.search).get('organizationId'));
         async function load() {
-            const current=++revision;$('create-event').hidden=true;message('Đang tải sự kiện…');$('events').replaceChildren();$('previous').disabled=$('next').disabled=true;
+            const current=++revision;$('create-event').hidden=true;message('Đang tải sự kiện…');$('events').replaceChildren();$('page-label').replaceChildren();$('previous').disabled=$('next').disabled=true;
             const org=$('organization').value,query=new URLSearchParams({page:String(page),pageSize:'6'});
             if($('filter-status').value) query.set('status',$('filter-status').value);
             const result=await api('/api/organizations/'+org+'/events?'+query);
@@ -74,12 +74,13 @@
                 const state=node('td');state.append(node('span',labels[event.status] || event.status,'status-pill '+({PUBLISHED:'status-success',PENDING_APPROVAL:'status-amber',REJECTED:'status-red',CANCELLED:'status-red'}[event.status] || 'status-subtle')));
                 tr.append(coverCell,title,state,node('td',date(event.startTime)),node('td',String(event.totalCapacity)));
                 const actionCell=node('td','','organizer-event-actions'),actions=node('div');const link=node('a','Xem / sửa','btn btn-outline-dark btn-sm');link.href=base+'/events/manage/editor?organizationId='+org+'&eventId='+event.eventId;actions.append(link);
+                if(['PUBLISHED','CANCELLED'].includes(event.status)){const cancellation=node('a',event.status==='CANCELLED'?'Tiến độ hủy':'Yêu cầu hủy','btn btn-outline-danger btn-sm');cancellation.href=base+'/events/cancellation?id='+encodeURIComponent(event.eventId);actions.append(cancellation);}
                 if(['DRAFT','REJECTED'].includes(event.status)) actions.append(button('Gửi duyệt',async()=>{await mutate('/api/events/'+event.eventId+'/submit',{expectedVersion:String(event.version)});await load();}));
                 if(event.status==='DRAFT') actions.append(button('Xóa nháp',async()=>{if(!confirm('Xóa bản nháp này và các khu/ghế chưa có giao dịch?'))return;await mutate('/api/events/'+event.eventId+'/delete',{expectedVersion:String(event.version)});await load();},'btn btn-outline-danger btn-sm'));
                 actionCell.append(actions);tr.append(actionCell);$('events').append(tr);
             }
             if(!result.data.length){const empty=node('td','Chưa có sự kiện phù hợp. Tạo sự kiện mới hoặc thay đổi bộ lọc.','organizer-empty');empty.colSpan=6;const row=node('tr');row.append(empty);$('events').append(row);}
-            message(result.total ? 'Có '+result.total+' sự kiện.' : 'Chưa có sự kiện phù hợp.');$('page-label').textContent='Trang '+page;
+            message(result.total ? 'Có '+result.total+' sự kiện.' : 'Chưa có sự kiện phù hợp.');globalThis.TicketUI?.renderPagination($('page-label'),{page,total:result.total,pageSize:result.pageSize,previous:$('previous'),next:$('next'),onPageChange:target=>{page=target;load().catch(e=>message(e.message,true));}});
             $('previous').disabled=page<=1;$('next').disabled=page*result.pageSize>=result.total;
         }
         $('organization').addEventListener('change',()=>{page=1;load().catch(e=>message(e.message,true));});
@@ -185,9 +186,9 @@
             lock($('publish'),selected.status!=='PENDING_APPROVAL' || !rules.length || !selected.coverImageUrl);lock($('reject'),selected.status!=='PENDING_APPROVAL');
             $('rule-note').textContent=!selected.coverImageUrl?'Hồ sơ cần ảnh bìa trước khi công khai.':rules.length?'Chính sách có hiệu lực hiện tại và tại ngày sự kiện.':'Chưa có chính sách phù hợp. Cần thiết lập hoa hồng trước khi công khai.';
         }
-        async function load(){const current=++listRevision;message('Đang tải hồ sơ…');$('previous').disabled=$('next').disabled=true;const query=new URLSearchParams({status:$('filter-status').value,page:String(page),pageSize:'6'});const result=await api('/api/admin/events?'+query);if(current!==listRevision)return;$('events').replaceChildren();
+        async function load(){const current=++listRevision;message('Đang tải hồ sơ…');$('page-label').replaceChildren();$('previous').disabled=$('next').disabled=true;const query=new URLSearchParams({status:$('filter-status').value,page:String(page),pageSize:'6'});const result=await api('/api/admin/events?'+query);if(current!==listRevision)return;$('events').replaceChildren();
             for(const item of result.data){const tr=document.createElement('tr');tr.append(node('td',item.title),node('td',item.organizationName),node('td',labels[item.status]),node('td',date(item.startTime)));const td=node('td');td.append(button('Xem hồ sơ',()=>review(item.eventId)));tr.append(td);$('events').append(tr);}
-            message(result.total?'Có '+result.total+' hồ sơ.':'Chưa có hồ sơ phù hợp.');$('page-label').textContent='Trang '+page;$('previous').disabled=page<=1;$('next').disabled=page*result.pageSize>=result.total;}
+            message(result.total?'Có '+result.total+' hồ sơ.':'Chưa có hồ sơ phù hợp.');globalThis.TicketUI?.renderPagination($('page-label'),{page,total:result.total,pageSize:result.pageSize,previous:$('previous'),next:$('next'),onPageChange:target=>{page=target;load().catch(e=>message(e.message,true));}});$('previous').disabled=page<=1;$('next').disabled=page*result.pageSize>=result.total;}
         $('filters').addEventListener('submit',e=>{e.preventDefault();page=1;load().catch(e=>message(e.message,true));});$('previous').addEventListener('click',()=>{page--;load().catch(e=>message(e.message,true));});$('next').addEventListener('click',()=>{page++;load().catch(e=>message(e.message,true));});
         $('publish').addEventListener('click',()=>action($('publish'),async()=>{const chosen=selected;if(!chosen)return;await mutate('/api/admin/events/'+chosen.eventId+'/publish',{commissionRuleId:$('rule').value,expectedVersion:String(chosen.version)});if(selected?.eventId===chosen.eventId)await review(chosen.eventId);await load();}));
         $('reject').addEventListener('click',()=>action($('reject'),async()=>{const chosen=selected;if(!chosen)return;await mutate('/api/admin/events/'+chosen.eventId+'/reject',{reason:$('reason').value,expectedVersion:String(chosen.version)});if(selected?.eventId===chosen.eventId)await review(chosen.eventId);await load();}));

@@ -2,7 +2,7 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 function fixture(payload,ok=true){
  const nodes=new Map(),calls=[];
- const get=id=>{if(!nodes.has(id))nodes.set(id,{value:'',innerHTML:'',classList:{add(){},remove(){}},addEventListener(){}});return nodes.get(id);};
+ const get=id=>{if(!nodes.has(id))nodes.set(id,{value:'',innerHTML:'',style:{},classList:{add(){},remove(){}},querySelector(){return null;},addEventListener(){}});return nodes.get(id);};
  const document={getElementById:get,querySelector:selector=>({getAttribute:()=>selector.includes('context-path')?'/app':'csrf'}),querySelectorAll:()=>[],addEventListener(){}};
  const crypto={randomUUID:()=> '11111111-1111-1111-1111-111111111111'};
  const context={document,window:{crypto},crypto,bootstrap:{Modal:class{show(){}hide(){}}},Date,setTimeout(){},console:{error(){}},fetch:async(path,options)=>{calls.push({path,options});return{ok,statusText:'Unavailable',json:async()=>payload};}};
@@ -30,13 +30,14 @@ test('untrusted organizer names and alert messages cannot become executable mark
 test('wrapped approval and rejection success refresh the live queue only after server confirmation',async()=>{
  for(const action of ['Approve','Reject']){
   const f=fixture({data:{success:true}});
-  f.get('approveOrgId').value=f.get('rejectOrgId').value='11111111-1111-1111-1111-111111111111';
+  f.context['open'+action+'Modal']('11111111-1111-1111-1111-111111111111','Organizer');
+  f.calls.length=0;
   f.get('approveRatePercent').value='5.0';f.get('approveFixedFee').value='10000';
   f.get('rejectReason').value='Hồ sơ chưa cung cấp đủ thông tin';
   await f.context['submit'+action]({preventDefault(){}});
   assert.equal(f.calls[0].options.method,'POST');assert.equal(f.calls[0].options.headers['X-CSRF-Token'],'csrf');
   assert.equal(f.calls[1].options.method,'GET');assert.match(f.get('alertPlaceholder').innerHTML,/alert-success/);
  }
- const f=fixture({error:{message:'Conflict'}},false);f.get('rejectReason').value='Hồ sơ chưa cung cấp đủ thông tin';
+ const f=fixture({error:{message:'Conflict'}},false);f.context.openRejectModal('org','Organizer');f.get('rejectReason').value='Hồ sơ chưa cung cấp đủ thông tin';
  await f.context.submitReject({preventDefault(){}});assert.equal(f.calls.length,1);assert.match(f.get('alertPlaceholder').innerHTML,/alert-danger/);
 });

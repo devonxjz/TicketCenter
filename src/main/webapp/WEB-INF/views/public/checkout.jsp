@@ -16,7 +16,7 @@
 <div class="checkout-grid">
 <section id="current-hold" hidden class="hold-panel" aria-labelledby="held-tickets-heading">
 <div class="hold-timer-bar mb-4"><span>Thời gian giữ vé còn lại</span><strong id="hold-countdown" role="timer" aria-label="Thời gian còn lại"></strong></div>
-<h2 id="held-tickets-heading" class="h5 fw-bold">1. Vé đang giữ</h2><p id="hold-id" class="hold-id text-muted small"></p><p id="hold-deadline" class="small text-muted"></p><ul id="hold-items" class="hold-items"></ul><p class="d-flex justify-content-between border-top pt-3">Giá vé đã giữ <strong id="hold-total"></strong></p>
+<h2 id="held-tickets-heading" class="h5 fw-bold">1. Vé đang giữ</h2><p id="hold-id" hidden class="hold-id text-muted small"></p><p id="hold-deadline" class="small text-muted"></p><ul id="hold-items" class="hold-items"></ul><p class="d-flex justify-content-between border-top pt-3">Giá vé đã giữ <strong id="hold-total"></strong></p>
 <p class="small text-muted">Hoàn tất thanh toán trước khi hết thời gian giữ vé.</p><div class="d-flex flex-wrap gap-2"><a id="hold-view" class="btn btn-outline-dark">Xem sự kiện</a><button id="hold-cancel" type="button" class="btn btn-outline-danger">Hủy lượt giữ</button></div>
 </section>
 <section id="order-checkout" class="hold-panel" aria-labelledby="order-heading">

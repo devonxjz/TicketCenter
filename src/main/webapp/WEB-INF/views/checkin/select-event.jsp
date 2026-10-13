@@ -1,4 +1,6 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<% request.setAttribute("activeTab", "checkin"); %>
 <!doctype html>
 <html lang="vi">
 <head>
@@ -8,15 +10,15 @@
   <jsp:include page="/WEB-INF/views/layout/meta-head.jsp" />
   <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/admin-ui.css">
 </head>
-<body class="checkin-body">
-<a class="portal-skip" href="#main-content">Đến nội dung chính</a><header class="checkin-topbar"><a class="navbar-brand-custom" href="${pageContext.request.contextPath}/">TicketsCenter</a><span class="portal-label">Cổng soát vé</span><a href="${pageContext.request.contextPath}/">Khám phá sự kiện &rarr;</a></header>
-<main id="main-content"><h1>Chọn sự kiện soát vé</h1><p class="hint">Chọn sự kiện của tổ chức để bắt đầu ca làm việc.</p>
+<body class="checkin-body checkin-workspace">
+<jsp:include page="/WEB-INF/views/layout/header.jsp" /><div class="dashboard-layout"><c:choose><c:when test="${sessionScope.TC_CURRENT_USER.isAdmin()}"><jsp:include page="/WEB-INF/views/layout/admin-sidebar.jsp" /></c:when><c:otherwise><jsp:include page="/WEB-INF/views/layout/organizer-sidebar.jsp" /></c:otherwise></c:choose>
+<main id="main-content" class="dashboard-content"><h1>Chọn sự kiện soát vé</h1><p class="hint">Chọn sự kiện của tổ chức để bắt đầu ca làm việc.</p>
   <div class="toolbar"><span>Danh sách sự kiện</span><button type="button" id="reload">Làm mới</button></div>
   <div id="notice" role="status" aria-live="polite"></div>
   <div id="events" aria-live="polite"><p>Đang tải sự kiện…</p></div><nav class="tc-pagination" aria-label="Chuyển trang"><button id="event-previous" type="button" class="tc-page-button" aria-label="Trang trước" disabled>‹</button><span id="event-page"></span><button id="event-next" type="button" class="tc-page-button" aria-label="Trang sau" disabled>›</button></nav>
   <p class="hint">Giờ hiển thị theo thiết bị của bạn. Cổng mở trước giờ bắt đầu 60 phút và đóng khi sự kiện kết thúc.</p>
-</main>
-<script>
+</main></div>
+<script>document.addEventListener("DOMContentLoaded",()=>{
 (() => {
   // Derive the WAR context from the page URL, never interpolate user input into script source.
   const base = location.pathname.replace(/\/check-ins\/?$/, '');
@@ -24,7 +26,7 @@
   const host = document.getElementById('events'), notice = document.getElementById('notice');
   const labels = {OPEN:'Đang mở soát vé',NOT_YET_OPEN:'Chưa tới giờ',ENDED:'Đã kết thúc',CANCELLED:'Bị hủy',UNAVAILABLE:'Chưa mở soát vé'};
   let loading = false, items=[], page=1;
-  function render(){const total=Math.max(1,Math.ceil(items.length/6));page=Math.min(page,total);host.replaceChildren(...items.slice((page-1)*6,page*6).map(card));document.getElementById('event-page').textContent='Trang '+page+' / '+total;document.getElementById('event-previous').disabled=page===1;document.getElementById('event-next').disabled=page===total;}
+  function render(){const total=Math.max(1,Math.ceil(items.length/6));page=Math.min(page,total);host.replaceChildren(...items.slice((page-1)*6,page*6).map(card));document.getElementById('event-page').textContent='Trang '+page+' / '+total;document.getElementById('event-previous').disabled=page===1;document.getElementById('event-next').disabled=page===total;TicketUI.renderPagination(document.getElementById('event-page'),{page,total:items.length,pageSize:6,onPageChange:value=>{page=value;render();},previous:document.getElementById('event-previous'),next:document.getElementById('event-next')});}
   function element(tag, text, className) { const el=document.createElement(tag); if(text !== undefined) el.textContent=text; if(className) el.className=className; return el; }
   function date(value) { return new Intl.DateTimeFormat('vi-VN',{dateStyle:'medium',timeStyle:'short'}).format(new Date(value)); }
   async function json(url) {
@@ -67,6 +69,6 @@
   document.getElementById('reload').addEventListener('click',()=>{notice.textContent='';load();});
   load();setInterval(()=>{if(!document.hidden)load();},30000);
 })();
-</script>
+});</script>
 </body>
 </html>

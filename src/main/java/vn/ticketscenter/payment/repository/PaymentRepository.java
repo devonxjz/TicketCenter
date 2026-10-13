@@ -32,6 +32,27 @@ public class PaymentRepository {
             Duration holdRemaining
     ) { }
 
+    /** Persist genuine sandbox URL metadata before a payment redirect becomes visible. */
+    public void registerVnpaySandboxPayment(UUID paymentId, UUID actorId, String merchant, String transactionDate) {
+        try (Connection c=buyer.getConnection();
+             CallableStatement q=c.prepareCall("{call dbo.usp_RegisterVnpayPaymentProvenance(?,?,?,?)}")) {
+            q.setObject(1,paymentId); q.setObject(2,actorId); q.setString(3,merchant); q.setString(4,transactionDate);
+            q.setQueryTimeout(15); q.execute();
+        } catch (SQLException failure) { throw PaymentException.unavailable(); }
+    }
+
+    public Optional<String> findVnpaySandboxTransactionDate(UUID paymentId, UUID actorId, String merchant) {
+        try (Connection c=buyer.getConnection(); PreparedStatement q=c.prepareStatement(
+                "SELECT tmn_code,transaction_date FROM dbo.vw_VnpayBuyerPaymentProvenance WHERE payment_id=? AND user_id=?")) {
+            q.setObject(1,paymentId); q.setObject(2,actorId); q.setQueryTimeout(15);
+            try(var r=q.executeQuery()) {
+                if (!r.next()) return Optional.empty();
+                if (!merchant.equals(r.getString("tmn_code"))) throw PaymentException.unavailable();
+                return Optional.of(r.getString("transaction_date"));
+            }
+        } catch (SQLException failure) { throw PaymentException.unavailable(); }
+    }
+
     public static final class ZeroOrderDetectedException extends RuntimeException {
         private final UUID orderId;
         public ZeroOrderDetectedException(UUID orderId) {

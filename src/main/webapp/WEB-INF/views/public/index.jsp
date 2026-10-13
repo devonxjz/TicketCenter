@@ -17,6 +17,6 @@
   <div class="col-md-4 d-flex align-items-end"><button type="submit" class="btn-primary-custom w-100 justify-content-center">Tìm kiếm</button></div>
  </div></form></details>
  <p id="status" role="status" aria-live="polite">Đang tải sự kiện…</p><button id="retry-events" type="button" class="btn-outline-custom mb-4" hidden>Thử tải lại</button>
- <div id="events" class="row g-4"></div><nav class="d-flex justify-content-center align-items-center gap-3 mt-5" aria-label="Phân trang"><button id="previous" type="button" class="btn-outline-custom" disabled>Trang trước</button><span id="page-label" class="small"></span><button id="next" type="button" class="btn-outline-custom" disabled>Trang sau</button></nav>
+ <div id="events" class="row g-4"></div><nav class="d-flex justify-content-center align-items-center gap-3 mt-5" aria-label="Phân trang"><button id="previous" type="button" class="btn-outline-custom" aria-label="Trang trước" disabled>‹</button><span id="page-label" class="small"></span><button id="next" type="button" class="btn-outline-custom" aria-label="Trang sau" disabled>›</button></nav>
  <noscript>Vui lòng bật JavaScript để tải dữ liệu sự kiện và đặt vé.</noscript>
 </main><jsp:include page="/WEB-INF/views/layout/footer.jsp"/><script defer src="${pageContext.request.contextPath}/assets/js/public-events.js"></script></body></html>

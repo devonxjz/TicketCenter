@@ -58,6 +58,26 @@ public class RefundWorkerSqlServerTest {
  SimulatedRefundGateway gateway(RefundGateway.Status status,boolean timeout){return new SimulatedRefundGateway(directory,status,timeout);}
  void due(Fixture f)throws Exception{sql("UPDATE dbo.tc_refund_dispatches SET lease_until=DATEADD(second,-1,SYSUTCDATETIME()),next_query_at=DATEADD(second,-1,SYSUTCDATETIME()) WHERE attempt_id=?",f.attempt());}
  String status(Fixture f)throws Exception{return value("SELECT status FROM dbo.tc_refund_obligations WHERE id=?",f.refund());}
+ @Test void sandboxWorkerNeverClaimsLegacyOrAnotherMerchant()throws Exception{
+  var f=fixture(false,false);
+  var repo=new RefundWorkerRepository(PaymentCrossDomainSqlTest.source("worker",null),"TMN12345");
+  var candidate=new RefundWorkerStore.Candidate(f.refund(),f.attempt());
+  String original=status(f);
+  assertTrue(repo.candidates("EXECUTE",1000).stream().noneMatch(c->c.refundId().equals(f.refund())));
+  assertTrue(repo.claim(candidate,UUID.randomUUID()).isEmpty());
+  assertEquals("0",value("SELECT COUNT(*) FROM dbo.tc_refund_dispatches WHERE attempt_id=?",f.attempt()));
+  assertEquals(original,status(f));
+  // Owner-only fixture setup: sandbox provenance must be absent on genuine historical captures.
+  sql("UPDATE dbo.tc_payments SET provider_reference='123456789' WHERE id=?;INSERT dbo.tc_vnpay_payment_provenance(payment_id,tmn_code,environment,transaction_date) VALUES(?,'OTHER123','SANDBOX','20261013120000')",f.base().payment(),f.base().payment());
+  assertTrue(repo.claim(candidate,UUID.randomUUID()).isEmpty());
+  assertEquals("0",value("SELECT COUNT(*) FROM dbo.tc_refund_dispatches WHERE attempt_id=?",f.attempt()));
+  sql("UPDATE dbo.tc_vnpay_payment_provenance SET tmn_code='TMN12345' WHERE payment_id=?",f.base().payment());
+  assertTrue(repo.candidates("EXECUTE",1000).stream().anyMatch(c->c.refundId().equals(f.refund())));
+  sql("UPDATE dbo.tc_payments SET provider_reference='DEMO-REFERENCE' WHERE id=?",f.base().payment());
+  assertTrue(repo.claim(candidate,UUID.randomUUID()).isEmpty());
+  assertEquals(original,status(f));
+  assertEquals("0",value("SELECT COUNT(*) FROM dbo.tc_refund_dispatches WHERE attempt_id=?",f.attempt()));
+ }
  @Test void WRK01StandingSuccessReturnsInventoryExactlyOnce()throws Exception{
   var f=fixture(false,false);var w=worker(f,gateway(RefundGateway.Status.SUCCEEDED,false));assertEquals(1,w.runOnce());assertEquals("COMPLETED",status(f));
   assertEquals("REFUNDED",value("SELECT status FROM dbo.tc_tickets WHERE order_item_id=?",f.base().item()));assertEquals("0",value("SELECT sold_quantity FROM dbo.tc_zones WHERE id=?",f.base().zone()));

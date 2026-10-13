@@ -74,7 +74,14 @@ public class PaymentService {
             try {
                 PaymentRepository.PaymentIntent intent = repository.beginOrderPayment(orderId, actor.id(), actor.authVersion());
                 String orderInfo = "Thanh toan don hang " + intent.orderCode();
-                String redirectUrl = signer.buildPaymentUrl(intent.txnRef(), intent.amount(), orderInfo, clientIp, bankCode);
+                Optional<String> originalDate = signer.isSandbox()
+                        ? repository.findVnpaySandboxTransactionDate(intent.paymentId(), actor.id(), signer.merchantCode()) : Optional.empty();
+                String redirectUrl = originalDate.isPresent()
+                        ? signer.buildPaymentUrl(intent.txnRef(), intent.amount(), orderInfo, clientIp, bankCode,
+                            java.time.LocalDateTime.parse(originalDate.get(), java.time.format.DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
+                                    .atZone(java.time.ZoneId.of("Asia/Ho_Chi_Minh")).toInstant())
+                        : signer.buildPaymentUrl(intent.txnRef(), intent.amount(), orderInfo, clientIp, bankCode);
+                registerSandboxProvenance(intent.paymentId(), actor.id(), redirectUrl);
 
                 PaymentInitiationResult result = PaymentInitiationResult.redirect(
                         intent.paymentId(),
@@ -102,6 +109,19 @@ public class PaymentService {
             claim.cancel();
             throw PaymentException.unavailable();
         }
+    }
+
+    private void registerSandboxProvenance(UUID paymentId, UUID actorId, String redirectUrl) {
+        java.net.URI uri = java.net.URI.create(redirectUrl);
+        if (!"https".equalsIgnoreCase(uri.getScheme()) || !"sandbox.vnpayment.vn".equalsIgnoreCase(uri.getHost())) return;
+        java.util.Map<String,String> fields = new java.util.HashMap<>();
+        for (String pair : uri.getRawQuery().split("&")) {
+            String[] parts=pair.split("=",2);
+            if (parts.length==2) fields.put(java.net.URLDecoder.decode(parts[0], java.nio.charset.StandardCharsets.UTF_8),
+                    java.net.URLDecoder.decode(parts[1], java.nio.charset.StandardCharsets.UTF_8));
+        }
+        if (!signer.verifySignature(fields, fields.get("vnp_SecureHash"))) throw PaymentException.unavailable();
+        repository.registerVnpaySandboxPayment(paymentId,actorId,fields.get("vnp_TmnCode"),fields.get("vnp_CreateDate"));
     }
 
     public vn.ticketscenter.payment.dto.VnpayIpnResult processIpn(java.util.Map<String, String> queryParams) {

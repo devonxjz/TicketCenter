@@ -46,7 +46,7 @@
     const reset = () => { form.reset(); document.getElementById('form-title').textContent = 'Thêm chính sách'; key = null; };
     async function load() {
       const own = ++generation;
-      document.getElementById('rules').replaceChildren(); reset();
+      document.getElementById('rules').replaceChildren();globalThis.TicketUI?.paginateItems(document.getElementById('rules')); reset();
       if (!select.value) return;
       try {
         const rows = await api('/api/admin/organizations/' + select.value + '/commission-rules');
@@ -63,6 +63,7 @@
           });
           cell(tr, '').appendChild(edit); document.getElementById('rules').appendChild(tr);
         }
+        globalThis.TicketUI?.paginateItems(document.getElementById('rules'),{pageSize:10,label:'Phân trang chính sách hoa hồng'});
       } catch (error) { if (own === generation) tell(error.message); }
     }
     select.addEventListener('change', () => { tell(''); load(); });
@@ -95,7 +96,7 @@
     };
     async function load() {
       const own = ++generation, eventId = select.value;
-      loading = true; summary = null; blockers = []; historyButtons = []; updateButtons(); document.getElementById('summary').replaceChildren(); document.getElementById('blockers').replaceChildren(); document.getElementById('payouts').replaceChildren();
+      loading = true; summary = null; blockers = []; historyButtons = []; updateButtons(); document.getElementById('summary').replaceChildren(); document.getElementById('blockers').replaceChildren(); document.getElementById('payouts').replaceChildren();globalThis.TicketUI?.paginateItems(document.getElementById('payouts'));
       if (!eventId) { loading = false; updateButtons(); return true; }
       try {
         const [next, blocked] = await Promise.all([api('/api/admin/events/' + eventId + '/settlement'), api('/api/admin/events/' + eventId + '/settlement-blockers')]);
@@ -122,6 +123,7 @@
             document.getElementById('payouts').appendChild(tr);
           }
         }
+        globalThis.TicketUI?.paginateItems(document.getElementById('payouts'),{pageSize:10,label:'Phân trang lịch sử chi trả'});
         return true;
       } catch (error) { if (own === generation) { summary = null; tell(error.message); } return false; }
       finally { if (own === generation) { loading = false; updateButtons(); } }

@@ -113,11 +113,7 @@
             </div>
         </c:otherwise>
     </c:choose>
-    <nav class="d-flex justify-content-between align-items-center mt-4" aria-label="Phân trang đơn hàng">
-        <c:if test="${historyPage.page > 1}"><c:url var="previousPage" value="/me/orders"><c:param name="page" value="${historyPage.page - 1}"/><c:param name="size" value="${historyPage.size}"/><c:if test="${not empty currentStatus}"><c:param name="status" value="${currentStatus}"/></c:if></c:url><a class="btn btn-outline-dark" href="${fn:escapeXml(previousPage)}">← Trang trước</a></c:if>
-        <span class="small text-muted">Trang ${historyPage.page}</span>
-        <c:if test="${historyPage.page * historyPage.size < historyPage.total}"><c:url var="nextPage" value="/me/orders"><c:param name="page" value="${historyPage.page + 1}"/><c:param name="size" value="${historyPage.size}"/><c:if test="${not empty currentStatus}"><c:param name="status" value="${currentStatus}"/></c:if></c:url><a class="btn btn-outline-dark" href="${fn:escapeXml(nextPage)}">Trang sau →</a></c:if>
-    </nav>
+    <nav data-tc-pagination data-page="${historyPage.page}" data-total="${historyPage.total}" data-page-size="${historyPage.size}" aria-label="Phân trang đơn hàng"></nav>
 </main>
 
 

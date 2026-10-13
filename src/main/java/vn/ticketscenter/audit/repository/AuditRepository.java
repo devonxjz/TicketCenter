@@ -7,8 +7,8 @@ import vn.ticketscenter.report.repository.ReadProjection;
 import vn.ticketscenter.settlement.infrastructure.FinanceException;
 
 public final class AuditRepository {
-    private static final String COLUMNS="a.id,a.actor_id,a.action,a.entity_type,a.entity_id,a.metadata_json,a.created_at,u.full_name actor_name,COALESCE(e.title,o.name) entity_name";
-    private static final String SOURCE=" FROM dbo.vw_AuditLogs a LEFT JOIN dbo.tc_users u ON u.id=a.actor_id LEFT JOIN dbo.vw_FinanceEvents e ON e.id=TRY_CONVERT(uniqueidentifier,a.entity_id) AND a.entity_type IN ('Event','tc_events','dbo.tc_events') LEFT JOIN dbo.vw_FinanceOrganizations o ON o.id=TRY_CONVERT(uniqueidentifier,a.entity_id) AND a.entity_type IN ('Organization','tc_organizations','dbo.tc_organizations')";
+    private static final String COLUMNS="a.id,a.actor_id,a.action,a.entity_type,a.entity_id,a.metadata_json,a.created_at,a.actor_name,a.entity_name";
+    private static final String SOURCE=" FROM dbo.vw_AuditDisplayNames a";
     public Map<String,Object> list(Connection db,AuditFilter f)throws SQLException{
         var params=new ArrayList<Object>();params.add(f.from());params.add(f.to());String where=SOURCE+" WHERE a.created_at>=? AND a.created_at<?";
         if(f.action()!=null){where+=" AND action=?";params.add(f.action());}if(f.entityType()!=null){where+=" AND entity_type=?";params.add(f.entityType());}if(f.entityId()!=null){where+=" AND entity_id=?";params.add(f.entityId());}

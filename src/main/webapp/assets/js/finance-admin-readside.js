@@ -97,7 +97,7 @@
     if(!result.rows.length){const tr=node('tr'),td=node('td','Không có nhật ký trong khoảng đã chọn.');td.colSpan=6;tr.append(td);rows.append(tr);}
     document.getElementById('previous').disabled=result.page<=1;
     document.getElementById('next').disabled=result.page*result.pageSize>=result.total;
-    document.getElementById('pagination').textContent='Trang '+result.page+' · '+result.total+' dòng';
+    globalThis.TicketUI?.renderPagination(document.getElementById('pagination'),{page:result.page,total:result.total,pageSize:result.pageSize,countLabel:result.total+' dòng',previous:document.getElementById('previous'),next:document.getElementById('next'),onPageChange:target=>load(target)});
   }
   function svgNode(tag,attributes,text) {const el=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [key,value]of Object.entries(attributes))el.setAttribute(key,String(value));if(text!=null)el.textContent=String(text);return el;}
   function overview(result) {

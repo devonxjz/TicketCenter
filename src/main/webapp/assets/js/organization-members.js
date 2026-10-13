@@ -7,8 +7,45 @@
             || (window.location.pathname.startsWith('/ticketscenter') ? '/ticketscenter' : '');
         let currentMembers = [];
         let activeManagerCount = 0;
-        let selectedMemberForEdit = null;
-        let selectedMemberForDeactivate = null;
+        let memberRequest = 0;
+        let organizationScope = 0;
+        let observedOrgId = getActiveOrgId();
+        const modalContexts = {};
+        const modalButtons = {
+            addMemberModal: ['btnAddMemberSubmit', '<i class="fa-solid fa-check me-1"></i> Thêm thành viên'],
+            changeRoleModal: ['btnChangeRoleSubmit', '<i class="fa-solid fa-floppy-disk me-1"></i> Lưu thay đổi'],
+            deactivateModal: ['btnDeactivateSubmit', '<i class="fa-solid fa-user-slash me-1"></i> Xác nhận vô hiệu hóa']
+        };
+
+        function isCurrentScope(context) {
+            return context && context.scope === organizationScope && context.orgId === getActiveOrgId();
+        }
+
+        function isCurrentModal(id, context) {
+            return modalContexts[id] === context && isCurrentScope(context);
+        }
+
+        function beginModal(id, member) {
+            const context = { orgId: getActiveOrgId(), scope: organizationScope, member, busy: false };
+            modalContexts[id] = context;
+            const [buttonId, label] = modalButtons[id];
+            document.getElementById(buttonId).disabled = false;
+            document.getElementById(buttonId).innerHTML = label;
+            return context;
+        }
+
+        function invalidateOrganization() {
+            organizationScope++;
+            for (const id of Object.keys(modalButtons)) {
+                delete modalContexts[id];
+                hideBsModal(id);
+            }
+            clearAlert();
+        }
+
+        for (const id of Object.keys(modalButtons)) {
+            document.getElementById(id).addEventListener('hide.bs.modal', () => { delete modalContexts[id]; });
+        }
 
         // CSRF Token resolution
         async function getCsrfToken() {
@@ -33,7 +70,7 @@
         }
 
         // Generic API caller
-        async function apiCall(url, method = 'GET', bodyData = null) {
+        async function apiCall(url, method = 'GET', bodyData = null, isValid = () => true) {
             const headers = {
                 'Accept': 'application/json'
             };
@@ -58,6 +95,7 @@
                 options.body = JSON.stringify(payload);
             }
 
+            if (!isValid()) throw new Error('Thao tác đã hết hiệu lực.');
             const res = await fetch(url, options);
             let json = null;
             try {
@@ -112,7 +150,8 @@
         }
 
         function getActiveOrgId() {
-            return window.tcCurrentOrgId || window.TcOrgContext?.getCurrentOrgId() || localStorage.getItem('tc_current_organization_id');
+            if (window.tcCurrentOrgId !== undefined) return window.tcCurrentOrgId;
+            return window.TcOrgContext?.getCurrentOrgId() || localStorage.getItem('tc_current_organization_id');
         }
 
         function showBsModal(modalId) {
@@ -128,6 +167,14 @@
         // Load member list for active organization
         async function loadMembers() {
             const orgId = getActiveOrgId();
+            if (orgId !== observedOrgId) {
+                observedOrgId = orgId;
+                invalidateOrganization();
+            }
+            const request = ++memberRequest;
+            currentMembers = [];
+            activeManagerCount = 0;
+            document.getElementById('memberCountBadge').textContent = '0 thành viên';
             const tbody = document.getElementById('memberTableBody');
             const subtitle = document.getElementById('memberTableSubtitle');
 
@@ -157,6 +204,7 @@
 
             try {
                 const res = await apiCall(contextPath + '/api/organizations/' + encodeURIComponent(orgId) + '/members', 'GET');
+                if (request !== memberRequest || orgId !== getActiveOrgId()) return;
                 const list = Array.isArray(res.data) ? res.data : (res.data?.members || res.data?.items || (Array.isArray(res) ? res : []));
                 currentMembers = list || [];
 
@@ -166,6 +214,7 @@
                 renderMembersTable();
                 subtitle.textContent = document.querySelector('#tcOrgSelect option:checked')?.dataset.orgName || 'Thành viên tổ chức';
             } catch (err) {
+                if (request !== memberRequest || orgId !== getActiveOrgId()) return;
                 console.error('Error loading members:', err);
                 tbody.innerHTML = `
                     <tr>
@@ -362,6 +411,7 @@
                 showAlert('Vui lòng chọn tổ chức trước khi thêm thành viên.', 'warning');
                 return;
             }
+            beginModal('addMemberModal');
             document.getElementById('addMemberForm').reset();
             const alertBox = document.getElementById('addMemberAlert');
             alertBox.className = 'alert d-none small mb-3';
@@ -371,8 +421,9 @@
 
         document.getElementById('addMemberForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const orgId = getActiveOrgId();
-            if (!orgId) return;
+            const context = modalContexts.addMemberModal;
+            if (!isCurrentModal('addMemberModal', context) || context.busy) return;
+            const orgId = context.orgId;
 
             const userName = document.getElementById('addUserName').value.trim();
             const role = document.getElementById('addMemberRole').value;
@@ -381,10 +432,11 @@
 
             if (!userName) {
                 alertBox.className = 'alert alert-danger small mb-3';
-                alertBox.textContent = 'Vui lòng nhập tên đăng nhập (userName).';
+                alertBox.textContent = 'Vui lòng nhập tên đăng nhập.';
                 return;
             }
 
+            context.busy = true;
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Đang thêm...';
             alertBox.className = 'alert d-none small mb-3';
@@ -393,15 +445,19 @@
                 const res = await apiCall(contextPath + '/api/organizations/' + encodeURIComponent(orgId) + '/members', 'POST', {
                     userName: userName,
                     role: role
-                });
+                }, () => isCurrentModal('addMemberModal', context));
 
+                if (!isCurrentModal('addMemberModal', context)) return;
                 hideBsModal('addMemberModal');
                 showAlert(res?.message || `Đã thêm thành viên "${userName}" vào tổ chức thành công.`, 'success');
                 await loadMembers();
             } catch (err) {
+                if (!isCurrentModal('addMemberModal', context)) return;
                 alertBox.className = 'alert alert-danger small mb-3';
                 alertBox.textContent = err.message || 'Không thể thêm thành viên.';
             } finally {
+                if (modalContexts['addMemberModal'] !== context) return;
+                context.busy = false;
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fa-solid fa-check me-1"></i> Thêm thành viên';
             }
@@ -409,7 +465,7 @@
 
         // Modal Action: Change Role
         function openChangeRoleModal(member) {
-            selectedMemberForEdit = member;
+            beginModal('changeRoleModal', member);
             document.getElementById('changeRoleFullName').textContent = member.fullName || member.userName;
             document.getElementById('changeRoleUserName').textContent = member.userName;
 
@@ -444,20 +500,22 @@
 
         document.getElementById('changeRoleForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            if (!selectedMemberForEdit) return;
-
-            const orgId = getActiveOrgId();
-            const userId = selectedMemberForEdit.userId || selectedMemberForEdit.id;
+            const context = modalContexts.changeRoleModal;
+            if (!isCurrentModal('changeRoleModal', context) || context.busy) return;
+            const member = context.member;
+            const orgId = context.orgId;
+            const userId = member.userId || member.id;
             const newRole = document.getElementById('changeRoleSelect').value;
             const submitBtn = document.getElementById('btnChangeRoleSubmit');
             const alertBox = document.getElementById('changeRoleAlert');
 
-            if (selectedMemberForEdit.role === 'MANAGER' && newRole === 'CHECK_IN_STAFF' && activeManagerCount <= 1) {
+            if (member.role === 'MANAGER' && newRole === 'CHECK_IN_STAFF' && activeManagerCount <= 1) {
                 alertBox.className = 'alert alert-danger small mb-3';
                 alertBox.textContent = 'Không thể hạ quyền Quản lý duy nhất còn lại của tổ chức.';
                 return;
             }
 
+            context.busy = true;
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Đang lưu...';
             alertBox.className = 'alert d-none small mb-3';
@@ -465,15 +523,19 @@
             try {
                 const res = await apiCall(contextPath + '/api/organizations/' + encodeURIComponent(orgId) + '/members/' + encodeURIComponent(userId) + '/role', 'POST', {
                     role: newRole
-                });
+                }, () => isCurrentModal('changeRoleModal', context));
 
+                if (!isCurrentModal('changeRoleModal', context)) return;
                 hideBsModal('changeRoleModal');
                 showAlert(res?.message || 'Đã cập nhật vai trò thành viên thành công.', 'success');
                 await loadMembers();
             } catch (err) {
+                if (!isCurrentModal('changeRoleModal', context)) return;
                 alertBox.className = 'alert alert-danger small mb-3';
                 alertBox.textContent = err.message || 'Không thể đổi vai trò thành viên.';
             } finally {
+                if (modalContexts['changeRoleModal'] !== context) return;
+                context.busy = false;
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk me-1"></i> Lưu thay đổi';
             }
@@ -481,9 +543,9 @@
 
         // Modal Action: Deactivate
         function openDeactivateModal(member) {
-            selectedMemberForDeactivate = member;
+            beginModal('deactivateModal', member);
             document.getElementById('deactivateTargetName').textContent = member.fullName || member.userName;
-            document.getElementById('deactivateTargetDetail').textContent = `${member.userName} • ${member.email || ''} • [${member.role}]`;
+            document.getElementById('deactivateTargetDetail').textContent = `${member.userName} • ${member.email || ''} • ${member.role === 'MANAGER' ? 'Quản lý tổ chức' : 'Soát vé tại cửa'}`;
 
             const alertBox = document.getElementById('deactivateAlert');
             alertBox.className = 'alert d-none small mb-3';
@@ -494,27 +556,34 @@
 
         document.getElementById('deactivateForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            if (!selectedMemberForDeactivate) return;
-
-            const orgId = getActiveOrgId();
-            const userId = selectedMemberForDeactivate.userId || selectedMemberForDeactivate.id;
+            const context = modalContexts.deactivateModal;
+            if (!isCurrentModal('deactivateModal', context) || context.busy) return;
+            const member = context.member;
+            const orgId = context.orgId;
+            const userId = member.userId || member.id;
+            if (member.role === 'MANAGER' && member.isActive && activeManagerCount <= 1) return;
             const submitBtn = document.getElementById('btnDeactivateSubmit');
             const alertBox = document.getElementById('deactivateAlert');
 
+            context.busy = true;
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Đang xử lý...';
             alertBox.className = 'alert d-none small mb-3';
 
             try {
-                const res = await apiCall(contextPath + '/api/organizations/' + encodeURIComponent(orgId) + '/members/' + encodeURIComponent(userId) + '/deactivate', 'POST');
+                const res = await apiCall(contextPath + '/api/organizations/' + encodeURIComponent(orgId) + '/members/' + encodeURIComponent(userId) + '/deactivate', 'POST', null, () => isCurrentModal('deactivateModal', context));
 
+                if (!isCurrentModal('deactivateModal', context)) return;
                 hideBsModal('deactivateModal');
-                showAlert(res?.message || `Đã vô hiệu hóa thành viên "${selectedMemberForDeactivate.fullName || selectedMemberForDeactivate.userName}" thành công.`, 'success');
+                showAlert(res?.message || `Đã vô hiệu hóa thành viên "${member.fullName || member.userName}" thành công.`, 'success');
                 await loadMembers();
             } catch (err) {
+                if (!isCurrentModal('deactivateModal', context)) return;
                 alertBox.className = 'alert alert-danger small mb-3';
                 alertBox.textContent = err.message || 'Không thể vô hiệu hóa thành viên.';
             } finally {
+                if (modalContexts['deactivateModal'] !== context) return;
+                context.busy = false;
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fa-solid fa-user-slash me-1"></i> Xác nhận vô hiệu hóa';
             }
@@ -523,15 +592,18 @@
         // Activate Action
         async function handleActivateMember(member) {
             const orgId = getActiveOrgId();
+            const context = {orgId, scope: organizationScope};
             const userId = member.userId || member.id;
             const memberName = member.fullName || member.userName;
 
             clearAlert();
             try {
-                const res = await apiCall(contextPath + '/api/organizations/' + encodeURIComponent(orgId) + '/members/' + encodeURIComponent(userId) + '/activate', 'POST');
+                const res = await apiCall(contextPath + '/api/organizations/' + encodeURIComponent(orgId) + '/members/' + encodeURIComponent(userId) + '/activate', 'POST', null, () => isCurrentScope(context));
+                if (!isCurrentScope(context)) return;
                 showAlert(res?.message || `Đã kích hoạt lại thành viên "${memberName}" thành công.`, 'success');
                 await loadMembers();
             } catch (err) {
+                if (!isCurrentScope(context)) return;
                 showAlert(err.message || 'Không thể kích hoạt lại thành viên.', 'danger');
             }
         }
@@ -544,9 +616,12 @@
 
         // Listen for organization context change event from context-switch.jsp
         window.addEventListener('tc:org-changed', function(e) {
-            if (e.detail && e.detail.organizationId) {
-                loadMembers();
+            if (e.detail && Object.prototype.hasOwnProperty.call(e.detail, 'organizationId')) {
+                window.tcCurrentOrgId = e.detail.organizationId;
             }
+            invalidateOrganization();
+            observedOrgId = getActiveOrgId();
+            loadMembers();
         });
 
         // Expose helper on window

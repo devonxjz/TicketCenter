@@ -56,3 +56,7 @@
 .finance-body .finance-legend-revenue{background:#e50914}.finance-body .finance-legend-cash{background:#111}
 
 .portal-skip{position:fixed;left:16px;top:-80px;background:#111;color:#fff;padding:12px;z-index:1200}.portal-skip:focus{top:12px;color:#fff}
+
+.checkin-workspace main.dashboard-content{max-width:none;margin:0;flex:1;min-width:0;padding:32px clamp(18px,3vw,44px)}
+.checkin-workspace .tc-header{background:#fff}.checkin-workspace main h1{font-size:clamp(1.45rem,2.2vw,2rem);letter-spacing:-.035em}.checkin-workspace .dashboard-sidebar{min-width:220px}
+@media(max-width:991px){.checkin-workspace .dashboard-sidebar{min-width:0}.checkin-workspace main.dashboard-content{padding:24px 16px}}

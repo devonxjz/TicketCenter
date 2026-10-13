@@ -9,6 +9,9 @@ public final class RefundJob {
  public RefundJob(TransactionManager transactions,RefundGateway gateway,int batchSize){
   this(new RefundProcessingWorker(new RefundWorkerRepository(transactions),gateway,new RedisRefundLease(),batchSize));
  }
+ public RefundJob(TransactionManager transactions,RefundGateway gateway,int batchSize,String sandboxMerchant){
+  this(new RefundProcessingWorker(new RefundWorkerRepository(transactions,sandboxMerchant),gateway,new RedisRefundLease(),batchSize));
+ }
  public RefundJob(RefundProcessingWorker processing){this.processing=java.util.Objects.requireNonNull(processing);this.reconciliation=new RefundReconciliationJob(processing);}
  public int runOnce(){return processing.runOnce()+reconciliation.runOnce();}
 }

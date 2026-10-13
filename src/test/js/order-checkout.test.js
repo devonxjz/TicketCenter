@@ -318,7 +318,7 @@ test("actual browser adapter renders immutable labels as text and wires create/c
     const f = browserFixture(); await f.settle();
     assert.equal(f.elements["order-create"].hidden, false); assert.equal(f.elements["order-create"].disabled, false);
     f.elements["order-create"].fire("click"); await f.settle();
-    assert.equal(f.elements["order-code"].textContent, "Mã đơn ORD-01");
+    assert.equal(f.elements["order-code"].textContent, "Đơn vé của bạn");
     assert.equal(f.elements["order-items"].children[0].textContent, "<img onerror=alert(1)> · Vé đứng · 2 vé × 150.000 đ = 300.000 đ");
     assert.equal(f.elements["order-total"].textContent, "300.000 đ"); assert.equal(f.elements["order-apply"].disabled, false);
     f.elements["order-coupon-code"].value = "SALE20"; f.elements["order-preview"].fire("click"); await f.settle();

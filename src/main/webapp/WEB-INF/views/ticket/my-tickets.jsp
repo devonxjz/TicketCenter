@@ -39,7 +39,7 @@
             </div>
         </c:when>
         <c:otherwise>
-            <div class="row g-4">
+            <div class="row g-4" data-tc-paginate-items data-page-size="6">
                 <c:forEach var="t" items="${tickets}">
                     <div class="col-md-6 col-lg-4">
                         <div class="ticket-card p-4 h-100 d-flex flex-column justify-content-between">

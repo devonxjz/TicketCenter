@@ -129,7 +129,7 @@
                                 <option value="CHECK_IN_STAFF" selected>Nhân viên soát vé tại cửa</option>
                                 <option value="MANAGER">Quản lý tổ chức</option>
                             </select>
-                            <div class="form-text small text-muted">Quản lý có toàn quyền sự kiện & nhân sự; Nhân viên chỉ có quyền quét vé tại cổng.</div>
+                            <div class="form-text small text-muted">Quản lý sự kiện và nhân sự, hoặc chỉ soát vé tại cửa.</div>
                         </div>
                     </div>
                     <div class="modal-footer border-top bg-light">
@@ -218,7 +218,7 @@
                         </div>
 
                         <div class="alert alert-danger small mb-0">
-                            <i class="fa-solid fa-circle-exclamation me-1"></i> Thành viên sẽ bị thu hồi quyền truy cập trong tổ chức ngay lập tức. Lịch sử phân quyền và tài khoản của người dùng vẫn được bảo lưu an toàn.
+                            <i class="fa-solid fa-circle-exclamation me-1"></i> Thành viên sẽ mất quyền truy cập tổ chức.
                         </div>
                     </div>
                     <div class="modal-footer border-top bg-light">

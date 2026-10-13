@@ -12,11 +12,10 @@ import vn.ticketscenter.config.worker.OutboxEmailJob;
 import vn.ticketscenter.config.worker.OutboxWorker;
 import vn.ticketscenter.config.worker.RefundJob;
 import vn.ticketscenter.event.repository.EventCancellationRepository;
-import vn.ticketscenter.payment.integration.RefundGateway;
-import vn.ticketscenter.payment.integration.SimulatedRefundGateway;
+import vn.ticketscenter.payment.integration.VnpaySandboxRefundGateway;
+import vn.ticketscenter.payment.integration.VnpayRefundContextRepository;
 
 import java.time.Clock;
-import java.nio.file.Path;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -46,22 +45,27 @@ public final class PersistenceListener implements ServletContextListener {
             LOGGER.log(Level.SEVERE, "Database persistence initialization failed", exception);
         }
         event.getServletContext().setAttribute(REGISTRY_ATTRIBUTE, registry);
-        if (ServerConfig.isDemoData() && registry.hasPrincipal(DatabasePrincipal.WORKER)) {
+        if (registry.hasPrincipal(DatabasePrincipal.WORKER)) {
             EventCancellationJob job = new EventCancellationJob(
                     registry.transactionManager(), new EventCancellationRepository(), 50);
             cancellationWorker = Executors.newSingleThreadScheduledExecutor(
                     Thread.ofPlatform().name("event-cancellation-worker").daemon(true).factory());
             cancellationWorker.scheduleWithFixedDelay(() -> runCancellation(job), 0, 5, TimeUnit.SECONDS);
-            RefundJob refundJob = new RefundJob(registry.transactionManager(),
-                    new SimulatedRefundGateway(
-                            Path.of(AppConfig.get(AppConfig.Keys.REFUND_STATE_DIRECTORY, "data/refund-gateway")),
-                            RefundGateway.Status.valueOf(AppConfig.get(AppConfig.Keys.REFUND_SIMULATED_OUTCOME, "SUCCEEDED").toUpperCase()),
-                            Boolean.parseBoolean(AppConfig.get(AppConfig.Keys.REFUND_TIMEOUT_AFTER_SIDE_EFFECT, "false"))),
-                    50);
-            refundWorker = Executors.newSingleThreadScheduledExecutor(
-                    Thread.ofPlatform().name("refund-worker").daemon(true).factory());
-            refundWorker.scheduleWithFixedDelay(() -> runRefund(refundJob), 0, 5, TimeUnit.SECONDS);
-            if (!"false".equalsIgnoreCase(String.valueOf(AppConfig.get("outbox.worker.enabled")).trim())) {
+            if (!ServerConfig.isDemoData() && AppConfig.getBoolean("refund.sandbox.enabled", false)) {
+                try {
+                    RefundJob refundJob = new RefundJob(registry.transactionManager(),
+                            new VnpaySandboxRefundGateway(new VnpayRefundContextRepository(registry.transactionManager()),
+                                    AppConfig.get(AppConfig.Keys.VNPAY_TMN_CODE), AppConfig.get(AppConfig.Keys.VNPAY_HASH_SECRET),
+                                    AppConfig.get("refund.sandbox.server.ip", "127.0.0.1")), 50,
+                            AppConfig.get(AppConfig.Keys.VNPAY_TMN_CODE));
+                    refundWorker = Executors.newSingleThreadScheduledExecutor(
+                            Thread.ofPlatform().name("refund-worker").daemon(true).factory());
+                    refundWorker.scheduleWithFixedDelay(() -> runRefund(refundJob), 0, 5, TimeUnit.SECONDS);
+                } catch (RuntimeException unavailable) {
+                    LOGGER.warning("Sandbox refund worker configuration is invalid; refunds require reconciliation");
+                }
+            }
+            if (ServerConfig.isDemoData() && !"false".equalsIgnoreCase(String.valueOf(AppConfig.get("outbox.worker.enabled")).trim())) {
                 String owner = hostname() + "-" + java.util.UUID.randomUUID();
                 OutboxWorker outbox = new OutboxWorker(registry.transactionManager(),
                         new OutboxEmailJob(OutboxEmailJob.databaseLoader(registry.transactionManager()),

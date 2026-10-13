@@ -1,0 +1,13 @@
+# Cancellation runtime
+
+Prepared locally; this evidence does not claim Azure migrations or live cancellation occurred.
+
+The pre-existing repository was an empty worker stub. The cancellation implementation was selectively recovered from `origin/feat/khanh/khanh-06-event-cancellation`; its direct Admin cancellation API is retained. Migration 058 supplies its explicit queue, durable cancellation receipts and actual progress projections. Migration 061 adds a Manager request and Admin approval/rejection workflow, current SQL identity/membership checks and durable review receipts. Approval and the actual event cancellation commit together; rejection leaves the event published. A rejected request may be resubmitted with a fresh key; audit records retain previous decisions.
+
+The page `/events/cancellation?id=<event-id>` loads actual event names and paginated requests. Request/review mutations require CSRF, JSON, authenticated current authority, a bounded reason and an Idempotency-Key. An uncertain response retains the original payload/key for retry. SQL verifies current user status/authVersion and Manager membership even when a durable receipt exists.
+
+Worker adoption is limited to `tc_cancellation_orders` explicitly enqueued by an Admin cancellation or approval. No existing cancelled events are backfilled. Worker adoption invokes canonical `usp_ProcessCancelledOrder`; it prepares actual obligations and records actual used-ticket exceptions. `COMPLETED` counts processed orders, independently of transfer status. Zero-value approvals already complete atomically through canonical migration 050 `usp_ReviewRefundRequest`, releasing inventory and completing obligations without creating transfer attempts. Positive obligations never receive fabricated transfer results here.
+
+Deployment prerequisites: schema objects from 058 and 061, current 046 Admin authority view and canonical financial procedures/tables from 050. Before applying, verify migration numbering against all branches and `tc_schema_migrations`. Schema application and live mutation verification must be authorized and performed separately; this subtask performed neither.
+
+Verification: 12 focused Java unit tests passed (request parser, access checks, post-commit cache failure, actual-progress serialization, review validation/identity/key forwarding). Three optional Redis integration tests skipped without their configured Redis service. Two browser-script mock tests passed (real list pagination contract and ambiguous approval retries retaining the durable key without claiming refund success). Java compilation, script syntax and diff whitespace checks passed. Live SQL procedure execution and browser rendering were not exercised by this subtask.

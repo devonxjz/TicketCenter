@@ -58,6 +58,15 @@ class PaymentServiceTest {
         vn.ticketscenter.payment.dto.PaymentStatusResult statusToReturn;
         String appliedStatus;
         String appliedReference;
+        String provenanceMerchant, provenanceDate;
+        boolean provenanceFails;
+        @Override public Optional<String> findVnpaySandboxTransactionDate(UUID paymentId, UUID actorId, String merchant) {
+            return Optional.ofNullable(provenanceDate);
+        }
+        @Override public void registerVnpaySandboxPayment(UUID paymentId, UUID actorId, String merchant, String date) {
+            if (provenanceFails) throw PaymentException.unavailable();
+            provenanceMerchant=merchant; provenanceDate=date;
+        }
         boolean zeroOrderDetected = false;
         final AtomicBoolean zeroCompleted = new AtomicBoolean(false);
 
@@ -167,6 +176,42 @@ class PaymentServiceTest {
                 service.initiate(ACTOR, ORDER_ID, KEY, Optional.of("VNPAYQR"), "127.0.0.1"));
         assertEquals(409, ex.status());
         assertEquals("IDEMPOTENCY_CONFLICT", ex.code());
+    }
+
+    @Test void onlyExactSandboxHostRegistersSignedPaymentProvenance() {
+        for(String url:List.of("https://sandbox.vnpayment.vn/paymentv2/vpcpay.html", "https://pay.vnpay.vn", "https://sandbox.vnpayment.vn.example.com/pay")) {
+            jedis.store.clear();
+            StubPaymentRepository repo=new StubPaymentRepository();
+            repo.intentToReturn=new PaymentIntent(UUID.randomUUID(),"PAY123",new BigDecimal("100000"),"VND","ORD1",Duration.ofMinutes(10));
+            VnpaySigner configured=new VnpaySigner("TMN12345","TESTSECRET",url,"http://return",Clock.fixed(Instant.parse("2026-10-13T06:00:00Z"),ZoneId.of("UTC")));
+            new PaymentService(repo,configured,idempotency).initiate(ACTOR,ORDER_ID,KEY,Optional.empty(),"127.0.0.1");
+            if (url.equals("https://sandbox.vnpayment.vn/paymentv2/vpcpay.html")) {
+                assertEquals("TMN12345",repo.provenanceMerchant); assertEquals("20261013130000",repo.provenanceDate);
+            } else assertNull(repo.provenanceMerchant);
+        }
+    }
+    @Test void failedSandboxProvenanceNeverReturnsOrCachesRedirect() {
+        StubPaymentRepository repo=new StubPaymentRepository(); repo.provenanceFails=true;
+        repo.intentToReturn=new PaymentIntent(UUID.randomUUID(),"PAY123",new BigDecimal("100000"),"VND","ORD1",Duration.ofMinutes(10));
+        VnpaySigner configured=new VnpaySigner("TMN12345","TESTSECRET","https://sandbox.vnpayment.vn/pay","http://return",Clock.systemUTC());
+        var service=new PaymentService(repo,configured,idempotency);
+        assertThrows(PaymentException.class,()->service.initiate(ACTOR,ORDER_ID,KEY,Optional.empty(),"127.0.0.1"));
+        assertTrue(jedis.store.values().stream().noneMatch(value->value.contains("redirectUrl")));
+    }
+    @Test void newKeyAfterCacheLossReusesOriginalSandboxCreationAndExpiry() {
+        StubPaymentRepository repo=new StubPaymentRepository();
+        repo.intentToReturn=new PaymentIntent(UUID.randomUUID(),"PAY123",new BigDecimal("100000"),"VND","ORD1",Duration.ofMinutes(10));
+        VnpaySigner firstSigner=new VnpaySigner("TMN12345","TESTSECRET","https://sandbox.vnpayment.vn/pay","http://return",
+                Clock.fixed(Instant.parse("2026-10-13T06:00:00Z"),ZoneId.of("UTC")));
+        String first=new PaymentService(repo,firstSigner,idempotency).initiate(ACTOR,ORDER_ID,KEY,Optional.empty(),"127.0.0.1").redirectUrl().orElseThrow();
+        jedis.store.clear();
+        VnpaySigner laterSigner=new VnpaySigner("TMN12345","TESTSECRET","https://sandbox.vnpayment.vn/pay","http://return",
+                Clock.fixed(Instant.parse("2026-10-13T06:10:00Z"),ZoneId.of("UTC")));
+        String recovered=new PaymentService(repo,laterSigner,idempotency).initiate(ACTOR,ORDER_ID,UUID.randomUUID(),Optional.empty(),"127.0.0.1").redirectUrl().orElseThrow();
+        assertEquals(first,recovered);
+        assertTrue(recovered.contains("vnp_CreateDate=20261013130000"));
+        assertTrue(recovered.contains("vnp_ExpireDate=20261013131500"));
+        assertEquals("20261013130000",repo.provenanceDate);
     }
 
     @Test

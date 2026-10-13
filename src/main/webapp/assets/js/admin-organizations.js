@@ -5,6 +5,24 @@ const contextPath = document.querySelector('meta[name="context-path"]').getAttri
         let currentPage = 1;
         const pageSize = 6;
         let totalRecords = 0;
+        let requestGeneration = 0;
+        let viewGeneration = 0;
+        let approvalContext = null;
+        let rejectionContext = null;
+
+        function isCurrentDecision(context, type) {
+            return context && context.view === viewGeneration
+                && context === (type === 'approve' ? approvalContext : rejectionContext);
+        }
+
+        function invalidateDecisions() {
+            viewGeneration++;
+            approvalContext = null;
+            rejectionContext = null;
+            approveModal.hide();
+            rejectModal.hide();
+            document.getElementById('alertPlaceholder').innerHTML = '';
+        }
 
         const approveModal = new bootstrap.Modal(document.getElementById('approveModal'));
         const rejectModal = new bootstrap.Modal(document.getElementById('rejectModal'));
@@ -17,6 +35,7 @@ const contextPath = document.querySelector('meta[name="context-path"]').getAttri
             tabBtn.addEventListener('click', (e) => {
                 document.querySelectorAll('#orgStatusTabs button').forEach(b => b.classList.remove('active'));
                 tabBtn.classList.add('active');
+                invalidateDecisions();
                 currentStatus = tabBtn.getAttribute('data-status');
                 currentPage = 1;
                 loadRequests();
@@ -32,8 +51,8 @@ const contextPath = document.querySelector('meta[name="context-path"]').getAttri
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             `;
+            const alertEl = placeholder.querySelector('.alert');
             setTimeout(() => {
-                const alertEl = placeholder.querySelector('.alert');
                 if (alertEl) {
                     const bsAlert = bootstrap.Alert.getInstance(alertEl);
                     if (bsAlert) bsAlert.close();
@@ -54,6 +73,11 @@ const contextPath = document.querySelector('meta[name="context-path"]').getAttri
         }
 
         async function loadRequests() {
+            const generation = ++requestGeneration;
+            const status = currentStatus;
+            const page = currentPage;
+            currentItems = [];
+            renderPagination({total: totalRecords}, true);
             const tbody = document.getElementById('orgTableBody');
             tbody.innerHTML = `
                 <tr>
@@ -80,16 +104,26 @@ const contextPath = document.querySelector('meta[name="context-path"]').getAttri
                 }
 
                 const payload = await response.json();
+                if (generation !== requestGeneration || status !== currentStatus || page !== currentPage) return;
                 const data = payload.data;
-                if (!data || !Array.isArray(data.items) || !Number.isSafeInteger(data.total)) throw new Error('Dữ liệu hồ sơ không hợp lệ.');
+                if (!data || !Array.isArray(data.items) || !Number.isSafeInteger(data.total) || data.total < 0) throw new Error('Dữ liệu hồ sơ không hợp lệ.');
                 const items = data.items;
                 totalRecords = data.total || 0;
+                const lastPage = Math.max(1, Math.ceil(totalRecords / pageSize));
+                if (page > lastPage) {
+                    invalidateDecisions();
+                    currentPage = lastPage;
+                    await loadRequests();
+                    return;
+                }
 
                 updateHeaderAndBadges(data);
                 renderTable(items);
                 renderPagination(data);
             } catch (err) {
+                if (generation !== requestGeneration || status !== currentStatus || page !== currentPage) return;
                 console.error(err);
+                renderPagination({total: totalRecords});
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="5" class="text-center py-4 text-danger">
@@ -219,10 +253,22 @@ const contextPath = document.querySelector('meta[name="context-path"]').getAttri
             tbody.innerHTML = html;
         }
 
-        function renderPagination(data) {
+        function renderPagination(data, disabled = false) {
             const total = data.total || 0;
             const totalPages = Math.ceil(total / pageSize) || 1;
             document.getElementById('paginationInfo').textContent = `Trang ${currentPage} / ${totalPages} (Tổng ${total} hồ sơ)`;
+
+            if (window.TicketUI?.renderPagination) {
+                window.TicketUI.renderPagination(document.getElementById('paginationList'), {
+                    page: currentPage, total, pageSize, disabled,
+                    onPageChange(page) {
+                        invalidateDecisions();
+                        currentPage = page;
+                        loadRequests();
+                    }
+                });
+                return;
+            }
 
             const prevItem = document.getElementById('prevPageItem');
             const nextItem = document.getElementById('nextPageItem');
@@ -241,11 +287,17 @@ const contextPath = document.querySelector('meta[name="context-path"]').getAttri
         }
 
         function changePage(delta) {
-            const target=currentPage+delta;if(target<1||target>Math.max(1,Math.ceil(totalRecords/pageSize)))return;currentPage=target;
+            const target=currentPage+delta;if(target<1||target>Math.max(1,Math.ceil(totalRecords/pageSize)))return;invalidateDecisions();currentPage=target;
             loadRequests();
         }
 
         function openApproveModal(orgId, orgName) {
+            rejectionContext = null;
+            rejectModal.hide();
+            const context = {orgId, view: viewGeneration, busy: false};
+            approvalContext = context;
+            document.getElementById('btnConfirmApprove').disabled = false;
+            document.getElementById('btnConfirmApprove').innerHTML = '<i class="fa-solid fa-check me-1"></i> Xác nhận phê duyệt';
             document.getElementById('approveOrgId').value = orgId;
             document.getElementById('approveOrgName').textContent = orgName;
             document.getElementById('approveRatePercent').value = '5.0';
@@ -276,7 +328,7 @@ const contextPath = document.querySelector('meta[name="context-path"]').getAttri
             fetch(`${contextPath}/api/admin/organization-requests/${orgId}`)
                 .then(r => r.ok ? r.json() : null)
                 .then(res => {
-                    if (res && res.data) {
+                    if (isCurrentDecision(context, 'approve') && res && res.data) {
                         const d = res.data;
                         if (d.eventTitle) document.getElementById('approveEventTitle').textContent = d.eventTitle;
                         if (d.eventDate) {
@@ -296,6 +348,11 @@ const contextPath = document.querySelector('meta[name="context-path"]').getAttri
         }
 
         function openRejectModal(orgId, orgName) {
+            approvalContext = null;
+            approveModal.hide();
+            rejectionContext = {orgId, view: viewGeneration, busy: false};
+            document.getElementById('btnConfirmReject').disabled = false;
+            document.getElementById('btnConfirmReject').innerHTML = '<i class="fa-solid fa-ban me-1"></i> Xác nhận từ chối';
             document.getElementById('rejectOrgId').value = orgId;
             document.getElementById('rejectOrgName').textContent = orgName;
             document.getElementById('rejectReason').value = '';
@@ -306,12 +363,15 @@ const contextPath = document.querySelector('meta[name="context-path"]').getAttri
 
         async function submitApprove(e) {
             e.preventDefault();
-            const orgId = document.getElementById('approveOrgId').value;
+            const context = approvalContext;
+            if (!isCurrentDecision(context, 'approve') || context.busy) return;
+            const orgId = context.orgId;
             const ratePercent = document.getElementById('approveRatePercent').value;
             const fixedFee = document.getElementById('approveFixedFee').value;
             const effectiveDate = document.getElementById('approveEffectiveDate').value;
             const btn = document.getElementById('btnConfirmApprove');
 
+            context.busy = true;
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang xử lý...';
 
@@ -331,6 +391,7 @@ const contextPath = document.querySelector('meta[name="context-path"]').getAttri
                 });
 
                 const result = await response.json();
+                if (!isCurrentDecision(context, 'approve')) return;
                 approveModal.hide();
 
                 if (response.ok && result.data?.success === true) {
@@ -340,9 +401,12 @@ const contextPath = document.querySelector('meta[name="context-path"]').getAttri
                     showAlert('danger', 'Phê duyệt thất bại: ' + (result.data?.message || result.error?.message || 'Có lỗi xảy ra'));
                 }
             } catch (err) {
+                if (!isCurrentDecision(context, 'approve')) return;
                 approveModal.hide();
                 showAlert('danger', 'Lỗi kết nối khi phê duyệt: ' + err.message);
             } finally {
+                if (context !== approvalContext) return;
+                context.busy = false;
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fa-solid fa-check me-1"></i> Xác nhận phê duyệt';
             }
@@ -350,7 +414,9 @@ const contextPath = document.querySelector('meta[name="context-path"]').getAttri
 
         async function submitReject(e) {
             e.preventDefault();
-            const orgId = document.getElementById('rejectOrgId').value;
+            const context = rejectionContext;
+            if (!isCurrentDecision(context, 'reject') || context.busy) return;
+            const orgId = context.orgId;
             const reason = document.getElementById('rejectReason').value.trim();
             const btn = document.getElementById('btnConfirmReject');
 
@@ -359,6 +425,7 @@ const contextPath = document.querySelector('meta[name="context-path"]').getAttri
                 return;
             }
 
+            context.busy = true;
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang xử lý...';
 
@@ -376,6 +443,7 @@ const contextPath = document.querySelector('meta[name="context-path"]').getAttri
                 });
 
                 const result = await response.json();
+                if (!isCurrentDecision(context, 'reject')) return;
                 rejectModal.hide();
 
                 if (response.ok && result.data?.success === true) {
@@ -385,9 +453,12 @@ const contextPath = document.querySelector('meta[name="context-path"]').getAttri
                     showAlert('danger', 'Từ chối thất bại: ' + (result.data?.message || result.error?.message || 'Có lỗi xảy ra'));
                 }
             } catch (err) {
+                if (!isCurrentDecision(context, 'reject')) return;
                 rejectModal.hide();
                 showAlert('danger', 'Lỗi kết nối khi từ chối: ' + err.message);
             } finally {
+                if (context !== rejectionContext) return;
+                context.busy = false;
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fa-solid fa-ban me-1"></i> Xác nhận từ chối';
             }
@@ -399,6 +470,9 @@ const contextPath = document.querySelector('meta[name="context-path"]').getAttri
             const action = button.dataset.orgAction === 'approve' ? openApproveModal : openRejectModal;
             action(button.dataset.orgId, button.dataset.orgName);
         });
+
+        document.getElementById('approveModal').addEventListener('hide.bs.modal', () => { approvalContext = null; });
+        document.getElementById('rejectModal').addEventListener('hide.bs.modal', () => { rejectionContext = null; });
 
         // Initial load
         document.addEventListener('DOMContentLoaded', () => {

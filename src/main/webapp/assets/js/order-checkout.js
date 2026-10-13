@@ -281,7 +281,7 @@
             ". Tổng dự kiến " + holdApi.vnd(preview.totalAmount) + ". Còn " + preview.remainingUses + " lượt tại " + new Date(preview.serverTime).toLocaleString("vi-VN") + "." : reason[preview.reason] : "";
         if (state.order) {
             const order = state.order;
-            get("order-code").textContent = "Mã đơn " + order.orderCode;
+            get("order-code").textContent = state.hold?.eventTitle || "Đơn vé của bạn";
             get("order-status").textContent = status[order.status] + (order.holdStatus !== "ACTIVE" ? ". Lượt giữ không còn hoạt động." :
                 order.paymentResolution !== "CLEAR" ? ". Đang đối chiếu thanh toán, chưa thể đổi mã giảm giá." : "");
             get("order-items").replaceChildren();

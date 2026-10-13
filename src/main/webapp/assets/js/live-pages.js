@@ -54,6 +54,7 @@
         const memberships = (await api('/api/me/memberships')).data, tbody = $('profile-memberships');
         if (!memberships.length) empty(tbody, 3, 'Bạn chưa thuộc tổ chức nào.');
         else tbody.replaceChildren(...memberships.map(item => row([item.organizationName, roles[item.role] || item.role, item.isActive ? 'Đang hoạt động' : 'Đã vô hiệu hóa'])));
+        globalThis.TicketUI?.paginateItems(tbody,{pageSize:10,label:'Phân trang tổ chức của bạn'});
         message('');
     }
 
@@ -105,6 +106,7 @@
         const select = await organizations($('organization')), tbody = $('coupons');
         async function load() {
             message('Đang tải mã giảm giá…');
+            tbody.replaceChildren();globalThis.TicketUI?.paginateItems(tbody,{pageSize:10});
             const items = (await api('/api/organizations/' + select.value + '/coupons')).coupons;
             if (!items.length) empty(tbody, 7, 'Tổ chức chưa có mã giảm giá nào.');
             else tbody.replaceChildren(...items.map(coupon => {
@@ -121,6 +123,7 @@
                 return row([node('td', coupon.code, 'font-monospace fw-bold'), value, coupon.consumedUses + ' / ' + coupon.maxUses,
                     String(coupon.availableUses), date(coupon.validFrom) + ' – ' + date(coupon.validTo), status, actions]);
             }));
+            globalThis.TicketUI?.paginateItems(tbody,{pageSize:10,label:'Phân trang mã giảm giá'});
             message('');
         }
         const form = $('coupon-form'), type = $('coupon-type');
