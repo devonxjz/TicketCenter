@@ -40,6 +40,22 @@ class VnpayQueryClientTest {
         assertEquals(VnpayQueryClient.Outcome.UNKNOWN, client.interpret(response("91", "00", "10000000", true), "T1", new BigDecimal("100000")).outcome());
         assertEquals(VnpayQueryClient.Outcome.UNKNOWN, client.interpret(response("00", "01", "10000000", true), "T1", new BigDecimal("100000")).outcome());
     }
+    @Test void abandonedPaymentFailsOnlyAfterThePaymentWindowCloses() {
+        BigDecimal amount = new BigDecimal("100000");
+        for (String status : new String[]{"01", "11"}) {
+            assertEquals(VnpayQueryClient.Outcome.UNKNOWN, client.interpret(response("00", status, "10000000", true), "T1", amount, false).outcome());
+            assertEquals(VnpayQueryClient.Outcome.FAILED, client.interpret(response("00", status, "10000000", true), "T1", amount, true).outcome());
+        }
+        assertEquals(VnpayQueryClient.Outcome.UNKNOWN, client.interpret(response("91", "", "", true), "T1", amount, false).outcome());
+        assertEquals(VnpayQueryClient.Outcome.FAILED, client.interpret(response("91", "", "", true), "T1", amount, true).outcome());
+    }
+    @Test void closedWindowNeverFailsACapturedOrUnverifiedAnswer() {
+        BigDecimal amount = new BigDecimal("100000");
+        assertEquals(VnpayQueryClient.Outcome.CAPTURED, client.interpret(response("00", "00", "10000000", true), "T1", amount, true).outcome());
+        assertEquals(VnpayQueryClient.Outcome.UNKNOWN, client.interpret(response("91", "", "", false), "T1", amount, true).outcome());
+        assertEquals(VnpayQueryClient.Outcome.UNKNOWN, client.interpret(response("94", "", "", true), "T1", amount, true).outcome());
+        assertEquals(VnpayQueryClient.Outcome.UNKNOWN, client.interpret(response("00", "05", "10000000", true), "T1", amount, true).outcome());
+    }
     @Test void networkFailureIsUnknown() {
         assertEquals(VnpayQueryClient.Outcome.UNKNOWN, client.query("T1", BigDecimal.TEN, java.time.Instant.now()).outcome());
     }

@@ -61,6 +61,7 @@
         const select = await organizations($('organization'));
         async function load() {
             message('Đang tải số liệu…');
+            $('all-events').hidden = $('create-event').hidden = true;
             const org = select.value;
             const [overview, events] = await Promise.all([
                 api('/api/organizations/' + org + '/overview'),
@@ -81,10 +82,13 @@
             else tbody.replaceChildren(...events.data.map(event => {
                 const actions = node('td'), link = node('a', 'Xem / sửa', 'btn btn-sm btn-outline-dark rounded-0');
                 link.href = base + '/events/manage/editor?organizationId=' + org + '&eventId=' + event.eventId; actions.append(link);
-                return row([event.title, date(event.startTime), String(event.totalCapacity), eventStatus[event.status] || event.status, actions]);
+                const title = node('td'); title.append(node('strong', event.title, 'd-block text-dark'));
+                const status = node('td'); status.append(node('span', eventStatus[event.status] || event.status, 'status-pill ' + ({PUBLISHED:'status-success', PENDING_APPROVAL:'status-amber', REJECTED:'status-red', CANCELLED:'status-red'}[event.status] || 'status-subtle')));
+                return row([title, date(event.startTime), String(event.totalCapacity), status, actions]);
             }));
             $('all-events').href = base + '/events/manage?organizationId=' + org;
             $('create-event').href = base + '/events/manage/editor?organizationId=' + org;
+            $('all-events').hidden = $('create-event').hidden = false;
             message('');
         }
         select.addEventListener('change', () => load().catch(error => message(error.message, true)));
@@ -107,8 +111,9 @@
                 });
                 actions.append(toggle);
                 const value = coupon.discountType === 'PERCENTAGE' ? coupon.percentageValue + '%' : money(coupon.fixedAmount);
+                const status = node('td'); status.append(node('span', coupon.active ? 'Hoạt động' : 'Tạm dừng', 'status-pill ' + (coupon.active ? 'status-success' : 'status-subtle')));
                 return row([node('td', coupon.code, 'font-monospace fw-bold'), value, coupon.consumedUses + ' / ' + coupon.maxUses,
-                    String(coupon.availableUses), date(coupon.validFrom) + ' – ' + date(coupon.validTo), coupon.active ? 'Hoạt động' : 'Tạm dừng', actions]);
+                    String(coupon.availableUses), date(coupon.validFrom) + ' – ' + date(coupon.validTo), status, actions]);
             }));
             message('');
         }

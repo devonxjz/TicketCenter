@@ -23,7 +23,7 @@ test('errors expose only fixed text and validated correlation, never server secr
 });
 function harness(page='audit'){
  class Element{constructor(value=''){this.value=value;this.children=[];this.handlers={};this.textContent='';this.dataset={};}append(...children){this.children.push(...children);}replaceChildren(...children){this.children=[...children];this.textContent='';}addEventListener(event,handler){this.handlers[event]=handler;}setAttribute(){}scrollIntoView(){}}
- const ids=Object.fromEntries(['finance-readside','filters','organization','event','notice','rows','columns','previous','next','pagination','summary','basis','audit-detail','daily-chart','daily-values'].map(id=>[id,new Element()]));
+ const ids=Object.fromEntries(['finance-readside','filters','organization','event','notice','rows','columns','previous','next','pagination','summary','queue-summary','basis','audit-detail','daily-chart','daily-values'].map(id=>[id,new Element()]));
  const form=ids.filters;form.elements={from:new Element(),to:new Element(),action:new Element(),actorId:new Element(),targetTable:new Element(),pageSize:new Element('20')};
  ids['finance-readside'].dataset={context:'/ticketscenter',page,admin:'true'};
  const requests=[],document={getElementById:id=>ids[id],createElement:()=>new Element(),createElementNS:()=>new Element(),createTextNode:text=>({textContent:text})};
@@ -103,4 +103,23 @@ test('shared notification approval preserves a finance audit row containing orga
 for(const kind of ['attributed','legacy'])test('notification approval still updates its own '+kind+' pending organization row',async()=>{
  const h=notificationApprovalHarness(kind);await h.window.approveFromNotification(null,actor);
  assert.equal(h.pendingRow.removed,true);assert.equal(h.financeRow.removed,false);
+});
+
+
+test('overview queues use live counts and real destinations, and are cleared during refresh',async()=>{
+ const h=harness('overview');
+ h.requests[0].resolve(h.response({pendingOrganizations:2,pendingEvents:0,pendingRefunds:7,draftSettlements:3,dailyMetrics:[]}));
+ await tick();await tick();
+ const cards=h.ids['queue-summary'].children;
+ assert.equal(cards.length,4);
+ assert.deepEqual(cards.map(card=>card.children[1].textContent),['2','0','7','3']);
+ assert.deepEqual(cards.map(card=>card.children[2].href),[
+  '/ticketscenter/admin/orgs/approval','/ticketscenter/admin/events/approval',
+  '/ticketscenter/admin/refund-requests','/ticketscenter/finance/settlements'
+ ]);
+ h.ids.filters.handlers.submit({preventDefault(){}});
+ assert.equal(h.ids['queue-summary'].children.length,0);
+ h.requests[1].resolve(new Response('Unavailable',{status:503}));await tick();await tick();
+ assert.equal(h.ids['queue-summary'].children.length,0);
+ assert.match(h.ids.notice.textContent,/khả dụng/);
 });

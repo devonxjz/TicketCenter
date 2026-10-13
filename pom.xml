@@ -152,10 +152,10 @@
                 <version>3.5.2</version>
             </plugin>
 
-            <!-- Eclipse Jetty EE10 Plugin for Rapid Local Development -->
+            <!-- Eclipse Jetty EE11 Plugin (Servlet 6.1 / EL 6.0, khớp Tomcat 11) for Rapid Local Development -->
             <plugin>
-                <groupId>org.eclipse.jetty.ee10</groupId>
-                <artifactId>jetty-ee10-maven-plugin</artifactId>
+                <groupId>org.eclipse.jetty.ee11</groupId>
+                <artifactId>jetty-ee11-maven-plugin</artifactId>
                 <version>${jetty.version}</version>
                 <configuration>
                     <httpConnector>
@@ -171,6 +171,29 @@
     </build>
 
     <profiles>
+        <!-- Jetty đọc thẳng application.properties cục bộ (không copy vào target/classes nên không bị bản cũ đè) -->
+        <profile>
+            <id>local-config</id>
+            <activation>
+                <file>
+                    <exists>${basedir}/src/main/resources/application.properties</exists>
+                </file>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.eclipse.jetty.ee11</groupId>
+                        <artifactId>jetty-ee11-maven-plugin</artifactId>
+                        <configuration>
+                            <systemProperties>
+                                <tc.config.file>${project.basedir}/src/main/resources/application.properties</tc.config.file>
+                            </systemProperties>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
         <!-- Profile sqlserver-it dành riêng cho integration test với SQL Server thật -->
         <profile>
             <id>sqlserver-it</id>

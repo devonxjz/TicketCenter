@@ -5,6 +5,13 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
 const { HoldClient, selectionPayload, currentHold, catalog, total, vnd, countdown } = require("../../main/webapp/assets/js/ticket-hold.js");
+test('embedded booking resolves eventId and legacy id links without trusting malformed identifiers', () => {
+    const { resolveEventId } = require('../../main/webapp/assets/js/ticket-hold.js');
+    const id = '5318d6e0-16fc-5da5-a40b-14cde62ac2f7';
+    assert.equal(resolveEventId('?eventId=' + id), id);
+    assert.equal(resolveEventId('?id=' + id), id);
+    assert.equal(resolveEventId('?eventId=invalid'), null);
+});
 
 const ACTOR = "10000000-0000-4000-8000-000000000001";
 const OTHER = "10000000-0000-4000-8000-000000000002";

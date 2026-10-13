@@ -5,11 +5,14 @@
 <head>
     <title>Hồ sơ tài khoản | TicketsCenter</title>
     <jsp:include page="/WEB-INF/views/layout/meta-head.jsp" />
-    <style>[hidden]{display:none!important}</style>
+
+<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/buyer-ui.css">
 </head>
-<body class="bg-light" data-live-page="profile" data-context="${pageContext.request.contextPath}">
+<body class="buyer-page bg-light" data-live-page="profile" data-context="${pageContext.request.contextPath}">
 <jsp:include page="/WEB-INF/views/layout/header.jsp" />
-<main class="container my-5" style="max-width: 860px;">
+<main class="container my-5 buyer-detail">
+    <nav class="buyer-navigation" aria-label="Tài khoản"><a href="${pageContext.request.contextPath}/profile" aria-current="page">Hồ sơ</a><a href="${pageContext.request.contextPath}/me/orders">Đơn hàng của tôi</a><a href="${pageContext.request.contextPath}/me/tickets">Vé của tôi</a><a href="${pageContext.request.contextPath}/my-refunds">Hoàn vé</a></nav>
+    <div class="buyer-heading"><h1>Hồ sơ tài khoản</h1><p class="text-muted mb-0">Quản lý thông tin cá nhân và các tổ chức bạn tham gia.</p></div>
     <p id="live-status" role="status" aria-live="polite" class="text-muted">Đang tải hồ sơ…</p>
     <div class="panel-box bg-white mb-4">
         <div class="d-flex align-items-center gap-3">
@@ -37,7 +40,7 @@
         </form>
     </div>
     <div class="panel-box bg-white mb-4">
-        <h2 class="h6 fw-bold mb-3">Tổ chức tham gia</h2>
+        <div class="d-flex flex-wrap justify-content-between gap-3 mb-3"><h2 class="h6 fw-bold mb-0">Tổ chức tham gia</h2><a class="small text-danger fw-semibold" href="${pageContext.request.contextPath}/organizer-request">+ Đăng ký tổ chức mới</a></div>
         <div class="table-responsive">
             <table class="table-custom">
                 <thead><tr><th>Tổ chức</th><th>Vai trò</th><th>Trạng thái</th></tr></thead>

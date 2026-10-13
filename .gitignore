@@ -53,3 +53,6 @@ code
 
 # Local account/credential notes
 /taikhoan.txt
+
+target/
+/data/

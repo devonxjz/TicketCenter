@@ -314,7 +314,7 @@ public class OrganizationRequestService {
 
     /**
      * Approves an organization request, promotes the requester to manager,
-     * and sets up the initial event for the organization.
+     * and preserves the commission policy. Only demo mode creates an initial event.
      */
     public OrganizationRequestDetailDto approveRequest(UUID adminId, UUID organizationId) {
         return approveRequest(adminId, organizationId, null, null, null);
@@ -346,6 +346,8 @@ public class OrganizationRequestService {
             if (org.getStatus() != OrganizationStatus.PENDING_APPROVAL) {
                 throw new IllegalStateException("CONFLICT: Yêu cầu không ở trạng thái PENDING_APPROVAL");
             }
+            // Real organizers create their own event with actual dates and venue in the event editor.
+            if (!vn.ticketscenter.config.ServerConfig.isDemoData()) return null;
             Instant startTime = Instant.now().plus(java.time.Duration.ofDays(14));
             Instant endTime = startTime.plus(java.time.Duration.ofHours(3));
             String title = "Sự kiện khởi tạo - " + org.getName();

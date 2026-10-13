@@ -20,7 +20,7 @@ public class EventCatalogRepository {
 
     public EventDtos.Page events(EventFilter filter) {
         return read(connection -> {
-            String where = " WHERE 1=1";
+            String where = " WHERE " + RealEventVisibility.predicate("e");
             List<Object> parameters = new ArrayList<>();
             if (!filter.keyword().isEmpty()) {
                 where += " AND (e.title LIKE ? ESCAPE '\\' OR e.venue_name LIKE ? ESCAPE '\\' OR e.venue_address LIKE ? ESCAPE '\\')";
@@ -30,7 +30,7 @@ public class EventCatalogRepository {
             if (filter.from() != null) { where += " AND start_time>=?"; parameters.add(filter.from()); }
             if (filter.to() != null) { where += " AND start_time<?"; parameters.add(filter.to()); }
             long total;
-            try (var query = prepare(connection, "SELECT COUNT_BIG(*) FROM dbo.vw_PublicEvents e" + where)) {
+            try (var query = prepare(connection, "SELECT COUNT_BIG(*)" + PUBLIC_PROJECTION + where)) {
                 bind(query, parameters);
                 try (var rows = query.executeQuery()) { rows.next(); total = rows.getLong(1); }
             }
@@ -47,7 +47,7 @@ public class EventCatalogRepository {
 
     public Optional<EventDtos.Event> event(UUID id) {
         return read(connection -> {
-            try (var query = prepare(connection, "SELECT " + COLUMNS.formatted("e.description") + PUBLIC_PROJECTION + " WHERE e.event_id=?")) {
+            try (var query = prepare(connection, "SELECT " + COLUMNS.formatted("e.description") + PUBLIC_PROJECTION + " WHERE e.event_id=? AND " + RealEventVisibility.predicate("e"))) {
                 query.setString(1, id.toString());
                 try (var rows = query.executeQuery()) { return rows.next() ? Optional.of(event(rows)) : Optional.empty(); }
             }
@@ -59,7 +59,7 @@ public class EventCatalogRepository {
         return read(connection -> {
             try (var query = prepare(connection, "SELECT z.zone_id,z.event_id,z.name,z.type,z.price,z.capacity,z.held_quantity,z.sold_quantity,z.available_quantity"
                     + " FROM dbo.vw_PublicEvents e LEFT JOIN dbo.vw_ZoneInventory z ON z.event_id=e.event_id"
-                    + " WHERE e.event_id=? ORDER BY z.name,z.zone_id")) {
+                    + " WHERE e.event_id=? AND " + RealEventVisibility.predicate("e") + " ORDER BY z.name,z.zone_id")) {
                 query.setString(1, eventId.toString());
                 try (var rows = query.executeQuery()) {
                     if (!rows.next()) return Optional.empty();
@@ -77,7 +77,7 @@ public class EventCatalogRepository {
         return read(connection -> {
             try (var query = prepare(connection, "SELECT s.id,s.zone_id,s.row_name,s.seat_number,s.label,s.status"
                     + " FROM dbo.vw_ZoneInventory z JOIN dbo.vw_PublicEvents e ON e.event_id=z.event_id"
-                    + " LEFT JOIN dbo.vw_PublicEventSeats s ON s.zone_id=z.zone_id WHERE z.zone_id=? ORDER BY LEN(s.row_name),s.row_name,s.seat_number,s.id")) {
+                    + " LEFT JOIN dbo.vw_PublicEventSeats s ON s.zone_id=z.zone_id WHERE z.zone_id=? AND " + RealEventVisibility.predicate("e") + " ORDER BY LEN(s.row_name),s.row_name,s.seat_number,s.id")) {
                 query.setString(1, zoneId.toString());
                 try (var rows = query.executeQuery()) {
                     if (!rows.next()) return Optional.empty();

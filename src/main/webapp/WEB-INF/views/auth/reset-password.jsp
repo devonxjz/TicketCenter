@@ -6,46 +6,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Đặt lại mật khẩu — TicketsCenter</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
-    <style>
-        .auth-container {
-            max-width: 480px;
-            margin: 60px auto;
-            border: 1px solid var(--gray-border);
-            padding: 40px;
-            background: var(--white);
-        }
-        .auth-tabs {
-            display: flex;
-            border-bottom: 1px solid var(--gray-border);
-            margin-bottom: 32px;
-        }
-        .auth-tab-btn {
-            flex: 1;
-            text-align: center;
-            padding: 12px 0;
-            font-size: 0.95rem;
-            font-weight: 700;
-            background: transparent;
-            border: none;
-            border-bottom: 2px solid transparent;
-            color: var(--gray-text);
-            cursor: pointer;
-            transition: all 0.15s ease;
-            text-decoration: none;
-        }
-        .auth-tab-btn.active {
-            color: var(--black);
-            border-bottom-color: var(--primary);
-        }
-        .auth-tab-btn:hover {
-            color: var(--black);
-        }
-    </style>
+
+<jsp:include page="/WEB-INF/views/layout/meta-head.jsp" />
+<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/buyer-ui.css">
 </head>
-<body class="bg-light min-h-screen d-flex flex-column justify-content-between">
+<body class="buyer-page bg-light min-h-screen d-flex flex-column justify-content-between">
     <!-- Header -->
     <nav class="navbar navbar-custom">
         <div class="container d-flex align-items-center justify-content-between">
@@ -163,7 +128,7 @@
             try {
                 const resp = await fetch(contextPath + '/api/auth/password/reset', {
                     method: 'POST',
-                    headers: { 
+                    headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-Token': csrfToken
                     },

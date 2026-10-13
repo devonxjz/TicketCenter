@@ -31,6 +31,8 @@ public final class VnpayQueryClient {
     private static final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss").withZone(VIETNAM_ZONE);
     private static final Duration TIMEOUT = Duration.ofSeconds(10);
+    /** VNPAY keeps a payment link open for 15 minutes; past this margin an unpaid transaction can no longer succeed. */
+    static final Duration PAYMENT_WINDOW = Duration.ofMinutes(30);
 
     private final HttpClient http;
     private final String apiUrl;
@@ -70,7 +72,8 @@ public final class VnpayQueryClient {
                     .header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString(body.toString())).build();
             HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
             if (response.statusCode() != 200) return Result.unknown();
-            return interpret(new JSONObject(response.body()), txnRef, amount);
+            return interpret(new JSONObject(response.body()), txnRef, amount,
+                    clock.instant().isAfter(paymentCreatedAt.plus(PAYMENT_WINDOW)));
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
             return Result.unknown();
@@ -80,6 +83,14 @@ public final class VnpayQueryClient {
     }
 
     Result interpret(JSONObject r, String txnRef, BigDecimal amount) {
+        return interpret(r, txnRef, amount, false);
+    }
+
+    /**
+     * @param windowClosed the payment link has expired, so "never reached the gateway" (91), "not completed" (01)
+     *                     and "abandoned by the customer" (11) are final failures rather than still-pending
+     */
+    Result interpret(JSONObject r, String txnRef, BigDecimal amount, boolean windowClosed) {
         String data = String.join("|", s(r, "vnp_ResponseId"), s(r, "vnp_Command"), s(r, "vnp_ResponseCode"),
                 s(r, "vnp_Message"), s(r, "vnp_TmnCode"), s(r, "vnp_TxnRef"), s(r, "vnp_Amount"), s(r, "vnp_BankCode"),
                 s(r, "vnp_PayDate"), s(r, "vnp_TransactionNo"), s(r, "vnp_TransactionType"), s(r, "vnp_TransactionStatus"),
@@ -87,7 +98,9 @@ public final class VnpayQueryClient {
         String expected = VnpaySigner.hmacSha512(hashSecret, data);
         if (!MessageDigest.isEqual(expected.toLowerCase(Locale.ROOT).getBytes(StandardCharsets.UTF_8),
                 s(r, "vnp_SecureHash").toLowerCase(Locale.ROOT).getBytes(StandardCharsets.UTF_8))) return Result.unknown();
-        if (!txnRef.equals(s(r, "vnp_TxnRef")) || !"00".equals(s(r, "vnp_ResponseCode"))) return Result.unknown();
+        if (!txnRef.equals(s(r, "vnp_TxnRef"))) return Result.unknown();
+        if (windowClosed && "91".equals(s(r, "vnp_ResponseCode"))) return new Result(Outcome.FAILED, null);
+        if (!"00".equals(s(r, "vnp_ResponseCode"))) return Result.unknown();
         String status = s(r, "vnp_TransactionStatus");
         if ("00".equals(status)) {
             try {
@@ -97,7 +110,8 @@ public final class VnpayQueryClient {
             String reference = s(r, "vnp_TransactionNo");
             return reference.isEmpty() ? Result.unknown() : new Result(Outcome.CAPTURED, reference);
         }
-        if ("02".equals(status)) return new Result(Outcome.FAILED, s(r, "vnp_TransactionNo"));
+        if ("02".equals(status) || (windowClosed && ("01".equals(status) || "11".equals(status))))
+            return new Result(Outcome.FAILED, s(r, "vnp_TransactionNo"));
         return Result.unknown();
     }
 

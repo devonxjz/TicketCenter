@@ -15,6 +15,8 @@ import vn.ticketscenter.order.service.OrderRuntime;
 import vn.ticketscenter.order.service.OrderService;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -42,7 +44,9 @@ public class OrderPageServlet extends HttpServlet {
 
         var userOpt = SecurityContext.getCurrentUser(request);
         if (userOpt.isEmpty()) {
-            response.sendRedirect(request.getContextPath() + "/login?redirect=" + request.getRequestURI());
+            String target = request.getRequestURI();
+            if (request.getQueryString() != null && !request.getQueryString().isBlank()) target += "?" + request.getQueryString();
+            response.sendRedirect(request.getContextPath() + "/auth/login?redirect=" + URLEncoder.encode(target, StandardCharsets.UTF_8));
             return;
         }
 

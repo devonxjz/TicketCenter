@@ -14,6 +14,8 @@ import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 
@@ -41,7 +43,9 @@ public class TicketPageServlet extends HttpServlet {
 
         var currentUserOpt = SecurityContext.getCurrentUser(request);
         if (currentUserOpt.isEmpty()) {
-            response.sendRedirect(request.getContextPath() + "/login?redirect=" + request.getRequestURI());
+            String target = request.getRequestURI();
+            if (request.getQueryString() != null && !request.getQueryString().isBlank()) target += "?" + request.getQueryString();
+            response.sendRedirect(request.getContextPath() + "/auth/login?redirect=" + URLEncoder.encode(target, StandardCharsets.UTF_8));
             return;
         }
 

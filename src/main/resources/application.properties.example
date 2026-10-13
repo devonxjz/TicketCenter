@@ -1,13 +1,14 @@
 # ===================================================================
 # TicketsCenter — application.properties.example
 # File mẫu cấu hình hệ thống TicketsCenter (Không chứa mật khẩu thật)
-# Lưu cấu hình thật ngoài Git/WAR trong .local/application.properties; chọn bằng TC_CONFIG_FILE
+# Copy thành src/main/resources/application.properties. File thật được Git bỏ qua và không đóng gói vào WAR.
+# ./tools/run-web.ps1 đọc trực tiếp file này; không cần azure.properties.
 # ===================================================================
 
 # 1. Cơ sở dữ liệu Microsoft SQL Server (Azure SQL / Local)
-db.host=localhost
+db.host=ticketscenter.database.windows.net
 db.port=1433
-db.name=TicketsCenter_Dev
+db.name=TicketsCenter
 db.user=
 db.password=
 db.encrypt=true
@@ -18,9 +19,9 @@ db.loginTimeout=30
 db.url=
 
 # Tương thích với các biến TC_SQL_*
-TC_SQL_HOST=localhost
+TC_SQL_HOST=ticketscenter.database.windows.net
 TC_SQL_PORT=1433
-TC_SQL_DEV_DB=TicketsCenter_Dev
+TC_SQL_DEV_DB=TicketsCenter
 TC_SQL_TEST_DB=TicketsCenter_Test
 TC_SQL_BENCH_DB=TicketsCenter_Bench
 TC_SQL_LOGIN=
@@ -32,25 +33,31 @@ TC_SQL_TRUST_SERVER_CERT=false
 TC_SQL_CONNECT_TIMEOUT_SEC=30
 
 # Runtime principals. Provision users with database/security scripts.
-db.buyer.user=tc_buyer_login
-db.buyer.password=<your_buyer_db_password>
-db.manager.user=tc_manager_login
-db.manager.password=<your_manager_db_password>
-db.check_in.user=tc_checkin_login
-db.check_in.password=<your_checkin_db_password>
-db.admin.user=tc_admin_login
-db.admin.password=<your_admin_db_password>
-db.auth.user=tc_auth_login
-db.auth.password=<your_auth_db_password>
-db.worker.user=tc_worker_login
-db.worker.password=<your_worker_db_password>
+db.buyer.user=
+db.buyer.password=
+db.manager.user=
+db.manager.password=
+db.check_in.user=
+db.check_in.password=
+db.admin.user=
+db.admin.password=
+db.auth.user=
+db.auth.password=
+db.worker.user=
+db.worker.password=
 
 # 2. Cấu hình Ứng dụng Web
 app.base.url=http://localhost:8080/ticketscenter
 app.env=development
 app.data.mode=real
-app.secret.key=<your_secret_key_here>
-event.image.directory=/var/lib/ticketscenter/event-images
+app.secret.key=
+event.image.directory=.local/event-images
+
+# All machine-specific paths belong to this same private configuration file.
+# Use forward slashes for Windows paths, including paths containing spaces.
+runtime.java.home=
+runtime.tomcat.home=
+runtime.port=18082
 
 # Chính sách server-side dùng khi admin duyệt tổ chức; không nhận từ applicant.
 # organization.initialCommissionPolicy={"ratePercent":5,"fixedFee":0,"effectiveFrom":"2026-01-01","effectiveTo":"2027-01-01"}

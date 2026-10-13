@@ -4,6 +4,10 @@
     const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const ZERO = "00000000-0000-0000-0000-000000000000";
     const uuid = value => typeof value === "string" && UUID.test(value) && value.toLowerCase() !== ZERO;
+    function resolveEventId(search) {
+        const query = new URLSearchParams(search), value = query.get('eventId') || query.get('id');
+        return uuid(value) ? value.toLowerCase() : null;
+    }
     const money = value => typeof value === "string" && /^(0|[1-9][0-9]*)$/.test(value);
     const instant = value => typeof value === "string" && value.endsWith("Z") && Number.isFinite(Date.parse(value));
 
@@ -314,7 +318,7 @@
         }
     }
 
-    const exported = { HoldClient, ApiError, selectionPayload, currentHold, catalog, total, vnd, countdown };
+    const exported = { HoldClient, ApiError, selectionPayload, currentHold, catalog, total, vnd, countdown, resolveEventId };
     if (typeof module !== "undefined" && module.exports) { module.exports = exported; return; }
     root.TicketHold = exported;
 
@@ -343,6 +347,15 @@
         const items = selected.map(item => ({ ...item, unitPrice: options.zones.find(zone => zone.id === item.zoneId).unitPrice }));
         get("selection-count").textContent = "Đã chọn " + count + " / 8 vé";
         get("selection-total").textContent = selected.every(item => Number.isInteger(item.quantity) && item.quantity > 0 && item.quantity <= 8) ? vnd(total(items)) : "Lựa chọn không hợp lệ";
+        const selectionList = get('selection-items');
+        if (selectionList) {
+            selectionList.replaceChildren();
+            for (const item of items) {
+                const zone = options.zones.find(zone => zone.id === item.zoneId), seat = zone.availableSeats.find(seat => seat.id === item.seatId);
+                selectionList.append(element('li', (seat ? 'Ghế ' + seat.label : item.quantity + ' × ' + zone.name) + ' · ' + (Number.isInteger(item.quantity) && item.quantity > 0 && item.quantity <= 8 ? vnd(BigInt(item.unitPrice) * BigInt(item.quantity)) : 'Số lượng không hợp lệ')));
+            }
+            if (!items.length) selectionList.append(element('li', 'Chưa chọn vé.'));
+        }
         let valid = false;
         try { selectionPayload(options, selected); valid = true; } catch (_) { }
         get("hold-submit").disabled = !valid || client.state.phase !== "selecting";
@@ -350,7 +363,7 @@
     }
 
     function renderOptions(options) {
-        get("hold-heading").textContent = options.title;
+        if (document.body.dataset.publicPage !== 'detail') get("hold-heading").textContent = options.title;
         get("sale-deadline").textContent = "Đóng bán lúc " + dateText(options.saleEnd);
         get("hold-zones").replaceChildren();
         for (const zone of options.zones) {
@@ -403,7 +416,7 @@
         if (page === "current") get("hold-heading").textContent = displayText(state.hold?.eventTitle) || "Lượt giữ vé";
         if (!state.hold) return;
         const hold = state.hold;
-        if (page === "selection") get("hold-heading").textContent = displayText(hold.eventTitle) || "Lượt giữ vé";
+        if (page === "selection" && document.body.dataset.publicPage !== 'detail') get("hold-heading").textContent = displayText(hold.eventTitle) || "Lượt giữ vé";
         get("hold-id").textContent = "Mã lượt giữ " + hold.id;
         get("hold-deadline").textContent = "Hết hạn lúc " + dateText(hold.expiresAt);
         get("hold-items").replaceChildren();
@@ -423,7 +436,7 @@
     client = new HoldClient({ fetch: (path, options) => root.fetch(context + path, options),
         storage: { getItem: key => root.sessionStorage.getItem(key), setItem: (key, value) => root.sessionStorage.setItem(key, value), removeItem: key => root.sessionStorage.removeItem(key) },
         randomUUID: () => root.crypto.randomUUID(), now: () => root.performance.now(),
-        eventId: new URLSearchParams(root.location.search).get("eventId"), page, changed: render });
+        eventId: resolveEventId(root.location.search), page, changed: render });
     get("hold-form")?.addEventListener("submit", event => { event.preventDefault(); void client.submit(selections()); });
     get("hold-cancel").addEventListener("click", () => void client.cancel());
     get("hold-retry").addEventListener("click", () => void client.retry());

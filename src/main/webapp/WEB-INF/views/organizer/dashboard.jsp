@@ -4,22 +4,22 @@
 <html lang="vi">
 <head>
     <title>Tổng quan tổ chức | TicketsCenter</title>
-    <jsp:include page="/WEB-INF/views/layout/meta-head.jsp" />
+    <jsp:include page="/WEB-INF/views/layout/meta-head.jsp" /><link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/organizer-ui.css">
     <style>[hidden]{display:none!important}</style>
 </head>
-<body class="bg-light" data-live-page="organizer-dashboard" data-context="${pageContext.request.contextPath}">
+<body class="bg-light tc-organizer-page" data-live-page="organizer-dashboard" data-context="${pageContext.request.contextPath}">
 <jsp:include page="/WEB-INF/views/layout/header.jsp" />
 <div class="dashboard-layout">
     <jsp:include page="/WEB-INF/views/layout/organizer-sidebar.jsp" />
     <main class="dashboard-content">
-        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-end gap-3 mb-4">
+        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-end gap-3 mb-5">
             <div>
                 <h1 class="h3 fw-bold mb-1 text-dark">Tổng quan – <span id="org-name"></span></h1>
                 <p class="small text-muted mb-0" id="metric-asof"></p>
             </div>
             <div class="d-flex gap-2 align-items-end">
                 <div><label class="form-label small mb-1" for="organization">Tổ chức</label><select id="organization" class="form-select form-select-sm rounded-0"></select></div>
-                <a id="create-event" href="#" class="btn-primary-custom">Tạo sự kiện mới</a>
+                <a id="create-event" hidden class="btn-primary-custom">Tạo sự kiện mới</a>
             </div>
         </div>
         <p id="live-status" role="status" aria-live="polite" class="text-muted">Đang tải số liệu…</p>
@@ -37,7 +37,7 @@
         <div class="panel-box">
             <div class="panel-header">
                 <span class="panel-title">Sự kiện của tổ chức</span>
-                <a id="all-events" href="#" class="small text-danger fw-bold text-decoration-none">Xem tất cả sự kiện &rarr;</a>
+                <a id="all-events" hidden class="small text-danger fw-bold text-decoration-none">Xem tất cả sự kiện &rarr;</a>
             </div>
             <div class="table-responsive"><table class="table-custom"><thead><tr><th>Tên sự kiện</th><th>Bắt đầu</th><th>Sức chứa</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="events"></tbody></table></div>
         </div>
@@ -45,6 +45,6 @@
     </main>
 </div>
 <script defer src="${pageContext.request.contextPath}/assets/js/live-pages.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
 </html>

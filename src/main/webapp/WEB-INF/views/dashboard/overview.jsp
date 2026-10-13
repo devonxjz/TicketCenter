@@ -2,6 +2,7 @@
 <% request.setAttribute("financeTitle", "Tổng quan tài chính"); request.setAttribute("financePage", "overview"); request.setAttribute("financeIntro", "Theo dõi số liệu toàn sàn và các hàng đợi cần xử lý. Doanh thu theo ngày đơn thanh toán được tách khỏi dòng tiền thực tế."); %>
 <%@ include file="../report/_header.jsp" %>
 <div class="finance-toolbar"><form id="filters"><button type="submit">Cập nhật tổng quan</button></form><a class="finance-link" href="<%= financeContext %>/finance/settlements">Xem bảng kê cần xử lý &rarr;</a></div>
+<dl id="queue-summary" aria-label="Hàng đợi cần xử lý"></dl>
 <p id="basis"></p><dl id="summary"></dl>
 <p>Số liệu có thể chậm tối đa một phút; thời điểm cập nhật được ghi ở trên.</p>
 <section class="finance-panel"><div class="finance-panel-heading"><h2>Doanh thu và dòng tiền</h2><span class="finance-tag">7 ngày UTC</span></div>

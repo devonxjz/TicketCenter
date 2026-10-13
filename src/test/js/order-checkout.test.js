@@ -244,6 +244,46 @@ test("invalid or empty coupon input leaves the current order unchanged", async (
     await client.refresh(); await client.preview("\uD800"); assert.equal(client.state.preview, null); assert.equal(client.state.order.orderId, ORDER);
 });
 
+test("payment persists one command and retries uncertain network results with the same key", async () => {
+    const f = fixture(); f.server.order = order(); const client = f.create(); await client.refresh();
+    f.server.post = () => { throw new Error("connection lost"); };
+    await client.pay();
+    assert.equal(client.state.phase, "uncertain");
+    const pending = client.state.pending;
+    assert.equal(pending.kind, "payment"); assert.equal(pending.body, "{}");
+    f.server.post = (path, options, reply) => {
+        assert.equal(path, "/api/orders/" + ORDER + "/payments");
+        assert.equal(options.headers["Idempotency-Key"], pending.key);
+        assert.equal(options.headers["X-CSRF-Token"], "fresh-token");
+        return reply({paymentId: ITEM, txnRef: "PAY-01", amount: "300000", currency: "VND", zeroOrder: false,
+            redirectUrl: "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?vnp_TxnRef=PAY-01"});
+    };
+    await client.retry();
+    assert.equal(client.state.paymentRedirect, "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?vnp_TxnRef=PAY-01");
+    assert.equal(f.values.size, 0);
+});
+
+test("payment rejects malformed redirect receipts without forgetting the replay key", async () => {
+    const f = fixture(); f.server.order = order(); const client = f.create(); await client.refresh();
+    f.server.post = (_, __, reply) => reply({paymentId: ITEM, txnRef: "PAY-01", amount: "300000", currency: "VND", zeroOrder: false, redirectUrl: "javascript:alert(1)"});
+    await client.pay(); assert.equal(client.state.phase, "uncertain"); assert.equal(client.state.pending.kind, "payment");
+    assert.equal(client.state.paymentRedirect, null);
+});
+
+test("payment completion for zero order is confirmed from current server state", async () => {
+    const f = fixture(); f.server.order = {...order(), subtotal:"0", totalAmount:"0", items:[{...order().items[0],unitPrice:"0",lineTotal:"0"}]};
+    const client = f.create(); await client.refresh();
+    f.server.post = (_, __, reply) => { f.server.order = {...f.server.order,status:"PAID",holdStatus:"CONSUMED",canEditCoupon:false};
+        return reply({orderId: ORDER, zeroOrder:true, status:"PAID", amount:"0", currency:"VND"}); };
+    await client.pay(); assert.equal(client.state.order.status,"PAID"); assert.equal(client.state.paymentRedirect,null);
+    assert.equal(client.editable(),false); assert.equal(f.values.size,0);
+});
+
+test("payment remains blocked while expiry, hold or pending provider state disallows editing", async () => {
+    const f = fixture(); f.server.order = {...order(),paymentResolution:"PAYMENT_PENDING",canEditCoupon:false};
+    const client = f.create(); await client.refresh(); await client.pay(); assert.equal(f.calls.filter(c=>c.method === "POST").length,0);
+});
+
 function browserFixture() {
     const fixtureApi = fixture(), handlers = new Map(), timers = new Map();
     let timerId = 0, observer;
@@ -255,21 +295,22 @@ function browserFixture() {
         set innerHTML(_) { throw new Error("Unsafe HTML rendering"); }
         fire(name) { this.handlers.get(name)?.({ preventDefault() {} }); }
     }
-    const ids = ["order-checkout", "order-message", "order-recovery", "order-retry", "order-create", "order-refresh", "order-summary",
+    const ids = ["order-pay", "payment-message", "order-detail-link", "order-checkout", "order-message", "order-recovery", "order-retry", "order-create", "order-refresh", "order-summary",
         "order-coupon-code", "order-preview", "order-apply", "order-remove", "order-preview-result", "order-code", "order-status",
         "order-items", "order-subtotal", "order-discount", "order-total", "order-applied-coupon", "order-coupon-form", "hold-cancel", "hold-retry", "hold-refresh"];
     const elements = Object.fromEntries(ids.map(id => [id, new Element()]));
     const document = { body: { dataset: { context: "" } }, visibilityState: "visible", getElementById: id => elements[id], createElement: () => new Element(),
         addEventListener: (name, handler) => handlers.set("document:" + name, handler) };
-    const window = { document, TicketHold: require("../../main/webapp/assets/js/ticket-hold.js"), fetch: fixtureApi.create().fetch,
+    const redirects = [];
+    const window = { document, location: {assign: url => redirects.push(url)}, TicketHold: require("../../main/webapp/assets/js/ticket-hold.js"), fetch: fixtureApi.create().fetch,
         sessionStorage: fixtureApi.storage, performance: { now: () => 0 }, crypto: { randomUUID: () => "60000000-0000-4000-8000-000000000123" },
         setTimeout: (fn, delay) => { const id = ++timerId; timers.set(id, { fn, delay }); return id; }, clearTimeout: id => timers.delete(id),
         addEventListener: (name, handler) => handlers.set(name, handler), MutationObserver: class {
             constructor(fn) { observer = fn; } observe() {}
         } };
-    vm.runInNewContext(fs.readFileSync(require.resolve("../../main/webapp/assets/js/order-checkout.js"), "utf8"), { window, URLSearchParams });
+    vm.runInNewContext(fs.readFileSync(require.resolve("../../main/webapp/assets/js/order-checkout.js"), "utf8"), { window, URLSearchParams, URL });
     const settle = async () => { for (let i = 0; i < 10; i++) await new Promise(resolve => setImmediate(resolve)); };
-    return { ...fixtureApi, elements, handlers, timers, document, settle, holdState: state => { document.body.dataset.holdState = state; observer(); },
+    return { ...fixtureApi, redirects, elements, handlers, timers, document, settle, holdState: state => { document.body.dataset.holdState = state; observer(); },
         expired: () => { document.body.dataset.holdState = "expired"; observer(); } };
 }
 
@@ -306,4 +347,14 @@ test("Hold cancellation or uncertain recovery freezes Order controls until curre
     f.holdState("submitting"); assert.equal(f.elements["order-apply"].disabled, true); assert.equal(f.timers.size, 0);
     f.holdState("uncertain"); assert.equal(f.elements["order-create"].disabled, true); assert.equal(f.elements["order-apply"].disabled, true);
     f.holdState("active"); await f.settle(); assert.equal(f.elements["order-apply"].disabled, false); assert.equal(f.timers.size, 1);
+});
+
+test("browser payment button redirects only after a valid server receipt and links to the real order page", async () => {
+    const f = browserFixture(); f.server.order = order(); await f.settle();
+    assert.equal(f.elements["order-pay"].disabled,false);
+    assert.equal(f.elements["order-detail-link"].href,"/orders/" + ORDER);
+    f.server.post = (_, __, reply) => reply({paymentId:ITEM,txnRef:"PAY-01",amount:"300000",currency:"VND",zeroOrder:false,redirectUrl:"https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"});
+    f.elements["order-pay"].fire("click"); await f.settle();
+    assert.deepEqual(f.redirects,["https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"]);
+    assert.equal(f.elements["order-pay"].disabled,true);
 });

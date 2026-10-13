@@ -8,80 +8,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vé Điện Tử - ${fn:escapeXml(ticket.ticketCode)} - TicketsCenter</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <style>
-        body {
-            background-color: #f1f5f9;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            color: #1e293b;
-        }
-        .ticket-wrapper {
-            max-width: 500px;
-            margin: 40px auto;
-        }
-        .ticket-pass {
-            background: #ffffff;
-            border-radius: 20px;
-            box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.08);
-            border: 1px solid #e2e8f0;
-            overflow: hidden;
-            position: relative;
-        }
-        .ticket-header {
-            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
-            color: #ffffff;
-            padding: 24px;
-            text-align: center;
-        }
-        .qr-section {
-            background-color: #ffffff;
-            padding: 30px 20px;
-            text-align: center;
-            border-bottom: 2px dashed #e2e8f0;
-            position: relative;
-        }
-        .qr-section::before, .qr-section::after {
-            content: '';
-            position: absolute;
-            bottom: -12px;
-            width: 24px;
-            height: 24px;
-            background-color: #f1f5f9;
-            border-radius: 50%;
-        }
-        .qr-section::before { left: -12px; }
-        .qr-section::after { right: -12px; }
-        .qr-img {
-            width: 220px;
-            height: 220px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 8px;
-            background: #ffffff;
-        }
-        .ticket-body {
-            padding: 24px;
-        }
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 12px;
-            font-size: 0.95rem;
-        }
-        .info-label {
-            color: #64748b;
-        }
-        .info-val {
-            font-weight: 600;
-            color: #0f172a;
-            text-align: right;
-        }
-    </style>
-</head>
-<body>
 
-<div class="container">
+<jsp:include page="/WEB-INF/views/layout/meta-head.jsp" />
+<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/buyer-ui.css">
+</head>
+<body class="buyer-page">
+<jsp:include page="/WEB-INF/views/layout/header.jsp" />
+
+<main class="container">
     <div class="ticket-wrapper">
         <div class="mb-3 d-flex justify-content-between align-items-center">
             <a href="${pageContext.request.contextPath}/me/tickets" class="btn btn-outline-secondary btn-sm">
@@ -94,7 +28,7 @@
             <!-- Header -->
             <div class="ticket-header">
                 <span class="badge bg-white text-primary mb-2 px-3 py-1 fw-bold rounded-pill">VÉ ĐIỆN TỬ</span>
-                <h4 class="fw-bold mb-1">${fn:escapeXml(ticket.eventTitle)}</h4>
+                <h1 class="h4 fw-bold mb-1">${fn:escapeXml(ticket.eventTitle)}</h1>
                 <p class="mb-0 text-white-50 small"><i class="fa-solid fa-location-dot me-1"></i>${fn:escapeXml(ticket.venueName)}</p>
             </div>
 
@@ -170,8 +104,9 @@
             </div>
         </div>
     </div>
-</div>
+</main>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<jsp:include page="/WEB-INF/views/layout/footer.jsp" />
 </body>
 </html>

@@ -7,7 +7,7 @@ Redis phục vụ cache/idempotency.
 
 ## Chạy local trên Windows từ checkout sạch
 
-**Để xem cùng dữ liệu Azure của nhóm:** làm theo [bộ chạy Azure](tools/azure/README.md).
+**Để xem cùng dữ liệu Azure của nhóm:** cấu hình duy nhất tại `src/main/resources/application.properties`, rồi chạy `./tools/run-web.ps1` theo [hướng dẫn](docs/backend/running-web.md).
 Bộ chạy local dưới đây dùng database test riêng, không phải database dùng chung.
 
 Cài **JDK25**, **Maven**, **Node.js**, **PowerShell7.4+**, **Tomcat11** và
@@ -73,7 +73,8 @@ Setup tự sinh `.local/database.json` với ACL riêng, không nhập password 
 dòng lệnh. [database.example.json](tools/local/database.example.json) mô tả cấu
 trúc, không phải credential dùng được. `.env.example` liệt kê biến cấu hình cho
 môi trường nhóm được duyệt riêng; Java **không tự đọc** `.env`; bộ local dùng
-JSON do setup tạo. Không sửa/commit `application.properties` để đổi secret.
+JSON do setup tạo. Riêng bộ fixture local không dùng `application.properties`.
+Bộ chạy web Azure đọc file đó theo hướng dẫn ở trên; không commit file cấu hình thật.
 
 - `JDK 25 is required`: chọn đúng JAVA_HOME; Java mặc định có thể khác.
 - SQL lỗi: kiểm Windows permissions, TCP/SQL authentication; xem runbook.

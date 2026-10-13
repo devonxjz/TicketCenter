@@ -164,7 +164,7 @@ public class EventRepository {
                             "SELECT TOP(100)"
                                 + " event_id,organization_id,category_id,title,description,venue_name,venue_address,sale_start,sale_end,start_time,end_time,'PUBLISHED',CAST(0"
                                 + " AS bigint),cover_image_url,CAST(NULL AS varchar(255)) FROM"
-                                + " dbo.vw_PublicEvents ORDER BY start_time,event_id";
+                                + " dbo.vw_PublicEvents e WHERE " + RealEventVisibility.predicate("e") + " ORDER BY start_time,event_id";
                     return events(c, sql);
                 });
     }
@@ -179,7 +179,7 @@ public class EventRepository {
                                     "SELECT"
                                         + " event_id,organization_id,category_id,title,description,venue_name,venue_address,sale_start,sale_end,start_time,end_time,'PUBLISHED',CAST(0"
                                         + " AS bigint),cover_image_url,CAST(NULL AS varchar(255))"
-                                        + " FROM dbo.vw_PublicEvents WHERE event_id=?",
+                                        + " FROM dbo.vw_PublicEvents e WHERE event_id=? AND " + RealEventVisibility.predicate("e"),
                                     id);
                     if (rows.isEmpty())
                         throw failure(404, "EVENT_NOT_FOUND", "Event was not found");

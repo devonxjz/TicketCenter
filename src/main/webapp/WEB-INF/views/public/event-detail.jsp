@@ -1,83 +1,21 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<!DOCTYPE html>
-<html lang="vi">
-<head><title>Chi tiết sự kiện | TicketsCenter</title><jsp:include page="/WEB-INF/views/layout/meta-head.jsp" /><link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/event-images.css"></head>
-<body data-context="${pageContext.request.contextPath}">
-<jsp:include page="/WEB-INF/views/layout/header.jsp" />
-<main class="container py-5">
-    <p id="status" role="status" aria-live="polite">Đang tải sự kiện…</p>
-    <article id="event" hidden><img id="cover" alt="" class="w-100 mb-4" style="max-height:420px;object-fit:cover" hidden>
-        <h1 id="title"></h1><p id="time" class="text-muted"></p><p id="venue"></p>
-        <p id="sale" class="small text-muted"></p><p id="description" style="white-space:pre-wrap"></p>
-        <a id="event-hold-link" class="btn btn-danger" hidden>Chọn vé</a>
-        <h2 class="h4 mt-5">Khu vực và tình trạng vé</h2>
-        <p class="text-muted small">Tình trạng vé được cập nhật định kỳ. Vé được xác nhận khi yêu cầu giữ vé thành công.</p>
-        <p id="zone-status" role="status" aria-live="polite">Đang tải khu vực…</p><div id="zones" class="row g-3"></div>
-    </article>
-</main>
-<jsp:include page="/WEB-INF/views/layout/footer.jsp" />
-<script>
-(async () => {
-    const base = document.body.dataset.context, status = document.getElementById('status');
-    const holdLink = document.getElementById('event-hold-link'); holdLink.hidden = true;
-    function text(tag, value, className) { const el = document.createElement(tag); el.textContent = value; el.className = className || ''; return el; }
-    async function api(path) {
-        const response = await fetch(base + path, {headers: {Accept: 'application/json'}}), payload = await response.json();
-        if (!response.ok) throw new Error(payload.error ? payload.error.message : 'Không thể tải dữ liệu.');
-        return payload.data;
-    }
-    const id = new URLSearchParams(location.search).get('eventId') || new URLSearchParams(location.search).get('id');
-    if (!id || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(id)) { status.textContent = 'ID sự kiện không hợp lệ. Vui lòng chọn sự kiện từ danh sách.'; return; }
-    try {
-        const event = await api('/api/events/' + encodeURIComponent(id));
-        document.title = event.title + ' | TicketsCenter';
-        document.getElementById('title').textContent = event.title;
-        document.getElementById('time').textContent = new Date(event.startTime).toLocaleString('vi-VN') + ' – ' + new Date(event.endTime).toLocaleString('vi-VN');
-        document.getElementById('venue').textContent = event.venueName + ' · ' + event.venueAddress;
-        document.getElementById('sale').textContent = 'Mở bán: ' + new Date(event.saleStartTime).toLocaleString('vi-VN') + ' – ' + new Date(event.saleEndTime).toLocaleString('vi-VN');
-        document.getElementById('description').textContent = event.description || '';
-        if (event.coverImageUrl) {
-            try { const url = new URL(event.coverImageUrl, location.origin); if (['https:', 'http:'].includes(url.protocol)) {
-                const cover = document.getElementById('cover'); cover.src = url.href; cover.alt = event.title; cover.hidden = false;
-            } } catch (_) { }
-        }
-        holdLink.href = base + '/select-tickets?eventId=' + encodeURIComponent(id); holdLink.hidden = false;
-        document.getElementById('event').hidden = false; status.textContent = '';
-    } catch (error) { status.textContent = error.message; return; }
-    const zoneStatus = document.getElementById('zone-status');
-    try {
-        const zones = await api('/api/events/' + encodeURIComponent(id) + '/zones');
-        zoneStatus.textContent = zones.length ? '' : 'Chưa có khu vực vé.';
-        for (const zone of zones) {
-            const column = text('div', '', 'col-lg-6'), panel = text('section', '', 'border rounded p-4 h-100');
-            panel.append(text('h3', zone.name, 'h5'));
-            panel.append(text('p', BigInt(zone.basePrice).toLocaleString('vi-VN') + ' đ · Còn ' + zone.availableSeats + ' / ' + zone.totalCapacity + ' vé'));
-            if (zone.zoneType === 'SEATED') {
-                const button = text('button', 'Xem sơ đồ ghế', 'btn btn-outline-dark'), seats = text('div', '', 'd-flex flex-wrap gap-2 mt-3');
-                const seatStatus = text('p', '', 'small mt-2'); seatStatus.setAttribute('role', 'status'); button.type = 'button';
-                button.addEventListener('click', async () => {
-                    button.disabled = true; seats.replaceChildren(); seatStatus.textContent = 'Đang tải ghế…';
-                    try {
-                        const items = await api('/api/zones/' + encodeURIComponent(zone.zoneId) + '/seats');
-                        seatStatus.textContent = items.length ? 'Trống / Đang giữ / Đã bán' : 'Chưa có ghế.';
-                        const rows = new Map();
-                        for (const seat of items) {
-                            if (!rows.has(seat.rowName)) {
-                                const row = text('div', '', 'd-flex flex-wrap align-items-center gap-2 w-100');
-                                row.append(text('strong', 'Hàng ' + seat.rowName, 'small me-2'));
-                                rows.set(seat.rowName, row); seats.append(row);
-                            }
-                            const label = seat.status === 'AVAILABLE' ? 'Trống' : seat.status === 'HELD' ? 'Đang giữ' : 'Đã bán';
-                            rows.get(seat.rowName).append(text('span', seat.seatLabel + ' · ' + label, 'badge p-2 ' + (seat.status === 'AVAILABLE' ? 'bg-success' : seat.status === 'HELD' ? 'bg-warning text-dark' : 'bg-secondary')));
-                        }
-                    } catch (error) { seatStatus.textContent = error.message; }
-                    finally { button.disabled = false; }
-                });
-                panel.append(button, seatStatus, seats);
-            } else { panel.append(text('p', 'Khu vực đứng tự do', 'text-muted')); }
-            column.append(panel); document.getElementById('zones').append(column);
-        }
-    } catch (error) { zoneStatus.textContent = error.message; }
-})();
-</script>
-</body></html>
+<!DOCTYPE html><html lang="vi"><head><title>Chi tiết sự kiện | TicketsCenter</title><jsp:include page="/WEB-INF/views/layout/meta-head.jsp"/><link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ticket-hold.css"><link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/public-events.css"></head>
+<body data-public-page="detail" data-hold-page="selection" data-context="${pageContext.request.contextPath}"><jsp:include page="/WEB-INF/views/layout/header.jsp"/>
+<main id="main-content" class="container tc-detail">
+ <nav id="event-breadcrumb" aria-label="breadcrumb" class="mb-4" hidden><ol class="breadcrumb small"><li class="breadcrumb-item"><a href="${pageContext.request.contextPath}/" class="text-muted">Trang chủ</a></li><li class="breadcrumb-item"><a id="breadcrumb-category" class="text-muted"></a></li><li id="breadcrumb-event" class="breadcrumb-item active" aria-current="page"></li></ol></nav>
+ <p id="status" role="status" aria-live="polite">Đang tải sự kiện…</p><button id="event-retry" type="button" class="btn-outline-custom" hidden>Thử tải lại</button>
+ <article id="event" hidden><section class="tc-detail-hero"><div class="tc-event-poster"><span class="tc-image-empty">Chưa có ảnh sự kiện</span><img id="cover" hidden alt=""><span id="event-category" class="event-category-badge"></span></div><div><span id="sale-state" class="tc-event-status"></span><h1 id="title" class="tc-detail-title"></h1>
+  <dl class="tc-detail-meta"><div><dt>Thời gian</dt><dd id="time"></dd></div><div><dt>Địa điểm</dt><dd id="venue"></dd></div><div><dt>Ban tổ chức</dt><dd id="organizer"></dd></div><div><dt>Thời gian bán vé</dt><dd id="sale"></dd></div><div><dt>Quy định đặt chỗ</dt><dd>Tối đa 8 vé / lượt · Giữ vé 10 phút khi máy chủ xác nhận</dd></div></dl>
+  <div class="tc-detail-price"><div><span class="tc-eyebrow">Giá vé từ</span><strong id="event-price"></strong></div><a id="event-hold-link" class="btn-primary-custom">Chọn vé &amp; Vị trí</a></div>
+ </div></section>
+ <section id="bookingSection" class="tc-booking-section" aria-labelledby="hold-heading"><h2 id="hold-heading" class="tc-detail-section-title">Chọn vé &amp; Sơ đồ vị trí</h2><p class="small text-muted">Giá và chỗ trống được đối chiếu với máy chủ. Thời hạn 10 phút bắt đầu sau khi giữ vé thành công.</p>
+  <p id="hold-message" role="status" aria-live="polite">Đang đối chiếu lượt giữ…</p>
+  <div id="hold-auth" class="tc-notice mb-4" hidden><p>Đăng nhập và xác minh email để chọn vé, xem ghế còn trống và giữ vị trí.</p><a id="booking-login" href="${pageContext.request.contextPath}/auth/login" class="btn-primary-custom">Đăng nhập để chọn vé</a> <a href="${pageContext.request.contextPath}/auth/verify-email" class="btn-outline-custom">Xác minh email</a></div>
+  <div id="hold-recovery" class="hold-notice" hidden><p>Kết quả yêu cầu chưa rõ. Thử lại cùng yêu cầu để đối chiếu với máy chủ.</p><button id="hold-retry" type="button" class="btn-outline-custom">Thử lại yêu cầu</button></div>
+  <section id="current-hold" class="tc-hold-confirmed mb-4" hidden><h3 class="h5 fw-bold">Lượt giữ hiện tại</h3><p id="hold-id" hidden></p><p>Thời gian còn lại <strong id="hold-countdown" role="timer" aria-label="Thời gian còn lại"></strong></p><p id="hold-deadline" class="small text-muted"></p><ul id="hold-items" class="hold-items"></ul><p>Giá vé đã giữ <strong id="hold-total"></strong></p><div class="tc-page-actions"><a id="hold-view" class="btn-primary-custom" href="${pageContext.request.contextPath}/checkout">Tiếp tục thanh toán</a><button id="hold-cancel" type="button" class="btn-outline-custom">Hủy lượt giữ</button></div></section>
+  <form id="hold-form" hidden><p id="sale-deadline" class="small text-muted"></p><div class="tc-booking-columns"><fieldset id="hold-zones"><legend class="visually-hidden">Khu vé và ghế còn lại</legend></fieldset><aside class="tc-booking-summary" aria-label="Tóm tắt lựa chọn"><h3 class="h5 fw-bold mb-3">Tóm tắt đơn chọn</h3><ul id="selection-items" class="hold-items small"></ul><div class="hold-summary"><p id="selection-count" aria-live="polite">Đã chọn 0 / 8 vé</p><p>Tạm tính <strong id="selection-total">0 đ</strong></p><p class="small text-muted">Một tài khoản chỉ có một lượt giữ đang hoạt động. Không gia hạn thời gian giữ khi tạo đơn hoặc áp mã.</p><button id="hold-submit" type="submit" class="btn-primary-custom" disabled>Giữ vé &amp; Tiếp tục</button></div></aside></div></form>
+  <button id="hold-refresh" type="button" class="btn-outline-custom mt-3">Cập nhật tình trạng vé</button>
+ </section>
+ <section class="mt-5"><h2 class="tc-detail-section-title">Thông tin sự kiện</h2><p id="description" class="tc-event-description"></p><h3 class="h5 fw-bold">Khu vực &amp; Tình trạng vé</h3><p id="zone-status" role="status" class="small text-muted"></p><div id="zones"></div></section>
+ </article><noscript>Vui lòng bật JavaScript để tải thông tin sự kiện, chọn vị trí và giữ vé.</noscript>
+</main><jsp:include page="/WEB-INF/views/layout/footer.jsp"/><script defer src="${pageContext.request.contextPath}/assets/js/public-events.js"></script><script defer src="${pageContext.request.contextPath}/assets/js/ticket-hold.js"></script></body></html>

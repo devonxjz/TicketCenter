@@ -4,30 +4,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Chọn sự kiện soát vé | TicketCenter</title>
-  <style>
-    *{box-sizing:border-box}body{margin:0;background:#f4f6fb;color:#17243d;font-family:system-ui,sans-serif}
-    header{background:#142544;color:#fff;padding:24px max(20px,calc((100vw - 1040px)/2))}
-    header p{color:#c7d5ed;margin:8px 0 0}main{max-width:1040px;margin:auto;padding:24px 20px}
-    h1{font-size:1.5rem;margin:0}h2{font-size:1.15rem;margin:12px 0}
-    .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
-    #events{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:18px}
-    article{background:#fff;border:1px solid #dce2ee;border-radius:14px;padding:22px;box-shadow:0 3px 12px #14254408}
-    .badge{display:inline-block;border-radius:30px;padding:5px 12px;font-size:.85rem;font-weight:650}
-    .OPEN{background:#d9f7e7;color:#14643c}.NOT_YET_OPEN{background:#fff2cc;color:#805500}
-    .ENDED,.CANCELLED,.UNAVAILABLE{background:#ffe1e1;color:#922d2d}
-    .detail{color:#53647e;font-size:.95rem;line-height:1.65}.stats{display:flex;gap:24px;margin:20px 0}
-    .stats strong{display:block;font-size:1.3rem}.stats span{color:#63728a;font-size:.85rem}
-    button{background:#214eae;color:#fff;border:0;border-radius:8px;padding:12px 16px;font:inherit;cursor:pointer;min-height:44px}
-    article button{width:100%}button:disabled{background:#e3e7ee;color:#68758b;cursor:default}
-    button:focus-visible{outline:3px solid #d79419;outline-offset:3px}
-    #notice{padding:14px;border-radius:8px;background:#fff2cc;margin-bottom:18px}#notice:empty{display:none}
-    .hint{color:#63728a;font-size:.85rem}.empty{padding:32px;background:#fff;border-radius:12px;text-align:center}
-  </style>
+  <title>Chọn sự kiện soát vé | TicketsCenter</title>
+  <jsp:include page="/WEB-INF/views/layout/meta-head.jsp" />
+  <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/admin-ui.css">
 </head>
-<body>
-<header><h1>Chọn sự kiện soát vé</h1><p>Chọn sự kiện của tổ chức để bắt đầu ca làm việc.</p></header>
-<main>
+<body class="checkin-body">
+<a class="portal-skip" href="#main-content">Đến nội dung chính</a><header class="checkin-topbar"><a class="navbar-brand-custom" href="${pageContext.request.contextPath}/">TicketsCenter</a><span class="portal-label">Cổng soát vé</span><a href="${pageContext.request.contextPath}/organizer/dashboard">Tổng quan tổ chức &rarr;</a></header>
+<main id="main-content"><h1>Chọn sự kiện soát vé</h1><p class="hint">Chọn sự kiện của tổ chức để bắt đầu ca làm việc.</p>
   <div class="toolbar"><span>Danh sách sự kiện</span><button type="button" id="reload">Làm mới</button></div>
   <div id="notice" role="status" aria-live="polite"></div>
   <div id="events" aria-live="polite"><p>Đang tải sự kiện…</p></div>
@@ -63,7 +46,7 @@
       try {
         const window=await json(base+'/api/events/'+encodeURIComponent(event.eventId)+'/check-in-window');
         if(!window.isOpen) {notice.textContent=window.message;await load();return;}
-        // UI-16 consumes this event context; permission/time are checked again on each scan.
+        // Permission and the check-in window are verified again on every scan.
         location.assign(base+'/organizer/checkin-scanner?eventId='+encodeURIComponent(event.eventId));
       } catch(error) {notice.textContent=error.message;button.disabled=false;}
     });

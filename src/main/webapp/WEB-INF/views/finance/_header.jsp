@@ -14,6 +14,8 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <link rel="stylesheet" href="<%= financeContext %>/assets/css/style.css">
 <link rel="stylesheet" href="<%= financeContext %>/assets/css/finance.css">
+<link rel="stylesheet" href="<%= financeContext %>/assets/css/production-ui.css">
+<link rel="stylesheet" href="<%= financeContext %>/assets/css/admin-ui.css">
 </head><body class="finance-body">
 <a class="finance-skip" href="#finance-content">Bỏ qua menu, đến nội dung</a>
 <% if (financePageAdmin) { %>

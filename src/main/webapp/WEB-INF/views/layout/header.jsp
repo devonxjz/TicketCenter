@@ -1,7 +1,8 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <!-- Header & Navbar (Thanh tìm kiếm dài, cân đối, tiện dụng tối đa) -->
-<nav class="navbar navbar-custom sticky-top">
+<a href="#main-content" class="tc-skip-link">Đến nội dung chính</a>
+<nav class="navbar navbar-custom sticky-top tc-header" data-site-header data-context="${pageContext.request.contextPath}" aria-label="Điều hướng chính">
     <div class="container d-flex align-items-center justify-content-between flex-nowrap">
         
         <!-- Logo Thương hiệu -->
@@ -9,22 +10,14 @@
             TicketsCenter
         </a>
 
-        <!-- Khung tìm kiếm chuẩn ban đầu -->
-        <div class="search-wrapper d-none d-md-flex">
-            <div class="location-box">
-                <select class="location-select">
-                    <option value="">Toàn quốc</option>
-                    <option value="HN">Hà Nội</option>
-                    <option value="HCM">TP. Hồ Chí Minh</option>
-                    <option value="DN">Đà Nẵng</option>
-                </select>
-            </div>
-            <input type="text" class="search-input" placeholder="Tìm kiếm sự kiện, nghệ sĩ, địa điểm biểu diễn...">
-            <button class="search-btn">Tìm kiếm</button>
-        </div>
+        <form class="search-wrapper tc-header-search" role="search" action="${pageContext.request.contextPath}/" method="get">
+            <select id="header-category" name="categoryId" class="tc-header-category" aria-label="Danh mục sự kiện"><option value="">Tất cả danh mục</option></select>
+            <input type="search" name="keyword" class="search-input" maxlength="100" placeholder="Tìm sự kiện hoặc địa điểm..." aria-label="Tìm sự kiện hoặc địa điểm">
+            <button class="search-btn" type="submit">Tìm kiếm</button>
+        </form>
 
         <!-- Cụm tài khoản -->
-        <div class="d-flex align-items-center gap-2 flex-shrink-0">
+        <div class="tc-header-account">
             <c:choose>
                 <c:when test="${not empty sessionScope.TC_CURRENT_USER}">
                     <div class="dropdown">
@@ -51,7 +44,7 @@
                                 <li><a class="dropdown-item py-2" href="${pageContext.request.contextPath}/organizer-request"><i class="fa-solid fa-handshake me-2 text-muted"></i>Đăng ký mở ban tổ chức</a></li>
                             </c:if>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item py-2 text-danger" href="${pageContext.request.contextPath}/auth/logout"><i class="fa-solid fa-right-from-bracket me-2"></i>Đăng xuất</a></li>
+                            <li><button id="site-logout" type="button" class="dropdown-item py-2 text-danger"><i class="fa-solid fa-right-from-bracket me-2"></i>Đăng xuất</button></li>
                         </ul>
                     </div>
                 </c:when>
@@ -66,3 +59,5 @@
         </div>
     </div>
 </nav>
+
+<p id="site-notice" role="alert" class="container tc-notice" hidden></p>

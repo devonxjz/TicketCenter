@@ -103,9 +103,9 @@ public class OrderRepository {
                 selectPs.setInt(5, targetSize);
                 try (ResultSet rs = selectPs.executeQuery()) {
                     while (rs.next()) {
-                        Timestamp startTs = rs.getTimestamp("start_time");
-                        Timestamp createdTs = rs.getTimestamp("created_at");
-                        Timestamp paidTs = rs.getTimestamp("paid_at");
+                        Timestamp startTs = rs.getTimestamp("start_time", utc());
+                        Timestamp createdTs = rs.getTimestamp("created_at", utc());
+                        Timestamp paidTs = rs.getTimestamp("paid_at", utc());
                         items.add(new OrderHistoryItemDto(
                                 UUID.fromString(rs.getString("id")),
                                 rs.getString("order_code"),
@@ -177,23 +177,23 @@ public class OrderRepository {
                     eventTitle = rs.getString("event_title");
                     venueName = rs.getString("venue_name");
                     venueAddress = rs.getString("venue_address");
-                    Timestamp st = rs.getTimestamp("start_time");
+                    Timestamp st = rs.getTimestamp("start_time", utc());
                     startTime = st != null ? st.toInstant() : null;
-                    Timestamp et = rs.getTimestamp("end_time");
+                    Timestamp et = rs.getTimestamp("end_time", utc());
                     endTime = et != null ? et.toInstant() : null;
                     subtotal = rs.getBigDecimal("subtotal_amount");
                     discount = rs.getBigDecimal("discount_amount");
                     total = rs.getBigDecimal("total_amount");
                     status = rs.getString("status");
-                    Timestamp ct = rs.getTimestamp("created_at");
+                    Timestamp ct = rs.getTimestamp("created_at", utc());
                     createdAt = ct != null ? ct.toInstant() : null;
-                    Timestamp pt = rs.getTimestamp("paid_at");
+                    Timestamp pt = rs.getTimestamp("paid_at", utc());
                     paidAt = pt != null ? pt.toInstant() : null;
                     couponCode = rs.getString("coupon_code");
                     paymentStatus = rs.getString("payment_status");
                     txnRef = rs.getString("txn_ref");
                     providerRef = rs.getString("provider_reference");
-                    Timestamp cap = rs.getTimestamp("captured_at");
+                    Timestamp cap = rs.getTimestamp("captured_at", utc());
                     paymentCapturedAt = cap != null ? cap.toInstant() : null;
                 }
             }
@@ -377,5 +377,9 @@ public class OrderRepository {
         for (String reason : List.of("NOT_FOUND", "WRONG_ORGANIZATION", "INACTIVE", "NOT_STARTED", "EXPIRED", "QUOTA_EXHAUSTED", "INVALID_CONFIGURATION"))
             if (message.contains("COUPON_" + reason)) return "COUPON_" + reason;
         return "COUPON_INVALID";
+    }
+
+    private static java.util.Calendar utc() {
+        return java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"));
     }
 }

@@ -4,6 +4,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import vn.ticketscenter.ticketing.dto.*;
 import vn.ticketscenter.ticketing.service.HoldException;
+import vn.ticketscenter.config.ServerConfig;
+import vn.ticketscenter.event.repository.RealEventVisibility;
 
 import javax.sql.DataSource;
 import java.math.BigDecimal;
@@ -22,6 +24,7 @@ public final class HoldRepository {
 
     public HoldMutationReceipt mutate(HoldActor actor, HoldCommand command) {
         if (command instanceof HoldCommand.Create create) {
+            requireVisibleEvent(create.request().eventId());
             JSONArray selections = new JSONArray();
             for (HoldSelection selection : create.request().selections())
                 selections.put(new JSONObject().put("zoneId", selection.zoneId().toString())
@@ -37,7 +40,7 @@ public final class HoldRepository {
     }
 
     public CurrentHold current(HoldActor actor) {
-        return call(buyer, "EXEC dbo.usp_ReadActiveHold ?,?", rows -> {
+        CurrentHold current = call(buyer, "EXEC dbo.usp_ReadActiveHold ?,?", rows -> {
             String body = payload(rows);
             JSONObject root = new JSONObject(body);
             Instant serverTime = Instant.parse(root.getString("serverTime"));
@@ -57,9 +60,13 @@ public final class HoldRepository {
             return new CurrentHold(body, Optional.of(new ActiveHoldProjection(id(hold, "id"),
                     actor.id(), id(hold, "eventId"), expires, items)));
         }, actor.id(), actor.authVersion());
+        // Release the procedure connection before acquiring one for the visibility read.
+        if (current.projection().isPresent()) requireVisibleEvent(current.projection().orElseThrow().eventId());
+        return current;
     }
 
     public String options(HoldActor actor, UUID eventId) {
+        requireVisibleEvent(eventId);
         return call(buyer, "EXEC dbo.usp_ReadHoldOptions ?,?,?", rows -> {
             String body = rows.getString("response_payload");
             if (body == null) throw HoldException.unavailable();
@@ -67,6 +74,22 @@ public final class HoldRepository {
             return body;
         },
                 actor.id(), actor.authVersion(), eventId);
+    }
+
+    private void requireVisibleEvent(UUID eventId) {
+        if (ServerConfig.isDemoData()) return;
+        try (Connection connection = buyer.getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                     "SELECT e.event_id FROM dbo.vw_PublicEvents e WHERE e.event_id=? AND "
+                             + RealEventVisibility.predicate("e"))) {
+            statement.setQueryTimeout(5);
+            statement.setString(1, eventId.toString());
+            try (ResultSet rows = statement.executeQuery()) {
+                if (!rows.next()) throw new HoldException(404, "NOT_FOUND", "Hold or Event was not found.");
+            }
+        } catch (SQLException failure) {
+            throw HoldException.unavailable();
+        }
     }
 
     public List<HoldMutationReceipt.Change> expire(int batchSize) {

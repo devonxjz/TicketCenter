@@ -1,9 +1,9 @@
 #Requires -Version 7.4
-param([string]$TomcatHome=$env:TC_TOMCAT_HOME,[string]$JavaHome=$env:JAVA_HOME,[string]$ConfigPath,[int]$Port=18082,[switch]$CheckConfig)
+param([string]$TomcatHome,[string]$JavaHome,[string]$ConfigPath,[int]$Port=0,[switch]$CheckConfig)
 $ErrorActionPreference='Stop'
-$repo=(Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
-if(-not $ConfigPath){$ConfigPath=Join-Path $repo '.local/azure.properties'}
-if(-not(Test-Path -LiteralPath $ConfigPath)){throw 'Copy tools/azure/azure.properties.example to .local/azure.properties and fill the credentials.'}
+$repo=(Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+if(-not $ConfigPath){$ConfigPath=Join-Path $repo 'src/main/resources/application.properties'}
+if(-not(Test-Path -LiteralPath $ConfigPath)){throw 'Copy src/main/resources/application.properties.example to src/main/resources/application.properties and fill the credentials.'}
 $settings=@{}
 foreach($line in [IO.File]::ReadAllLines($ConfigPath)){
  if($line -match '^([^#!\s][^=]*)=(.*)$'){$settings[$matches[1].Trim()]=$matches[2].Trim()}
@@ -11,6 +11,10 @@ foreach($line in [IO.File]::ReadAllLines($ConfigPath)){
 if($settings['db.host'] -ne 'ticketscenter.database.windows.net' -or $settings['db.name'] -ne 'TicketsCenter'){throw 'Unexpected Azure target'}
 foreach($key in @('db.user','db.password')){if([string]::IsNullOrWhiteSpace($settings[$key])){throw 'Azure credentials required'}}
 if($CheckConfig){Write-Output 'AZURE_CONFIG_VALID ticketscenter.database.windows.net / TicketsCenter';return}
+if(-not $TomcatHome){$TomcatHome=$settings['runtime.tomcat.home']}
+if(-not $JavaHome){$JavaHome=$settings['runtime.java.home']}
+if(-not $JavaHome){$JavaHome=$env:JAVA_HOME}
+if($Port -eq 0){$Port=if($settings['runtime.port']){[int]$settings['runtime.port']}else{18082}}
 if($Port -lt 1024 -or $Port -gt 65535){throw 'Unprivileged port required'}
 if(Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue){throw 'Chosen port is in use'}
 if(-not $JavaHome -or -not(Test-Path -LiteralPath (Join-Path $JavaHome 'bin/javac.exe'))){throw 'JDK 25 required; supply -JavaHome or JAVA_HOME'}
@@ -22,10 +26,12 @@ if((& $java -cp (Join-Path $tomcat 'lib/catalina.jar') org.apache.catalina.util.
 $identity=[Security.Principal.WindowsIdentity]::GetCurrent().User
 $identityHash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($identity.Value))).Substring(0,8)
 $networkTemp=Join-Path ([Environment]::GetFolderPath('CommonApplicationData')) ('TicketsCenter-java-'+$identityHash)
-New-Item -ItemType Directory -Path $networkTemp -Force|Out-Null
-$networkAcl=[Security.AccessControl.DirectorySecurity]::new();$networkAcl.SetAccessRuleProtection($true,$false)
-foreach($sid in @($identity,[Security.Principal.SecurityIdentifier]::new('S-1-5-18'))){$networkAcl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid,'FullControl','ContainerInherit,ObjectInherit','None','Allow'))}
-try{Set-Acl -LiteralPath $networkTemp -AclObject $networkAcl -ErrorAction SilentlyContinue}catch{}
+if(-not(Test-Path -LiteralPath $networkTemp)){
+ New-Item -ItemType Directory -Path $networkTemp|Out-Null
+ $networkAcl=[Security.AccessControl.DirectorySecurity]::new();$networkAcl.SetAccessRuleProtection($true,$false)
+ foreach($sid in @($identity,[Security.Principal.SecurityIdentifier]::new('S-1-5-18'))){$networkAcl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid,'FullControl','ContainerInherit,ObjectInherit','None','Allow'))}
+ try{Set-Acl -LiteralPath $networkTemp -AclObject $networkAcl -ErrorAction SilentlyContinue}catch{}
+}
 $networkArg='-DargLine=-Djdk.net.unixdomain.tmpdir='+$networkTemp.Replace('\','/')
 $previousJava=$env:JAVA_HOME;$previousPath=$env:PATH;$removed=@{}
 try{
@@ -58,13 +64,21 @@ foreach($role in @('auth','buyer','manager','check_in','admin','worker')){
 $settings['app.env']='development';$settings['app.data.mode']='real';$settings['admin.seed.enabled']='false';$settings['demo.seed.enabled']='false';$settings['mail.outbox.enabled']='false'
 $settings['app.base.url']="http://127.0.0.1:$Port/ticketscenter"
 if([string]::IsNullOrWhiteSpace($settings['app.secret.key'])){
+<<<<<<< HEAD:tools/azure/run.ps1
  $secretPath=Join-Path (Split-Path -Parent ([IO.Path]::GetFullPath($ConfigPath))) 'azure-app-secret.txt'
  if(-not(Test-Path -LiteralPath $secretPath)){[IO.File]::WriteAllText($secretPath,[Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(32)));$secretAcl=[Security.AccessControl.FileSecurity]::new();$secretAcl.SetAccessRuleProtection($true,$false);foreach($sid in @([Security.Principal.WindowsIdentity]::GetCurrent().User,[Security.Principal.SecurityIdentifier]::new('S-1-5-18'))){$secretAcl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid,'FullControl','Allow'))};try{Set-Acl -LiteralPath $secretPath -AclObject $secretAcl -ErrorAction SilentlyContinue}catch{}}
  $settings['app.secret.key']=[IO.File]::ReadAllText($secretPath).Trim()
+=======
+ $settings['app.secret.key']=[Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
+ [IO.File]::AppendAllText([IO.Path]::GetFullPath($ConfigPath),"`n# Generated once for this machine; use the existing shared key for cross-machine QR verification.`napp.secret.key="+$settings['app.secret.key']+"`n")
+>>>>>>> origin/dev:tools/run-web.ps1
 }
 $settings['hikari.maximum-pool-size']='2';$settings['hikari.minimum-idle']='0';$settings['hikari.pool-budget']='24';$settings['hikari.connection-timeout']='15000'
 $settings['finance.redis.enabled']='false';$settings['redis.host']='127.0.0.1';$settings['redis.port']='16379';$settings['redis.timeout']='300'
-$settings['payout.adapter']='unavailable';$settings['event.image.directory']=$run.Replace('\','/')+'/data/images'
+$settings['payout.adapter']='unavailable'
+if([string]::IsNullOrWhiteSpace($settings['event.image.directory'])){$settings['event.image.directory']='.local/event-images'}
+if(-not [IO.Path]::IsPathRooted($settings['event.image.directory'])){$settings['event.image.directory']=[IO.Path]::GetFullPath((Join-Path $repo $settings['event.image.directory']))}
+$settings['event.image.directory']=$settings['event.image.directory'].Replace('\','/')
 # Leave outbound providers unconfigured in this display session.
 $lines=foreach($entry in $settings.GetEnumerator()){$entry.Key+'='+([string]$entry.Value).Replace('\','\\').Replace("`r",'\r').Replace("`n",'\n')}
 $runtimeConfig=Join-Path $run 'conf/application.properties'

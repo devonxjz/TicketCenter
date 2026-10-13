@@ -62,19 +62,23 @@
     async function listPage() {
         let page=1,revision=0;await organizations($('organization'),new URLSearchParams(location.search).get('organizationId'));
         async function load() {
-            const current=++revision;message('Đang tải sự kiện…');$('events').replaceChildren();$('previous').disabled=$('next').disabled=true;
+            const current=++revision;$('create-event').hidden=true;message('Đang tải sự kiện…');$('events').replaceChildren();$('previous').disabled=$('next').disabled=true;
             const org=$('organization').value,query=new URLSearchParams({page:String(page),pageSize:'20'});
             if($('filter-status').value) query.set('status',$('filter-status').value);
             const result=await api('/api/organizations/'+org+'/events?'+query);
             if(current!==revision)return;
-            $('create-event').href=base+'/events/manage/editor?organizationId='+org;
+            $('create-event').href=base+'/events/manage/editor?organizationId='+org;$('create-event').hidden=false;
             for(const event of result.data) {
-                const tr=document.createElement('tr'),coverCell=node('td'),thumbnail=node('img');thumbnail.alt=event.title;thumbnail.style.maxWidth='120px';thumbnail.style.maxHeight='80px';thumbnail.className='rounded';image(event.coverImageUrl,thumbnail);coverCell.append(thumbnail);if(thumbnail.hidden)coverCell.append(node('span','Chưa có ảnh','small text-muted'));tr.append(coverCell,node('td',event.title),node('td',labels[event.status] || event.status),node('td',date(event.startTime)),node('td',String(event.totalCapacity)));
-                const actions=node('td','', 'd-flex flex-wrap gap-2');const link=node('a','Xem / sửa','btn btn-outline-dark btn-sm');link.href=base+'/events/manage/editor?organizationId='+org+'&eventId='+event.eventId;actions.append(link);
+                const tr=document.createElement('tr'),coverCell=node('td'),thumbnail=node('img');thumbnail.alt=event.title;thumbnail.className='organizer-event-thumbnail';image(event.coverImageUrl,thumbnail);coverCell.append(thumbnail);if(thumbnail.hidden)coverCell.append(node('span','Chưa có ảnh','small text-muted'));
+                const title=node('td','','organizer-event-title');title.append(node('strong',event.title));
+                const state=node('td');state.append(node('span',labels[event.status] || event.status,'status-pill '+({PUBLISHED:'status-success',PENDING_APPROVAL:'status-amber',REJECTED:'status-red',CANCELLED:'status-red'}[event.status] || 'status-subtle')));
+                tr.append(coverCell,title,state,node('td',date(event.startTime)),node('td',String(event.totalCapacity)));
+                const actionCell=node('td','','organizer-event-actions'),actions=node('div');const link=node('a','Xem / sửa','btn btn-outline-dark btn-sm');link.href=base+'/events/manage/editor?organizationId='+org+'&eventId='+event.eventId;actions.append(link);
                 if(['DRAFT','REJECTED'].includes(event.status)) actions.append(button('Gửi duyệt',async()=>{await mutate('/api/events/'+event.eventId+'/submit',{expectedVersion:String(event.version)});await load();}));
                 if(event.status==='DRAFT') actions.append(button('Xóa nháp',async()=>{if(!confirm('Xóa bản nháp này và các khu/ghế chưa có giao dịch?'))return;await mutate('/api/events/'+event.eventId+'/delete',{expectedVersion:String(event.version)});await load();},'btn btn-outline-danger btn-sm'));
-                tr.append(actions);$('events').append(tr);
+                actionCell.append(actions);tr.append(actionCell);$('events').append(tr);
             }
+            if(!result.data.length){const empty=node('td','Chưa có sự kiện phù hợp. Tạo sự kiện mới hoặc thay đổi bộ lọc.','organizer-empty');empty.colSpan=6;const row=node('tr');row.append(empty);$('events').append(row);}
             message(result.total ? 'Có '+result.total+' sự kiện.' : 'Chưa có sự kiện phù hợp.');$('page-label').textContent='Trang '+page;
             $('previous').disabled=page<=1;$('next').disabled=page*result.pageSize>=result.total;
         }
@@ -85,7 +89,7 @@
     function zones(items,target,event,refresh,editing) {
         target.replaceChildren();
         for(const zone of items) {
-            const panel=node('section','','border rounded p-3 mb-3');panel.append(node('h3',zone.name+' · '+zone.zoneType,'h5'),node('p',money(zone.basePrice)+' · Còn '+zone.availableSeats+' / '+zone.totalCapacity+' vé','text-muted'));
+            const panel=node('section','',editing?'organizer-zone':'border rounded p-3 mb-3');panel.append(node('h3',zone.name+' · '+zone.zoneType,'h5'),node('p',money(zone.basePrice)+' · Còn '+zone.availableSeats+' / '+zone.totalCapacity+' vé','text-muted'));
             const seatRows=node('div','','d-grid gap-2');const rows=new Map();
             for(const seat of zone.seats || []) {if(!rows.has(seat.rowName)) {const row=node('div','','d-flex flex-wrap gap-2 align-items-center');row.append(node('strong','Hàng '+seat.rowName,'small me-2'));rows.set(seat.rowName,row);seatRows.append(row);} const state=seat.status==='AVAILABLE'?'Trống':seat.status==='HELD'?'Đang giữ':'Đã bán';rows.get(seat.rowName).append(node('span',seat.seatLabel+' · '+state,'badge p-2 '+(seat.status==='AVAILABLE'?'bg-success':seat.status==='HELD'?'bg-warning text-dark':'bg-secondary')));}
             if(editing && ['DRAFT','REJECTED','PUBLISHED'].includes(event.status)) {

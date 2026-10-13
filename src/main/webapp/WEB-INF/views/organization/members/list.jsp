@@ -4,51 +4,13 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nhân sự &amp; phân quyền | TicketsCenter Partner</title>
+    <jsp:include page="/WEB-INF/views/layout/meta-head.jsp" />
     <meta name="csrf-token" content="${sessionScope.TC_CSRF_TOKEN}">
     <meta name="context-path" content="${pageContext.request.contextPath}">
-    <title>Nhân Sự & Phân Quyền Tổ Chức — TicketsCenter Partner</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
-    <style>
-        .table-custom th {
-            background-color: #f8f9fa;
-            font-weight: 600;
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border-bottom: 2px solid #dee2e6;
-        }
-        .badge-manager {
-            background-color: #f8d7da;
-            color: #842029;
-            border: 1px solid #f5c2c7;
-        }
-        .badge-staff {
-            background-color: #cff4fc;
-            color: #055160;
-            border: 1px solid #b6effb;
-        }
-        .badge-active {
-            background-color: #d1e7dd;
-            color: #0f5132;
-            border: 1px solid #badbcc;
-        }
-        .badge-inactive {
-            background-color: #e2e3e5;
-            color: #41464b;
-            border: 1px solid #d3d6d8;
-        }
-        .badge-locked {
-            background-color: #fff3cd;
-            color: #664d03;
-            border: 1px solid #ffecb5;
-        }
-    </style>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/organizer-ui.css">
 </head>
-<body class="bg-light min-h-screen">
+<body class="bg-light min-h-screen tc-organizer-page">
 
     <!-- Top Navbar for Portal -->
     <nav class="navbar navbar-custom sticky-top">
@@ -82,7 +44,7 @@
             <!-- Page Header -->
             <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center pb-4 mb-4 border-bottom">
                 <div>
-                    <h1 class="h4 fw-bold mb-1 text-dark">Nhân Sự & Phân Quyền Tổ Chức</h1>
+                    <h1 class="h3 fw-bold mb-1 text-dark">Nhân Sự & Phân Quyền Tổ Chức</h1>
                     <p class="small text-muted mb-0">Quản lý danh sách thành viên tham gia vận hành tổ chức, phân quyền quản lý và soát vé sự kiện.</p>
                 </div>
                 <div class="mt-3 mt-sm-0 d-flex gap-2">
@@ -99,8 +61,8 @@
             <div id="membersAlertPlaceholder"></div>
 
             <!-- Invariant Notice Banner -->
-            <div class="p-3 bg-white border border-danger-subtle text-danger small mb-4 shadow-sm">
-                <i class="fa-solid fa-shield-halved me-2"></i> <strong>Lưu ý quản trị:</strong> 
+            <div class="p-3 bg-white border border-danger-subtle text-danger small mb-4 ">
+                <i class="fa-solid fa-shield-halved me-2"></i> <strong>Lưu ý quản trị:</strong>
                 Tổ chức cần duy trì tối thiểu 01 Quản lý đang hoạt động. Hệ thống không cho phép khóa hoặc hạ quyền tài khoản Quản lý duy nhất còn lại của tổ chức.
             </div>
 
@@ -109,18 +71,18 @@
                 <div class="col-md-5">
                     <div class="input-group input-group-sm">
                         <span class="input-group-text bg-white border-secondary-subtle rounded-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
-                        <input type="text" id="memberSearchInput" class="form-control rounded-0 border-secondary-subtle" placeholder="Tìm theo họ tên, tên đăng nhập, email...">
+                        <input type="text" aria-label="Tìm thành viên" id="memberSearchInput" class="form-control rounded-0 border-secondary-subtle" placeholder="Tìm theo họ tên, tên đăng nhập, email...">
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <select id="memberRoleFilter" class="form-select form-select-sm rounded-0 border-secondary-subtle">
+                    <select aria-label="Lọc vai trò" id="memberRoleFilter" class="form-select form-select-sm rounded-0 border-secondary-subtle">
                         <option value="ALL">Tất cả vai trò</option>
-                        <option value="MANAGER">Quản lý tổ chức (MANAGER)</option>
-                        <option value="CHECK_IN_STAFF">Soát vé tại cửa (CHECK_IN_STAFF)</option>
+                        <option value="MANAGER">Quản lý tổ chức</option>
+                        <option value="CHECK_IN_STAFF">Soát vé tại cửa</option>
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <select id="memberStatusFilter" class="form-select form-select-sm rounded-0 border-secondary-subtle">
+                    <select aria-label="Lọc trạng thái" id="memberStatusFilter" class="form-select form-select-sm rounded-0 border-secondary-subtle">
                         <option value="ALL">Tất cả trạng thái</option>
                         <option value="ACTIVE">Đang hoạt động</option>
                         <option value="INACTIVE">Tạm khóa</option>
@@ -132,7 +94,7 @@
             </div>
 
             <!-- Members Table Panel -->
-            <div class="panel-box bg-white mb-5 shadow-sm border">
+            <div class="panel-box bg-white mb-5">
                 <div class="panel-header d-flex justify-content-between align-items-center p-3 border-bottom">
                     <div>
                         <span class="panel-title fw-bold h6 mb-0" id="memberTableTitle">Danh sách thành viên hiện tại</span>
@@ -141,7 +103,7 @@
                 </div>
 
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0 table-custom">
+                    <table class="table-custom">
                         <thead>
                             <tr>
                                 <th style="width: 25%;">Họ tên & Tên đăng nhập</th>
@@ -182,16 +144,16 @@
                         <div id="addMemberAlert" class="alert d-none small mb-3"></div>
 
                         <div class="mb-3">
-                            <label for="addUserName" class="form-label small fw-bold">Tên đăng nhập (userName) <span class="text-danger">*</span></label>
+                            <label for="addUserName" class="form-label small fw-bold">Tên đăng nhập <span class="text-danger">*</span></label>
                             <input type="text" id="addUserName" name="userName" class="form-control rounded-0 border-secondary-subtle" required placeholder="vd: hoangphuc" autocomplete="off">
-                            <div class="form-text small text-muted">Nhập chính xác userName tài khoản đã đăng ký trên hệ thống TicketsCenter.</div>
+                            <div class="form-text small text-muted">Nhập tên đăng nhập tài khoản đã đăng ký trên hệ thống TicketsCenter.</div>
                         </div>
 
                         <div class="mb-3">
                             <label for="addMemberRole" class="form-label small fw-bold">Vai trò bổ nhiệm <span class="text-danger">*</span></label>
                             <select id="addMemberRole" name="role" class="form-select rounded-0 border-secondary-subtle" required>
-                                <option value="CHECK_IN_STAFF" selected>Nhân viên soát vé tại cửa (CHECK_IN_STAFF)</option>
-                                <option value="MANAGER">Quản lý toàn quyền tổ chức (MANAGER)</option>
+                                <option value="CHECK_IN_STAFF" selected>Nhân viên soát vé tại cửa</option>
+                                <option value="MANAGER">Quản lý tổ chức</option>
                             </select>
                             <div class="form-text small text-muted">Quản lý có toàn quyền sự kiện & nhân sự; Nhân viên chỉ có quyền quét vé tại cổng.</div>
                         </div>
@@ -240,8 +202,8 @@
                         <div class="mb-3">
                             <label for="changeRoleSelect" class="form-label small fw-bold">Vai trò mới <span class="text-danger">*</span></label>
                             <select id="changeRoleSelect" name="role" class="form-select rounded-0 border-secondary-subtle" required>
-                                <option value="CHECK_IN_STAFF">Nhân viên soát vé tại cửa (CHECK_IN_STAFF)</option>
-                                <option value="MANAGER">Quản lý toàn quyền tổ chức (MANAGER)</option>
+                                <option value="CHECK_IN_STAFF">Nhân viên soát vé tại cửa</option>
+                                <option value="MANAGER">Quản lý tổ chức</option>
                             </select>
                         </div>
 
@@ -296,7 +258,7 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 
     <script>
         window.TC_CONTEXT_PATH = '${pageContext.request.contextPath}';

@@ -8,38 +8,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lịch Sử Đơn Hàng - TicketsCenter</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <style>
-        body {
-            background-color: #f8fafc;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            color: #1e293b;
-        }
-        .order-card {
-            background: #ffffff;
-            border-radius: 12px;
-            border: 1px solid #e2e8f0;
-            transition: all 0.2s;
-        }
-        .order-card:hover {
-            box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.06);
-            border-color: #cbd5e1;
-        }
-        .badge-status {
-            font-size: 0.82rem;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-weight: 600;
-        }
-    </style>
-</head>
-<body>
 
-<div class="container py-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<jsp:include page="/WEB-INF/views/layout/meta-head.jsp" />
+<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/buyer-ui.css">
+</head>
+<body class="buyer-page">
+<jsp:include page="/WEB-INF/views/layout/header.jsp" />
+
+<main class="container py-5 buyer-container">
+    <nav class="buyer-navigation" aria-label="Tài khoản"><a href="${pageContext.request.contextPath}/profile">Hồ sơ</a><a href="${pageContext.request.contextPath}/me/orders" aria-current="page">Đơn hàng của tôi</a><a href="${pageContext.request.contextPath}/me/tickets">Vé của tôi</a><a href="${pageContext.request.contextPath}/my-refunds">Hoàn vé</a></nav>
+    <div class="d-flex justify-content-between align-items-center buyer-heading">
         <div>
-            <h2 class="fw-bold mb-1"><i class="fa-solid fa-receipt text-primary me-2"></i>Lịch Sử Đơn Hàng</h2>
+            <h1 class="fw-bold mb-1">Đơn hàng của tôi</h1>
             <p class="text-muted mb-0">Xem và quản lý tất cả các đơn hàng mua vé sự kiện của bạn</p>
         </div>
         <div>
@@ -52,6 +32,14 @@
         </div>
     </div>
 
+    <nav class="buyer-navigation buyer-filter" aria-label="Lọc đơn hàng">
+        <a href="${pageContext.request.contextPath}/me/orders" ${empty currentStatus ? 'aria-current="page"' : ''}>Tất cả</a>
+        <a href="${pageContext.request.contextPath}/me/orders?status=PAID" ${currentStatus == 'PAID' ? 'aria-current="page"' : ''}>Đã thanh toán</a>
+        <a href="${pageContext.request.contextPath}/me/orders?status=PENDING_PAYMENT" ${currentStatus == 'PENDING_PAYMENT' ? 'aria-current="page"' : ''}>Chờ thanh toán</a>
+        <a href="${pageContext.request.contextPath}/me/orders?status=CANCELLED" ${currentStatus == 'CANCELLED' ? 'aria-current="page"' : ''}>Đã hủy</a>
+        <a href="${pageContext.request.contextPath}/me/orders?status=EXPIRED" ${currentStatus == 'EXPIRED' ? 'aria-current="page"' : ''}>Hết hạn</a>
+    </nav>
+    <p class="small text-muted">${historyPage.total} đơn hàng</p>
     <c:choose>
         <c:when test="${empty historyPage.orders}">
             <div class="text-center py-5 bg-white rounded-4 border border-dashed p-5">
@@ -125,8 +113,14 @@
             </div>
         </c:otherwise>
     </c:choose>
-</div>
+    <nav class="d-flex justify-content-between align-items-center mt-4" aria-label="Phân trang đơn hàng">
+        <c:if test="${historyPage.page > 1}"><c:url var="previousPage" value="/me/orders"><c:param name="page" value="${historyPage.page - 1}"/><c:param name="size" value="${historyPage.size}"/><c:if test="${not empty currentStatus}"><c:param name="status" value="${currentStatus}"/></c:if></c:url><a class="btn btn-outline-dark" href="${fn:escapeXml(previousPage)}">← Trang trước</a></c:if>
+        <span class="small text-muted">Trang ${historyPage.page}</span>
+        <c:if test="${historyPage.page * historyPage.size < historyPage.total}"><c:url var="nextPage" value="/me/orders"><c:param name="page" value="${historyPage.page + 1}"/><c:param name="size" value="${historyPage.size}"/><c:if test="${not empty currentStatus}"><c:param name="status" value="${currentStatus}"/></c:if></c:url><a class="btn btn-outline-dark" href="${fn:escapeXml(nextPage)}">Trang sau →</a></c:if>
+    </nav>
+</main>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<jsp:include page="/WEB-INF/views/layout/footer.jsp" />
 </body>
 </html>

@@ -7,11 +7,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="${sessionScope.TC_CSRF_TOKEN}">
     <title>Đăng Ký Trở Thành Nhà Tổ Chức | TicketsCenter</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
+<jsp:include page="/WEB-INF/views/layout/meta-head.jsp" />
+<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/buyer-ui.css">
 </head>
-<body class="bg-light min-h-screen d-flex flex-column justify-content-between">
+<body class="buyer-page bg-light min-h-screen d-flex flex-column justify-content-between">
 
     <!-- Header & Navbar -->
     <nav class="navbar navbar-custom sticky-top">
