@@ -34,6 +34,6 @@
 <button id="hold-refresh" type="button" class="btn btn-outline-dark mt-2">Cập nhật vé đang giữ</button>
 <noscript>Vui lòng bật JavaScript để xem và thanh toán vé đang giữ.</noscript>
 </main><jsp:include page="/WEB-INF/views/layout/footer.jsp" />
-<script src="${pageContext.request.contextPath}/assets/js/ticket-hold.js?v=5" defer></script>
+<script src="${pageContext.request.contextPath}/assets/js/ticket-hold.js?v=6" defer></script>
 <script src="${pageContext.request.contextPath}/assets/js/order-checkout.js?v=3" defer></script>
 </body></html>

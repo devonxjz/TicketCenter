@@ -18,4 +18,4 @@
  </section>
  <section class="mt-5"><h2 class="tc-detail-section-title">Thông tin sự kiện</h2><p id="description" class="tc-event-description"></p><h3 class="h5 fw-bold">Khu vực &amp; Tình trạng vé</h3><p id="zone-status" role="status" class="small text-muted"></p><div id="zones"></div></section>
  </article><noscript>Vui lòng bật JavaScript để tải thông tin sự kiện, chọn vị trí và giữ vé.</noscript>
-</main><jsp:include page="/WEB-INF/views/layout/footer.jsp"/><script defer src="${pageContext.request.contextPath}/assets/js/public-events.js"></script><script defer src="${pageContext.request.contextPath}/assets/js/ticket-hold.js?v=6"></script></body></html>
+</main><jsp:include page="/WEB-INF/views/layout/footer.jsp"/><script defer src="${pageContext.request.contextPath}/assets/js/public-events.js"></script><script defer src="${pageContext.request.contextPath}/assets/js/ticket-hold.js?v=7"></script></body></html>

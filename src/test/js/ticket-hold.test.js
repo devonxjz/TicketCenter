@@ -698,8 +698,8 @@ test('prototype layout keeps seated and standing inventory separate and steppers
     const quantity=get('standing-zones').querySelectorAll('input')[0],buttons=get('standing-zones').querySelectorAll('button[data-quantity-step]');
     const minus=buttons.find(button=>button.dataset.quantityStep==='-1'),plus=buttons.find(button=>button.dataset.quantityStep==='1');
     assert.equal(minus.disabled,true);
-    const seat=get('hold-zones').querySelectorAll('input[type=checkbox]')[0];seat.checked=true;get('hold-zones').oninput();
-    for(let i=0;i<7;i++)plus.listeners.click();
+    const seatCounter=get('hold-zones').querySelectorAll('input').find(input=>input.dataset.seatCount);seatCounter.value='1';get('hold-zones').oninput();assert.equal(get('hold-submit').disabled,true);const seat=get('hold-zones').querySelectorAll('input[type=checkbox]')[0];
+    for(let i=0;i<7;i++)plus.listeners.click();assert.equal(plus.disabled,true);assert.equal(get('hold-submit').disabled,true);seat.checked=true;get('hold-zones').oninput();
     assert.equal(quantity.value,'7');assert.equal(plus.disabled,true);assert.equal(get('hold-submit').disabled,false);
     assert.equal(get('selection-total').textContent,'1.250.000 đ');
     plus.listeners.click();assert.equal(quantity.value,'7');
