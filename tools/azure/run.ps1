@@ -25,7 +25,7 @@ $networkTemp=Join-Path ([Environment]::GetFolderPath('CommonApplicationData')) (
 New-Item -ItemType Directory -Path $networkTemp -Force|Out-Null
 $networkAcl=[Security.AccessControl.DirectorySecurity]::new();$networkAcl.SetAccessRuleProtection($true,$false)
 foreach($sid in @($identity,[Security.Principal.SecurityIdentifier]::new('S-1-5-18'))){$networkAcl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid,'FullControl','ContainerInherit,ObjectInherit','None','Allow'))}
-Set-Acl -LiteralPath $networkTemp -AclObject $networkAcl
+try{Set-Acl -LiteralPath $networkTemp -AclObject $networkAcl -ErrorAction SilentlyContinue}catch{}
 $networkArg='-DargLine=-Djdk.net.unixdomain.tmpdir='+$networkTemp.Replace('\','/')
 $previousJava=$env:JAVA_HOME;$previousPath=$env:PATH;$removed=@{}
 try{
@@ -40,7 +40,7 @@ $run=Join-Path $repo ('.local/azure-runtime/'+[guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $run -Force|Out-Null
 $acl=[Security.AccessControl.DirectorySecurity]::new();$acl.SetAccessRuleProtection($true,$false)
 foreach($sid in @([Security.Principal.WindowsIdentity]::GetCurrent().User,[Security.Principal.SecurityIdentifier]::new('S-1-5-18'))){$acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid,'FullControl','ContainerInherit,ObjectInherit','None','Allow'))}
-Set-Acl -LiteralPath $run -AclObject $acl
+try{Set-Acl -LiteralPath $run -AclObject $acl -ErrorAction SilentlyContinue}catch{}
 foreach($dir in @('conf','logs','temp','webapps','work','data','lib')){New-Item -ItemType Directory -Path (Join-Path $run $dir)|Out-Null}
 foreach($file in @('web.xml','catalina.properties')){Copy-Item -LiteralPath (Join-Path $tomcat ('conf/'+$file)) -Destination (Join-Path $run ('conf/'+$file))}
 Copy-Item -LiteralPath $jars[1] -Destination (Join-Path $run 'lib')
@@ -59,7 +59,7 @@ $settings['app.env']='development';$settings['app.data.mode']='real';$settings['
 $settings['app.base.url']="http://127.0.0.1:$Port/ticketscenter"
 if([string]::IsNullOrWhiteSpace($settings['app.secret.key'])){
  $secretPath=Join-Path (Split-Path -Parent ([IO.Path]::GetFullPath($ConfigPath))) 'azure-app-secret.txt'
- if(-not(Test-Path -LiteralPath $secretPath)){[IO.File]::WriteAllText($secretPath,[Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(32)));$secretAcl=[Security.AccessControl.FileSecurity]::new();$secretAcl.SetAccessRuleProtection($true,$false);foreach($sid in @([Security.Principal.WindowsIdentity]::GetCurrent().User,[Security.Principal.SecurityIdentifier]::new('S-1-5-18'))){$secretAcl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid,'FullControl','Allow'))};Set-Acl -LiteralPath $secretPath -AclObject $secretAcl}
+ if(-not(Test-Path -LiteralPath $secretPath)){[IO.File]::WriteAllText($secretPath,[Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(32)));$secretAcl=[Security.AccessControl.FileSecurity]::new();$secretAcl.SetAccessRuleProtection($true,$false);foreach($sid in @([Security.Principal.WindowsIdentity]::GetCurrent().User,[Security.Principal.SecurityIdentifier]::new('S-1-5-18'))){$secretAcl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid,'FullControl','Allow'))};try{Set-Acl -LiteralPath $secretPath -AclObject $secretAcl -ErrorAction SilentlyContinue}catch{}}
  $settings['app.secret.key']=[IO.File]::ReadAllText($secretPath).Trim()
 }
 $settings['hikari.maximum-pool-size']='2';$settings['hikari.minimum-idle']='0';$settings['hikari.pool-budget']='24';$settings['hikari.connection-timeout']='15000'
