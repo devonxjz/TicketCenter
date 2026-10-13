@@ -3,7 +3,7 @@
  async function signOut(fetch,base){
   const before=await fetch(base+'/api/auth/csrf',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}}),csrf=await before.json();
   if(!before.ok||!csrf.data?.token)throw new Error(csrf.error?.message||'Không thể xác nhận phiên đăng nhập.');
-  const response=await fetch(base+'/api/auth/logout',{method:'POST',credentials:'same-origin',headers:{Accept:'application/json','X-CSRF-Token':csrf.data.token}}),result=await response.json();
+  const response=await fetch(base+'/api/auth/logout',{method:'POST',credentials:'same-origin',headers:{Accept:'application/json','Content-Type':'application/json','X-CSRF-Token':csrf.data.token},body:'{}'}),result=await response.json();
   if(!response.ok||!result.data?.loggedOut)throw new Error(result.error?.message||'Chưa đăng xuất được. Vui lòng thử lại.');
  }
  if(typeof module!=='undefined'&&module.exports){module.exports={signOut};return;}
