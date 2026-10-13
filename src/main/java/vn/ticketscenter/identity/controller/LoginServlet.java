@@ -138,9 +138,7 @@ public class LoginServlet extends HttpServlet {
             String requestedRedirect = req.getParameter("redirect");
             String targetRedirect = defaultRedirect;
             if (isLocalRedirect(requestedRedirect, req.getContextPath())) {
-                boolean isRestricted = (principal.isCustomerOnly() && (requestedRedirect.contains("/admin") || requestedRedirect.contains("/organizer")))
-                        || (principal.organizationRole() == vn.ticketscenter.identity.model.OrganizationRole.CHECK_IN_STAFF && requestedRedirect.contains("/admin"));
-                if (!isRestricted) {
+                if (isRoleRedirectAllowed(principal, requestedRedirect, req.getContextPath())) {
                     targetRedirect = requestedRedirect;
                 }
             }
@@ -162,6 +160,24 @@ public class LoginServlet extends HttpServlet {
             HttpResponses.error(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
                     "SERVER_ERROR", "Đã xảy ra lỗi trong quá trình xử lý đăng nhập");
         }
+    }
+
+    /** Apply role checks to the decoded route, excluding query values. */
+    static boolean isRoleRedirectAllowed(UserPrincipal principal, String target, String contextPath) {
+        String path;
+        try { path = java.net.URI.create(target).getPath(); }
+        catch (IllegalArgumentException invalid) { return false; }
+        String base = contextPath == null ? "" : contextPath;
+        if (path == null || !path.startsWith(base)) return false;
+        path = path.substring(base.length());
+        if (principal.isAdmin()) return true;
+        if (path.equals("/admin") || path.startsWith("/admin/")) return false;
+        if (path.equals("/organizer/request")) return true;
+        if (path.equals("/organizer") || path.startsWith("/organizer/")) {
+            return principal.isManager() || (principal.isStaff() &&
+                    (path.equals("/organizer/checkin") || path.startsWith("/organizer/checkin/")));
+        }
+        return true;
     }
 
     /** Only same-application paths are accepted; scheme-relative and backslash forms leave the site. */

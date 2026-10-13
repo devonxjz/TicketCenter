@@ -16,7 +16,35 @@
         if (!response.ok) throw new Error(payload.error?.message || 'Không thể tải dữ liệu. Vui lòng thử lại.');
         return payload;
     }
-    const exports = {eventId, price, requestJson};
+    function localDateTime(value) {
+        if (!value) return '';
+        const date = new Date(value);
+        if (!Number.isFinite(date.getTime())) return '';
+        return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    }
+    function catalogState(search) {
+        const query = new URLSearchParams(search), page = Number(query.get('page'));
+        return {page: Number.isSafeInteger(page) && page > 0 ? page : 1,
+            keyword: query.get('keyword') || '', categoryId: query.get('categoryId') || '',
+            sort: ['startTime_asc','startTime_desc','price_asc','price_desc'].includes(query.get('sort')) ? query.get('sort') : 'startTime_asc',
+            from: localDateTime(query.get('from')), to: localDateTime(query.get('to'))};
+    }
+    function catalogQuery(entries, page, now = new Date()) {
+        const today = new Date(now); today.setHours(0,0,0,0);
+        const query = new URLSearchParams({page:String(page), pageSize:'6', from:today.toISOString()});
+        for (const [key, raw] of entries) {
+            const value = String(raw).trim(); if (!value) continue;
+            if (key === 'from' || key === 'to') {
+                const date = new Date(value);
+                if (!Number.isFinite(date.getTime())) throw new Error('Vui lòng chọn ngày hợp lệ.');
+                query.set(key, date.toISOString());
+            } else query.set(key, value);
+        }
+        if (query.has('to') && new Date(query.get('to')) <= new Date(query.get('from')))
+            throw new Error('Ngày kết thúc phải sau ngày bắt đầu.');
+        return query;
+    }
+    const exports = {eventId, price, requestJson, localDateTime, catalogState, catalogQuery};
     if (typeof module !== 'undefined' && module.exports) { module.exports = exports; return; }
     root.PublicEvents = exports;
     const doc = root.document, page = doc.body.dataset.publicPage;
@@ -72,24 +100,39 @@
             get('catalog-featured').hidden=!slides.length;moveSlide(0);startBanner();
             for(const id of ['hero-previous','hero-next','hero-pause'])get(id).hidden=slides.length<2;
             get('hero-pause').textContent=paused?'▶':'Ⅱ';
+            get('hero-pause').setAttribute('aria-label',paused?'Tiếp tục banner':'Tạm dừng banner');
             }catch(_){get('catalog-featured').hidden=true;}
         }
         get('hero-previous').addEventListener('click',()=>{moveSlide(slideIndex-1);startBanner();});
         get('hero-next').addEventListener('click',()=>{moveSlide(slideIndex+1);startBanner();});
         get('hero-pause').addEventListener('click',()=>{paused=!paused;get('hero-pause').textContent=paused?'▶':'Ⅱ';get('hero-pause').setAttribute('aria-label',paused?'Tiếp tục banner':'Tạm dừng banner');startBanner();});
-        const search = new URLSearchParams(root.location.search);
-        for (const key of ['keyword', 'sort', 'from', 'to']) if (search.has(key)) form.elements.namedItem(key).value = search.get(key);
-        async function load() {
+        let categories = [];
+        function restore() {
+            const state = catalogState(root.location.search), search = new URLSearchParams(root.location.search);
+            if (!state.categoryId && search.has('category')) state.categoryId = categories.find(category => category.slug === search.get('category'))?.categoryId || '';
+            pageNumber = state.page;
+            for (const key of ['keyword','categoryId','sort','from','to']) form.elements.namedItem(key).value = state[key];
+        }
+        function syncHeader() {
+            const keyword = doc.querySelector('[data-site-header] input[name=keyword]');
+            if (keyword) keyword.value = form.elements.namedItem('keyword').value;
+            if (get('header-category')) get('header-category').value = get('category').value;
+        }
+        async function load(remember = true) {
             const current = ++revision;
+            syncHeader();
             for(const tab of get('catalog-categories').children){const active=tab.dataset.category===get('category').value;tab.classList.toggle('active',active);tab.setAttribute('aria-pressed',String(active));}
-            const today=new Date();today.setHours(0,0,0,0);
-            const query = new URLSearchParams({page: String(pageNumber), pageSize: '6',from:today.toISOString()});
-            for (const [key, value] of new FormData(form)) if (value.trim()) {
-                if (key === 'from' || key === 'to') query.set(key, new Date(value).toISOString()); else query.set(key, value.trim());
-            }
             get('previous').disabled = get('next').disabled = true; cards.setAttribute('aria-busy', 'true');
             status.textContent = 'Đang tải sự kiện…'; get('retry-events').hidden = true;
             try {
+                const query = catalogQuery(new FormData(form), pageNumber);
+                if (remember) {
+                    const url = new URL(root.location.href), historyQuery = new URLSearchParams(query);
+                    historyQuery.delete('pageSize');
+                    if (!form.elements.namedItem('from').value) historyQuery.delete('from');
+                    url.search = historyQuery.toString();
+                    if (url.href !== root.location.href) root.history.pushState({}, '', url);
+                }
                 const result = await api('/api/events?' + query);
                 if (current !== revision) return;
                 cards.replaceChildren(...result.data.map(eventCard));banner(result.data);
@@ -100,28 +143,26 @@
             } catch (error) {
                 if (current !== revision) return;
                 cards.replaceChildren();get('catalog-featured').hidden=true;root.clearInterval(timer);status.textContent = error.message; get('retry-events').hidden = false;
+                get('page-label').textContent = '';
             } finally { if (current === revision) cards.removeAttribute('aria-busy'); }
         }
         form.addEventListener('submit', e => { e.preventDefault(); pageNumber = 1; void load(); });
         get('previous').addEventListener('click', () => { pageNumber--; void load(); });
         get('next').addEventListener('click', () => { pageNumber++; void load(); });
         get('retry-events').addEventListener('click', () => void load());
+        root.addEventListener('popstate', () => { restore(); void load(false); });
         try {
-            const categories = await api('/api/event-categories');
+            categories = (await api('/api/event-categories')).data;
             const tabs=get('catalog-categories');
             function tab(text,value){const button=node('button',text);button.type='button';button.dataset.category=value;button.addEventListener('click',()=>{get('category').value=value;pageNumber=1;[...tabs.children].forEach(t=>{t.classList.toggle('active',t===button);t.setAttribute('aria-pressed',String(t===button));});void load();});tabs.append(button);}
             tab('Tất cả','');
-            for (const category of categories.data) {
+            for (const category of categories) {
                 const option = node('option', category.name); option.value = category.categoryId; get('category').append(option);tab(category.name,category.categoryId);
             }
-            if (search.has('categoryId')) get('category').value = search.get('categoryId');
-            if (search.has('category')) {
-                const selected = categories.data.find(category => category.slug === search.get('category'));
-                if (selected) get('category').value = selected.categoryId;
-            }
         } catch (_) { get('category').disabled = true; get('category-help').textContent = 'Chưa tải được danh mục. Bạn vẫn có thể tìm bằng từ khóa.'; }
+        restore();
         for(const tab of get('catalog-categories').children){tab.classList.toggle('active',tab.dataset.category===get('category').value);tab.setAttribute('aria-pressed',String(tab.dataset.category===get('category').value));}
-        await load();
+        await load(false);
     }
     async function detailPage() {
         const id = eventId(root.location.search), status = get('status');

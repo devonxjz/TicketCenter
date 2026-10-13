@@ -51,6 +51,8 @@ app.base.url=http://localhost:8080/ticketscenter
 app.env=development
 app.data.mode=real
 app.secret.key=
+# Persistent local image files when Cloudinary is unconfigured. Keep this directory across restarts.
+# app.base.url must contain the deployment context used by the image-serving route.
 event.image.directory=.local/event-images
 
 # All machine-specific paths belong to this same private configuration file.

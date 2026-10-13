@@ -42,7 +42,7 @@ public final class EventCoverService {
             URI url;
             try { url=URI.create(asset.secureUrl()); }
             catch(IllegalArgumentException e) { throw new EventProblem(502,"EVENT_STORAGE_INVALID","Dịch vụ ảnh trả metadata không hợp lệ."); }
-            if(!"https".equalsIgnoreCase(url.getScheme()) || url.getHost()==null || url.getUserInfo()!=null || !asset.publicId().matches("[A-Za-z0-9/_-]{1,255}")) throw new EventProblem(502,"EVENT_STORAGE_INVALID","Dịch vụ ảnh trả metadata không hợp lệ.");
+            if((!LocalImageStorage.isLocalUrl(asset.secureUrl()) && (!"https".equalsIgnoreCase(url.getScheme()) || url.getHost()==null || url.getUserInfo()!=null)) || !asset.publicId().matches("[A-Za-z0-9/_-]{1,255}")) throw new EventProblem(502,"EVENT_STORAGE_INVALID","Dịch vụ ảnh trả metadata không hợp lệ.");
             var command=new EventCommand("COVER",null,event,null,Map.of("coverImageUrl",asset.secureUrl(),"publicId",asset.publicId(),"expectedVersion",expectedVersion));
             var result=repository.command(actor,key,hash,command); // New short SQL transaction after upload.
             boolean used=EventResponseValues.string(result.json(),"coverImageUrl").filter(asset.secureUrl()::equals).isPresent();

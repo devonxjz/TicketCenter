@@ -22,7 +22,7 @@ public final class EventManagementWeb {
             if(!post && p.length==5 && p[2].equals("events") && p[4].equals("image")) {
                 String url=EventCatalogRuntime.resolve(request.getServletContext()).image(EventCommand.uuid(p[3]));
                 URI target=URI.create(url);
-                if(!Set.of("https","http").contains(target.getScheme()) || target.getHost()==null || target.getUserInfo()!=null) throw new EventProblem(404,"EVENT_IMAGE_NOT_FOUND","Chưa có ảnh sự kiện.");
+                if(!vn.ticketscenter.storage.LocalImageStorage.isLocalUrl(url) && (!Set.of("https","http").contains(target.getScheme()) || target.getHost()==null || target.getUserInfo()!=null)) throw new EventProblem(404,"EVENT_IMAGE_NOT_FOUND","Chưa có ảnh sự kiện.");
                 response.setHeader("Cache-Control","no-store");response.sendRedirect(url);return;
             }
             var user=SecurityContext.getCurrentUser(request).orElseThrow(()->new EventProblem(401,"AUTH_REQUIRED","Cần đăng nhập để quản lý sự kiện."));
