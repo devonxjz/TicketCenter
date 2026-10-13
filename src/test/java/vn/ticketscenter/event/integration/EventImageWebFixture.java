@@ -26,6 +26,9 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+
+import vn.ticketscenter.event.dto.EventDto;
 
 public final class EventImageWebFixture {
     public static void main(String[] args) throws Exception {
@@ -102,13 +105,46 @@ public final class EventImageWebFixture {
                                 .getConstructor()
                                 .newInstance(),
                         null);
+                Servlet eventServlet =
+                        new EventApiServlet(service) {
+                            @Override
+                            protected void doGet(
+                                    HttpServletRequest req, HttpServletResponse resp)
+                                    throws IOException {
+                                String path = req.getRequestURI().substring(req.getContextPath().length());
+                                String[] p = path.split("/");
+                                if (p.length == 5 && p[2].equals("organizations") && p[4].equals("events")) {
+                                    resp.setContentType("application/json;charset=UTF-8");
+                                    try {
+                                        var events = service.managedEvents(fixture.actor, UUID.fromString(p[3]));
+                                        String json = events.stream()
+                                                .map(EventImageWebFixture::jsonWithAliases)
+                                                .collect(Collectors.joining(",", "{\"data\":[", "],\"page\":1,\"pageSize\":20,\"total\":" + events.size() + "}"));
+                                        resp.getWriter().write(json);
+                                    } catch (Exception e) {
+                                        resp.getWriter().write("{\"data\":[],\"page\":1,\"pageSize\":20,\"total\":0}");
+                                    }
+                                    return;
+                                } else if (p.length == 6 && p[2].equals("organizations") && p[4].equals("events")) {
+                                    resp.setContentType("application/json;charset=UTF-8");
+                                    try {
+                                        var event = service.managedEvent(fixture.actor, UUID.fromString(p[5]));
+                                        resp.getWriter().write("{\"data\":" + jsonWithAliases(event) + "}");
+                                    } catch (Exception e) {
+                                        resp.sendError(404);
+                                    }
+                                    return;
+                                }
+                                super.doGet(req, resp);
+                            }
+                        };
                 Object api =
                         servlet(
                                 type,
                                 contextType,
                                 context,
                                 "events",
-                                new EventApiServlet(service),
+                                eventServlet,
                                 "/api/events",
                                 "/api/events/*",
                                 "/api/organizations/*",
@@ -313,5 +349,13 @@ public final class EventImageWebFixture {
                     path,
                     name);
         return wrapper;
+    }
+
+    private static String jsonWithAliases(EventDto dto) {
+        String base = dto.toJson();
+        if (!base.contains("\"eventId\":")) {
+            base = "{\"eventId\":\"" + dto.id() + "\",\"saleStartTime\":\"" + dto.saleStart() + "\",\"saleEndTime\":\"" + dto.saleEnd() + "\"," + base.substring(1);
+        }
+        return base;
     }
 }
