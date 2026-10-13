@@ -575,3 +575,69 @@ test("production summary renders optional snapshot labels as text and omits raw 
         "Vé ghế · 1 vé × 200.000 đ", "Vé đứng · 2 vé × 150.000 đ"
     ]);
 });
+
+test("selection summary reports invalid when total tickets exceed 8 across multiple zones", async () => {
+    const f = fixture({ page: "selection", eventId: EVENT });
+    f.server.hold = null;
+    const STANDING2 = "30000000-0000-4000-8000-000000000003";
+    f.server.options = {
+        ...options(),
+        zones: [
+            ...options().zones,
+            { id: STANDING2, name: "Floor 2", type: "STANDING", unitPrice: "160000", availableStanding: 30, availableSeats: [] }
+        ]
+    };
+    class Element {
+        constructor(tag = "div") {
+            this.tag = tag; this.dataset = {}; this.children = []; this.textContent = "";
+            this.className = "";
+            this.classList = {
+                add: cls => { if (!this.className.includes(cls)) this.className = (this.className + " " + cls).trim(); },
+                remove: cls => { this.className = this.className.replace(cls, "").trim(); }
+            };
+        }
+        append(...nodes) { this.children.push(...nodes); }
+        replaceChildren(...nodes) { this.children = nodes; }
+        addEventListener() {}
+        querySelectorAll(selector) {
+            if (selector === "input") return this.inputs || [];
+            if (selector === "input[type=checkbox]") return (this.inputs || []).filter(i => i.type === "checkbox");
+            if (selector === "input.hold-quantity") return (this.inputs || []).filter(i => i.className.includes("hold-quantity"));
+            return [];
+        }
+    }
+    const nodes = new Map();
+    const body = new Element(); body.dataset = { holdPage: "selection", context: "" };
+    const root = {
+        document: {
+            body, createElement: tag => new Element(tag),
+            getElementById: id => {
+                if (!nodes.has(id)) nodes.set(id, new Element());
+                return nodes.get(id);
+            }
+        },
+        sessionStorage: f.storage,
+        crypto: { randomUUID: () => "60000000-0000-4000-8000-000000000001" },
+        performance: { now: () => 0 },
+        location: { search: "?id=" + EVENT },
+        fetch: f.create().fetch,
+        setInterval: () => 1, clearInterval: () => {}, addEventListener: () => {}
+    };
+    const flush = async () => { for (let i = 0; i < 5; i++) await new Promise(resolve => setImmediate(resolve)); };
+    vm.runInNewContext(fs.readFileSync(require.resolve("../../main/webapp/assets/js/ticket-hold.js"), "utf8"), { window: root, URLSearchParams });
+    await flush();
+
+    const zonesEl = nodes.get("hold-zones");
+    const input1 = new Element("input"); input1.className = "hold-quantity"; input1.dataset = { zoneId: STANDING }; input1.value = "5";
+    const input2 = new Element("input"); input2.className = "hold-quantity"; input2.dataset = { zoneId: STANDING2 }; input2.value = "6";
+    zonesEl.inputs = [input1, input2];
+
+    zonesEl.oninput();
+
+    assert.equal(nodes.get("selection-count").textContent, "Đã chọn 11 / 8 vé (Tối đa 8 vé)");
+    assert.equal(nodes.get("selection-total").textContent, "Lựa chọn không hợp lệ");
+    assert.equal(nodes.get("hold-submit").disabled, true);
+    assert.equal(input1.className.includes("is-invalid"), true);
+    assert.equal(input2.className.includes("is-invalid"), true);
+});
+
