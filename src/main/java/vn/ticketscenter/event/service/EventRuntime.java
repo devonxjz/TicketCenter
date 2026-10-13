@@ -67,7 +67,7 @@ public final class EventRuntime implements ServletContextListener {
         if (vn.ticketscenter.config.AppConfig.getBoolean("event.redis.enabled", false)) {
             return new vn.ticketscenter.event.cache.RedisEventIdempotencyStore();
         }
-        return null;
+        return new vn.ticketscenter.event.cache.InMemoryEventIdempotencyStore();
     }
 
     public static final class LocalSimulatedStorage implements vn.ticketscenter.storage.StorageService {
