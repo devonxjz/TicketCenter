@@ -35,12 +35,12 @@ test('switching organizations ignores an older coupon response and clears old ro
 test('an older dashboard failure cannot overwrite the newly selected organization', async()=>{
   const {get,reply}=page('organizer-dashboard');await flush();
   get('organization').value='org-b';get('organization').listeners.change();
-  reply('/api/organizations/org-b/overview',{data:{eventCount:2,pendingEvents:1,paidOrders:3,todayCohortGrossRevenue:'1000',todayCashFlow:{netCashFlow:'900'},asOf:'2026-10-13T00:00:00Z',dailyMetrics:[]}});
+  reply('/api/organizations/org-b/overview',{data:{eventCount:2,pendingEvents:1,paidOrders:3,cumulativeGrossRevenue:'90000',cumulativeNetCashFlow:'85000',todayCohortGrossRevenue:'1000',todayCashFlow:{netCashFlow:'900'},asOf:'2026-10-13T00:00:00Z',dailyMetrics:[]}});
   reply('/api/organizations/org-b/events?page=1&pageSize=6',{data:[]});await flush();
   reply('/api/organizations/org-a/overview',{error:{message:'Old request failed'}},500);
   reply('/api/organizations/org-a/events?page=1&pageSize=6',{data:[]});await flush();
   assert.equal(get('org-name').textContent,'Tổ chức B');
-  assert.equal(get('metric-events').textContent,'2');
+  assert.equal(get('metric-events').textContent,'2');assert.equal(get('metric-revenue').textContent,'90.000 đ');assert.equal(get('metric-cash').textContent,'85.000 đ');assert.ok(get('metric-asof').textContent.includes('1.000 đ'));
   assert.equal(get('live-status').textContent,'');
 });
 test('coupon type requires only the visible amount input', async()=>{

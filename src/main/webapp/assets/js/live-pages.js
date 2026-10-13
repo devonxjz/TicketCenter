@@ -4,7 +4,7 @@
     if (!page) return;
     const $ = id => document.getElementById(id);
     const node = (tag, text = '', cls = '') => { const e = document.createElement(tag); e.textContent = text; if (cls) e.className = cls; return e; };
-    const money = value => BigInt(value || 0).toLocaleString('vi-VN') + ' đ';
+    const money = value => /^-?\d+$/.test(String(value)) ? BigInt(value).toLocaleString('vi-VN') + ' đ' : '—';
     const date = value => value ? new Date(value).toLocaleString('vi-VN') : '—';
     const eventStatus = {DRAFT:'Bản nháp', PENDING_APPROVAL:'Chờ duyệt', REJECTED:'Bị từ chối', PUBLISHED:'Đã công khai', CANCELLED:'Đã hủy'};
     const roles = {MANAGER:'Quản lý tổ chức', CHECK_IN_STAFF:'Nhân viên soát vé'};
@@ -83,9 +83,9 @@
                 $('metric-events').textContent = String(data.eventCount);
                 $('metric-pending').textContent = String(data.pendingEvents);
                 $('metric-orders').textContent = String(data.paidOrders);
-                $('metric-revenue').textContent = money(data.todayCohortGrossRevenue);
-                $('metric-cash').textContent = money(data.todayCashFlow?.netCashFlow);
-                $('metric-asof').textContent = 'Cập nhật lúc ' + date(data.asOf);
+                $('metric-revenue').textContent = money(data.cumulativeGrossRevenue);
+                $('metric-cash').textContent = money(data.cumulativeNetCashFlow);
+                $('metric-asof').textContent = 'Cập nhật lúc ' + date(data.asOf) + ' · Hôm nay (UTC): doanh thu ' + money(data.todayCohortGrossRevenue) + ', dòng tiền ròng ' + money(data.todayCashFlow?.netCashFlow);
                 const days = $('daily'), list = data.dailyMetrics || [];
                 if ($('org-chart')) globalThis.TicketUI?.renderChart($('org-chart'), list);
                 if (!list.length) empty(days, 3, 'Chưa có số liệu.');

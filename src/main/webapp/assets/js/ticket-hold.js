@@ -61,6 +61,30 @@
         return data;
     }
 
+    function seatRows(zone, payload) {
+        if (!payload || !Array.isArray(payload.data)) throw new Error("Không đọc được sơ đồ ghế.");
+        const allowed = new Set(zone.availableSeats.map(seat => seat.id.toLowerCase()));
+        const seen = new Set(), rows = new Map();
+        for (const seat of payload.data) {
+            if (!uuid(seat.seatId) || !uuid(seat.zoneId) || seat.zoneId.toLowerCase() !== zone.id.toLowerCase() ||
+                seen.has(seat.seatId.toLowerCase()) || typeof seat.rowName !== 'string' ||
+                !Number.isInteger(seat.seatNumber) || typeof seat.seatLabel !== 'string' ||
+                !['AVAILABLE', 'HELD', 'SOLD'].includes(seat.status)) throw new Error('Dữ liệu ghế không hợp lệ.');
+            seen.add(seat.seatId.toLowerCase());
+            const selectable = seat.status === 'AVAILABLE' && allowed.has(seat.seatId.toLowerCase());
+            const value = {id:seat.seatId.toLowerCase(),label:seat.seatLabel,number:seat.seatNumber,
+                selectable,status:seat.status === 'AVAILABLE' && !selectable ? 'UNAVAILABLE' : seat.status};
+            if (!rows.has(seat.rowName)) rows.set(seat.rowName, []);
+            rows.get(seat.rowName).push(value);
+        }
+        for (const seat of zone.availableSeats) if (!seen.has(seat.id.toLowerCase())) {
+            if (!rows.has('')) rows.set('', []);
+            rows.get('').push({id:seat.id,label:seat.label,number:0,status:'AVAILABLE',selectable:true});
+        }
+        return Array.from(rows, ([name,seats]) => ({name,seats:seats.sort((a,b)=>a.number-b.number||a.label.localeCompare(b.label,'vi',{numeric:true}))}))
+            .sort((a,b)=>a.name.localeCompare(b.name,'vi',{numeric:true}));
+    }
+
     function selectionPayload(options, selections) {
         if (!Array.isArray(selections) || !selections.length) throw new Error("Chọn ít nhất một vé.");
         let count = 0;
@@ -226,6 +250,10 @@
                 if (Date.parse(options.saleEnd) <= Date.parse(options.serverTime)) {
                     this.apply(operation, "expired", { hold: null, options: null, message: "Sự kiện đã đóng bán." }, anchor);
                 } else {
+                    await Promise.all(options.zones.filter(zone=>zone.type==='SEATED').map(async zone=>{
+                        try {zone.seatRows=seatRows(zone,await this.read(operation,'/api/zones/'+zone.id+'/seats'));}
+                        catch(error){this.requireCurrent(operation);if(error.status===401||error.status===403)throw error;zone.seatRows=seatRows(zone,{data:[]});zone.layoutUnavailable=true;}
+                    }));
                     this.apply(operation, "selecting", { hold: null, options, message: message || (receipt ? "Lượt giữ trước không còn hiệu lực. Bạn có thể chọn vé mới." : "Chọn vé từ danh sách khả dụng hiện tại.") }, anchor);
                 }
             } else {
@@ -318,7 +346,7 @@
         }
     }
 
-    const exported = { HoldClient, ApiError, selectionPayload, currentHold, catalog, total, vnd, countdown, resolveEventId };
+    const exported = { HoldClient, ApiError, selectionPayload, currentHold, catalog, seatRows, total, vnd, countdown, resolveEventId };
     if (typeof module !== "undefined" && module.exports) { module.exports = exported; return; }
     root.TicketHold = exported;
 
@@ -420,7 +448,7 @@
         if (get("hold-pay-now")) get("hold-pay-now").disabled = !submitBtn || submitBtn.disabled;
         const zonesEl = get("hold-zones");
         if (zonesEl) {
-            for (const input of zonesEl.querySelectorAll("input[type=checkbox]")) input.disabled = count >= 8 && !input.checked;
+            for (const input of zonesEl.querySelectorAll("input[type=checkbox]")) input.disabled = input.dataset.unavailable === 'true' || count >= 8 && !input.checked;
             for (const input of zonesEl.querySelectorAll("input.hold-quantity")) {
                 const val = Number(input.value) || 0;
                 if (val > 8 || count > 8) {
@@ -448,12 +476,23 @@
                 input.className = "hold-quantity"; input.dataset.zoneId = zone.id; input.disabled = zone.availableStanding === 0;
                 label.append(input); field.append(label);
             } else {
-                const seats = element("div"); seats.className = "hold-seats";
+                field.append(element('p','Vé ngồi · Chọn từng ghế trên sơ đồ.'));
+                const legend=element('p','Trống · Đang chọn · Đang giữ · Đã bán');legend.className='hold-seat-legend';field.append(legend);
+                const seats = element("div"); seats.className = "hold-seat-map";
                 if (!zone.availableSeats.length) seats.append(element("p", "Không còn ghế khả dụng."));
-                for (const seat of zone.availableSeats) {
-                    const label = element("label"); label.className = "hold-seat";
-                    const input = element("input"); input.type = "checkbox"; input.dataset.zoneId = zone.id; input.dataset.seatId = seat.id;
-                    label.append(input, element("span", seat.label)); seats.append(label);
+                if(zone.layoutUnavailable)seats.append(element('p','Chưa tải được bố cục; danh sách bên dưới gồm các ghế còn trống do máy chủ xác nhận.'));
+                for (const row of zone.seatRows || seatRows(zone,{data:[]})) {
+                    const line=element('div');line.className='hold-seat-row';
+                    const name=element('span',row.name?'Hàng '+row.name:'Ghế');name.className='hold-row-label';line.append(name);
+                    for(const seat of row.seats){
+                        const label = element("label"); label.className = "hold-seat seat-"+seat.status.toLowerCase();
+                        const input = element("input"); input.type = "checkbox"; input.dataset.zoneId = zone.id; input.dataset.seatId = seat.id;
+                        input.dataset.unavailable=String(!seat.selectable);input.disabled=!seat.selectable;
+                        const status={AVAILABLE:'Còn trống',HELD:'Đang được giữ',SOLD:'Đã bán',UNAVAILABLE:'Không còn khả dụng'}[seat.status];
+                        input.setAttribute('aria-label','Ghế '+seat.label+' · '+status);label.title='Ghế '+seat.label+' · '+status;
+                        label.append(input, element("span", seat.label));line.append(label);
+                    }
+                    seats.append(line);
                 }
                 field.append(seats);
             }

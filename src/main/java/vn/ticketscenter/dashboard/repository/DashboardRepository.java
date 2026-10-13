@@ -14,6 +14,11 @@ public final class DashboardRepository {
             result.put("eventCount",counts[0]);result.put("pendingEvents",counts[1]);result.put("paidOrders",counts[2]);}
         var cash=cash(db,org,from,to);var cohort=cohort(db,org,from,to);
         result.put("todayCashFlow",cash);result.put("todayCohortGrossRevenue",cohort.get("grossRevenue"));result.put("todayCohortCommission",cohort.get("totalCommission"));
+        var cumulative=cohort(db,org,Instant.EPOCH,now);
+        result.put("cumulativeGrossRevenue",cumulative.get("grossRevenue"));
+        result.put("cumulativeCommission",cumulative.get("totalCommission"));
+        result.put("cumulativeNetCashFlow",cash(db,org,Instant.EPOCH,now).get("netCashFlow"));
+        result.put("cumulativeFrom",Instant.EPOCH);result.put("cumulativeTo",now);
         result.put("commissionTimeBasis","ORDER_PAID_AT_WITH_REFUNDS_BEFORE_TO");
         var days=new ArrayList<Map<String,Object>>();
         for(int previous=6;previous>=0;previous--){

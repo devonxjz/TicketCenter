@@ -49,13 +49,11 @@
                             </div>
                         </div>
                         <div class="col-sm-6 col-lg">
-                            <div class="panel-box h-100 mb-0 p-4"><span class="filter-label d-block mb-1">Doanh thu hôm
-                                    nay (UTC)</span><span class="h3 fw-bold text-danger d-block"
+                            <div class="panel-box h-100 mb-0 p-4"><span class="filter-label d-block mb-1">Doanh thu lũy kế</span><span class="h3 fw-bold text-danger d-block"
                                     id="metric-revenue">—</span></div>
                         </div>
                         <div class="col-sm-6 col-lg">
-                            <div class="panel-box h-100 mb-0 p-4"><span class="filter-label d-block mb-1">Dòng tiền ròng
-                                    hôm nay</span><span class="h3 fw-bold text-dark d-block" id="metric-cash">—</span>
+                            <div class="panel-box h-100 mb-0 p-4"><span class="filter-label d-block mb-1">Dòng tiền ròng lũy kế</span><span class="h3 fw-bold text-dark d-block" id="metric-cash">—</span>
                             </div>
                         </div>
                     </div>

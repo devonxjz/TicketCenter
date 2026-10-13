@@ -84,7 +84,7 @@ test("integer VND snapshots remain exact above Number safe range", () => {
 test("load uses normal cookie reads and wrappers, and never creates a hold", async () => {
     const f = fixture(); const client = f.create(); await client.refresh();
     assert.equal(client.state.phase, "selecting");
-    assert.deepEqual(f.calls.map(call => call.path), ["/api/me", "/api/me/hold", "/api/hold-options?eventId=" + EVENT]);
+    assert.deepEqual(f.calls.map(call => call.path), ["/api/me", "/api/me/hold", "/api/hold-options?eventId=" + EVENT, "/api/zones/" + SEATED + "/seats"]);
     assert.equal(f.calls.every(call => call.credentials === "same-origin" && call.cache === "no-store" && !call.method), true);
 });
 
@@ -149,7 +149,7 @@ test("rejected conflict refreshes current SQL and inventory before a changed com
     await client.submit(selected());
     const first = f.calls.find(call => call.method === "POST");
     assert.equal(client.state.phase, "selecting");
-    assert.deepEqual(f.calls.slice(-2).map(call => call.path), ["/api/me/hold", "/api/hold-options?eventId=" + EVENT]);
+    assert.deepEqual(f.calls.slice(-3).map(call => call.path), ["/api/me/hold", "/api/hold-options?eventId=" + EVENT, "/api/zones/" + SEATED + "/seats"]);
     f.server.create = null;
     await client.submit([{ zoneId: STANDING, quantity: 3 }]);
     const second = f.calls.filter(call => call.method === "POST").at(-1);
@@ -331,6 +331,7 @@ test("cached history restore freezes controls, rereads actor and server time, an
         append(...nodes) { this.children.push(...nodes); }
         replaceChildren(...nodes) { this.children = nodes; }
         addEventListener() {}
+        setAttribute(key,value) { this[key]=value; }
         querySelectorAll() { return []; }
     }
     const nodes = new Map();
@@ -540,6 +541,7 @@ test("production summary renders optional snapshot labels as text and omits raw 
         append(...nodes) { this.children.push(...nodes); }
         replaceChildren(...nodes) { this.children = nodes; }
         addEventListener() {}
+        setAttribute(key,value) { this[key]=value; }
         querySelectorAll() { return []; }
     }
     const nodes = new Map(); const events = new Map();
@@ -599,6 +601,7 @@ test("selection summary reports invalid when total tickets exceed 8 across multi
         append(...nodes) { this.children.push(...nodes); }
         replaceChildren(...nodes) { this.children = nodes; }
         addEventListener() {}
+        setAttribute(key,value) { this[key]=value; }
         querySelectorAll(selector) {
             if (selector === "input") return this.inputs || [];
             if (selector === "input[type=checkbox]") return (this.inputs || []).filter(i => i.type === "checkbox");
@@ -639,4 +642,35 @@ test("selection summary reports invalid when total tickets exceed 8 across multi
     assert.equal(nodes.get("hold-submit").disabled, true);
     assert.equal(input1.className.includes("is-invalid"), true);
     assert.equal(input2.className.includes("is-invalid"), true);
+});
+
+test('real seated inventory groups rows without offering held, sold, or stale availability', () => {
+    const { seatRows } = require('../../main/webapp/assets/js/ticket-hold.js');
+    const zone = options().zones[1];
+    const held = '40000000-0000-4000-8000-000000000002';
+    const sold = '40000000-0000-4000-8000-000000000003';
+    const stale = '40000000-0000-4000-8000-000000000004';
+    const rows = seatRows(zone, { data: [
+        {seatId:sold,zoneId:SEATED,rowName:'B',seatNumber:1,seatLabel:'B1',status:'SOLD'},
+        {seatId:held,zoneId:SEATED,rowName:'A',seatNumber:2,seatLabel:'A2',status:'HELD'},
+        {seatId:SEAT,zoneId:SEATED,rowName:'A',seatNumber:1,seatLabel:'A1',status:'AVAILABLE'},
+        {seatId:stale,zoneId:SEATED,rowName:'A',seatNumber:3,seatLabel:'A3',status:'AVAILABLE'}
+    ] });
+    assert.deepEqual(rows.map(row=>[row.name,...row.seats.map(seat=>[seat.label,seat.status,seat.selectable])]), [
+        ['A',['A1','AVAILABLE',true],['A2','HELD',false],['A3','UNAVAILABLE',false]],
+        ['B',['B1','SOLD',false]]
+    ]);
+    assert.throws(()=>seatRows(zone,{data:[{seatId:SEAT,zoneId:STANDING,rowName:'A',seatNumber:1,seatLabel:'A1',status:'AVAILABLE'}]}), /ghế/);
+});
+
+test('seat map enriches actual available IDs and keeps booking usable if layout endpoint fails', async () => {
+    const f = fixture(); const baseFetch = f.create().fetch;
+    const client = f.create({fetch:async (path,request)=> path === '/api/zones/'+SEATED+'/seats'
+        ? f.reply({data:[{seatId:SEAT,zoneId:SEATED,rowName:'A',seatNumber:1,seatLabel:'A1',status:'AVAILABLE'}]}) : baseFetch(path,request)});
+    await client.refresh();
+    assert.equal(client.state.options.zones[1].seatRows[0].name,'A');
+    assert.equal(client.state.options.zones[1].seatRows[0].seats[0].id,SEAT);
+    const fallback = f.create(); await fallback.refresh();
+    assert.equal(fallback.state.phase,'selecting');
+    assert.equal(fallback.state.options.zones[1].seatRows[0].seats[0].id,SEAT);
 });

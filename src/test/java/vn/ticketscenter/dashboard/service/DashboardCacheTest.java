@@ -57,22 +57,31 @@ class DashboardCacheTest {
         public void delete(String key){values.remove(key);}
     }
     static final class Sql {
-        int authorizations,aggregations,closed,version;String role="ADMIN";
+        int authorizations,aggregations,closed,version;String role="ADMIN";boolean zeroRecent;
         Connection connection(){return proxy(Connection.class,(name,args)-> {
             if(name.equals("close")){closed++;return null;}
             if(!name.equals("prepareStatement"))return null;
             boolean auth=((String)args[0]).startsWith("SELECT status,auth_version");
             if(auth)authorizations++;else aggregations++;
+            Instant[] from={null};
             return proxy(PreparedStatement.class,(op,values)-> {
+                if(op.equals("setTimestamp") && (int)values[0]==2){from[0]=((Timestamp)values[1]).toInstant();return null;}
                 if(!op.equals("executeQuery"))return null;
                 boolean[] first={true};
                 return proxy(ResultSet.class,(method,columns)->switch(method){
                     case "next"->{boolean result=first[0];first[0]=false;yield result;}
                     case "getString"->"status".equals(columns[0])?"ACTIVE":role;
-                    case "getInt"->version;case "getLong"->7L;case "getBigDecimal"->new BigDecimal("10");default->null;
+                    case "getInt"->version;case "getLong"->7L;case "getBigDecimal"->zeroRecent&&!Instant.EPOCH.equals(from[0])?BigDecimal.ZERO:new BigDecimal("10");default->null;
                 });
             });
         });}
+    }
+    @Test void historicalRevenueRemainsVisibleWhenRecentPeriodHasNoTransactions()throws Exception{
+        var db=new Sql();db.zeroRecent=true;
+        String result=new DashboardService(db::connection,clock).admin(admin);
+        assertTrue(result.contains("\"todayCohortGrossRevenue\":\"0\""),result);
+        assertTrue(result.contains("\"cumulativeGrossRevenue\":\"10\""),result);
+        assertTrue(result.contains("\"cumulativeNetCashFlow\":\"10\""),result);
     }
     interface Call{Object invoke(String name,Object[] args)throws Throwable;}
     @SuppressWarnings("unchecked") static <T>T proxy(Class<T> type,Call call){return(T)Proxy.newProxyInstance(type.getClassLoader(),new Class[]{type},(p,m,a)->call.invoke(m.getName(),a));}
