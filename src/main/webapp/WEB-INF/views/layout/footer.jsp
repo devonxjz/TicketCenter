@@ -25,9 +25,9 @@
             <div class="col-6 col-lg-3">
                 <h4 class="footer-title">Khách hàng</h4>
                 <ul class="footer-list">
-                    <li><a href="${pageContext.request.contextPath}/my-orders">Đơn hàng của tôi</a></li>
-                    <li><a href="${pageContext.request.contextPath}/tickets">Vé điện tử & Mã QR</a></li>
-                    <li><a href="${pageContext.request.contextPath}/refund-request">Chính sách hoàn vé</a></li>
+                    <li><a href="${pageContext.request.contextPath}/me/orders">Đơn hàng của tôi</a></li>
+                    <li><a href="${pageContext.request.contextPath}/me/tickets">Vé điện tử & Mã QR</a></li>
+                    <li><a href="${pageContext.request.contextPath}/my-refunds">Chính sách hoàn vé</a></li>
                     <li><a href="${pageContext.request.contextPath}/profile">Thông tin tài khoản</a></li>
                 </ul>
             </div>
@@ -37,7 +37,7 @@
                 <ul class="footer-list">
                     <li><a href="${pageContext.request.contextPath}/organizer/request">Đăng ký Nhà tổ chức</a></li>
                     <li><a href="${pageContext.request.contextPath}/organizer/dashboard">Cổng Ban tổ chức</a></li>
-                    <li><a href="${pageContext.request.contextPath}/checkin-select">Kiểm soát vé vào cửa</a></li>
+                    <li><a href="${pageContext.request.contextPath}/check-ins">Kiểm soát vé vào cửa</a></li>
                     <li><a href="${pageContext.request.contextPath}/admin/dashboard">Cổng Quản trị hệ thống</a></li>
                 </ul>
             </div>
@@ -54,10 +54,10 @@
                         <li><a href="${pageContext.request.contextPath}/event-detail">• UI-02: Chi tiết & Chọn ghế</a></li>
                         <li><a href="${pageContext.request.contextPath}/auth/login">• UI-03: Đăng nhập & OTP</a></li>
                         <li><a href="${pageContext.request.contextPath}/checkout">• UI-04: Giữ vé 10p & Thanh toán</a></li>
-                        <li><a href="${pageContext.request.contextPath}/payment-result">• UI-05: Kết quả thanh toán</a></li>
-                        <li><a href="${pageContext.request.contextPath}/my-orders">• UI-06: Đơn của tôi</a></li>
-                        <li><a href="${pageContext.request.contextPath}/tickets">• UI-07: Vé & Mã QR</a></li>
-                        <li><a href="${pageContext.request.contextPath}/refund-request">• UI-08: Yêu cầu hoàn vé</a></li>
+                        <li><a href="${pageContext.request.contextPath}/me/orders">• UI-05: Kết quả thanh toán</a></li>
+                        <li><a href="${pageContext.request.contextPath}/me/orders">• UI-06: Đơn của tôi</a></li>
+                        <li><a href="${pageContext.request.contextPath}/me/tickets">• UI-07: Vé & Mã QR</a></li>
+                        <li><a href="${pageContext.request.contextPath}/my-refunds">• UI-08: Yêu cầu hoàn vé</a></li>
                         <li><a href="${pageContext.request.contextPath}/profile">• UI-24: Hồ sơ tài khoản</a></li>
                     </ul>
                 </div>
@@ -76,8 +76,8 @@
                 <div class="col-6 col-md-3">
                     <strong class="d-block text-dark mb-1">Soát vé tại cửa:</strong>
                     <ul class="list-unstyled text-muted mb-0">
-                        <li><a href="${pageContext.request.contextPath}/checkin-select">• UI-15: Chọn sự kiện check-in</a></li>
-                        <li><a href="${pageContext.request.contextPath}/checkin-scanner">• UI-16: Quét QR & Nhập mã</a></li>
+                        <li><a href="${pageContext.request.contextPath}/check-ins">• UI-15: Chọn sự kiện check-in</a></li>
+                        <li><a href="${pageContext.request.contextPath}/check-ins/scanner">• UI-16: Quét QR & Nhập mã</a></li>
                     </ul>
                 </div>
                 <div class="col-6 col-md-3">
@@ -108,4 +108,3 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="${pageContext.request.contextPath}/assets/js/app.js"></script>

@@ -135,8 +135,28 @@ class CouponAdminServletTest {
         assertTrue(r.body.toString().contains("150"));
     }
 
+    @Test
+    void mutationWithoutCsrfTokenIsRejected() throws Exception {
+        csrfHeader = null;
+        try {
+            Result r = call(adminPrincipal, "POST", "/api/coupons/" + COUPON_ID + "/deactivate",
+                    UUID.randomUUID().toString(), null, Map.of());
+            assertEquals(403, r.status);
+        } finally {
+            csrfHeader = CSRF;
+        }
+    }
+
+    private static final String CSRF = "test-csrf-token";
+    private String csrfHeader = CSRF;
+
     private Result call(UserPrincipal actor, String method, String uri, String idemKey, String body, Map<String, String> params) throws Exception {
         Result result = new Result();
+        jakarta.servlet.http.HttpSession session = (jakarta.servlet.http.HttpSession) Proxy.newProxyInstance(
+                jakarta.servlet.http.HttpSession.class.getClassLoader(),
+                new Class<?>[]{jakarta.servlet.http.HttpSession.class},
+                (proxy, m, args) -> "getAttribute".equals(m.getName())
+                        && SecurityContext.CSRF_TOKEN_ATTRIBUTE.equals(args[0]) ? CSRF : null);
         HttpServletRequest request = (HttpServletRequest) Proxy.newProxyInstance(
                 HttpServletRequest.class.getClassLoader(),
                 new Class<?>[]{HttpServletRequest.class},
@@ -145,7 +165,9 @@ class CouponAdminServletTest {
                     case "getRequestURI" -> uri;
                     case "getContextPath" -> "";
                     case "getAttribute" -> SecurityContext.REQUEST_USER_ATTRIBUTE.equals(args[0]) ? actor : null;
-                    case "getHeader" -> "Idempotency-Key".equalsIgnoreCase((String) args[0]) ? idemKey : null;
+                    case "getHeader" -> "Idempotency-Key".equalsIgnoreCase((String) args[0]) ? idemKey
+                            : SecurityContext.CSRF_HEADER_NAME.equalsIgnoreCase((String) args[0]) ? csrfHeader : null;
+                    case "getSession" -> session;
                     case "getParameter" -> params.get((String) args[0]);
                     case "getReader" -> new BufferedReader(new StringReader(body != null ? body : ""));
                     case "getContentLengthLong" -> (long) (body != null ? body.length() : 0);

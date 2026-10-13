@@ -15,8 +15,8 @@ public final class HttpResponses {
         response.setContentType("application/json;charset=UTF-8");
         response.setCharacterEncoding("UTF-8");
         response.setHeader("Cache-Control", "no-store");
-        response.getWriter().write("{\"error\":{\"code\":\"" + code + "\",\"message\":\"" + message
-                + "\",\"correlationId\":\"" + UUID.randomUUID() + "\"}}");
+        response.getWriter().write("{\"error\":{\"code\":" + jsonString(code) + ",\"message\":" + jsonString(message)
+                + ",\"correlationId\":\"" + UUID.randomUUID() + "\"}}");
     }
 
     public static void data(HttpServletResponse response, String jsonObject) throws IOException {

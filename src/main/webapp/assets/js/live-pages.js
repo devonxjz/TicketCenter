@@ -1,0 +1,132 @@
+/* Pages rendered only from server data: account profile, organizer overview and organizer coupons. */
+(() => {
+    const body = document.body, page = body.dataset.livePage, base = body.dataset.context || '';
+    if (!page) return;
+    const $ = id => document.getElementById(id);
+    const node = (tag, text = '', cls = '') => { const e = document.createElement(tag); e.textContent = text; if (cls) e.className = cls; return e; };
+    const money = value => new Intl.NumberFormat('vi-VN').format(Number(value || 0)) + ' đ';
+    const date = value => value ? new Date(value).toLocaleString('vi-VN') : '—';
+    const eventStatus = {DRAFT:'Bản nháp', PENDING_APPROVAL:'Chờ duyệt', REJECTED:'Bị từ chối', PUBLISHED:'Đã công khai', CANCELLED:'Đã hủy'};
+    const roles = {MANAGER:'Quản lý tổ chức', CHECK_IN_STAFF:'Nhân viên soát vé'};
+
+    function message(text, bad = false) { const e = $('live-status'); e.textContent = text; e.className = bad ? 'alert alert-danger' : 'text-muted'; e.hidden = !text; }
+    async function api(path, options = {}) {
+        const response = await fetch(base + path, {...options, credentials:'same-origin', headers:{Accept:'application/json', ...(options.headers || {})}});
+        if (response.status === 401) { location.href = base + '/auth/login?redirect=' + encodeURIComponent(location.pathname + location.search); throw new Error('Phiên đăng nhập đã hết hạn.'); }
+        let result; try { result = await response.json(); } catch (_) { throw new Error('Không thể đọc phản hồi máy chủ.'); }
+        if (!response.ok) throw new Error(result.error?.message || 'Không thể xử lý yêu cầu.');
+        return result;
+    }
+    async function post(path, payload) {
+        const token = (await api('/api/auth/csrf')).data.token;
+        return api(path, {method:'POST', headers:{'Content-Type':'application/json', 'X-CSRF-Token':token, 'Idempotency-Key':crypto.randomUUID()}, body:JSON.stringify(payload || {})});
+    }
+    async function organizations(select) {
+        const items = (await api('/api/event-organizations')).data, wanted = new URLSearchParams(location.search).get('organizationId');
+        select.replaceChildren();
+        for (const item of items) { const option = node('option', item.name); option.value = item.organizationId; select.append(option); }
+        if (!items.length) throw new Error('Bạn chưa quản lý tổ chức được phê duyệt nào.');
+        if (wanted && items.some(item => item.organizationId.toLowerCase() === wanted.toLowerCase())) select.value = wanted.toLowerCase();
+        return select;
+    }
+    function row(cells) { const tr = document.createElement('tr'); for (const cell of cells) tr.append(cell instanceof Node ? cell : node('td', String(cell))); return tr; }
+    function empty(tbody, columns, text) { const td = node('td', text, 'text-center text-muted py-4'); td.colSpan = columns; const tr = document.createElement('tr'); tr.append(td); tbody.replaceChildren(tr); }
+
+    async function profile() {
+        const [user, details] = (await Promise.all([api('/api/me'), api('/api/me/profile')])).map(result => result.data);
+        function show(data) {
+            $('profile-name').textContent = data.fullName || data.userName;
+            $('profile-initials').textContent = (data.fullName || data.userName || '?').trim().split(/\s+/).map(part => part[0]).slice(-2).join('').toUpperCase();
+            $('profile-full-name').value = data.fullName || '';
+            $('profile-phone').value = data.phone || '';
+        }
+        show(details);
+        $('profile-email').textContent = details.email;
+        $('profile-username').textContent = details.userName;
+        $('profile-role').textContent = user.admin ? 'Quản trị viên' : 'Khách hàng';
+        $('profile-form').addEventListener('submit', async event => {
+            event.preventDefault(); $('profile-saved').textContent = '';
+            try {
+                show((await post('/api/me/profile', {fullName:$('profile-full-name').value, phone:$('profile-phone').value})).data);
+                message(''); $('profile-saved').textContent = 'Đã lưu.';
+            } catch (error) { message(error.message, true); }
+        });
+        const memberships = (await api('/api/me/memberships')).data, tbody = $('profile-memberships');
+        if (!memberships.length) empty(tbody, 3, 'Bạn chưa thuộc tổ chức nào.');
+        else tbody.replaceChildren(...memberships.map(item => row([item.organizationName, roles[item.role] || item.role, item.isActive ? 'Đang hoạt động' : 'Đã vô hiệu hóa'])));
+        message('');
+    }
+
+    async function dashboard() {
+        const select = await organizations($('organization'));
+        async function load() {
+            message('Đang tải số liệu…');
+            const org = select.value;
+            const [overview, events] = await Promise.all([
+                api('/api/organizations/' + org + '/overview'),
+                api('/api/organizations/' + org + '/events?page=1&pageSize=10')]);
+            const data = overview.data;
+            $('org-name').textContent = select.selectedOptions[0].textContent;
+            $('metric-events').textContent = String(data.eventCount);
+            $('metric-pending').textContent = String(data.pendingEvents);
+            $('metric-orders').textContent = String(data.paidOrders);
+            $('metric-revenue').textContent = money(data.todayCohortGrossRevenue);
+            $('metric-cash').textContent = money(data.todayCashFlow?.netCashFlow);
+            $('metric-asof').textContent = 'Cập nhật lúc ' + date(data.asOf);
+            const days = $('daily'), list = data.dailyMetrics || [];
+            if (!list.length) empty(days, 3, 'Chưa có số liệu.');
+            else days.replaceChildren(...list.map(day => row([day.date, money(day.cohortGrossRevenue), money(day.netCashFlow)])));
+            const tbody = $('events');
+            if (!events.data.length) empty(tbody, 5, 'Tổ chức chưa có sự kiện nào.');
+            else tbody.replaceChildren(...events.data.map(event => {
+                const actions = node('td'), link = node('a', 'Xem / sửa', 'btn btn-sm btn-outline-dark rounded-0');
+                link.href = base + '/events/manage/editor?organizationId=' + org + '&eventId=' + event.eventId; actions.append(link);
+                return row([event.title, date(event.startTime), String(event.totalCapacity), eventStatus[event.status] || event.status, actions]);
+            }));
+            $('all-events').href = base + '/events/manage?organizationId=' + org;
+            $('create-event').href = base + '/events/manage/editor?organizationId=' + org;
+            message('');
+        }
+        select.addEventListener('change', () => load().catch(error => message(error.message, true)));
+        await load();
+    }
+
+    async function coupons() {
+        const select = await organizations($('organization')), tbody = $('coupons');
+        async function load() {
+            message('Đang tải mã giảm giá…');
+            const items = (await api('/api/organizations/' + select.value + '/coupons')).coupons;
+            if (!items.length) empty(tbody, 7, 'Tổ chức chưa có mã giảm giá nào.');
+            else tbody.replaceChildren(...items.map(coupon => {
+                const actions = node('td'), toggle = node('button', coupon.active ? 'Tạm dừng' : 'Kích hoạt', 'btn btn-sm btn-outline-dark rounded-0');
+                toggle.type = 'button';
+                toggle.addEventListener('click', async () => {
+                    toggle.disabled = true;
+                    try { await post('/api/coupons/' + coupon.id + (coupon.active ? '/deactivate' : '/activate')); await load(); }
+                    catch (error) { message(error.message, true); toggle.disabled = false; }
+                });
+                actions.append(toggle);
+                const value = coupon.discountType === 'PERCENTAGE' ? coupon.percentageValue + '%' : money(coupon.fixedAmount);
+                return row([node('td', coupon.code, 'font-monospace fw-bold'), value, coupon.consumedUses + ' / ' + coupon.maxUses,
+                    String(coupon.availableUses), date(coupon.validFrom) + ' – ' + date(coupon.validTo), coupon.active ? 'Hoạt động' : 'Tạm dừng', actions]);
+            }));
+            message('');
+        }
+        const form = $('coupon-form'), type = $('coupon-type');
+        const sync = () => { $('coupon-percent-group').hidden = type.value !== 'PERCENTAGE'; $('coupon-fixed-group').hidden = type.value === 'PERCENTAGE'; };
+        type.addEventListener('change', sync); sync();
+        form.addEventListener('submit', async event => {
+            event.preventDefault();
+            const percentage = type.value === 'PERCENTAGE';
+            const payload = {code:$('coupon-code').value, discountType:type.value, maxUses:Number($('coupon-max-uses').value),
+                percentageValue:percentage ? Number($('coupon-percent').value) : null, fixedAmount:percentage ? null : Number($('coupon-fixed').value),
+                validFrom:new Date($('coupon-from').value).toISOString(), validTo:new Date($('coupon-to').value).toISOString()};
+            try { await post('/api/organizations/' + select.value + '/coupons', payload); form.reset(); sync(); await load(); }
+            catch (error) { message(error.message, true); }
+        });
+        select.addEventListener('change', () => load().catch(error => message(error.message, true)));
+        await load();
+    }
+
+    ({profile, 'organizer-dashboard':dashboard, 'organizer-coupons':coupons})[page]?.().catch(error => message(error.message, true));
+})();

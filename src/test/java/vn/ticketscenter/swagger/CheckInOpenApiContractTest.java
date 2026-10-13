@@ -31,7 +31,7 @@ class CheckInOpenApiContractTest {
                 .getJSONObject("properties").getJSONObject("data");
     }
 
-    @Test void deliveredReadRoutesAndAdminRefundAreEnabledWithoutEnablingPlannedScanning() throws Exception {
+    @Test void deliveredReadRoutesScanningAndAdminRefundAreEnabled() throws Exception {
         var spec = spec();
         for (String path : Set.of("/api/check-ins/events", "/api/events/{eventId}/check-in-window")) {
             var operation = get(spec, path);
@@ -41,7 +41,7 @@ class CheckInOpenApiContractTest {
             assertTrue(operation.getJSONArray("security").getJSONObject(0).has("cookieAuth"));
             assertTrue(operation.getJSONObject("responses").keySet().containsAll(Set.of("200", "400", "401", "403", "503")));
         }
-        assertEquals("planned", spec.getJSONObject("paths").getJSONObject("/api/check-ins").getJSONObject("post").getString("x-implementation-status"));
+        assertEquals("implemented", spec.getJSONObject("paths").getJSONObject("/api/check-ins").getJSONObject("post").getString("x-implementation-status"));
         assertEquals("implemented", get(spec, "/api/admin/refund-requests").getString("x-implementation-status"));
     }
 
