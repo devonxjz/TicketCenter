@@ -414,9 +414,11 @@
     // Khu ghế ngồi: chọn số lượng trước, sau đó chọn đúng bấy nhiêu ghế trong danh sách ghế còn trống máy chủ trả về.
     function syncSeatZones() {
         let wantedSeats = 0;
-        const missing = [];
+        const missing = [],invalid=[];
         for (const zone of seatZones) {
             const raw = Number(zone.counter.value);
+            const invalidCount=!Number.isInteger(raw)||raw<0||raw>Math.min(8,zone.boxes.length);
+            if(invalidCount)invalid.push(zone.name);
             const wanted = Number.isInteger(raw) && raw > 0 ? Math.min(raw, zone.boxes.length, 8) : 0;
             const checked = zone.boxes.filter(box => box.checked);
             for (const extra of checked.slice(wanted)) extra.checked = false;
@@ -424,12 +426,12 @@
             zone.wanted = wanted; zone.picked = picked;
             zone.seats.hidden = false;
             zone.hint.hidden = false;
-            zone.hint.textContent = wanted === 0 ? "Chọn số lượng vé để bắt đầu chọn ghế." : picked === wanted ? "Đã chọn đủ " + wanted + " ghế." : "Chọn thêm " + (wanted - picked) + " ghế (" + picked + " / " + wanted + ").";
-            zone.hint.className = wanted === 0 ? "small text-muted mb-0" : picked === wanted ? "small text-success mb-0" : "small text-danger fw-semibold mb-0";
+            zone.hint.textContent = invalidCount ? "Nhập số ghế nguyên từ 0 đến "+Math.min(8,zone.boxes.length)+"." : wanted === 0 ? "Chọn số lượng vé để bắt đầu chọn ghế." : picked === wanted ? "Đã chọn đủ " + wanted + " ghế." : "Chọn thêm " + (wanted - picked) + " ghế (" + picked + " / " + wanted + ").";
+            zone.hint.className = invalidCount ? "small text-danger fw-semibold mb-0" : wanted === 0 ? "small text-muted mb-0" : picked === wanted ? "small text-success mb-0" : "small text-danger fw-semibold mb-0";
             wantedSeats += wanted;
             if (picked < wanted) missing.push({ name: zone.name, left: wanted - picked });
         }
-        return { wantedSeats, missing };
+        return { wantedSeats, missing,invalid };
     }
 
     function summary() {
@@ -445,7 +447,7 @@
             countEl.textContent = count > 8 || plannedCount > 8 ? "Đã chọn " + count + " / 8 vé (Tối đa 8 vé)" : "Đã chọn " + count + " / 8 vé";
             countEl.className = count > 8 || plannedCount > 8 ? "text-danger fw-bold" : "";
         }
-        const validTotal = count <= 8 && plannedCount <= 8 && selected.every(item => Number.isInteger(item.quantity) && item.quantity > 0 && item.quantity <= 8);
+        const validTotal = count <= 8 && plannedCount <= 8 && !seatState.invalid.length && selected.every(item => Number.isInteger(item.quantity) && item.quantity > 0 && item.quantity <= 8);
         const totalEl = get("selection-total");
         if (totalEl) {
             totalEl.textContent = validTotal ? vnd(total(items)) : "Lựa chọn không hợp lệ";
@@ -476,7 +478,7 @@
         try { selectionPayload(options, selected); valid = true; } catch (_) { }
         const submitBtn = get("hold-submit");
         if (submitBtn) {
-            submitBtn.disabled = !valid || count > 8 || plannedCount > 8 || seatState.missing.length > 0 || client.state.phase !== "selecting";
+            submitBtn.disabled = !valid || count > 8 || plannedCount > 8 || seatState.invalid.length > 0 || seatState.missing.length > 0 || client.state.phase !== "selecting";
         }
         if (get("hold-pay-now")) get("hold-pay-now").disabled = !submitBtn || submitBtn.disabled;
         for(const zonesEl of [get('hold-zones'),get('standing-zones')].filter(Boolean)) {

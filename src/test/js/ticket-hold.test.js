@@ -704,6 +704,8 @@ test('prototype layout keeps seated and standing inventory separate and steppers
     assert.equal(get('selection-total').textContent,'1.250.000 đ');
     plus.listeners.click();assert.equal(quantity.value,'7');
     minus.listeners.click();assert.equal(quantity.value,'6');assert.equal(plus.disabled,false);
+    seatCounter.value='1.5';get('hold-zones').oninput();assert.equal(get('hold-submit').disabled,true);assert.equal(get('selection-total').textContent,'Lựa chọn không hợp lệ');
+    seatCounter.value='9';get('hold-zones').oninput();assert.equal(get('hold-submit').disabled,true);
     f.server.options={...f.server.options,zones:f.server.options.zones.filter(zone=>zone.type==='STANDING')};
     await get('hold-refresh').listeners.click();
     for(let i=0;i<6;i++)await new Promise(resolve=>setImmediate(resolve));
