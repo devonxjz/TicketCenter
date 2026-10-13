@@ -8,6 +8,7 @@ import vn.ticketscenter.identity.dto.OtpVerifyResponseDto;
 import vn.ticketscenter.identity.integration.mail.EmailDeliveryException;
 import vn.ticketscenter.identity.integration.mail.EmailMessage;
 import vn.ticketscenter.identity.integration.mail.EmailSender;
+import vn.ticketscenter.identity.integration.mail.OtpEmailTemplate;
 import vn.ticketscenter.identity.model.Otp;
 import vn.ticketscenter.identity.model.OtpPurpose;
 import vn.ticketscenter.identity.model.User;
@@ -116,7 +117,10 @@ public class OtpService {
                     user.getFullName(), purposeAction, rawOtpCode, OTP_EXPIRY_MINUTES
             );
 
-            return new EmailMessage(email, subject, bodyText, null);
+            String bodyHtml = OtpEmailTemplate.render(
+                    subject.replace("[TicketsCenter] ", ""), user.getFullName(), purposeAction, rawOtpCode, OTP_EXPIRY_MINUTES);
+
+            return new EmailMessage(email, subject, bodyText, bodyHtml);
         });
 
         // Nếu user == null (RESET_PASSWORD dummy hash), message trả về null

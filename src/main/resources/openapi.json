@@ -263,6 +263,11 @@
                         "registered": {
                           "type": "boolean",
                           "example": true
+                        },
+                        "otpSent": {
+                          "type": "boolean",
+                          "description": "false khi tài khoản đã tạo nhưng chưa gửi được email OTP kích hoạt",
+                          "example": true
                         }
                       }
                     }

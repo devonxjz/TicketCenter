@@ -96,15 +96,9 @@
 
                 <form id="otpVerifyForm">
                     <div class="mb-4">
-                        <label class="filter-label text-center d-block mb-3">Nhập mã OTP 6 chữ số</label>
-                        <div class="d-flex justify-content-center gap-2">
-                            <input type="text" class="otp-input" maxlength="1" data-index="0" inputmode="numeric" autofocus>
-                            <input type="text" class="otp-input" maxlength="1" data-index="1" inputmode="numeric">
-                            <input type="text" class="otp-input" maxlength="1" data-index="2" inputmode="numeric">
-                            <input type="text" class="otp-input" maxlength="1" data-index="3" inputmode="numeric">
-                            <input type="text" class="otp-input" maxlength="1" data-index="4" inputmode="numeric">
-                            <input type="text" class="otp-input" maxlength="1" data-index="5" inputmode="numeric">
-                        </div>
+                        <label class="filter-label" for="otpCodeInput">Mã OTP (6 chữ số) *</label>
+                        <input type="text" id="otpCodeInput" class="form-control rounded-0 border-secondary-subtle py-2 otp-input" placeholder="000000" inputmode="numeric" pattern="[0-9]{6}" autocomplete="one-time-code" required>
+                        <span class="small text-muted mt-1 d-block">Mã OTP có hiệu lực 5 phút; nhập sai quá 5 lần sẽ bị hủy.</span>
                     </div>
 
                     <button type="submit" id="btnVerifyOtp" class="btn-primary-custom w-100 py-3 mb-3 fs-6">
@@ -142,29 +136,10 @@
         let cooldownTimer = null;
         let remainingCooldown = 0;
 
-        // Auto-advance logic for 6-digit OTP boxes
-        const otpInputs = document.querySelectorAll('.otp-input');
-        otpInputs.forEach((input, index) => {
-            input.addEventListener('input', (e) => {
-                if (e.target.value.length === 1 && index < otpInputs.length - 1) {
-                    otpInputs[index + 1].focus();
-                }
-            });
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Backspace' && !e.target.value && index > 0) {
-                    otpInputs[index - 1].focus();
-                }
-            });
-            input.addEventListener('paste', (e) => {
-                e.preventDefault();
-                const text = (e.clipboardData || window.clipboardData).getData('text').trim();
-                if (/^\d{6}$/.test(text)) {
-                    text.split('').forEach((char, i) => {
-                        if (otpInputs[i]) otpInputs[i].value = char;
-                    });
-                    otpInputs[5].focus();
-                }
-            });
+        // Một ô nhập duy nhất: chỉ giữ chữ số (kể cả khi dán mã có khoảng trắng)
+        const otpInput = document.getElementById('otpCodeInput');
+        otpInput.addEventListener('input', () => {
+            otpInput.value = otpInput.value.replace(/\D/g, '').slice(0, 6);
         });
 
         function showOtpAlert(type, message) {
@@ -258,10 +233,16 @@
                     document.getElementById('formRegister').classList.add('d-none');
                     document.getElementById('formOtp').classList.remove('d-none');
 
-                    // Khởi động đếm ngược gửi lại OTP và focus ô số đầu tiên
-                    startCooldown(60);
-                    otpInputs.forEach(i => i.value = '');
-                    otpInputs[0].focus();
+                    otpInput.value = '';
+                    otpInput.focus();
+                    if (res.data.otpSent === false) {
+                        // Tài khoản đã tạo nhưng mail chưa gửi được: cho phép gửi lại ngay
+                        showOtpAlert('warning', 'Tài khoản đã được tạo nhưng chưa gửi được mã OTP. Vui lòng bấm "Gửi lại mã OTP".');
+                        document.getElementById('btnResendOtp').disabled = false;
+                    } else {
+                        document.getElementById('otpAlertBox').classList.add('d-none');
+                        startCooldown(60);
+                    }
                 } else {
                     alertBox.className = 'alert alert-danger';
                     alertBox.innerText = (res.error && res.error.message) || 'Đăng ký không thành công. Vui lòng kiểm tra lại thông tin.';
@@ -284,8 +265,8 @@
             const box = document.getElementById('otpAlertBox');
             box.classList.add('d-none');
 
-            const code = Array.from(otpInputs).map(i => i.value.trim()).join('');
-            if (code.length !== 6) {
+            const code = otpInput.value.trim();
+            if (!/^\d{6}$/.test(code)) {
                 showOtpAlert('danger', 'Vui lòng nhập đủ 6 chữ số mã OTP.');
                 return;
             }
