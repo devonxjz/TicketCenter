@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** Annotation filters have no defined order, so the security chain must stay declared in web.xml. */
 class SecurityFilterOrderTest {
     private static final List<String> CHAIN = List.of(
+            "vn.ticketscenter.config.web.SecurityHeadersFilter",
             "vn.ticketscenter.identity.security.DatabaseActorFilter",
             "vn.ticketscenter.config.web.RequestValidationFilter",
             "vn.ticketscenter.identity.security.SessionValidationFilter",

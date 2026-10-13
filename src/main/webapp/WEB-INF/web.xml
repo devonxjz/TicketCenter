@@ -7,6 +7,10 @@
          always runs, in this order, before the annotation-only routing filters that handle or forward
          requests themselves. Names equal the class names, so these mappings replace the annotation ones. -->
     <filter>
+        <filter-name>vn.ticketscenter.config.web.SecurityHeadersFilter</filter-name>
+        <filter-class>vn.ticketscenter.config.web.SecurityHeadersFilter</filter-class>
+    </filter>
+    <filter>
         <filter-name>vn.ticketscenter.identity.security.DatabaseActorFilter</filter-name>
         <filter-class>vn.ticketscenter.identity.security.DatabaseActorFilter</filter-class>
     </filter>
@@ -26,6 +30,10 @@
         <filter-name>vn.ticketscenter.identity.security.RoleAuthorizationFilter</filter-name>
         <filter-class>vn.ticketscenter.identity.security.RoleAuthorizationFilter</filter-class>
     </filter>
+    <filter-mapping>
+        <filter-name>vn.ticketscenter.config.web.SecurityHeadersFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
     <filter-mapping>
         <filter-name>vn.ticketscenter.identity.security.DatabaseActorFilter</filter-name>
         <url-pattern>/*</url-pattern>

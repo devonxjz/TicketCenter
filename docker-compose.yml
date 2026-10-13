@@ -10,6 +10,7 @@ services:
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - TC_SQL_HOST=${TC_SQL_HOST:-host.docker.internal}
       - TC_SQL_PORT=${TC_SQL_PORT:-1433}
       - TC_SQL_DEV_DB=${TC_SQL_DEV_DB:-TicketsCenter_Dev}
@@ -27,18 +28,23 @@ services:
     image: redis:7.4-alpine
     container_name: ticketscenter-redis
     restart: unless-stopped
+    # Published on loopback only; set REDIS_PASSWORD in the ignored .env file to require authentication.
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
     volumes:
       - redis_data:/data
-    command: >
-      redis-server
-      --save 60 1
-      --appendonly yes
-      --maxmemory 512mb
-      --maxmemory-policy allkeys-lru
+    # noeviction: idempotency keys and leases share this instance with caches and must never be evicted;
+    # a full instance rejects cache writes instead, and the application falls back to SQL Server.
+    command:
+      - sh
+      - -c
+      - >-
+        exec redis-server --save 60 1 --appendonly yes --maxmemory 512mb --maxmemory-policy noeviction
+        $${REDIS_PASSWORD:+--requirepass "$$REDIS_PASSWORD"}
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "if [ -n \"$$REDIS_PASSWORD\" ]; then export REDISCLI_AUTH=\"$$REDIS_PASSWORD\"; fi; redis-cli ping | grep -q PONG"]
       interval: 10s
       timeout: 5s
       retries: 5

@@ -28,7 +28,7 @@ public final class EventManagementWeb {
             var user=SecurityContext.getCurrentUser(request).orElseThrow(()->new EventProblem(401,"AUTH_REQUIRED","Cần đăng nhập để quản lý sự kiện."));
             var actor=new Actor(user.actorId(),user.authVersion());
             if(post && !SecurityContext.validateCsrfToken(request)) throw new EventProblem(403,"CSRF_TOKEN_INVALID","Mã CSRF không hợp lệ.");
-            UUID org=null,event=null,zone=null;boolean admin=false;String kind=null,operation=null;
+            UUID org=null,event=null,zone=null;boolean admin=false,priceOnly=false;String kind=null,operation=null;
             if(path.equals("/api/event-organizations") && !post) kind="ORGANIZATIONS";
             else if(p.length>=5 && p[2].equals("organizations") && p[4].equals("events")) {
                 org=EventCommand.uuid(p[3]);
@@ -49,7 +49,7 @@ public final class EventManagementWeb {
                 if(!post && p[4].equals("layout")) kind="LAYOUT";
                 else if(post) operation=switch(p[4]) { case "edit" -> "EDIT";case "delete" -> "DELETE";case "submit" -> "SUBMIT";case "zones" -> "ZONE_CREATE";case "cover" -> "COVER";default -> null; };
             } else if(p.length==5 && p[2].equals("zones") && post) {
-                zone=EventCommand.uuid(p[3]);operation=switch(p[4]) { case "edit" -> "ZONE_EDIT";case "delete" -> "ZONE_DELETE";default -> null; };
+                zone=EventCommand.uuid(p[3]);priceOnly=p[4].equals("price");operation=switch(p[4]) { case "edit","price" -> "ZONE_EDIT";case "delete" -> "ZONE_DELETE";default -> null; };
             }
             if(kind==null && operation==null) throw new EventProblem(404,"EVENT_ROUTE_NOT_FOUND","Đường dẫn không hợp lệ.");
             if(!post) {
@@ -87,6 +87,8 @@ public final class EventManagementWeb {
             }
             if(request.getContentType()!=null && !request.getContentType().toLowerCase(Locale.ROOT).startsWith("application/json")) throw new EventProblem(415,"EVENT_JSON_REQUIRED","Cần gửi application/json.");
             Map<String,String> fields=EventRequestParser.parse(request.getReader());
+            // The price route is the zone edit restricted to the one field a published layout may still change.
+            if(priceOnly && (!fields.containsKey("basePrice") || !Set.of("basePrice","expectedVersion").containsAll(fields.keySet()))) throw EventProblem.invalid("Chỉ được gửi basePrice và expectedVersion.");
             var command=EventCommand.input(operation,org,event,zone,fields,Clock.systemUTC());
             var result=EventManagementRuntime.resolve(request.getServletContext()).management().mutate(actor,key,command);
             write(response,result.status(),result.json());
