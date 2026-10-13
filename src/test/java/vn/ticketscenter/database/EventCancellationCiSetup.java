@@ -56,4 +56,3 @@ public final class EventCancellationCiSetup {
             if(!batch.isBlank())q.execute(batch);
     }
 }
-
