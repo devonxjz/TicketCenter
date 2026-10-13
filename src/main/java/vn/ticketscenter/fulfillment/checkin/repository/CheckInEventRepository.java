@@ -26,15 +26,14 @@ public class CheckInEventRepository {
     private final TransactionManager transactions;
     public CheckInEventRepository(TransactionManager transactions) { this.transactions = transactions; }
 
+    /** Active MANAGER / CHECK_IN_STAFF memberships of active users; the rule lives in the view. */
     private static final String MEMBERSHIP = """
-            FROM dbo.tc_organization_memberships m
-            JOIN dbo.tc_users u ON u.id=m.user_id
-            WHERE m.user_id=? AND m.active=1 AND u.status='ACTIVE'
-              AND m.role IN ('MANAGER','CHECK_IN_STAFF')
+            FROM dbo.vw_CheckInStaffOrganizations m
+            WHERE m.user_id=?
             """;
     private static final String EVENT_COLUMNS = """
             SELECT e.id,e.organization_id,e.title,e.venue_name,e.start_time,e.end_time,e.status
-            FROM dbo.tc_events e
+            FROM dbo.vw_CheckInEvents e
             """;
 
     public List<UUID> authorizedOrganizations(UUID actorId) {
@@ -93,12 +92,7 @@ public class CheckInEventRepository {
     public EventInfo withTicketCounts(EventInfo event) {
         return read(connection -> {
             // Count issued tickets (including subsequently used/refunded tickets), never their prices.
-            String sql = """
-                    SELECT COUNT_BIG(*),COALESCE(SUM(CASE WHEN t.status IN ('CHECKED_IN','USED')
-                        THEN CAST(1 AS bigint) ELSE CAST(0 AS bigint) END),0)
-                    FROM dbo.tc_tickets t JOIN dbo.tc_order_items i ON i.id=t.order_item_id
-                    JOIN dbo.tc_orders o ON o.id=i.order_id WHERE o.event_id=?
-                    """;
+            String sql = "SELECT issued_count,checked_in_count FROM dbo.fn_CheckInEventTicketCounts(?)";
             try (PreparedStatement query = prepare(connection, sql)) {
                 query.setString(1, event.eventId().toString());
                 try (ResultSet rows = query.executeQuery()) {
@@ -116,7 +110,7 @@ public class CheckInEventRepository {
             String sql = "SELECT CASE WHEN EXISTS (SELECT 1 " + MEMBERSHIP
                     + " AND m.organization_id=e.organization_id) THEN 1 ELSE 0 END,"
                     + " CASE WHEN e.organization_id=? AND e.start_time=? AND e.end_time=? AND e.status=? THEN 1 ELSE 0 END"
-                    + " FROM dbo.tc_events e WHERE e.id=?";
+                    + " FROM dbo.vw_CheckInEvents e WHERE e.id=?";
             try (PreparedStatement query = prepare(connection, sql)) {
                 query.setString(1, actorId.toString()); query.setString(2, cached.organizationId().toString());
                 utc(query, 3, cached.startTime()); utc(query, 4, cached.endTime());

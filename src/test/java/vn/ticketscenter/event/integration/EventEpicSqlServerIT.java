@@ -180,7 +180,7 @@ class EventEpicSqlServerIT {
         UUID event=f.draft();var storage=new DongSqlFixture.Storage();List<StoredAsset> orphans=new ArrayList<>();var covers=f.covers(storage,(e,a)->orphans.add(a));
         covers.upload(f.actor,event,UUID.randomUUID().toString(),new ByteArrayInputStream(DongSqlFixture.png()));String old=storage.lastUrl;
         try(Connection c=DongSqlFixture.connection(null);var q=c.createStatement()) {
-            q.execute("CREATE TRIGGER dbo.trg_Dong_Test_CoverRollback ON dbo.tc_events AFTER UPDATE AS BEGIN IF EXISTS(SELECT 1 FROM inserted i JOIN deleted d ON d.id=i.id WHERE i.id='"+event+"' AND i.cover_image_url<>d.cover_image_url) THROW 52009,'Injected test rollback',1; END");
+            q.execute("CREATE TRIGGER dbo.trg_Dong_Test_CoverRollback ON dbo.tc_events AFTER UPDATE AS BEGIN IF EXISTS(SELECT 1 FROM inserted i JOIN deleted d ON d.id=i.id WHERE i.id='"+event+"' AND i.event_image<>d.event_image) THROW 52009,'Injected test rollback',1; END");
             try {assertThrows(EventProblem.class,()->covers.upload(f.actor,event,UUID.randomUUID().toString(),new ByteArrayInputStream(DongSqlFixture.png())));}
             finally {q.execute("DROP TRIGGER dbo.trg_Dong_Test_CoverRollback");}
         }

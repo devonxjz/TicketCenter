@@ -31,8 +31,9 @@ class CheckInEventRepositoryTest {
         results.add(Collections.singletonList(new Object[]{ORG.toString()}));
         assertEquals(List.of(ORG),repository.authorizedOrganizations(ACTOR));
         Query query=queries.getFirst();assertEquals(ACTOR.toString(),query.bindings.get(1));
-        assertTrue(query.sql.contains("m.active=1"));assertTrue(query.sql.contains("u.status='ACTIVE'"));
-        assertTrue(query.sql.contains("'MANAGER','CHECK_IN_STAFF'"));assertEquals(5,query.timeout);
+        // Active-user / active-membership / role rules live in dbo.vw_CheckInStaffOrganizations (migration 057).
+        assertTrue(query.sql.contains("dbo.vw_CheckInStaffOrganizations"));assertFalse(query.sql.contains("dbo.tc_"));
+        assertEquals(5,query.timeout);
     }
     @Test void listBindsOrganizationActorAndUtcDayAndUsesStableOrdering(){
         results.add(List.of());Instant now=Instant.parse("2026-10-09T19:24:00Z");
@@ -74,7 +75,7 @@ class CheckInEventRepositoryTest {
         assertEquals(ACTOR.toString(),query.bindings.get(1));assertEquals(ORG.toString(),query.bindings.get(2));
         assertEquals(LocalDateTime.ofInstant(cached.startTime(),ZoneOffset.UTC),query.bindings.get(3));
         assertEquals(EVENT.toString(),query.bindings.get(6));
-        assertTrue(query.sql.contains("u.status='ACTIVE'"));assertTrue(query.sql.contains("m.active=1"));
+        assertTrue(query.sql.contains("dbo.vw_CheckInStaffOrganizations"));assertFalse(query.sql.contains("dbo.tc_"));
         assertFalse(query.sql.contains("e.title"));assertFalse(query.sql.contains("price"));
     }
     @Test void warmWindowGuardCannotAuthorizeRevokedMembershipOrDeletedEvent(){

@@ -30,6 +30,7 @@ import vn.ticketscenter.identity.security.CsrfFilter;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.identity.service.AuthService;
+import vn.ticketscenter.identity.repository.OrganizationDecisionRepository;
 import vn.ticketscenter.identity.service.OrganizationRequestService;
 import vn.ticketscenter.identity.service.PasswordHasher;
 import vn.ticketscenter.persistence.model.BaseEntity;
@@ -170,7 +171,8 @@ public class AdminOrganizationApprovalAndScheduleE2ETest {
         };
 
         transactionManager = createTransactionManager();
-        organizationRequestService = new OrganizationRequestService(transactionManager, organizationRepository, userRepository);
+        organizationRequestService = new OrganizationRequestService(transactionManager, organizationRepository, userRepository,
+                inMemoryDecisions());
         servlet = new OrganizationRequestServlet(organizationRequestService);
         csrfFilter = new CsrfFilter();
         authService = new AuthService(transactionManager, userRepository, passwordHasher);
@@ -461,6 +463,45 @@ public class AdminOrganizationApprovalAndScheduleE2ETest {
             this.status = status;
             this.body = body;
         }
+    }
+
+    /** Emulates usp_OrganizationSubmit / sp_organization_approve / sp_organization_reject on the in-memory tables. */
+    private OrganizationDecisionRepository inMemoryDecisions() {
+        return new OrganizationDecisionRepository() {
+            @Override
+            public UUID submit(TransactionManager transactions, UUID requesterId, String name, String contactEmail,
+                               String contactPhone, String description) {
+                Organization org = new Organization(name, contactEmail, contactPhone, description, userDatabase.get(requesterId));
+                org.submitForApproval();
+                return organizationRepository.save(null, org).getId();
+            }
+
+            @Override
+            public Approval approve(TransactionManager transactions, UUID organizationId, UUID adminId,
+                                    CommissionPolicy policy, InitialEvent initialEvent) {
+                Organization org = organizationDatabase.get(organizationId);
+                org.approve();
+                User requester = org.getRequester();
+                if (requester != null) {
+                    membershipDatabase.add(new OrganizationMembership(requester, org, OrganizationRole.MANAGER));
+                }
+                UUID eventId = null;
+                if (initialEvent != null) {
+                    Event event = new Event(org, initialEvent.title(), org.getDescription(),
+                            vn.ticketscenter.event.model.EventCategory.CONCERT, initialEvent.venue(), initialEvent.venue(),
+                            initialEvent.startTime(), initialEvent.endTime());
+                    eventId = UUID.randomUUID();
+                    setEntityId(event, eventId);
+                    eventDatabase.add(event);
+                }
+                return new Approval(requester == null ? null : requester.getId(), null, eventId);
+            }
+
+            @Override
+            public void reject(TransactionManager transactions, UUID organizationId, UUID adminId, String reason) {
+                organizationDatabase.get(organizationId).reject(reason);
+            }
+        };
     }
 
     private TransactionManager createTransactionManager() {

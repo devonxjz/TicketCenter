@@ -28,7 +28,7 @@ public class RefundRequestRepository implements RefundRequestStore {
     }
     private static PreparedStatement query(Connection c,String sql)throws SQLException { var q=c.prepareStatement(sql);q.setQueryTimeout(10);return q; }
     @Override public boolean active(UserPrincipal actor) {
-        return sql(c->{try(var q=query(c,"SELECT 1 FROM dbo.tc_users WHERE id=? AND status='ACTIVE' AND auth_version=?")){
+        return sql(c->{try(var q=query(c,"SELECT 1 FROM dbo.vw_ActorAuthority WHERE id=? AND status='ACTIVE' AND auth_version=?")){
             q.setString(1,actor.actorId().toString());q.setLong(2,actor.authVersion());try(var r=q.executeQuery()){return r.next();}
         }});
     }

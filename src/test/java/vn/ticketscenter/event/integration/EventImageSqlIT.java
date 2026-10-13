@@ -43,7 +43,7 @@ class EventImageSqlIT {
                 1,
                 f.count(
                         "SELECT COUNT(*) FROM dbo.tc_events WHERE id=? AND"
-                                + " event_image=cover_image_url AND event_image_public_id=?",
+                                + " event_image IS NOT NULL AND event_image_public_id=?",
                         created.id(),
                         created.imagePublicId()));
         EventDto kept = f.service.save(f.actor, f.edit(created, "Edited without image", null));
@@ -302,9 +302,8 @@ class EventImageSqlIT {
     void cleanupPreservesSharedReferenceAndPendingAttach() throws Exception {
         EventDto first = f.create(), second = f.create();
         f.sql(
-                "UPDATE dbo.tc_events SET event_image=?,cover_image_url=?,event_image_public_id=?"
+                "UPDATE dbo.tc_events SET event_image=?,event_image_public_id=?"
                         + " WHERE id=?",
-                first.coverImageUrl(),
                 first.coverImageUrl(),
                 first.imagePublicId(),
                 second.id());
@@ -313,7 +312,7 @@ class EventImageSqlIT {
         assertFalse(f.storage.deleted.contains(first.imagePublicId()));
         f.sql(
                 "UPDATE dbo.tc_events SET"
-                        + " event_image=NULL,cover_image_url=NULL,event_image_public_id=NULL WHERE"
+                        + " event_image=NULL,event_image_public_id=NULL WHERE"
                         + " id=?",
                 second.id());
         f.service.cleanup(100);

@@ -3,7 +3,7 @@
 # export_bacpac.sh
 #
 # TicketsCenter Database Management - BACPAC Export & Import Script
-# Supports: Azure SQL Database (devonxjz.database.windows.net) & Local SQL Server
+# Supports: Azure SQL Database (ticketscenter.database.windows.net) & Local SQL Server
 #
 # Usage:
 #   ./export_bacpac.sh [export|import] [output_or_source_file]
@@ -19,10 +19,10 @@ ACTION="${1:-export}"
 TARGET_FILE="${2:-./TicketsCenter_$(date +%Y%m%d_%H%M%S).bacpac}"
 
 # Connection configuration from environment variables or defaults
-SQL_HOST="${TC_SQL_HOST:-devonxjz.database.windows.net}"
+SQL_HOST="${TC_SQL_HOST:-ticketscenter.database.windows.net}"
 SQL_PORT="${TC_SQL_PORT:-1433}"
-SQL_DB="${TC_SQL_DEV_DB:-TicketCenterticke}"
-SQL_USER="${TC_SQL_LOGIN:-adminTicket}"
+SQL_DB="${TC_SQL_DEV_DB:-TicketsCenter}"
+SQL_USER="${TC_SQL_LOGIN:-ticketscenteradmin}"
 SQL_PASSWORD="${TC_SQL_PASSWORD:-}"
 
 if [[ -z "${SQL_PASSWORD}" ]]; then

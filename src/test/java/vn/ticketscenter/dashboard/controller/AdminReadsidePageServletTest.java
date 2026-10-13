@@ -56,7 +56,7 @@ class AdminReadsidePageServletTest {
             attributes.put(SecurityContext.REQUEST_USER_ATTRIBUTE, new UserPrincipal(UUID.randomUUID(), PlatformRole.ADMIN, 0));
             FinanceDatabase factory = () -> proxy(Connection.class, (method,args) -> {
                 if (!method.equals("prepareStatement")) return null;
-                assertTrue(((String)args[0]).contains("tc_users"), "Page must check current DB authority");
+                assertTrue(((String)args[0]).contains("vw_ActorAuthority"), "Page must check current DB authority");
                 boolean[] first={true};
                 return proxy(PreparedStatement.class, (operation,values) -> {
                     if (!operation.equals("executeQuery")) return null;

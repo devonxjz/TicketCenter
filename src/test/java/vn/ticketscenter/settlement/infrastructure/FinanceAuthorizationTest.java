@@ -40,7 +40,7 @@ class FinanceAuthorizationTest {
     private Connection connection(String status, int version, String role, UUID membership) {
         return proxy(Connection.class, (method,args) -> {
             if (method.equals("prepareStatement")) {
-                boolean user = ((String)args[0]).contains("tc_users");
+                boolean user = ((String)args[0]).contains("vw_ActorAuthority");
                 var params = new HashMap<Integer,Object>();
                 return proxy(PreparedStatement.class,(name,values) -> {
                     if(name.equals("setString") || name.equals("setObject")) { params.put((Integer)values[0],values[1]); return null; }

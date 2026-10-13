@@ -71,6 +71,66 @@ final class EventJdbc {
         }
     }
 
+    /** Runs a procedure and returns every row of its first result set (later results are drained so errors surface). */
+    static List<Object[]> rows(Connection connection, String sql, Object... args)
+            throws SQLException {
+        try (PreparedStatement call = query(connection, sql, args)) {
+            List<Object[]> result = null;
+            boolean isResultSet = call.execute();
+            while (isResultSet || call.getUpdateCount() != -1) {
+                if (isResultSet) {
+                    try (ResultSet rows = call.getResultSet()) {
+                        if (result == null) {
+                            result = new ArrayList<>();
+                            int columns = rows.getMetaData().getColumnCount();
+                            while (rows.next()) {
+                                Object[] row = new Object[columns];
+                                for (int index = 0; index < columns; index++)
+                                    row[index] = rows.getObject(index + 1);
+                                result.add(row);
+                            }
+                        }
+                    }
+                }
+                isResultSet = call.getMoreResults();
+            }
+            return result == null ? List.of() : result;
+        }
+    }
+
+    static Object[] row(Connection connection, String sql, Object... args) throws SQLException {
+        List<Object[]> rows = rows(connection, sql, args);
+        if (rows.size() != 1) throw new SQLException("Procedure returned " + rows.size() + " rows");
+        return rows.getFirst();
+    }
+
+    static UUID uuid(Object value) {
+        return value == null ? null : UUID.fromString(value.toString());
+    }
+
+    /** THROW numbers raised by the usp_EventImage* procedures (migration 055). */
+    private static EventException procedureFailure(int code) {
+        return switch (code) {
+            case 52701 -> failure(404, "EVENT_NOT_FOUND", "Event was not found");
+            case 52703 -> failure(401, "SESSION_EXPIRED", "Current session is no longer valid");
+            case 52704 -> failure(403, "EVENT_FORBIDDEN", "Current Manager membership is required");
+            case 52705 -> failure(403, "ORGANIZATION_NOT_APPROVED", "Organization is not approved");
+            case 52706 -> failure(403, "MAINTENANCE_FORBIDDEN", "Database owner connection is required for maintenance");
+            case 52707 -> failure(409, "IDEMPOTENCY_CONFLICT", "Request key was already used for different input");
+            case 52708 -> failure(409, "REQUEST_ABORTED", "Save has been cancelled; use a new request key");
+            case 52709 -> failure(409, "REQUEST_IN_PROGRESS", "Save is still running; retry shortly");
+            case 52710 -> failure(400, "CATEGORY_NOT_FOUND", "Unknown category");
+            case 52711 -> failure(409, "EVENT_VERSION_CONFLICT", "Event has changed; reload before saving");
+            case 52712 -> failure(409, "EVENT_NOT_EDITABLE", "Only draft or rejected Events can be edited");
+            case 52713 -> failure(409, "EVENT_NOT_EDITABLE", "Event cover cannot be changed in this state");
+            case 52714 -> failure(409, "REQUEST_LOST", "Save intent is missing");
+            case 52715 -> failure(409, "STALE_REQUEST", "Save lease has changed; retry");
+            case 52716 -> failure(502, "IMAGE_METADATA_INVALID", "Image provider returned invalid metadata");
+            case 52717 -> failure(409, "ASSET_UNAVAILABLE", "Image is scheduled for cleanup");
+            default -> null;
+        };
+    }
+
     @FunctionalInterface
     interface Work<T> {
         T apply(Connection connection) throws SQLException;
@@ -92,6 +152,8 @@ final class EventJdbc {
                 throw exception;
             }
         } catch (SQLException exception) {
+            EventException mapped = procedureFailure(exception.getErrorCode());
+            if (mapped != null) throw mapped;
             if (exception.getErrorCode() == 51810)
                 throw failure(403, "MANAGER_REQUIRED", "Active manager of this organization required");
             if (exception.getErrorCode() == 51813)
