@@ -45,8 +45,8 @@
                                 <li><hr class="dropdown-divider"></li>
                             </c:if>
                             <li><a class="dropdown-item py-2" href="${pageContext.request.contextPath}/profile"><i class="fa-solid fa-user me-2 text-muted"></i>Hồ sơ cá nhân</a></li>
-                            <li><a class="dropdown-item py-2" href="${pageContext.request.contextPath}/my-orders"><i class="fa-solid fa-receipt me-2 text-muted"></i>Đơn hàng của tôi</a></li>
-                            <li><a class="dropdown-item py-2" href="${pageContext.request.contextPath}/tickets"><i class="fa-solid fa-ticket me-2 text-muted"></i>Vé điện tử</a></li>
+                            <li><a class="dropdown-item py-2" href="${pageContext.request.contextPath}/me/orders"><i class="fa-solid fa-receipt me-2 text-muted"></i>Đơn hàng của tôi</a></li>
+                            <li><a class="dropdown-item py-2" href="${pageContext.request.contextPath}/me/tickets"><i class="fa-solid fa-ticket me-2 text-muted"></i>Vé điện tử</a></li>
                             <c:if test="${sessionScope.TC_CURRENT_USER.isCustomerOnly()}">
                                 <li><a class="dropdown-item py-2" href="${pageContext.request.contextPath}/organizer-request"><i class="fa-solid fa-handshake me-2 text-muted"></i>Đăng ký mở ban tổ chức</a></li>
                             </c:if>
@@ -60,7 +60,7 @@
                     <a href="${pageContext.request.contextPath}/auth/register" class="btn-primary-custom">Đăng ký</a>
                 </c:otherwise>
             </c:choose>
-            <a href="${pageContext.request.contextPath}/tickets" class="btn-outline-custom p-0 d-inline-flex align-items-center justify-content-center" title="Vé & Đơn hàng của tôi" style="width: 42px; height: 40px;">
+            <a href="${pageContext.request.contextPath}/me/tickets" class="btn-outline-custom p-0 d-inline-flex align-items-center justify-content-center" title="Vé & Đơn hàng của tôi" style="width: 42px; height: 40px;">
                 <i class="fa-solid fa-ticket fs-6"></i>
             </a>
         </div>

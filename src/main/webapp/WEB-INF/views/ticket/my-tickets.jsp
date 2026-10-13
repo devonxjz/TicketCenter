@@ -1,4 +1,5 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <!DOCTYPE html>
@@ -83,7 +84,7 @@
                         <div class="ticket-card p-4 h-100 d-flex flex-column justify-content-between">
                             <div>
                                 <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <span class="text-muted small font-monospace">${t.ticketCode}</span>
+                                    <span class="text-muted small font-monospace">${fn:escapeXml(t.ticketCode)}</span>
                                     <c:choose>
                                         <c:when test="${t.status == 'ACTIVE'}">
                                             <span class="badge bg-success-subtle text-success badge-status">Đang hiệu lực</span>
@@ -98,31 +99,31 @@
                                             <span class="badge bg-danger-subtle text-danger badge-status">Đã hoàn tiền</span>
                                         </c:when>
                                         <c:otherwise>
-                                            <span class="badge bg-light text-dark badge-status">${t.status}</span>
+                                            <span class="badge bg-light text-dark badge-status">${fn:escapeXml(t.status)}</span>
                                         </c:otherwise>
                                     </c:choose>
                                 </div>
 
-                                <h5 class="fw-bold mb-2 text-truncate" title="${t.eventTitle}">${t.eventTitle}</h5>
+                                <h5 class="fw-bold mb-2 text-truncate" title="${fn:escapeXml(t.eventTitle)}">${fn:escapeXml(t.eventTitle)}</h5>
 
                                 <div class="text-muted small mb-1">
                                     <i class="fa-regular fa-clock me-1"></i>
-                                    <span>${t.startTime}</span>
+                                    <span>${fn:escapeXml(t.startTime)}</span>
                                 </div>
 
-                                <div class="text-muted small mb-3 text-truncate" title="${t.venueName}">
+                                <div class="text-muted small mb-3 text-truncate" title="${fn:escapeXml(t.venueName)}">
                                     <i class="fa-solid fa-location-dot me-1"></i>
-                                    <span>${t.venueName}</span>
+                                    <span>${fn:escapeXml(t.venueName)}</span>
                                 </div>
 
                                 <div class="bg-light p-3 rounded mb-3">
                                     <div class="d-flex justify-content-between small text-muted">
                                         <span>Khu vực:</span>
-                                        <strong class="text-dark">${not empty t.zoneName ? t.zoneName : 'Tiêu chuẩn'}</strong>
+                                        <strong class="text-dark">${fn:escapeXml(not empty t.zoneName ? t.zoneName : 'Tiêu chuẩn')}</strong>
                                     </div>
                                     <div class="d-flex justify-content-between small text-muted mt-1">
                                         <span>Vị trí:</span>
-                                        <strong class="text-dark">${not empty t.seatLabel ? t.seatLabel : 'Vé tự do'}</strong>
+                                        <strong class="text-dark">${fn:escapeXml(not empty t.seatLabel ? t.seatLabel : 'Vé tự do')}</strong>
                                     </div>
                                 </div>
                             </div>
@@ -134,7 +135,7 @@
                                         <fmt:formatNumber value="${t.paidAmount}" type="currency" currencySymbol="₫" maxFractionDigits="0"/>
                                     </span>
                                 </div>
-                                <a href="${pageContext.request.contextPath}/tickets/${t.id}" class="btn btn-qr px-3 py-2">
+                                <a href="${pageContext.request.contextPath}/tickets/${fn:escapeXml(t.id)}" class="btn btn-qr px-3 py-2">
                                     <i class="fa-solid fa-qrcode me-1"></i> Chi tiết & QR
                                 </a>
                             </div>

@@ -74,7 +74,9 @@ public class CouponAdminServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             HttpResponses.error(response, 400, "BAD_REQUEST", e.getMessage());
         } catch (Exception e) {
-            HttpResponses.error(response, 500, "INTERNAL_ERROR", e.getMessage());
+            java.util.logging.Logger.getLogger(CouponAdminServlet.class.getName())
+                    .log(java.util.logging.Level.SEVERE, "Coupon request failed", e);
+            HttpResponses.error(response, 500, "INTERNAL_ERROR", "Đã xảy ra lỗi hệ thống.");
         }
     }
 
@@ -104,6 +106,10 @@ public class CouponAdminServlet extends HttpServlet {
 
     private void handleMutation(HttpServletRequest request, HttpServletResponse response, UserPrincipal principal, String method, String path)
             throws IOException {
+        // Checked here as well as in CsrfFilter: this servlet is also reached by a named forward.
+        if (!SecurityContext.validateCsrfToken(request)) {
+            throw new OrderException(403, "CSRF_TOKEN_INVALID", "Yêu cầu thiếu hoặc mã CSRF không hợp lệ.");
+        }
         String idemKey = request.getHeader("Idempotency-Key");
         if (idemKey == null || idemKey.isBlank()) {
             throw new OrderException(400, "IDEMPOTENCY_KEY_REQUIRED", "Idempotency-Key header is required for coupon mutations.");

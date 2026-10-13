@@ -12,7 +12,6 @@ import vn.ticketscenter.config.worker.OutboxEmailJob;
 import vn.ticketscenter.config.worker.OutboxWorker;
 import vn.ticketscenter.config.worker.RefundJob;
 import vn.ticketscenter.event.repository.EventCancellationRepository;
-import vn.ticketscenter.fulfillment.repository.RefundRepository;
 import vn.ticketscenter.payment.integration.RefundGateway;
 import vn.ticketscenter.payment.integration.SimulatedRefundGateway;
 
@@ -40,7 +39,10 @@ public final class PersistenceListener implements ServletContextListener {
         try {
             registry.initialize();
             new AdminSeeder(new PasswordHasher(), Clock.systemUTC()).seed(registry.transactionManager());
-            new vn.ticketscenter.config.seed.DemoAccountSeeder(new PasswordHasher(), Clock.systemUTC()).seed(registry.transactionManager());
+            if (vn.ticketscenter.config.seed.DemoAccountSeeder.enabled(
+                    ServerConfig.getEnv(), AppConfig.getBoolean("demo.seed.enabled", false))) {
+                new vn.ticketscenter.config.seed.DemoAccountSeeder(new PasswordHasher(), Clock.systemUTC()).seed(registry.transactionManager());
+            }
         } catch (RuntimeException exception) {
             LOGGER.log(Level.SEVERE, "Database persistence initialization failed", exception);
         }
@@ -52,7 +54,7 @@ public final class PersistenceListener implements ServletContextListener {
             cancellationWorker = Executors.newSingleThreadScheduledExecutor(
                     Thread.ofPlatform().name("event-cancellation-worker").daemon(true).factory());
             cancellationWorker.scheduleWithFixedDelay(() -> runCancellation(job), 0, 5, TimeUnit.SECONDS);
-            RefundJob refundJob = new RefundJob(registry.transactionManager(), new RefundRepository(),
+            RefundJob refundJob = new RefundJob(registry.transactionManager(),
                     new SimulatedRefundGateway(
                             Path.of(AppConfig.get(AppConfig.Keys.REFUND_STATE_DIRECTORY, "data/refund-gateway")),
                             RefundGateway.Status.valueOf(AppConfig.get(AppConfig.Keys.REFUND_SIMULATED_OUTCOME, "SUCCEEDED").toUpperCase()),

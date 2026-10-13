@@ -20,6 +20,7 @@ import vn.ticketscenter.identity.model.OrganizationStatus;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.model.User;
 import vn.ticketscenter.identity.model.UserStatus;
+import vn.ticketscenter.identity.repository.OrganizationDecisionRepository;
 import vn.ticketscenter.identity.repository.OrganizationRepository;
 import vn.ticketscenter.identity.repository.UserRepository;
 import vn.ticketscenter.persistence.model.BaseEntity;
@@ -45,6 +46,7 @@ public class OrganizationRequestServiceTest {
     private InMemoryRedisStore redisStore;
     private TransactionManager transactionManager;
     private List<Object> persistedEntities;
+    private FakeDecisionRepository decisions;
     private OrganizationRequestService service;
 
     @BeforeEach
@@ -54,7 +56,8 @@ public class OrganizationRequestServiceTest {
         redisStore = new InMemoryRedisStore();
         persistedEntities = new ArrayList<>();
         transactionManager = createFakeTransactionManager(persistedEntities);
-        service = OrganizationRequestService.withRedisStore(transactionManager, organizationRepository, userRepository, redisStore);
+        decisions = new FakeDecisionRepository(organizationRepository, userRepository);
+        service = OrganizationRequestService.withRedisStore(transactionManager, organizationRepository, userRepository, redisStore, decisions);
     }
 
     @Test
@@ -389,27 +392,17 @@ public class OrganizationRequestServiceTest {
         assertEquals(OrganizationStatus.APPROVED, org.getStatus());
         assertNull(org.getRejectionReason());
 
-        Optional<OrganizationMembership> membershipOpt = persistedEntities.stream()
-                .filter(e -> e instanceof OrganizationMembership)
-                .map(e -> (OrganizationMembership) e)
-                .findFirst();
-        assertTrue(membershipOpt.isPresent());
-        OrganizationMembership membership = membershipOpt.get();
-        assertEquals(requester, membership.getUser());
-        assertEquals(org, membership.getOrganization());
-        assertEquals(OrganizationRole.MANAGER, membership.getRole());
-
-        Optional<Event> eventOpt = persistedEntities.stream()
-                .filter(e -> e instanceof Event)
-                .map(e -> (Event) e)
-                .findFirst();
-        assertTrue(eventOpt.isPresent());
-        Event event = eventOpt.get();
-        assertEquals(org, event.getOrganization());
-        assertEquals("Rock Night 2026", event.getTitle());
-        assertEquals("My Dinh Stadium", event.getVenueName());
-        assertNotNull(event.getStartTime());
-        assertNotNull(event.getEndTime());
+        assertEquals(1, decisions.approvals.size());
+        FakeDecisionRepository.ApprovalCall call = decisions.approvals.get(0);
+        assertEquals(orgId, call.organizationId());
+        assertEquals(adminId, call.adminId());
+        assertNull(call.policy());
+        assertEquals(requesterId, approved.requesterId());
+        assertEquals("Rock Night 2026", call.event().title());
+        assertEquals("My Dinh Stadium", call.event().venue());
+        assertNotNull(call.event().startTime());
+        assertNotNull(call.event().endTime());
+        assertTrue(call.event().startTime().isBefore(call.event().endTime()));
     }
 
     @Test
@@ -534,7 +527,7 @@ public class OrganizationRequestServiceTest {
                     return null;
                 }
         );
-        return new TransactionManager(Map.of(DatabasePrincipal.AUTH, emf));
+        return new TransactionManager(Map.of(DatabasePrincipal.AUTH, emf, DatabasePrincipal.ADMIN, emf, DatabasePrincipal.BUYER, emf));
     }
 
     private static void setEntityId(Object entity, UUID id) {
@@ -554,6 +547,45 @@ public class OrganizationRequestServiceTest {
             statusField.set(user, status);
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    /** Stands in for the approval/rejection procedures: records the call and applies the status change. */
+    private static class FakeDecisionRepository extends OrganizationDecisionRepository {
+        record ApprovalCall(UUID organizationId, UUID adminId, CommissionPolicy policy, InitialEvent event) { }
+
+        final List<ApprovalCall> approvals = new ArrayList<>();
+        final List<String> rejections = new ArrayList<>();
+        private final FakeOrganizationRepository organizations;
+        private final FakeUserRepository users;
+
+        FakeDecisionRepository(FakeOrganizationRepository organizations, FakeUserRepository users) {
+            this.organizations = organizations;
+            this.users = users;
+        }
+
+        @Override
+        public UUID submit(TransactionManager transactions, UUID requesterId, String name, String contactEmail,
+                           String contactPhone, String description) {
+            Organization org = new Organization(name, contactEmail, contactPhone, description,
+                    users.findById(null, requesterId).orElseThrow());
+            org.submitForApproval();
+            return organizations.save(null, org).getId();
+        }
+
+        @Override
+        public Approval approve(TransactionManager transactions, UUID organizationId, UUID adminId,
+                                CommissionPolicy policy, InitialEvent event) {
+            approvals.add(new ApprovalCall(organizationId, adminId, policy, event));
+            Organization org = organizations.findById(null, organizationId).orElseThrow();
+            org.approve();
+            return new Approval(org.getRequester() == null ? null : org.getRequester().getId(), null, UUID.randomUUID());
+        }
+
+        @Override
+        public void reject(TransactionManager transactions, UUID organizationId, UUID adminId, String reason) {
+            rejections.add(reason);
+            organizations.findById(null, organizationId).orElseThrow().reject(reason);
         }
     }
 

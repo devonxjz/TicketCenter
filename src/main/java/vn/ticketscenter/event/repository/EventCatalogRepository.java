@@ -14,11 +14,8 @@ import java.util.*;
 public class EventCatalogRepository {
     private final TransactionManager transactions;
     private static final String COLUMNS = "e.event_id,e.category_id,e.title,%s AS description,e.cover_image_url,e.venue_name,e.venue_address,"
-            + "e.sale_start,e.sale_end,e.start_time,e.end_time,e.minimum_price,c.name,o.name,prices.maximum_price,"
-            + "CASE WHEN SYSUTCDATETIME()>=e.sale_start AND SYSUTCDATETIME()<e.sale_end THEN CAST(1 AS bit) ELSE CAST(0 AS bit) END";
-    private static final String PUBLIC_PROJECTION = " FROM dbo.vw_PublicEvents e"
-            + " JOIN dbo.tc_event_categories c ON c.id=e.category_id JOIN dbo.tc_organizations o ON o.id=e.organization_id"
-            + " OUTER APPLY (SELECT MAX(zi.price) maximum_price FROM dbo.vw_ZoneInventory zi WHERE zi.event_id=e.event_id) prices";
+            + "e.sale_start,e.sale_end,e.start_time,e.end_time,e.minimum_price,e.category_name,e.organizer_name,e.maximum_price,e.is_on_sale";
+    private static final String PUBLIC_PROJECTION = " FROM dbo.vw_PublicEventCatalog e";
     public EventCatalogRepository(TransactionManager transactions) { this.transactions = transactions; }
 
     public EventDtos.Page events(EventFilter filter) {
@@ -96,7 +93,7 @@ public class EventCatalogRepository {
 
     public List<EventDtos.Category> categories() {
         return read(connection -> {
-            try (var query = prepare(connection, "SELECT id,name,slug FROM dbo.tc_event_categories ORDER BY name,id"); var rows = query.executeQuery()) {
+            try (var query = prepare(connection, "SELECT id,name,slug FROM dbo.vw_EventCategories ORDER BY name,id"); var rows = query.executeQuery()) {
                 List<EventDtos.Category> items = new ArrayList<>();
                 while (rows.next()) items.add(new EventDtos.Category(id(rows, 1), rows.getString(2), rows.getString(3)));
                 return List.copyOf(items);

@@ -28,28 +28,27 @@ public class AdminServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String path = req.getRequestURI().substring(req.getContextPath().length());
 
+        // Exact routing: pages that moved to another module redirect there instead of rendering a local view.
+        String redirect = switch (path) {
+            case "/admin", "/admin/dashboard" -> "/finance/overview";
+            case "/admin/settlements" -> "/finance/settlements";
+            case "/admin/audit-logs" -> "/finance/audit";
+            case "/admin/refund-approval", "/admin/refunds/approval" -> "/admin/refund-requests";
+            default -> null;
+        };
+        if (redirect != null) {
+            resp.sendRedirect(req.getContextPath() + redirect);
+            return;
+        }
         String view;
         String activeTab;
-        if (path.contains("org")) {
-            view = "/WEB-INF/views/admin/organizations/list.jsp";
-            activeTab = "org-approval";
-        } else if (path.contains("event")) {
+        if (path.equals("/admin/event-approval") || path.equals("/admin/events/approval")) {
             view = "/WEB-INF/views/admin/event-approval.jsp";
             activeTab = "event-approval";
-        } else if (path.contains("refund")) {
-            resp.sendRedirect(req.getContextPath() + "/admin/refund-requests");
-            return;
-        } else if (path.contains("settlement")) {
-            view = "/WEB-INF/views/admin/settlements.jsp";
-            activeTab = "settlements";
-        } else if (path.contains("audit")) {
-            view = "/WEB-INF/views/admin/audit-logs.jsp";
-            activeTab = "audit-logs";
         } else {
-            view = "/WEB-INF/views/admin/dashboard.jsp";
-            activeTab = "dashboard";
+            view = "/WEB-INF/views/admin/organizations/list.jsp";
+            activeTab = "org-approval";
         }
-
         req.setAttribute("activeTab", activeTab);
         req.getRequestDispatcher(view).forward(req, resp);
     }

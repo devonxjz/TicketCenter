@@ -50,3 +50,6 @@ build/
 docs/handoff
 
 code
+
+# Local account/credential notes
+/taikhoan.txt

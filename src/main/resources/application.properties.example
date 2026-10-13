@@ -56,6 +56,10 @@ event.image.directory=/var/lib/ticketscenter/event-images
 
 # Demo admin seed. Keep disabled unless explicitly needed.
 admin.seed.enabled=false
+
+# Demo manager/staff/buyer accounts with a published password. Local development only;
+# ignored when app.env=production.
+demo.seed.enabled=false
 admin.email=admin@fixture.invalid
 admin.password=
 
@@ -92,9 +96,9 @@ CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
 
 # 7. Cấu hình Connection Pool (HikariCP)
-hikari.maximum-pool-size=500
+hikari.maximum-pool-size=20
 hikari.minimum-idle=10
 hikari.idle-timeout=600000
 hikari.connection-timeout=30000
 hikari.max-lifetime=1800000
-hikari.pool-budget=500
+hikari.pool-budget=60

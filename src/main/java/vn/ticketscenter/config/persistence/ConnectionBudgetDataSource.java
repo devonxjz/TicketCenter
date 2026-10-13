@@ -31,7 +31,10 @@ final class ConnectionBudgetDataSource implements DataSource {
 
     private Connection bounded(ConnectionSupplier supplier) throws SQLException {
         try {
-            BUDGET.acquire();
+            long wait = vn.ticketscenter.config.DatabaseConfig.getConnectionTimeout();
+            if (!BUDGET.tryAcquire(wait, java.util.concurrent.TimeUnit.MILLISECONDS)) {
+                throw new java.sql.SQLTransientConnectionException("Database connection budget exhausted after " + wait + " ms");
+            }
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             throw new SQLException("Interrupted while waiting for database capacity", exception);

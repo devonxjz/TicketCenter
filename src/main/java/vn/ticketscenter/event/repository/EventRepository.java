@@ -35,7 +35,7 @@ public class EventRepository {
     private static final String COLUMNS =
             "e.id,e.organization_id,e.category_id,e.title,e.description,e.venue_name,"
                 + "e.venue_address,e.sale_start,e.sale_end,e.start_time,e.end_time,e.status,e.version,"
-                + "COALESCE(NULLIF(e.event_image,''),e.cover_image_url),e.event_image_public_id";
+                + "e.image_url,e.event_image_public_id";
     private final DataSource manager;
     private final DataSource buyer;
     private final DataSource worker;
@@ -59,112 +59,31 @@ public class EventRepository {
         return tx(
                 manager,
                 c -> {
-                    UUID actorId =
-                            maintenance ? MAINTENANCE : Objects.requireNonNull(actor).actorId();
-                    UUID eventId =
-                            command.kind() == EventSave.Kind.CREATE
-                                    ? UUID.randomUUID()
-                                    : command.targetId();
-                    UUID organizationId;
-                    if (command.kind() == EventSave.Kind.CREATE)
-                        organizationId = command.targetId();
-                    else organizationId = find(c, command.targetId(), false).organizationId();
-                    authorize(c, actor, organizationId, maintenance);
-                    try (PreparedStatement q =
-                                    query(
-                                            c,
-                                            "SELECT"
-                                                + " fingerprint,event_id,organization_id,public_id,state,lease_until,result_json"
-                                                + " FROM dbo.tc_event_image_requests"
-                                                + " WITH(UPDLOCK,HOLDLOCK) WHERE actor_id=? AND"
-                                                + " request_id=?",
-                                            actorId,
-                                            command.requestId());
-                            ResultSet r = q.executeQuery()) {
-                        if (r.next()) {
-                            if (!fingerprint.equals(r.getString(1)))
-                                throw failure(
-                                        409,
-                                        "IDEMPOTENCY_CONFLICT",
-                                        "Request key was already used for different input");
-                            eventId = id(r, 2);
-                            organizationId = id(r, 3);
-                            authorize(c, actor, organizationId, maintenance);
-                            if ("COMMITTED".equals(r.getString(5)))
-                                return new Claim(
-                                        actorId,
-                                        command.requestId(),
-                                        eventId,
-                                        organizationId,
-                                        null,
-                                        r.getString(4),
-                                        EventDto.fromSnapshot(r.getString(7)));
-                            if ("ABORTED".equals(r.getString(5)))
-                                throw failure(
-                                        409,
-                                        "REQUEST_ABORTED",
-                                        "Save has been cancelled; use a new request key");
-                            if (instant(r, 6).isAfter(Instant.now()))
-                                throw failure(
-                                        409,
-                                        "REQUEST_IN_PROGRESS",
-                                        "Save is still running; retry shortly");
-                            checkTarget(c, command, eventId);
-                            UUID token = UUID.randomUUID();
-                            execute(
+                    UUID actorId = maintenance ? null : Objects.requireNonNull(actor).actorId();
+                    EventFields f = command.fields();
+                    Object[] row =
+                            row(
                                     c,
-                                    "UPDATE dbo.tc_event_image_requests SET"
-                                        + " lease_token=?,lease_until=DATEADD(minute,10,SYSUTCDATETIME()),updated_at=SYSUTCDATETIME()"
-                                        + " WHERE actor_id=? AND request_id=?",
-                                    token,
+                                    "EXEC dbo.usp_EventImageClaim ?,?,?,?,?,?,?,?,?,?,?",
                                     actorId,
-                                    command.requestId());
-                            return new Claim(
-                                    actorId,
+                                    maintenance ? null : actor.authVersion(),
+                                    maintenance,
                                     command.requestId(),
-                                    eventId,
-                                    organizationId,
-                                    token,
-                                    r.getString(4),
-                                    null);
-                        }
-                    }
-                    checkTarget(c, command, eventId);
-                    UUID token = UUID.randomUUID();
-                    String publicId =
-                            hasImage
-                                    ? "ticketcenter/events/" + eventId + "/" + command.requestId()
-                                    : null;
-                    execute(
-                            c,
-                            "INSERT"
-                                + " dbo.tc_event_image_requests(actor_id,request_id,fingerprint,operation,event_id,organization_id,expected_version,public_id,state,lease_token,lease_until)"
-                                + " VALUES(?,?,?,?,?,?,?,?,"
-                                + " 'PENDING',?,DATEADD(minute,10,SYSUTCDATETIME()))",
-                            actorId,
-                            command.requestId(),
-                            fingerprint,
-                            command.kind().name(),
-                            eventId,
-                            organizationId,
-                            command.expectedVersion(),
-                            publicId,
-                            token);
-                    if (publicId != null)
-                        execute(
-                                c,
-                                "INSERT dbo.tc_event_image_assets(public_id,event_id,state)"
-                                        + " VALUES(?,?,'AVAILABLE')",
-                                publicId,
-                                eventId);
+                                    fingerprint,
+                                    command.kind().name(),
+                                    command.targetId(),
+                                    command.expectedVersion(),
+                                    f != null,
+                                    f == null ? null : f.categoryId(),
+                                    hasImage);
                     return new Claim(
-                            actorId,
+                            uuid(row[0]),
                             command.requestId(),
-                            eventId,
-                            organizationId,
-                            token,
-                            publicId,
-                            null);
+                            uuid(row[1]),
+                            uuid(row[2]),
+                            uuid(row[3]),
+                            (String) row[4],
+                            row[5] == null ? null : EventDto.fromSnapshot((String) row[5]));
                 });
     }
 
@@ -177,135 +96,47 @@ public class EventRepository {
         return tx(
                 manager,
                 c -> {
-                    authorize(c, actor, claim.organizationId(), maintenance);
-                    try (PreparedStatement q =
-                                    query(
-                                            c,
-                                            "SELECT state,lease_token,result_json FROM"
-                                                    + " dbo.tc_event_image_requests"
-                                                    + " WITH(UPDLOCK,HOLDLOCK) WHERE actor_id=? AND"
-                                                    + " request_id=?",
-                                            claim.actorId(),
-                                            claim.requestId());
-                            ResultSet r = q.executeQuery()) {
-                        if (!r.next()) throw failure(409, "REQUEST_LOST", "Save intent is missing");
-                        if ("COMMITTED".equals(r.getString(1)))
-                            return EventDto.fromSnapshot(r.getString(3));
-                        if (!"PENDING".equals(r.getString(1))
-                                || !claim.leaseToken().equals(id(r, 2)))
-                            throw failure(409, "STALE_REQUEST", "Save lease has changed; retry");
-                    }
-                    checkTarget(c, command, claim.eventId());
-                    if (asset != null) {
-                        if (!claim.publicId().equals(asset.publicId())
-                                || !asset.secureUrl().startsWith("https://res.cloudinary.com/")
-                                || asset.secureUrl().length() > 2048)
-                            throw failure(
-                                    502,
-                                    "IMAGE_METADATA_INVALID",
-                                    "Image provider returned invalid metadata");
-                        try (PreparedStatement q =
-                                        query(
-                                                c,
-                                                "SELECT state FROM dbo.tc_event_image_assets"
-                                                    + " WITH(UPDLOCK,HOLDLOCK) WHERE public_id=?",
-                                                asset.publicId());
-                                ResultSet r = q.executeQuery()) {
-                            if (!r.next() || !"AVAILABLE".equals(r.getString(1)))
-                                throw failure(
-                                        409, "ASSET_UNAVAILABLE", "Image is scheduled for cleanup");
-                        }
-                        execute(
-                                c,
-                                "UPDATE dbo.tc_event_image_assets SET secure_url=? WHERE"
-                                        + " public_id=?",
-                                asset.secureUrl(),
-                                asset.publicId());
-                    }
-                    String oldId =
-                            command.kind() == EventSave.Kind.CREATE
-                                    ? null
-                                    : find(c, claim.eventId(), false).imagePublicId();
-                    if (!maintenance) {
-                        EventFields f = command.fields();
-                        execute(c,
-                                "EXEC dbo.usp_SaveEventDraft ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?",
-                                claim.eventId(), claim.organizationId(), actor.actorId(),
-                                command.kind() == EventSave.Kind.CREATE, command.expectedVersion(),
-                                f == null ? null : f.categoryId(), f == null ? null : f.title(),
-                                f == null ? null : f.description(), f == null ? null : f.venueName(),
-                                f == null ? null : f.venueAddress(), f == null ? null : f.saleStart(),
-                                f == null ? null : f.saleEnd(), f == null ? null : f.startTime(),
-                                f == null ? null : f.endTime(), asset == null ? null : asset.secureUrl(),
-                                asset == null ? null : asset.publicId(), command.kind() == EventSave.Kind.COVER);
-                    } else if (command.kind() == EventSave.Kind.CREATE) {
-                        EventFields f = command.fields();
-                        execute(
-                                c,
-                                "INSERT"
-                                    + " dbo.tc_events(id,organization_id,category_id,title,description,venue_name,venue_address,sale_start,sale_end,start_time,end_time,status,version,event_image,event_image_public_id,cover_image_url)"
-                                    + " VALUES(?,?,?,?,?,?,?,?,?,?,?,'DRAFT',0,?,?,?)",
-                                claim.eventId(),
-                                claim.organizationId(),
-                                f.categoryId(),
-                                f.title(),
-                                f.description(),
-                                f.venueName(),
-                                f.venueAddress(),
-                                f.saleStart(),
-                                f.saleEnd(),
-                                f.startTime(),
-                                f.endTime(),
-                                asset == null ? null : asset.secureUrl(),
-                                asset == null ? null : asset.publicId(),
-                                asset == null ? null : asset.secureUrl());
-                    } else {
-                        String sql = "UPDATE dbo.tc_events SET version=version+1";
-                        List<Object> args = new ArrayList<>();
-                        if (command.kind() == EventSave.Kind.EDIT) {
-                            EventFields f = command.fields();
-                            sql +=
-                                    ",category_id=?,title=?,description=?,venue_name=?,venue_address=?,sale_start=?,sale_end=?,start_time=?,end_time=?";
-                            Collections.addAll(
-                                    args,
-                                    f.categoryId(),
-                                    f.title(),
-                                    f.description(),
-                                    f.venueName(),
-                                    f.venueAddress(),
-                                    f.saleStart(),
-                                    f.saleEnd(),
-                                    f.startTime(),
-                                    f.endTime());
-                        }
-                        if (asset != null) {
-                            sql += ",event_image=?,event_image_public_id=?,cover_image_url=?";
-                            Collections.addAll(
-                                    args, asset.secureUrl(), asset.publicId(), asset.secureUrl());
-                        }
-                        sql += " WHERE id=? AND version=?";
-                        Collections.addAll(args, claim.eventId(), command.expectedVersion());
-                        if (execute(c, sql, args.toArray()) != 1)
-                            throw failure(
-                                    409,
-                                    "EVENT_VERSION_CONFLICT",
-                                    "Event has changed; reload before saving");
-                    }
-                    EventDto result = find(c, claim.eventId(), false);
+                    if (!maintenance && actor == null)
+                        throw failure(401, "AUTH_REQUIRED", "Sign in first");
+                    EventFields f = command.fields();
+                    Object[] saved =
+                            row(
+                                    c,
+                                    "EXEC dbo.usp_EventImageSave"
+                                            + " ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?",
+                                    maintenance ? null : actor.actorId(),
+                                    maintenance ? null : actor.authVersion(),
+                                    maintenance,
+                                    claim.requestId(),
+                                    claim.leaseToken(),
+                                    claim.eventId(),
+                                    claim.organizationId(),
+                                    command.kind().name(),
+                                    command.expectedVersion(),
+                                    f != null,
+                                    f == null ? null : f.categoryId(),
+                                    f == null ? null : f.title(),
+                                    f == null ? null : f.description(),
+                                    f == null ? null : f.venueName(),
+                                    f == null ? null : f.venueAddress(),
+                                    f == null ? null : f.saleStart(),
+                                    f == null ? null : f.saleEnd(),
+                                    f == null ? null : f.startTime(),
+                                    f == null ? null : f.endTime(),
+                                    asset == null ? null : asset.publicId(),
+                                    asset == null ? null : asset.secureUrl());
+                    if (Boolean.TRUE.equals(saved[0]))
+                        return EventDto.fromSnapshot((String) saved[1]);
+                    EventDto result = find(c, claim.eventId());
                     execute(
                             c,
-                            "UPDATE dbo.tc_event_image_requests SET"
-                                    + " state='COMMITTED',result_json=?,updated_at=SYSUTCDATETIME()"
-                                    + " WHERE actor_id=? AND request_id=?",
-                            result.snapshot(),
+                            "EXEC dbo.usp_EventImageCommit ?,?,?,?,?,?",
                             claim.actorId(),
-                            claim.requestId());
-                    if (asset != null && oldId != null && !oldId.equals(asset.publicId()))
-                        execute(
-                                c,
-                                "UPDATE dbo.tc_event_image_assets SET available_at=SYSUTCDATETIME()"
-                                        + " WHERE public_id=? AND state='AVAILABLE'",
-                                oldId);
+                            claim.requestId(),
+                            claim.leaseToken(),
+                            result.snapshot(),
+                            saved[2],
+                            asset == null ? null : asset.publicId());
                     return result;
                 });
     }
@@ -316,14 +147,11 @@ public class EventRepository {
                 c -> {
                     execute(
                             c,
-                            "UPDATE dbo.tc_event_image_requests SET"
-                                + " state=?,lease_until=SYSUTCDATETIME(),updated_at=SYSUTCDATETIME()"
-                                + " WHERE actor_id=? AND request_id=? AND lease_token=? AND"
-                                + " state='PENDING'",
-                            abort ? "ABORTED" : "PENDING",
+                            "EXEC dbo.usp_EventImageRelease ?,?,?,?",
                             claim.actorId(),
                             claim.requestId(),
-                            claim.leaseToken());
+                            claim.leaseToken(),
+                            abort);
                     return null;
                 });
     }
@@ -368,7 +196,7 @@ public class EventRepository {
                             c,
                             "SELECT TOP(100) "
                                     + COLUMNS
-                                    + " FROM dbo.tc_events e WHERE organization_id=? ORDER BY"
+                                    + " FROM dbo.vw_ManagedEvents e WHERE organization_id=? ORDER BY"
                                     + " start_time DESC,id",
                             organizationId);
                 });
@@ -378,7 +206,7 @@ public class EventRepository {
         return tx(
                 manager,
                 c -> {
-                    EventDto event = find(c, id, false);
+                    EventDto event = find(c, id);
                     authorize(c, actor, event.organizationId(), false);
                     return event;
                 });
@@ -393,11 +221,8 @@ public class EventRepository {
                     try (PreparedStatement q =
                                     query(
                                             c,
-                                            "SELECT o.id,o.name FROM dbo.tc_organizations o JOIN"
-                                                + " dbo.tc_organization_memberships m ON"
-                                                + " m.organization_id=o.id WHERE m.user_id=? AND"
-                                                + " m.active=1 AND m.role='MANAGER' AND"
-                                                + " o.status='APPROVED' ORDER BY o.name",
+                                            "SELECT o.id,o.name FROM dbo.vw_ManagerOrganizations o"
+                                                + " WHERE o.user_id=? ORDER BY o.name",
                                             actor.actorId());
                             ResultSet r = q.executeQuery()) {
                         while (r.next())
@@ -412,7 +237,7 @@ public class EventRepository {
                     try (PreparedStatement q =
                                     query(
                                             c,
-                                            "SELECT id,name,slug FROM dbo.tc_event_categories ORDER"
+                                            "SELECT id,name,slug FROM dbo.vw_EventCategories ORDER"
                                                     + " BY name");
                             ResultSet r = q.executeQuery()) {
                         while (r.next())
@@ -442,7 +267,7 @@ public class EventRepository {
                     try (PreparedStatement q =
                                     query(
                                             c,
-                                            "SELECT slug FROM dbo.tc_event_categories WHERE id=?",
+                                            "SELECT slug FROM dbo.vw_EventCategories WHERE id=?",
                                             categoryId);
                             ResultSet r = q.executeQuery()) {
                         if (!r.next()) throw failure(400, "CATEGORY_NOT_FOUND", "Unknown category");
@@ -462,10 +287,8 @@ public class EventRepository {
                                             c,
                                             "SELECT "
                                                     + COLUMNS
-                                                    + ",cat.slug,e.event_image,e.cover_image_url"
-                                                    + " FROM dbo.tc_events e JOIN"
-                                                    + " dbo.tc_event_categories cat ON"
-                                                    + " cat.id=e.category_id ORDER BY e.id");
+                                                    + ",e.category_slug,e.event_image,e.event_image"
+                                                    + " FROM dbo.vw_ManagedEvents e ORDER BY e.id");
                             ResultSet r = q.executeQuery()) {
                         while (r.next())
                             list.add(
@@ -485,45 +308,9 @@ public class EventRepository {
         return tx(
                 worker,
                 c -> {
-                    execute(
-                            c,
-                            "UPDATE dbo.tc_event_image_requests SET"
-                                    + " state='ABORTED',updated_at=SYSUTCDATETIME() WHERE"
-                                    + " state='PENDING' AND lease_until<SYSUTCDATETIME() AND"
-                                    + " updated_at<DATEADD(day,-1,SYSUTCDATETIME())");
                     List<Cleanup> list = new ArrayList<>();
-                    String sql =
-                            "SELECT TOP(?) a.public_id FROM dbo.tc_event_image_assets a"
-                                + " WITH(UPDLOCK,HOLDLOCK) WHERE a.state IN"
-                                + " ('AVAILABLE','DELETE_PENDING') AND"
-                                + " a.available_at<=SYSUTCDATETIME() AND (a.lease_until IS NULL OR"
-                                + " a.lease_until<SYSUTCDATETIME()) AND NOT EXISTS(SELECT 1 FROM"
-                                + " dbo.tc_events e WHERE e.event_image_public_id=a.public_id OR"
-                                + " (a.secure_url IS NOT NULL AND (e.event_image=a.secure_url OR"
-                                + " e.cover_image_url=a.secure_url))) AND NOT EXISTS(SELECT 1 FROM"
-                                + " dbo.tc_users u WHERE u.avatar_public_id=a.public_id OR"
-                                + " (a.secure_url IS NOT NULL AND u.avatar=a.secure_url)) AND NOT"
-                                + " EXISTS(SELECT 1 FROM dbo.tc_event_image_requests r"
-                                + " WITH(UPDLOCK,HOLDLOCK) WHERE r.public_id=a.public_id AND"
-                                + " r.state='PENDING') ORDER BY a.available_at,a.public_id";
-                    try (PreparedStatement q = query(c, sql, limit);
-                            ResultSet r = q.executeQuery()) {
-                        while (r.next()) {
-                            String publicId = r.getString(1);
-                            UUID token = UUID.randomUUID();
-                            if (!publicId.matches(
-                                    "ticketcenter/events/[0-9a-fA-F-]{36}/[0-9a-fA-F-]{36}"))
-                                continue;
-                            execute(
-                                    c,
-                                    "UPDATE dbo.tc_event_image_assets SET"
-                                        + " state='DELETE_PENDING',lease_token=?,lease_until=DATEADD(minute,10,SYSUTCDATETIME()),attempts=attempts+1"
-                                        + " WHERE public_id=?",
-                                    token,
-                                    publicId);
-                            list.add(new Cleanup(publicId, token));
-                        }
-                    }
+                    for (Object[] row : rows(c, "EXEC dbo.usp_EventImageClaimCleanup ?", limit))
+                        list.add(new Cleanup((String) row[0], uuid(row[1])));
                     return List.copyOf(list);
                 });
     }
@@ -534,113 +321,40 @@ public class EventRepository {
                 c -> {
                     execute(
                             c,
-                            "UPDATE dbo.tc_event_image_assets SET"
-                                + " state=?,lease_until=NULL,lease_token=NULL,available_at=DATEADD(minute,?,SYSUTCDATETIME())"
-                                + " WHERE public_id=? AND lease_token=? AND state='DELETE_PENDING'",
-                            success ? "DELETED" : "DELETE_PENDING",
-                            success ? 1440 : 5,
+                            "EXEC dbo.usp_EventImageCleanupFinished ?,?,?",
                             task.publicId(),
-                            task.leaseToken());
+                            task.leaseToken(),
+                            success);
                     return null;
                 });
     }
 
-    private static void checkTarget(Connection c, EventSave command, UUID eventId)
-            throws SQLException {
-        if (command.fields() != null) {
-            try (PreparedStatement q =
-                            query(
-                                    c,
-                                    "SELECT 1 FROM dbo.tc_event_categories WHERE id=?",
-                                    command.fields().categoryId());
-                    ResultSet r = q.executeQuery()) {
-                if (!r.next()) throw failure(400, "CATEGORY_NOT_FOUND", "Unknown category");
-            }
-        }
-        if (command.kind() == EventSave.Kind.CREATE) return;
-        EventDto event = find(c, eventId, true);
-        if (event.version() != command.expectedVersion())
-            throw failure(409, "EVENT_VERSION_CONFLICT", "Event has changed; reload before saving");
-        if (command.kind() == EventSave.Kind.EDIT
-                && !Set.of("DRAFT", "REJECTED").contains(event.status()))
-            throw failure(409, "EVENT_NOT_EDITABLE", "Only draft or rejected Events can be edited");
-        if (command.kind() == EventSave.Kind.COVER
-                && !Set.of("DRAFT", "REJECTED", "PUBLISHED").contains(event.status()))
-            throw failure(409, "EVENT_NOT_EDITABLE", "Event cover cannot be changed in this state");
-    }
-
+    /** Session, manager membership and organization approval are checked by the database. */
     private static void authorize(
             Connection c, UserPrincipal actor, UUID organizationId, boolean maintenance)
             throws SQLException {
-        if (maintenance) {
-            requireMaintenance(c);
-            return;
-        }
-        currentUser(c, actor);
-        try (PreparedStatement q =
-                        query(
-                                c,
-                                "SELECT 1 FROM dbo.tc_organization_memberships"
-                                        + " WITH(UPDLOCK,HOLDLOCK) WHERE user_id=? AND"
-                                        + " organization_id=? AND active=1 AND role='MANAGER'",
-                                actor.actorId(),
-                                organizationId);
-                ResultSet r = q.executeQuery()) {
-            if (!r.next())
-                throw failure(403, "EVENT_FORBIDDEN", "Current Manager membership is required");
-        }
-        try (PreparedStatement q =
-                        query(
-                                c,
-                                "SELECT 1 FROM dbo.tc_organizations WITH(HOLDLOCK) WHERE id=? AND"
-                                        + " status='APPROVED'",
-                                organizationId);
-                ResultSet r = q.executeQuery()) {
-            if (!r.next())
-                throw failure(403, "ORGANIZATION_NOT_APPROVED", "Organization is not approved");
-        }
+        if (!maintenance && actor == null) throw failure(401, "AUTH_REQUIRED", "Sign in first");
+        execute(
+                c,
+                "EXEC dbo.usp_EventImageAuthorize ?,?,?,?",
+                maintenance ? null : actor.actorId(),
+                maintenance ? null : actor.authVersion(),
+                maintenance ? null : organizationId,
+                maintenance);
     }
 
     private static void currentUser(Connection c, UserPrincipal actor) throws SQLException {
         if (actor == null) throw failure(401, "AUTH_REQUIRED", "Sign in first");
-        try (PreparedStatement q =
-                        query(
-                                c,
-                                "SELECT 1 FROM dbo.tc_users WITH(UPDLOCK,HOLDLOCK) WHERE id=? AND"
-                                        + " status='ACTIVE' AND auth_version=?",
-                                actor.actorId(),
-                                actor.authVersion());
-                ResultSet r = q.executeQuery()) {
-            if (!r.next())
-                throw failure(401, "SESSION_EXPIRED", "Current session is no longer valid");
-        }
+        execute(c, "EXEC dbo.usp_EventRequireSession ?,?", actor.actorId(), actor.authVersion());
     }
 
     private static void requireMaintenance(Connection c) throws SQLException {
-        try (PreparedStatement q =
-                        query(
-                                c,
-                                "SELECT CASE WHEN USER_NAME()='dbo' OR IS_ROLEMEMBER('db_owner')=1"
-                                        + " OR IS_SRVROLEMEMBER('sysadmin')=1 THEN 1 ELSE 0 END");
-                ResultSet r = q.executeQuery()) {
-            if (!r.next() || !r.getBoolean(1))
-                throw failure(
-                        403,
-                        "MAINTENANCE_FORBIDDEN",
-                        "Database owner connection is required for maintenance");
-        }
+        authorize(c, null, null, true);
     }
 
-    private static EventDto find(Connection c, UUID id, boolean lock) throws SQLException {
+    private static EventDto find(Connection c, UUID id) throws SQLException {
         List<EventDto> rows =
-                events(
-                        c,
-                        "SELECT "
-                                + COLUMNS
-                                + " FROM dbo.tc_events e "
-                                + (lock ? "WITH(UPDLOCK,HOLDLOCK) " : "")
-                                + "WHERE e.id=?",
-                        id);
+                events(c, "SELECT " + COLUMNS + " FROM dbo.vw_ManagedEvents e WHERE e.id=?", id);
         if (rows.isEmpty()) throw failure(404, "EVENT_NOT_FOUND", "Event was not found");
         return rows.getFirst();
     }

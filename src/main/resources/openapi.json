@@ -1147,7 +1147,7 @@
           }
         },
         "operationId": "getApiMeProfile",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "thai",
         "externalDocs": {
@@ -1197,7 +1197,7 @@
           }
         },
         "operationId": "postApiMeProfile",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "thai",
         "description": "\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
@@ -1225,7 +1225,7 @@
           }
         },
         "operationId": "getApiOrganizationsOrganizationIdMembers",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "thai",
         "externalDocs": {
@@ -1267,7 +1267,7 @@
           }
         },
         "operationId": "postApiOrganizationsOrganizationIdMembers",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "thai",
         "externalDocs": {
@@ -1568,7 +1568,7 @@
           }
         },
         "operationId": "getApiOrganizationsOrganizationIdEvents",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "dong",
         "externalDocs": {
@@ -1887,7 +1887,7 @@
           }
         },
         "operationId": "postApiEventsEventIdZones",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "dong",
         "externalDocs": {
@@ -1930,7 +1930,7 @@
           }
         },
         "operationId": "postApiAdminEventsEventIdPublish",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "dong",
         "externalDocs": {
@@ -1976,7 +1976,7 @@
           }
         },
         "operationId": "postApiAdminEventsEventIdReject",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "dong",
         "externalDocs": {
@@ -2177,7 +2177,7 @@
         "tags": [
           "Refunds"
         ],
-        "summary": "Chờ triển khai · Tạo attempt mới sau PAYMENT_COMPENSATION đã FAILED",
+        "summary": "Tạo attempt mới sau PAYMENT_COMPENSATION đã FAILED",
         "parameters": [
           {
             "name": "paymentId",
@@ -2201,10 +2201,10 @@
           }
         },
         "operationId": "postApiAdminPaymentsPaymentIdCompensationRetry",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "khanh",
-        "description": "\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "description": "",
         "security": [
           {
             "cookieAuth": [],
@@ -4822,7 +4822,7 @@
           }
         },
         "operationId": "getApiOrdersOrderIdRefundableTickets",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "khanh",
         "externalDocs": {
@@ -4860,7 +4860,7 @@
           }
         },
         "operationId": "postApiRefundRequests",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "khanh",
         "externalDocs": {
@@ -4889,7 +4889,7 @@
           }
         },
         "operationId": "getApiMeRefundRequests",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "khanh",
         "externalDocs": {
@@ -4916,7 +4916,7 @@
           }
         },
         "operationId": "getApiRefundRequestsRefundId",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "khanh",
         "externalDocs": {
@@ -4954,7 +4954,7 @@
           }
         },
         "operationId": "postApiCheckIns",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "khanh",
         "externalDocs": {
@@ -4983,7 +4983,7 @@
           }
         },
         "operationId": "getApiEventsEventIdCheckIns",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "khanh",
         "externalDocs": {
@@ -5241,7 +5241,7 @@
           }
         },
         "operationId": "getApiMeOrders",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "liem",
         "externalDocs": {
@@ -5268,7 +5268,7 @@
           }
         },
         "operationId": "getApiOrdersOrderId",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "liem",
         "externalDocs": {
@@ -5306,7 +5306,7 @@
           }
         },
         "operationId": "getApiOrganizationsOrganizationIdCoupons",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "liem",
         "externalDocs": {
@@ -5342,7 +5342,7 @@
           }
         },
         "operationId": "postApiOrganizationsOrganizationIdCoupons",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "liem",
         "externalDocs": {
@@ -5382,7 +5382,7 @@
           }
         },
         "operationId": "postApiCouponsCouponIdDeactivate",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "liem",
         "externalDocs": {
@@ -5422,7 +5422,7 @@
           }
         },
         "operationId": "getApiMeTickets",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "liem",
         "externalDocs": {
@@ -5449,7 +5449,7 @@
           }
         },
         "operationId": "getApiTicketsTicketId",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "liem",
         "externalDocs": {
@@ -5487,7 +5487,7 @@
           }
         },
         "operationId": "getApiTicketsTicketIdQr",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "liem",
         "externalDocs": {
@@ -5525,7 +5525,7 @@
           }
         },
         "operationId": "getApiPaymentsVnpayIpn",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "liem",
         "externalDocs": {
@@ -5548,7 +5548,7 @@
           }
         },
         "operationId": "getApiPaymentsVnpayReturn",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "liem",
         "externalDocs": {
@@ -5575,7 +5575,7 @@
           }
         },
         "operationId": "getApiOrdersOrderIdPaymentStatus",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "liem",
         "externalDocs": {
@@ -5613,7 +5613,7 @@
           }
         },
         "operationId": "postApiOrdersOrderIdPayments",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "liem",
         "externalDocs": {
@@ -5653,7 +5653,7 @@
           }
         },
         "operationId": "postApiOrders",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "liem",
         "externalDocs": {
@@ -5682,7 +5682,7 @@
           }
         },
         "operationId": "postApiOrdersOrderIdCoupon",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "liem",
         "externalDocs": {
@@ -5722,7 +5722,7 @@
           }
         },
         "operationId": "getApiOrdersOrderIdCouponEligibility",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "liem",
         "externalDocs": {
@@ -5760,7 +5760,7 @@
           }
         },
         "operationId": "postApiHolds",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "liem",
         "externalDocs": {
@@ -5789,7 +5789,7 @@
           }
         },
         "operationId": "getApiMeHold",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "liem",
         "externalDocs": {
@@ -5816,7 +5816,7 @@
           }
         },
         "operationId": "postApiHoldsHoldIdCancel",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "liem",
         "externalDocs": {
@@ -5856,7 +5856,7 @@
           }
         },
         "operationId": "getApiAdminEvents",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "dong",
         "externalDocs": {
@@ -5883,7 +5883,7 @@
           }
         },
         "operationId": "getApiAdminEventsEventId",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "dong",
         "externalDocs": {
@@ -5993,15 +5993,15 @@
         "tags": [
           "Events"
         ],
-        "summary": "Chờ triển khai · Zone, Seat và inventory constraints — POST /api/zones/{zoneId}/price",
-        "description": "Contract dự kiến từ issue #10. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "summary": "Zone, Seat và inventory constraints — POST /api/zones/{zoneId}/price",
+        "description": "Contract dự kiến từ issue #10. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.",
         "responses": {
           "200": {
             "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
           }
         },
         "operationId": "postApiZonesZoneIdPrice",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "dong",
         "externalDocs": {
@@ -6041,7 +6041,7 @@
           }
         },
         "operationId": "postApiZonesZoneIdDelete",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "dong",
         "externalDocs": {
@@ -6146,7 +6146,7 @@
           }
         },
         "operationId": "postApiEventsEventIdDelete",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "dong",
         "externalDocs": {
@@ -6186,7 +6186,7 @@
           }
         },
         "operationId": "postApiEventsEventIdSubmit",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "dong",
         "externalDocs": {
@@ -6276,7 +6276,7 @@
           }
         },
         "operationId": "getApiMeMemberships",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "thai",
         "externalDocs": {
@@ -6303,7 +6303,7 @@
           }
         },
         "operationId": "postApiOrganizationsOrganizationIdMembersUserIdRole",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "thai",
         "externalDocs": {
@@ -6352,7 +6352,7 @@
           }
         },
         "operationId": "postApiOrganizationsOrganizationIdMembersUserIdDeactivate",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "thai",
         "externalDocs": {
@@ -6401,7 +6401,7 @@
           }
         },
         "operationId": "postApiOrganizationsOrganizationIdMembersUserIdActivate",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "thai",
         "externalDocs": {
@@ -6535,7 +6535,7 @@
           }
         },
         "operationId": "postApiAdminOrganizationRequestsOrganizationIdReject",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "thai",
         "externalDocs": {
@@ -6622,7 +6622,7 @@
           }
         },
         "operationId": "postApiCouponsCouponIdActivate",
-        "x-implementation-status": "planned",
+        "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "liem",
         "externalDocs": {
