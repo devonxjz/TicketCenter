@@ -17,7 +17,7 @@
 <link rel="stylesheet" href="<%= financeContext %>/assets/css/production-ui.css">
 <link rel="stylesheet" href="<%= financeContext %>/assets/css/admin-ui.css">
 <script defer src="<%= financeContext %>/assets/js/ui-components.js"></script>
-<script defer src="<%= financeContext %>/assets/js/site-shell.js"></script>
+<script defer src="<%= financeContext %>/assets/js/site-shell.js?v=2"></script>
 </head><body class="finance-body">
 <a class="finance-skip" href="#finance-content">Bỏ qua menu, đến nội dung</a>
 <% if (financePageAdmin) { %>

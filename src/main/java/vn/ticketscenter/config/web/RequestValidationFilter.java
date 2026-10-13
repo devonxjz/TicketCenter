@@ -30,13 +30,16 @@ public final class RequestValidationFilter implements Filter {
             return;
         }
         if (BODY_METHODS.contains(httpRequest.getMethod())) {
-            String contentType = httpRequest.getContentType();
-            if (contentType == null || !(contentType.startsWith("application/json")
-                    || contentType.startsWith("application/x-www-form-urlencoded")
-                    || (imageUpload && contentType.startsWith("multipart/form-data")))) {
-                HttpResponses.error(httpResponse, HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE,
-                        "CONTENT_TYPE_INVALID", "Unsupported content type");
-                return;
+            String path = httpRequest.getRequestURI().substring(httpRequest.getContextPath().length());
+            if (!"/api/auth/logout".equals(path)) {
+                String contentType = httpRequest.getContentType();
+                if (contentType == null || !(contentType.startsWith("application/json")
+                        || contentType.startsWith("application/x-www-form-urlencoded")
+                        || (imageUpload && contentType.startsWith("multipart/form-data")))) {
+                    HttpResponses.error(httpResponse, HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE,
+                            "CONTENT_TYPE_INVALID", "Unsupported content type");
+                    return;
+                }
             }
         }
         chain.doFilter(request, response);
