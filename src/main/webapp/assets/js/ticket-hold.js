@@ -333,6 +333,47 @@
     let payNow = false;
     let client;
 
+    function payOverlay(show) {
+        let overlay = get("hold-pay-overlay");
+        if (!show) { if (overlay) overlay.hidden = true; return; }
+        if (!overlay) {
+            overlay = element("div");
+            overlay.id = "hold-pay-overlay";
+            overlay.setAttribute("role", "status");
+            overlay.style.cssText = "position:fixed;inset:0;z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;background:#fff;text-align:center";
+            const spinner = element("div"); spinner.className = "spinner-border text-danger";
+            const text = element("p", "Đang chuyển đến cổng thanh toán…"); text.className = "fw-semibold mb-0";
+            overlay.append(spinner, text);
+            document.body.append(overlay);
+        }
+        overlay.hidden = false;
+    }
+
+    // "Thanh toán ngay": tạo đơn từ lượt giữ và mở cổng thanh toán ngay tại trang này, không đi qua trang checkout.
+    // Mọi trục trặc đều rơi về /checkout?pay=now, nơi có đủ cơ chế đối chiếu và thử lại.
+    async function payDirect(holdId) {
+        payOverlay(true);
+        const call = async (path, options) => {
+            const response = await root.fetch(context + path, { credentials: "same-origin", cache: "no-store", ...options });
+            const body = await response.json();
+            if (!response.ok) throw new Error("request failed");
+            return body;
+        };
+        try {
+            const token = (await call("/api/auth/csrf")).data.token;
+            const post = (path, body) => call(path, { method: "POST", body: JSON.stringify(body), headers: {
+                "Content-Type": "application/json", "X-CSRF-Token": token, "Idempotency-Key": root.crypto.randomUUID() } });
+            const existing = (await call("/api/checkout?holdId=" + encodeURIComponent(holdId))).order;
+            const orderId = (existing || await post("/api/orders", { holdId })).orderId;
+            const receipt = await post("/api/orders/" + orderId + "/payments", {});
+            if (receipt.zeroOrder) { root.location.assign(context + "/me/tickets"); return; }
+            if (new URL(receipt.redirectUrl).protocol !== "https:") throw new Error("unsafe redirect");
+            root.location.assign(receipt.redirectUrl);
+        } catch (_) {
+            root.location.assign(context + "/checkout?pay=now");
+        }
+    }
+
     function selections() {
         return Array.from(get("hold-zones")?.querySelectorAll("input") || []).filter(input =>
             input.type === "checkbox" ? input.checked : Number(input.value) > 0).map(input => ({
@@ -445,11 +486,10 @@
             }
         }
         // "Thanh toán ngay": lượt giữ vừa được máy chủ xác nhận thì chuyển thẳng sang thanh toán.
-        if (payNow && ["selecting", "expired"].includes(state.phase)) payNow = false;
+        if (payNow && ["selecting", "expired", "uncertain"].includes(state.phase)) { payNow = false; payOverlay(false); }
         if (payNow && state.phase === "active" && state.hold) {
             payNow = false;
-            root.location.assign(context + "/checkout?pay=now");
-            return;
+            void payDirect(state.hold.id);
         }
         get("current-hold").hidden = !state.hold;
         if (page === "current") get("hold-heading").textContent = displayText(state.hold?.eventTitle) || "Lượt giữ vé";
@@ -479,7 +519,13 @@
     get("hold-form")?.addEventListener("submit", event => {
         event.preventDefault();
         payNow = event.submitter?.id === "hold-pay-now";
+        if (payNow) payOverlay(true);
         void client.submit(selections());
+    });
+    get("hold-pay-link")?.addEventListener("click", event => {
+        if (client.state.phase !== "active" || !client.state.hold || client.remaining() <= 0) return;
+        event.preventDefault();
+        void payDirect(client.state.hold.id);
     });
     get("hold-cancel").addEventListener("click", () => void client.cancel());
     get("hold-retry").addEventListener("click", () => void client.retry());
@@ -507,6 +553,7 @@
     });
     root.addEventListener("pageshow", event => {
         if (!event.persisted) return;
+        payOverlay(false);
         expiryRead = null;
         if (timer === null) timer = root.setInterval(tick, 250);
         void client.refresh();
