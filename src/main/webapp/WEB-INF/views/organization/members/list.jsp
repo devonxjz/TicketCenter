@@ -28,7 +28,7 @@
                 <div class="vr mx-2"></div>
                 <div class="d-flex align-items-center gap-2 small">
                     <span class="fw-bold d-none d-md-inline">
-                        <c:out value="${sessionScope.TC_CURRENT_USER.fullName}" default="Thành viên" />
+                        <c:out value="${sessionScope.TC_CURRENT_USER.email()}" default="Thành viên" />
                     </span>
                     <a href="${pageContext.request.contextPath}/auth/logout" class="btn btn-sm btn-outline-dark rounded-0 px-3">Đăng xuất</a>
                 </div>
@@ -343,8 +343,8 @@
             if (!container) return;
             const icon = type === 'success' ? 'fa-circle-check' : 'fa-triangle-exclamation';
             container.innerHTML = `
-                <div class="alert alert-${type} alert-dismissible fade show rounded-0 " role="alert">
-                    <i class="fa-solid ${icon} me-2"></i> ${escapeHtml(msg)}
+                <div class="alert alert-\${type} alert-dismissible fade show rounded-0 " role="alert">
+                    <i class="fa-solid \${icon} me-2"></i> \${escapeHtml(msg)}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng"></button>
                 </div>
             `;
@@ -431,7 +431,7 @@
                     <tr>
                         <td colspan="6" class="text-center py-4 text-danger">
                             <i class="fa-solid fa-circle-exclamation me-2"></i>
-                            ${escapeHtml(err.message || 'Không thể tải danh sách thành viên.')}
+                            \${escapeHtml(err.message || 'Không thể tải danh sách thành viên.')}
                         </td>
                     </tr>
                 `;
@@ -500,7 +500,7 @@
                 } else if (role === 'CHECK_IN_STAFF') {
                     roleBadgeHtml = '<span class="badge badge-staff px-2 py-1"><i class="fa-solid fa-qrcode me-1"></i>Soát vé tại cửa</span>';
                 } else {
-                    roleBadgeHtml = `<span class="badge bg-secondary px-2 py-1">${escapeHtml(role)}</span>`;
+                    roleBadgeHtml = `<span class="badge bg-secondary px-2 py-1">\${escapeHtml(role)}</span>`;
                 }
 
                 // Status badge
@@ -519,7 +519,7 @@
                 if (isActive) {
                     actionsHtml = `
                         <div class="btn-group btn-group-sm">
-                            <button type="button" class="btn btn-outline-dark rounded-0 px-2 py-1 btn-change-role" data-user-id="${escapeHtml(userId)}">
+                            <button type="button" class="btn btn-outline-dark rounded-0 px-2 py-1 btn-change-role" data-user-id="\${escapeHtml(userId)}">
                                 <i class="fa-solid fa-user-gear me-1"></i>Đổi vai trò
                             </button>
                     `;
@@ -534,7 +534,7 @@
                         `;
                     } else {
                         actionsHtml += `
-                            <button type="button" class="btn btn-outline-danger rounded-0 px-2 py-1 btn-deactivate" data-user-id="${escapeHtml(userId)}">
+                            <button type="button" class="btn btn-outline-danger rounded-0 px-2 py-1 btn-deactivate" data-user-id="\${escapeHtml(userId)}">
                                 <i class="fa-solid fa-user-slash me-1"></i>Vô hiệu hóa
                             </button>
                         `;
@@ -543,7 +543,7 @@
                     actionsHtml += `</div>`;
                 } else {
                     actionsHtml = `
-                        <button type="button" class="btn btn-sm btn-outline-success rounded-0 px-2 py-1 btn-activate" data-user-id="${escapeHtml(userId)}">
+                        <button type="button" class="btn btn-sm btn-outline-success rounded-0 px-2 py-1 btn-activate" data-user-id="\${escapeHtml(userId)}">
                             <i class="fa-solid fa-user-check me-1"></i>Kích hoạt lại
                         </button>
                     `;
@@ -556,16 +556,16 @@
 
                 tr.innerHTML = `
                     <td>
-                        <strong class="d-block text-dark">${escapeHtml(fullName)} ${soleLockBadge}</strong>
-                        <span class="small text-muted font-monospace"><i class="fa-regular fa-user me-1"></i>${escapeHtml(userName)}</span>
+                        <strong class="d-block text-dark">\${escapeHtml(fullName)} \${soleLockBadge}</strong>
+                        <span class="small text-muted font-monospace"><i class="fa-regular fa-user me-1"></i>\${escapeHtml(userName)}</span>
                     </td>
                     <td>
-                        <span class="text-body">${escapeHtml(email)}</span>
+                        <span class="text-body">\${escapeHtml(email)}</span>
                     </td>
-                    <td>${roleBadgeHtml}</td>
-                    <td>${statusBadgeHtml}</td>
-                    <td><span class="small text-muted">${formatDate(joinedAt)}</span></td>
-                    <td class="text-end">${actionsHtml}</td>
+                    <td>\${roleBadgeHtml}</td>
+                    <td>\${statusBadgeHtml}</td>
+                    <td><span class="small text-muted">\${formatDate(joinedAt)}</span></td>
+                    <td class="text-end">\${actionsHtml}</td>
                 `;
 
                 tbody.appendChild(tr);
@@ -656,7 +656,7 @@
                 });
 
                 hideBsModal('addMemberModal');
-                showAlert(res?.message || `Đã thêm thành viên "${userName}" vào tổ chức thành công.`, 'success');
+                showAlert(res?.message || `Đã thêm thành viên "\${userName}" vào tổ chức thành công.`, 'success');
                 await loadMembers();
             } catch (err) {
                 alertBox.className = 'alert alert-danger small mb-3';
@@ -743,7 +743,7 @@
         function openDeactivateModal(member) {
             selectedMemberForDeactivate = member;
             document.getElementById('deactivateTargetName').textContent = member.fullName || member.userName;
-            document.getElementById('deactivateTargetDetail').textContent = `${member.userName} • ${member.email || ''} • [${member.role}]`;
+            document.getElementById('deactivateTargetDetail').textContent = `\${member.userName} • \${member.email || ''} • [\${member.role}]`;
 
             const alertBox = document.getElementById('deactivateAlert');
             alertBox.className = 'alert d-none small mb-3';
@@ -769,7 +769,7 @@
                 const res = await apiCall(contextPath + '/api/organizations/' + encodeURIComponent(orgId) + '/members/' + encodeURIComponent(userId) + '/deactivate', 'POST');
 
                 hideBsModal('deactivateModal');
-                showAlert(res?.message || `Đã vô hiệu hóa thành viên "${selectedMemberForDeactivate.fullName || selectedMemberForDeactivate.userName}" thành công.`, 'success');
+                showAlert(res?.message || `Đã vô hiệu hóa thành viên "\${selectedMemberForDeactivate.fullName || selectedMemberForDeactivate.userName}" thành công.`, 'success');
                 await loadMembers();
             } catch (err) {
                 alertBox.className = 'alert alert-danger small mb-3';
@@ -789,7 +789,7 @@
             clearAlert();
             try {
                 const res = await apiCall(contextPath + '/api/organizations/' + encodeURIComponent(orgId) + '/members/' + encodeURIComponent(userId) + '/activate', 'POST');
-                showAlert(res?.message || `Đã kích hoạt lại thành viên "${memberName}" thành công.`, 'success');
+                showAlert(res?.message || `Đã kích hoạt lại thành viên "\${memberName}" thành công.`, 'success');
                 await loadMembers();
             } catch (err) {
                 showAlert(err.message || 'Không thể kích hoạt lại thành viên.', 'danger');
