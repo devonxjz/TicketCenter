@@ -60,3 +60,15 @@ test('successful response uses same-origin credentials and returns the original 
   });
   assert.equal(await actual.text(), 'eventId\n');
 });
+
+test('page initialization does not crash when optional UI elements are missing', () => {
+  class Element{constructor(value=''){this.value=value;this.children=[];this.handlers={};this.textContent='';this.dataset={};}append(...children){this.children.push(...children);}replaceChildren(...children){this.children=[...children];this.textContent='';}addEventListener(event,handler){this.handlers[event]=handler;}click(){}remove(){} }
+  const ids=Object.fromEntries(['finance-readside','filters','organization','event','notice','rows','columns'].map(x=>[x,new Element()]));
+  const form=ids.filters;form.elements={from:new Element(),to:new Element(),metric:new Element('COHORT_REVENUE'),pageSize:new Element('20')};ids['finance-readside'].dataset={context:'/ticketscenter',admin:'true'};
+  const document={getElementById:id=>ids[id]||null,createElement:()=>new Element(),body:new Element()};
+  assert.doesNotThrow(() => {
+    vm.runInNewContext(fs.readFileSync(require.resolve('../../main/webapp/assets/js/finance-reports.js'),'utf8'),{
+      document,fetch:()=>new Promise(()=>{}),URLSearchParams,URL:{createObjectURL:()=>'blob:test',revokeObjectURL(){}},Option:class extends Element{constructor(text,value){super(value);this.textContent=text;}},FormData:class{entries(){return [][Symbol.iterator]();}},Date,Intl,BigInt,setTimeout:()=>0
+    });
+  });
+});

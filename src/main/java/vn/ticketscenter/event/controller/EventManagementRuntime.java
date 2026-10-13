@@ -42,10 +42,6 @@ public final class EventManagementRuntime {
     }
 
     private static StorageService resolveStorage() {
-        String cloudName = vn.ticketscenter.config.AppConfig.get(vn.ticketscenter.config.AppConfig.Keys.CLOUDINARY_CLOUD_NAME);
-        if (cloudName != null && !cloudName.isBlank()) {
-            return CloudinaryStorageService.fromEnvironment();
-        }
-        return new EventRuntime.LocalSimulatedStorage();
+        return LocalImageStorage.configured();
     }
 }

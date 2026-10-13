@@ -9,7 +9,6 @@ import jakarta.servlet.annotation.WebListener;
 import vn.ticketscenter.config.DatabaseConfig;
 import vn.ticketscenter.config.persistence.*;
 import vn.ticketscenter.event.repository.EventRepository;
-import vn.ticketscenter.storage.CloudinaryStorageService;
 import vn.ticketscenter.storage.StorageService;
 
 import java.util.*;
@@ -56,11 +55,7 @@ public final class EventRuntime implements ServletContextListener {
     }
 
     private static StorageService resolveStorage() {
-        String cloudName = vn.ticketscenter.config.AppConfig.get(vn.ticketscenter.config.AppConfig.Keys.CLOUDINARY_CLOUD_NAME);
-        if (cloudName != null && !cloudName.isBlank()) {
-            return CloudinaryStorageService.fromEnvironment();
-        }
-        return new LocalSimulatedStorage();
+        return vn.ticketscenter.storage.LocalImageStorage.configured();
     }
 
     private static vn.ticketscenter.event.cache.EventIdempotencyStore resolveRedis() {
@@ -68,48 +63,6 @@ public final class EventRuntime implements ServletContextListener {
             return new vn.ticketscenter.event.cache.RedisEventIdempotencyStore();
         }
         return new vn.ticketscenter.event.cache.InMemoryEventIdempotencyStore();
-    }
-
-    public static final class LocalSimulatedStorage implements vn.ticketscenter.storage.StorageService {
-        private final Map<String, vn.ticketscenter.storage.StoredAsset> assets = new ConcurrentHashMap<>();
-
-        @Override
-        public vn.ticketscenter.storage.StoredAsset upload(java.io.InputStream content, String folder) throws java.io.IOException {
-            return ensure(content, folder + "/" + UUID.randomUUID());
-        }
-
-        @Override
-        public vn.ticketscenter.storage.StoredAsset ensure(java.io.InputStream content, String immutablePublicId) throws java.io.IOException {
-            byte[] bytes = vn.ticketscenter.storage.ImageContentValidator.readAndValidate(content);
-            String dir = vn.ticketscenter.config.AppConfig.get(vn.ticketscenter.config.AppConfig.Keys.EVENT_IMAGE_DIRECTORY);
-            if (dir != null && !dir.isBlank()) {
-                try {
-                    java.nio.file.Path file = java.nio.file.Path.of(dir, immutablePublicId.replace('/', '_') + ".png");
-                    java.nio.file.Files.createDirectories(file.getParent());
-                    java.nio.file.Files.write(file, bytes);
-                } catch (Exception ignored) {}
-            }
-            vn.ticketscenter.storage.StoredAsset asset = new vn.ticketscenter.storage.StoredAsset(
-                    "https://res.cloudinary.com/simulated/image/upload/" + immutablePublicId + ".png",
-                    immutablePublicId);
-            assets.put(immutablePublicId, asset);
-            return asset;
-        }
-
-        @Override
-        public Optional<vn.ticketscenter.storage.StoredAsset> find(String publicId) {
-            return Optional.ofNullable(assets.get(publicId));
-        }
-
-        @Override
-        public void delete(String publicId) {
-            assets.remove(publicId);
-        }
-
-        @Override
-        public String getUrl(String publicId) {
-            return "https://res.cloudinary.com/simulated/image/upload/" + publicId + ".png";
-        }
     }
 
     private static HikariDataSource pool(DatabasePrincipal principal) {

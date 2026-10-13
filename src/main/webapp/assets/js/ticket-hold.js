@@ -345,8 +345,16 @@
         const count = selected.reduce((sum, item) => sum + item.quantity, 0);
         const options = client.state.options;
         const items = selected.map(item => ({ ...item, unitPrice: options.zones.find(zone => zone.id === item.zoneId).unitPrice }));
-        get("selection-count").textContent = "Đã chọn " + count + " / 8 vé";
-        get("selection-total").textContent = selected.every(item => Number.isInteger(item.quantity) && item.quantity > 0 && item.quantity <= 8) ? vnd(total(items)) : "Lựa chọn không hợp lệ";
+        const countEl = get("selection-count");
+        if (countEl) {
+            countEl.textContent = count > 8 ? "Đã chọn " + count + " / 8 vé (Tối đa 8 vé)" : "Đã chọn " + count + " / 8 vé";
+            countEl.className = count > 8 ? "text-danger fw-bold" : "";
+        }
+        const validTotal = count <= 8 && selected.every(item => Number.isInteger(item.quantity) && item.quantity > 0 && item.quantity <= 8);
+        const totalEl = get("selection-total");
+        if (totalEl) {
+            totalEl.textContent = validTotal ? vnd(total(items)) : "Lựa chọn không hợp lệ";
+        }
         const selectionList = get('selection-items');
         if (selectionList) {
             selectionList.replaceChildren();
@@ -354,12 +362,31 @@
                 const zone = options.zones.find(zone => zone.id === item.zoneId), seat = zone.availableSeats.find(seat => seat.id === item.seatId);
                 selectionList.append(element('li', (seat ? 'Ghế ' + seat.label : item.quantity + ' × ' + zone.name) + ' · ' + (Number.isInteger(item.quantity) && item.quantity > 0 && item.quantity <= 8 ? vnd(BigInt(item.unitPrice) * BigInt(item.quantity)) : 'Số lượng không hợp lệ')));
             }
+            if (count > 8) {
+                const warn = element('li', 'Tổng số vé không được vượt quá 8 vé/lượt.');
+                warn.className = 'text-danger fw-semibold';
+                selectionList.append(warn);
+            }
             if (!items.length) selectionList.append(element('li', 'Chưa chọn vé.'));
         }
         let valid = false;
         try { selectionPayload(options, selected); valid = true; } catch (_) { }
-        get("hold-submit").disabled = !valid || client.state.phase !== "selecting";
-        for (const input of get("hold-zones").querySelectorAll("input[type=checkbox]")) input.disabled = count >= 8 && !input.checked;
+        const submitBtn = get("hold-submit");
+        if (submitBtn) {
+            submitBtn.disabled = !valid || count > 8 || client.state.phase !== "selecting";
+        }
+        const zonesEl = get("hold-zones");
+        if (zonesEl) {
+            for (const input of zonesEl.querySelectorAll("input[type=checkbox]")) input.disabled = count >= 8 && !input.checked;
+            for (const input of zonesEl.querySelectorAll("input.hold-quantity")) {
+                const val = Number(input.value) || 0;
+                if (val > 8 || count > 8) {
+                    input.classList.add("is-invalid");
+                } else {
+                    input.classList.remove("is-invalid");
+                }
+            }
+        }
     }
 
     function renderOptions(options) {
