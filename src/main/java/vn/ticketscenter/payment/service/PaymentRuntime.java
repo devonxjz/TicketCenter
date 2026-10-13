@@ -56,8 +56,7 @@ public final class PaymentRuntime implements ServletContextListener {
                 }
 
                 VnpaySigner signer = new VnpaySigner(tmnCode, hashSecret, payUrl, returnUrl, Clock.systemUTC());
-                var redis = RedisClientProvider.getInstance();
-                RedisPaymentIdempotency idempotency = new RedisPaymentIdempotency(redis::getResource);
+                RedisPaymentIdempotency idempotency = resolveIdempotency();
                 PaymentRepository repository = new PaymentRepository(ConnectionBudgets.wrap(pool),ConnectionBudgets.wrap(workerPool));
 
                 PaymentService service = new PaymentService(repository, signer, idempotency);
@@ -71,6 +70,20 @@ public final class PaymentRuntime implements ServletContextListener {
                 throw PaymentException.unavailable();
             }
         }
+    }
+
+    private static RedisPaymentIdempotency resolveIdempotency() {
+        if (AppConfig.getBoolean("finance.redis.enabled", true)) {
+            try {
+                var redis = RedisClientProvider.getInstance();
+                if (redis.isAvailable()) {
+                    return new RedisPaymentIdempotency(redis::getResource);
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        LOGGER.info("Redis is unavailable or disabled; falling back to in-memory payment idempotency");
+        return RedisPaymentIdempotency.inMemory();
     }
 
     private static HikariDataSource createPool(String principal) {
@@ -105,8 +118,7 @@ public final class PaymentRuntime implements ServletContextListener {
         HikariDataSource pool = null;
         try {
             pool = createPool("worker");
-            var redis = RedisClientProvider.getInstance();
-            RedisPaymentIdempotency idempotency = new RedisPaymentIdempotency(redis::getResource);
+            RedisPaymentIdempotency idempotency = resolveIdempotency();
             var javaPool = ConnectionBudgets.wrap(pool);
             PaymentRepository repository = new PaymentRepository(javaPool, javaPool);
             VnpayQueryClient client = VnpayQueryClient.create(apiUrl, tmnCode, hashSecret);

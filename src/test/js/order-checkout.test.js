@@ -358,3 +358,18 @@ test("browser payment button redirects only after a valid server receipt and lin
     assert.deepEqual(f.redirects,["https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"]);
     assert.equal(f.elements["order-pay"].disabled,true);
 });
+
+test("browser payment button shows free order text and completes zero order directly", async () => {
+    const f = browserFixture();
+    f.server.order = { ...order(), subtotal: "0", totalAmount: "0",
+        items: [{ orderItemId: ITEM, zoneId: ZONE, seatId: null, zoneName: "Free Zone", seatLabel: null, quantity: 2, unitPrice: "0", lineTotal: "0" }] };
+    await f.settle();
+    assert.equal(f.elements["order-pay"].disabled, false);
+    assert.equal(f.elements["order-pay"].textContent, "Hoàn tất đơn miễn phí");
+    f.server.post = (_, __, reply) => reply({ orderId: ORDER, amount: "0", currency: "VND", status: "PAID", zeroOrder: true, replayed: false });
+    f.server.order = { ...f.server.order, status: "PAID", canEditCoupon: false };
+    f.elements["order-pay"].fire("click");
+    await f.settle();
+    assert.deepEqual(f.redirects, []);
+    assert.equal(f.elements["order-status"].textContent, "Đã thanh toán");
+});
