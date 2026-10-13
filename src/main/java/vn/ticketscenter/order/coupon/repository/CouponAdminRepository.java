@@ -99,8 +99,8 @@ public class CouponAdminRepository {
             setDecimal(statement, 7, request.fixedAmount());
             setDecimal(statement, 8, request.maxDiscountAmount());
             statement.setInt(9, request.maxUses());
-            statement.setTimestamp(10, Timestamp.from(request.validFrom()));
-            statement.setTimestamp(11, Timestamp.from(request.validTo()));
+            statement.setTimestamp(10, Timestamp.from(request.validFrom()), utc());
+            statement.setTimestamp(11, Timestamp.from(request.validTo()), utc());
             try (ResultSet rows = statement.executeQuery()) {
                 if (!rows.next()) throw new IllegalStateException("Coupon creation returned no identifier");
                 return UUID.fromString(rows.getString("id"));
@@ -118,7 +118,7 @@ public class CouponAdminRepository {
             if (request.maxUses() == null) statement.setNull(4, Types.INTEGER);
             else statement.setInt(4, request.maxUses());
             if (request.validTo() == null) statement.setNull(5, Types.TIMESTAMP);
-            else statement.setTimestamp(5, Timestamp.from(request.validTo()));
+            else statement.setTimestamp(5, Timestamp.from(request.validTo()), utc());
             setDecimal(statement, 6, request.maxDiscountAmount());
         });
     }
@@ -172,8 +172,8 @@ public class CouponAdminRepository {
     }
 
     private static CouponAdminDto mapCoupon(ResultSet rows) throws SQLException {
-        Timestamp from = rows.getTimestamp("valid_from");
-        Timestamp to = rows.getTimestamp("valid_to");
+        Timestamp from = rows.getTimestamp("valid_from", utc());
+        Timestamp to = rows.getTimestamp("valid_to", utc());
         return new CouponAdminDto(
                 UUID.fromString(rows.getString("id")),
                 UUID.fromString(rows.getString("organization_id")),
@@ -187,4 +187,8 @@ public class CouponAdminRepository {
 
     @FunctionalInterface
     private interface Bind { void apply(PreparedStatement statement) throws SQLException; }
+
+    private static java.util.Calendar utc() {
+        return java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"));
+    }
 }
