@@ -9,8 +9,8 @@
 <div class="dashboard-layout"><jsp:include page="/WEB-INF/views/layout/admin-sidebar.jsp"><jsp:param name="active" value="refund-approval" /></jsp:include><main class="dashboard-content" id="main-content"><header class="page-heading"><h1>Yêu cầu hoàn tiền</h1><p>Duyệt hồ sơ và theo dõi từng lần chuyển tiền về phương thức thanh toán gốc.</p></header>
 <form id="filter"><label for="status">Trạng thái</label><select name="status" id="status">
 <option value="">Tất cả</option><option value="REQUESTED">Chờ duyệt</option><option value="APPROVED">Đã duyệt</option><option value="PROCESSING">Đang xử lý</option><option value="COMPLETED">Hoàn tất</option><option value="REJECTED">Đã từ chối</option><option value="RETRYABLE">Thất bại</option><option value="NEEDS_RECONCILIATION">Cần đối soát</option>
-</select><label for="pageSize">Số hồ sơ mỗi trang</label><select id="pageSize" name="pageSize"><option>20</option><option>50</option><option>100</option></select><button>Lọc hồ sơ</button></form>
+</select><input id="pageSize" name="pageSize" type="hidden" value="6"><button>Lọc hồ sơ</button></form>
 <p id="feedback" role="status" aria-live="polite">Đang tải hồ sơ…</p><button id="reload" type="button" hidden>Tải lại</button>
-<div class="table-wrap"><table><caption class="sr-only">Danh sách yêu cầu hoàn tiền</caption><thead><tr><th>Mã yêu cầu / Đơn hàng</th><th>Người mua</th><th>Sự kiện</th><th>Số vé</th><th>Số tiền</th><th>Trạng thái</th><th>Ngày yêu cầu</th><th scope="col">Thao tác</th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="table-wrap"><table><caption class="sr-only">Danh sách yêu cầu hoàn tiền</caption><thead><tr><th>Yêu cầu hoàn vé</th><th>Người mua</th><th>Sự kiện</th><th>Số vé</th><th>Số tiền</th><th>Trạng thái</th><th>Ngày yêu cầu</th><th scope="col">Thao tác</th></tr></thead><tbody id="rows"></tbody></table></div>
 <nav class="pager" aria-label="Phân trang"><button id="prev" type="button">Trang trước</button><span id="pagination"></span><button id="next" type="button">Trang sau</button></nav>
 </main></div><script defer src="<c:url value='/assets/js/admin-notifications.js'/>"></script></body></html>

@@ -7,7 +7,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vé Điện Tử - ${fn:escapeXml(ticket.ticketCode)} - TicketsCenter</title>
+    <title>Vé điện tử - ${fn:escapeXml(ticket.eventTitle)} - TicketsCenter</title>
 
 <jsp:include page="/WEB-INF/views/layout/meta-head.jsp" />
 <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/buyer-ui.css">
@@ -89,12 +89,7 @@
                     </span>
                 </div>
 
-                <c:if test="${not empty ticket.orderCode}">
-                    <div class="info-row">
-                        <span class="info-label">Mã đơn hàng</span>
-                        <span class="info-val font-monospace small text-muted">${fn:escapeXml(ticket.orderCode)}</span>
-                    </div>
-                </c:if>
+
 
                 <div class="mt-4 d-grid gap-2">
                     <a href="${pageContext.request.contextPath}/api/tickets/${fn:escapeXml(ticket.id)}/qr" download="ticket-${fn:escapeXml(ticket.ticketCode)}-qr.png" class="btn btn-outline-primary">

@@ -49,7 +49,7 @@ class EventCatalogServiceTest {
         String first = service.events(filter);
         assertEquals(first, service.events(filter)); assertEquals(1, repository.calls);
         service.events(EventFilter.parse(Map.of("page", "2"))); assertEquals(2, repository.calls);
-        assertTrue(first.contains("\"page\":1,\"pageSize\":12,\"total\":1"));
+        assertTrue(first.contains("\"page\":1,\"pageSize\":6,\"total\":1"));
         assertEquals(30, cache.ttls.get(filter.cacheKey()));
     }
     @Test void redisFailureUsesDatabaseAndDatabaseFailureIsNeverCached() {

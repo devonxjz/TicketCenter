@@ -155,6 +155,13 @@ class RoleAuthorizationFilterTest {
     }
 
     @Test
+    void customerCanOpenOrganizationApplicationWithoutManagementAccess() throws Exception {
+        UserPrincipal customer = new UserPrincipal(UUID.randomUUID(), PlatformRole.CUSTOMER, 0, null);
+        filter.doFilter(createMockRequest("/organizer/request", customer), createMockResponse(), createMockChain());
+        assertTrue(chainExecuted.get());
+    }
+
+    @Test
     @DisplayName("Customer: Bị từ chối 403 khi vào /organizer/dashboard hoặc /organizer/checkin-select")
     void testCustomerCannotAccessOrganizerOrCheckin() throws Exception {
         UserPrincipal customer = new UserPrincipal(UUID.randomUUID(), PlatformRole.CUSTOMER, 0, null);

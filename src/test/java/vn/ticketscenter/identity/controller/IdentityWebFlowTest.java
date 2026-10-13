@@ -398,8 +398,8 @@ public class IdentityWebFlowTest {
     }
 
     @Test
-    @DisplayName("LoginServlet: Admin đăng nhập điều hướng đến /admin/dashboard")
-    void testLoginServletAdminRedirectsToDashboard() throws Exception {
+    @DisplayName("LoginServlet: Admin đăng nhập điều hướng đến trang mua vé")
+    void testLoginServletAdminRedirectsToCatalog() throws Exception {
         UUID actorId = UUID.randomUUID();
         UserPrincipal admin = new UserPrincipal(actorId, PlatformRole.ADMIN, 0);
 
@@ -421,13 +421,13 @@ public class IdentityWebFlowTest {
         servlet.doPost(req, resp);
 
         assertEquals(200, responseStatus.get());
-        assertTrue(responseBuffer.toString().contains("\"redirect\":\"/admin/dashboard\""));
+        assertTrue(responseBuffer.toString().contains("\"redirect\":\"/\""));
         assertTrue(responseBuffer.toString().contains("\"role\":\"ADMIN\""));
     }
 
     @Test
-    @DisplayName("LoginServlet: Staff đăng nhập điều hướng đến /organizer/checkin-select")
-    void testLoginServletStaffRedirectsToCheckin() throws Exception {
+    @DisplayName("LoginServlet: Staff đăng nhập điều hướng đến trang mua vé")
+    void testLoginServletStaffRedirectsToCatalog() throws Exception {
         UUID actorId = UUID.randomUUID();
         UserPrincipal staff = new UserPrincipal(actorId, PlatformRole.CUSTOMER, 0, vn.ticketscenter.identity.model.OrganizationRole.CHECK_IN_STAFF);
 
@@ -449,13 +449,13 @@ public class IdentityWebFlowTest {
         servlet.doPost(req, resp);
 
         assertEquals(200, responseStatus.get());
-        assertTrue(responseBuffer.toString().contains("\"redirect\":\"/organizer/checkin-select\""));
+        assertTrue(responseBuffer.toString().contains("\"redirect\":\"/\""));
         assertTrue(responseBuffer.toString().contains("\"role\":\"STAFF\""));
     }
 
     @Test
-    @DisplayName("LoginServlet: Manager đăng nhập điều hướng đến /organizer/dashboard")
-    void testLoginServletManagerRedirectsToOrganizerDashboard() throws Exception {
+    @DisplayName("LoginServlet: Manager đăng nhập điều hướng đến trang mua vé")
+    void testLoginServletManagerRedirectsToCatalog() throws Exception {
         UUID actorId = UUID.randomUUID();
         UserPrincipal manager = new UserPrincipal(actorId, PlatformRole.CUSTOMER, 0, vn.ticketscenter.identity.model.OrganizationRole.MANAGER);
 
@@ -477,7 +477,7 @@ public class IdentityWebFlowTest {
         servlet.doPost(req, resp);
 
         assertEquals(200, responseStatus.get());
-        assertTrue(responseBuffer.toString().contains("\"redirect\":\"/organizer/dashboard\""));
+        assertTrue(responseBuffer.toString().contains("\"redirect\":\"/\""));
         assertTrue(responseBuffer.toString().contains("\"role\":\"MANAGER\""));
     }
 

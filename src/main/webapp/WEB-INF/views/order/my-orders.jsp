@@ -58,7 +58,7 @@
                         <div class="order-card p-4">
                             <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 pb-3 border-bottom">
                                 <div class="d-flex align-items-center gap-3">
-                                    <span class="badge bg-light text-dark font-monospace border px-2 py-1">Mã đơn: ${fn:escapeXml(o.orderCode)}</span>
+
                                     <span class="text-muted small"><i class="fa-regular fa-clock me-1"></i>${fn:escapeXml(o.createdAt)}</span>
                                 </div>
                                 <div>

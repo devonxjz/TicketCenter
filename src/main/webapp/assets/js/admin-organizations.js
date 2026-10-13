@@ -3,7 +3,7 @@ const contextPath = document.querySelector('meta[name="context-path"]').getAttri
 
         let currentStatus = 'PENDING_APPROVAL';
         let currentPage = 1;
-        const pageSize = 10;
+        const pageSize = 6;
         let totalRecords = 0;
 
         const approveModal = new bootstrap.Modal(document.getElementById('approveModal'));
@@ -196,7 +196,7 @@ const contextPath = document.querySelector('meta[name="context-path"]').getAttri
                     <tr>
                         <td>
                             <strong class="d-block text-dark">${escapeHtml(item.name)}</strong>
-                            <span class="small text-muted font-monospace">${item.organizationId}</span>
+
                             ${eventInfoHtml}
                         </td>
                         <td>
@@ -241,7 +241,7 @@ const contextPath = document.querySelector('meta[name="context-path"]').getAttri
         }
 
         function changePage(delta) {
-            currentPage += delta;
+            const target=currentPage+delta;if(target<1||target>Math.max(1,Math.ceil(totalRecords/pageSize)))return;currentPage=target;
             loadRequests();
         }
 

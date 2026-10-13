@@ -26,7 +26,7 @@
       const query=new URLSearchParams({page:String(page),pageSize:$('pageSize').value});if($('status').value)query.set('status',$('status').value);
       history.replaceState(null,'','?'+query);
       try{const data=await request(api+'?'+query);$('rows').replaceChildren();
-        for(const r of data.items){const row=document.createElement('tr');const ids=cell(row,r.refundId);ids.append(node('span',r.orderId,'secondary'));
+        for(const r of data.items){const row=document.createElement('tr');cell(row,'Hoàn '+r.ticketCount+' vé');
           const buyer=cell(row,r.buyer.fullName);buyer.append(node('span',r.buyer.email,'secondary'));cell(row,r.eventName);cell(row,r.ticketCount);cell(row,money(r.totalAmount));
           cell(row,'').append(node('span',states[r.status]||r.status,'badge'));cell(row,time(r.createdAt));const link=node('a','Xem hồ sơ');link.href=context+'/admin/refund-requests/'+encodeURIComponent(r.refundId);cell(row,'').append(link);$('rows').append(row);}
         feedback(data.total ? `${data.total} hồ sơ` : 'Không có hồ sơ phù hợp.');$('pagination').textContent=`Trang ${data.page} / ${Math.max(1,Math.ceil(data.total/data.pageSize))}`;
@@ -40,9 +40,9 @@
   function fact(label,value){$('facts').append(node('dt',label),node('dd',value));}
   async function load(keepFeedback=false){if(loading)return;loading=true;buttons();if(!keepFeedback)feedback('Đang tải hồ sơ…');
     try{const data=await request(api+'/'+id),r=data.refund;current=r;$('detail').hidden=false;$('facts').replaceChildren();
-      for(const [label,value] of [['Mã yêu cầu',r.refundId],['Đơn hàng',r.orderId],['Người mua',r.buyer.fullName],['Email',r.buyer.email],['Sự kiện',r.eventName],['Số tiền',money(r.totalAmount)],['Trạng thái',states[r.status]],['Yêu cầu lúc',time(r.createdAt)],['Lý do hoàn',r.reason],['Phương thức hoàn',data.repaymentMethod],['Ghi chú quản trị',data.adminNote],['Lý do từ chối',r.rejectionReason],['Người quyết định',data.reviewerId],['Quyết định lúc',time(data.decidedAt)]])fact(label,value);
-      $('tickets').replaceChildren();for(const t of data.tickets){const row=document.createElement('tr');for(const v of [t.ticketCode,t.seatLabel,money(t.paidAmount),states[t.status]||t.status])cell(row,v);$('tickets').append(row);}
-      $('attempts').replaceChildren();$('noAttempts').hidden=data.attempts.length>0;for(const a of data.attempts){const row=document.createElement('tr');for(const v of [a.attemptNo,a.attemptId,states[a.status]||a.status,a.providerReference,time(a.createdAt),time(a.processedAt)])cell(row,v);$('attempts').append(row);}
+      for(const [label,value] of [['Người mua',r.buyer.fullName],['Email',r.buyer.email],['Sự kiện',r.eventName],['Số tiền',money(r.totalAmount)],['Trạng thái',states[r.status]],['Yêu cầu lúc',time(r.createdAt)],['Lý do hoàn',r.reason],['Phương thức hoàn',data.repaymentMethod],['Ghi chú quản trị',data.adminNote],['Lý do từ chối',r.rejectionReason],['Quyết định lúc',time(data.decidedAt)]])fact(label,value);
+      $('tickets').replaceChildren();for(const t of data.tickets){const row=document.createElement('tr');for(const v of ['Vé sự kiện',t.seatLabel,money(t.paidAmount),states[t.status]||t.status])cell(row,v);$('tickets').append(row);}
+      $('attempts').replaceChildren();$('noAttempts').hidden=data.attempts.length>0;for(const a of data.attempts){const row=document.createElement('tr');for(const v of [a.attemptNo,states[a.status]||a.status,time(a.createdAt),time(a.processedAt)])cell(row,v);$('attempts').append(row);}
       $('approve').hidden=$('reject').hidden=!r.canDecide;$('retry').hidden=!r.canRetry;
       $('stateHint').textContent=r.canDecide?'Phê duyệt sẽ đưa yêu cầu vào hàng đợi. Vé chỉ thành đã hoàn sau khi xác nhận chuyển tiền thành công. Từ chối khôi phục vé còn hợp lệ; vé của sự kiện đã hủy không được khôi phục.':r.canRetry?'Lần trước đã xác nhận thất bại. Thử lại tạo lần chuyển mới cho cùng hồ sơ hoàn tiền.':r.status==='NEEDS_RECONCILIATION'?'Chưa rõ kết quả chuyển tiền. Cần đối soát trước khi thực hiện thao tác tiếp theo.':'Hồ sơ hiện không có thao tác quản trị khả dụng.';
       if(!keepFeedback)feedback('Hồ sơ đã được cập nhật.');

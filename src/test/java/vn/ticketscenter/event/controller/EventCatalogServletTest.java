@@ -53,7 +53,7 @@ class EventCatalogServletTest {
     }
     @Test void anonymousCatalogSupportsContextPathAndPaginationEnvelope() throws Exception {
         request("/api/events", Map.of(), false); assertEquals(200, status);
-        assertEquals("{\"data\":[],\"page\":1,\"pageSize\":12,\"total\":0,\"totalPages\":0}", body.toString());
+        assertEquals("{\"data\":[],\"page\":1,\"pageSize\":6,\"total\":0,\"totalPages\":0}", body.toString());
         assertEquals("no-store", headers.get("Cache-Control"));
     }
     @Test void invalidIdIs400() throws Exception { request("/api/events/not-an-id", Map.of(), false); assertEquals(400, status); }

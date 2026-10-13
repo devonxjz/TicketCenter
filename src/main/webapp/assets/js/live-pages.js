@@ -4,7 +4,7 @@
     if (!page) return;
     const $ = id => document.getElementById(id);
     const node = (tag, text = '', cls = '') => { const e = document.createElement(tag); e.textContent = text; if (cls) e.className = cls; return e; };
-    const money = value => new Intl.NumberFormat('vi-VN').format(Number(value || 0)) + ' đ';
+    const money = value => BigInt(value || 0).toLocaleString('vi-VN') + ' đ';
     const date = value => value ? new Date(value).toLocaleString('vi-VN') : '—';
     const eventStatus = {DRAFT:'Bản nháp', PENDING_APPROVAL:'Chờ duyệt', REJECTED:'Bị từ chối', PUBLISHED:'Đã công khai', CANCELLED:'Đã hủy'};
     const roles = {MANAGER:'Quản lý tổ chức', CHECK_IN_STAFF:'Nhân viên soát vé'};
@@ -59,13 +59,18 @@
 
     async function dashboard() {
         const select = await organizations($('organization'));
+        let revision=0;
         async function load() {
+            const current=++revision;
             message('Đang tải số liệu…');
+            for(const id of ['metric-events','metric-pending','metric-orders','metric-revenue','metric-cash'])$(id).textContent='—';
+            $('daily').replaceChildren();$('events').replaceChildren();$('org-chart')?.replaceChildren();
             $('all-events').hidden = $('create-event').hidden = true;
             const org = select.value;
             const [overview, events] = await Promise.all([
                 api('/api/organizations/' + org + '/overview'),
-                api('/api/organizations/' + org + '/events?page=1&pageSize=10')]);
+                api('/api/organizations/' + org + '/events?page=1&pageSize=6')]);
+            if(current!==revision)return;
             const data = overview.data;
             $('org-name').textContent = select.selectedOptions[0].textContent;
             $('metric-events').textContent = String(data.eventCount);
@@ -75,6 +80,7 @@
             $('metric-cash').textContent = money(data.todayCashFlow?.netCashFlow);
             $('metric-asof').textContent = 'Cập nhật lúc ' + date(data.asOf);
             const days = $('daily'), list = data.dailyMetrics || [];
+            if ($('org-chart')) globalThis.TicketUI?.renderChart($('org-chart'), list);
             if (!list.length) empty(days, 3, 'Chưa có số liệu.');
             else days.replaceChildren(...list.map(day => row([day.date, money(day.cohortGrossRevenue), money(day.netCashFlow)])));
             const tbody = $('events');

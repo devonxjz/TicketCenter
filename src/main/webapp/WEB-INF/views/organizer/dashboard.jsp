@@ -32,7 +32,7 @@
         </div>
         <div class="panel-box mb-4">
             <div class="panel-header"><span class="panel-title">7 ngày gần nhất</span></div>
-            <div class="table-responsive"><table class="table-custom"><thead><tr><th>Ngày (UTC)</th><th>Doanh thu theo đơn</th><th>Dòng tiền ròng</th></tr></thead><tbody id="daily"></tbody></table></div>
+            <div id="org-chart" class="tc-chart" aria-label="Doanh thu 7 ngày"></div><details><summary class="small mb-3">Xem số liệu chi tiết</summary><div class="table-responsive"><table class="table-custom"><thead><tr><th>Ngày (UTC)</th><th>Doanh thu theo đơn</th><th>Dòng tiền ròng</th></tr></thead><tbody id="daily"></tbody></table></div></details>
         </div>
         <div class="panel-box">
             <div class="panel-header">

@@ -49,6 +49,11 @@ public final class ReportRepository {
         if(f.organizationId()!=null){sql+=" AND organization_id=?";parameters.add(f.organizationId());}
         if(f.eventId()!=null){sql+=" AND event_id=?";parameters.add(f.eventId());}
         if(!date.isEmpty()){sql+=date;parameters.add(f.from());parameters.add(f.to());}
+        if (!columns.contains("event_title")) {
+            sql = "SELECT report.*,e.title event_title FROM (" + sql
+                    + ") report LEFT JOIN dbo.vw_FinanceEvents e ON e.id=report.event_id";
+            var namedColumns = new ArrayList<>(columns); namedColumns.add("event_title"); columns = namedColumns;
+        }
         return new Query(sql,parameters,columns,id);
     }
     private record Query(String sql,List<Object> parameters,List<String> columns,String order){}

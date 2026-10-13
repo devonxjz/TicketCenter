@@ -45,7 +45,7 @@
                         <div class="ticket-card p-4 h-100 d-flex flex-column justify-content-between">
                             <div>
                                 <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <span class="text-muted small font-monospace">${fn:escapeXml(t.ticketCode)}</span>
+                                    <span class="text-muted small">${fn:escapeXml(t.zoneName)}</span>
                                     <c:choose>
                                         <c:when test="${t.status == 'ACTIVE'}">
                                             <span class="badge bg-success-subtle text-success badge-status">Đang hiệu lực</span>

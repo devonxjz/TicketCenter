@@ -20,6 +20,7 @@
   };
   const tell = (text) => { notice.textContent = text; };
   const money = (value) => value == null ? '—' : BigInt(value).toLocaleString('vi-VN');
+  const state=value=>({DRAFT:'Bản nháp',CONFIRMED:'Đã chốt',PAID:'Đã chi trả',PENDING:'Đang chờ',SUCCEEDED:'Thành công',FAILED:'Thất bại'}[value]||value);
   const date = (value) => value ? new Date(value).toLocaleString('vi-VN', { timeZone: 'UTC' }) + ' UTC' : '—';
   const cell = (tr, value) => { const td = document.createElement('td'); td.textContent = String(value ?? '—'); tr.appendChild(td); return td; };
   async function api(path, body, key) {
@@ -99,7 +100,7 @@
       try {
         const [next, blocked] = await Promise.all([api('/api/admin/events/' + eventId + '/settlement'), api('/api/admin/events/' + eventId + '/settlement-blockers')]);
         if (own !== generation) return false; summary = next; blockers = blocked.items;
-        for (const [label, value] of [['Trạng thái',next.status],['Doanh thu',money(next.grossRevenue)],['Đã hoàn vé',money(next.totalRefund)],['Hoa hồng',money(next.totalCommission)],['Thực trả',money(next.netPayable)],['Đã chi trả',money(next.paidAmount)],['Đang chờ',money(next.pendingAmount)],['Có thể chi trả',money(next.availableToPay)]]) {
+        for (const [label, value] of [['Trạng thái',state(next.status)],['Doanh thu',money(next.grossRevenue)],['Đã hoàn vé',money(next.totalRefund)],['Hoa hồng',money(next.totalCommission)],['Thực trả',money(next.netPayable)],['Đã chi trả',money(next.paidAmount)],['Đang chờ',money(next.pendingAmount)],['Có thể chi trả',money(next.availableToPay)]]) {
           const card = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); card.className = 'finance-stat'; dt.textContent = label; dd.textContent = value; card.append(dt, dd); document.getElementById('summary').append(card);
         }
         for (const item of blocked.items) { const li = document.createElement('li'); li.textContent = item.detail; document.getElementById('blockers').appendChild(li); }
@@ -109,7 +110,7 @@
           if (own !== generation) return false;
           reconcile.hidden = !history.some(item => item.payoutId === payoutKey && item.status === 'PENDING');
           for (const item of history) {
-            const tr = document.createElement('tr'); [date(item.processedAt),money(item.amount),item.verificationState === 'UNKNOWN' ? 'Đang xác minh' : item.status,item.providerReference].forEach(value => cell(tr, value));
+            const tr = document.createElement('tr'); [date(item.processedAt),money(item.amount),item.verificationState === 'UNKNOWN' ? 'Đang xác minh' : state(item.status),item.providerReference].forEach(value => cell(tr, value));
             if (item.status === 'PENDING') {
               const button = document.createElement('button'); button.type = 'button'; button.textContent = 'Xác minh lại kết quả đang chờ';
               button.addEventListener('click', () => {

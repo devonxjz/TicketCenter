@@ -123,13 +123,13 @@ public class LoginServlet extends HttpServlet {
             String defaultRedirect;
             if (principal.isAdmin()) {
                 roleName = "ADMIN";
-                defaultRedirect = req.getContextPath() + "/admin/dashboard";
+                defaultRedirect = req.getContextPath() + "/";
             } else if (principal.organizationRole() == vn.ticketscenter.identity.model.OrganizationRole.MANAGER) {
                 roleName = "MANAGER";
-                defaultRedirect = req.getContextPath() + "/organizer/dashboard";
+                defaultRedirect = req.getContextPath() + "/";
             } else if (principal.organizationRole() == vn.ticketscenter.identity.model.OrganizationRole.CHECK_IN_STAFF) {
                 roleName = "STAFF";
-                defaultRedirect = req.getContextPath() + "/organizer/checkin-select";
+                defaultRedirect = req.getContextPath() + "/";
             } else {
                 roleName = "CUSTOMER";
                 defaultRedirect = req.getContextPath() + "/";

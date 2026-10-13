@@ -57,7 +57,7 @@ class EventCatalogRepositoryTest {
         assertEquals(binds.get(1).get(1), binds.get(1).get(2)); assertEquals(binds.get(1).get(1), binds.get(1).get(3));
         assertTrue(sql.get(1).contains("OR e.venue_name LIKE ?"));
         assertEquals(LocalDateTime.of(2026, 10, 10, 1, 0), binds.get(1).get(5));
-        assertEquals(10, binds.get(1).get(7)); assertEquals(10, binds.get(1).get(8));
+        assertEquals(6, binds.get(1).get(7)); assertEquals(6, binds.get(1).get(8));
         assertEquals(Instant.parse("2026-10-10T10:00:00Z"), page.events().getFirst().startTime());
     }
     @Test void mapsDatetimeOffsetWithoutLosingItsOffset() {
@@ -78,7 +78,7 @@ class EventCatalogRepositoryTest {
         assertTrue(repository.zones(id).orElseThrow().isEmpty()); assertTrue(repository.seats(id).orElseThrow().isEmpty());
     }
 
-    @Test void realModeUsesOneSyntheticVisibilityBoundaryForCountListAndChildren() {
+    @Test void publicVisibilityComesFromDatabaseViewsForCountListAndChildren() {
         String previous = System.getProperty("app.data.mode");
         System.setProperty("app.data.mode", "real");
         try {

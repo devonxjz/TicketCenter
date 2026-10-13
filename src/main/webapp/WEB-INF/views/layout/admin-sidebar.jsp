@@ -1,19 +1,12 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<!-- Admin Sidebar -->
-<aside class="dashboard-sidebar">
-    <div class="sidebar-title">Trung tâm Quản trị</div>
-    <ul class="sidebar-menu">
-        <li><a href="${pageContext.request.contextPath}/admin/dashboard" class="${activeTab == 'dashboard' || param.active == 'dashboard' || (empty activeTab && empty param.active) ? 'active' : ''}">• Tổng quan vận hành</a></li>
-        <li><a href="${pageContext.request.contextPath}/admin/org-approval" class="${activeTab == 'org-approval' || param.active == 'org-approval' ? 'active' : ''}">• Duyệt hồ sơ tổ chức</a></li>
-        <li><a href="${pageContext.request.contextPath}/admin/event-approval" class="${activeTab == 'event-approval' || param.active == 'event-approval' ? 'active' : ''}">• Duyệt & Hủy sự kiện</a></li>
-        <li><a href="${pageContext.request.contextPath}/admin/refund-approval" class="${activeTab == 'refund-approval' || param.active == 'refund-approval' ? 'active' : ''}">• Xử lý hoàn vé</a></li>
-        <li><a href="${pageContext.request.contextPath}/admin/settlements" class="${activeTab == 'settlements' || param.active == 'settlements' ? 'active' : ''}">• Hoa hồng & Quyết toán</a></li>
-        <li><a href="${pageContext.request.contextPath}/admin/audit-logs" class="${activeTab == 'audit-logs' || param.active == 'audit-logs' ? 'active' : ''}">• Nhật ký hệ thống</a></li>
-    </ul>
-
-    <div class="sidebar-title">Điều hướng nhanh</div>
-    <ul class="sidebar-menu">
-        <li><a href="${pageContext.request.contextPath}/">• Cổng người mua</a></li>
-        <li><a href="${pageContext.request.contextPath}/organizer/dashboard">• Cổng Ban tổ chức</a></li>
-    </ul>
-</aside>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<aside class="dashboard-sidebar tc-management-sidebar"><div class="sidebar-title">Quản lý hệ thống</div><nav aria-label="Quản lý hệ thống"><ul class="sidebar-menu">
+<li><a href="${pageContext.request.contextPath}/admin/dashboard" class="${activeTab == 'dashboard' || param.active == 'dashboard' ? 'active' : ''}"><i class="fa-solid fa-chart-line" aria-hidden="true"></i><span>Tổng quan</span></a></li>
+<li><a href="${pageContext.request.contextPath}/admin/orgs/approval" class="${activeTab == 'org-approval' || param.active == 'org-approval' ? 'active' : ''}"><i class="fa-solid fa-building" aria-hidden="true"></i><span>Tổ chức</span></a></li>
+<li><a href="${pageContext.request.contextPath}/admin/events/approval" class="${activeTab == 'event-approval' || param.active == 'event-approval' ? 'active' : ''}"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i><span>Sự kiện</span></a></li>
+<li><a href="${pageContext.request.contextPath}/admin/refunds/approval" class="${activeTab == 'refund-approval' || param.active == 'refund-approval' ? 'active' : ''}"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i><span>Hoàn vé</span></a></li>
+<li><a href="${pageContext.request.contextPath}/finance/reports" class="${activeTab == 'reports' || param.active == 'reports' ? 'active' : ''}"><i class="fa-solid fa-chart-column" aria-hidden="true"></i><span>Báo cáo</span></a></li>
+<li><a href="${pageContext.request.contextPath}/finance/commission" class="${activeTab == 'commission' || param.active == 'commission' ? 'active' : ''}"><i class="fa-solid fa-percent" aria-hidden="true"></i><span>Hoa hồng</span></a></li>
+<li><a href="${pageContext.request.contextPath}/finance/settlements" class="${activeTab == 'settlements' || param.active == 'settlements' ? 'active' : ''}"><i class="fa-solid fa-wallet" aria-hidden="true"></i><span>Quyết toán</span></a></li>
+<li><a href="${pageContext.request.contextPath}/finance/audit" class="${activeTab == 'audit-logs' || param.active == 'audit-logs' ? 'active' : ''}"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i><span>Nhật ký</span></a></li>
+</ul></nav><a class="tc-sidebar-exit" href="${pageContext.request.contextPath}/"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i>Khám phá sự kiện</a></aside>

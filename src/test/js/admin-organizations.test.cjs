@@ -12,7 +12,7 @@ function fixture(payload,ok=true){
 test('organization list renders the live API envelope and pagination count',async()=>{
  const f=fixture({data:{items:[{organizationId:'11111111-1111-1111-1111-111111111111',name:'Real organizer',status:'PENDING_APPROVAL',submittedAt:'2026-10-13T00:00:00Z'}],total:17}});
  await f.context.loadRequests();
- assert.equal(f.calls[0].path,'/app/api/admin/organization-requests?page=1&pageSize=10&status=PENDING_APPROVAL');
+ assert.equal(f.calls[0].path,'/app/api/admin/organization-requests?page=1&pageSize=6&status=PENDING_APPROVAL');
  assert.match(f.get('orgTableBody').innerHTML,/Real organizer/);assert.match(f.get('paginationInfo').textContent,/17/);
 });
 test('unavailable or malformed responses display errors instead of silently showing an empty list',async()=>{

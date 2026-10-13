@@ -52,11 +52,38 @@
     async function catalogPage() {
         const form = get('filters'), cards = get('events'), status = get('status');
         let revision = 0, pageNumber = 1;
+        let slides=[], slideIndex=0, paused=root.matchMedia('(prefers-reduced-motion: reduce)').matches, timer;
+        function moveSlide(index){
+            if(!slides.length)return;slideIndex=(index+slides.length)%slides.length;
+            get('hero-track').style.transform='translateX(-'+(slideIndex*100)+'%)';
+            [...get('hero-dots').children].forEach((button,i)=>button.setAttribute('aria-current',String(i===slideIndex)));
+            slides.forEach((slide,i)=>{slide.inert=i!==slideIndex;slide.setAttribute('aria-hidden',String(i!==slideIndex));});
+        }
+        function startBanner(){root.clearInterval(timer);if(!paused&&slides.length>1)timer=root.setInterval(()=>{if(!doc.hidden&&!get('catalog-featured').matches(':hover')&&!get('catalog-featured').contains(doc.activeElement))moveSlide(slideIndex+1);},5500);}
+        function banner(events){
+            try{const items=events.filter(event=>event.coverImageUrl);
+            const track=get('hero-track'),dots=get('hero-dots');track.replaceChildren();dots.replaceChildren();slides=[];
+            for(const [i,event]of items.entries()){const slide=node('a',undefined,'tc-hero-slide');slide.href=base+'/event-detail?eventId='+encodeURIComponent(event.eventId);
+                const img=node('img');image(img,event.coverImageUrl,event.title);img.addEventListener('error',()=>{slide.classList.add('tc-hero-no-image');});
+                const caption=node('div',undefined,'tc-hero-caption');caption.append(node('span',event.category||'Sự kiện','tc-eyebrow'),node('h2',event.title),node('p',date(event.startTime)+' · '+event.venueName),node('strong',price(event.minPrice)));
+                slide.append(img,caption);track.append(slide);slides.push(slide);
+                const dot=node('button');dot.type='button';dot.setAttribute('aria-label','Xem '+event.title);dot.addEventListener('click',()=>{moveSlide(i);startBanner();});dots.append(dot);
+            }
+            get('catalog-featured').hidden=!slides.length;moveSlide(0);startBanner();
+            for(const id of ['hero-previous','hero-next','hero-pause'])get(id).hidden=slides.length<2;
+            get('hero-pause').textContent=paused?'▶':'Ⅱ';
+            }catch(_){get('catalog-featured').hidden=true;}
+        }
+        get('hero-previous').addEventListener('click',()=>{moveSlide(slideIndex-1);startBanner();});
+        get('hero-next').addEventListener('click',()=>{moveSlide(slideIndex+1);startBanner();});
+        get('hero-pause').addEventListener('click',()=>{paused=!paused;get('hero-pause').textContent=paused?'▶':'Ⅱ';get('hero-pause').setAttribute('aria-label',paused?'Tiếp tục banner':'Tạm dừng banner');startBanner();});
         const search = new URLSearchParams(root.location.search);
         for (const key of ['keyword', 'sort', 'from', 'to']) if (search.has(key)) form.elements.namedItem(key).value = search.get(key);
         async function load() {
             const current = ++revision;
-            const query = new URLSearchParams({page: String(pageNumber), pageSize: '12'});
+            for(const tab of get('catalog-categories').children){const active=tab.dataset.category===get('category').value;tab.classList.toggle('active',active);tab.setAttribute('aria-pressed',String(active));}
+            const today=new Date();today.setHours(0,0,0,0);
+            const query = new URLSearchParams({page: String(pageNumber), pageSize: '6',from:today.toISOString()});
             for (const [key, value] of new FormData(form)) if (value.trim()) {
                 if (key === 'from' || key === 'to') query.set(key, new Date(value).toISOString()); else query.set(key, value.trim());
             }
@@ -65,22 +92,14 @@
             try {
                 const result = await api('/api/events?' + query);
                 if (current !== revision) return;
-                cards.replaceChildren(...result.data.map(eventCard));
+                cards.replaceChildren(...result.data.map(eventCard));banner(result.data);
                 status.textContent = result.total ? 'Tìm thấy ' + result.total + ' sự kiện.' : 'Không có sự kiện phù hợp. Thử đổi bộ lọc hoặc từ khóa.';
                 if (!result.data.length) cards.append(node('p', 'Không có sự kiện trong khoảng đã chọn.', 'tc-empty-state'));
                 get('page-label').textContent = 'Trang ' + pageNumber + (result.totalPages ? ' / ' + result.totalPages : '');
                 get('previous').disabled = pageNumber <= 1; get('next').disabled = pageNumber * result.pageSize >= result.total;
-                const hero = get('catalog-featured'), event = result.data.find(event => event.isSaleActive);
-                hero.hidden = !event || Boolean(query.get('keyword') || query.get('categoryId') || query.get('from') || query.get('to')) || pageNumber !== 1;
-                if (!hero.hidden) {
-                    get('featured-title').textContent = event.title; get('featured-time').textContent = date(event.startTime);
-                    get('featured-venue').textContent = event.venueName; get('featured-price').textContent = price(event.minPrice);
-                    get('featured-link').href = base + '/event-detail?eventId=' + encodeURIComponent(event.eventId);
-                    image(get('featured-image'), event.coverImageUrl, event.title);
-                }
             } catch (error) {
                 if (current !== revision) return;
-                cards.replaceChildren(); get('catalog-featured').hidden = true; status.textContent = error.message; get('retry-events').hidden = false;
+                cards.replaceChildren();get('catalog-featured').hidden=true;root.clearInterval(timer);status.textContent = error.message; get('retry-events').hidden = false;
             } finally { if (current === revision) cards.removeAttribute('aria-busy'); }
         }
         form.addEventListener('submit', e => { e.preventDefault(); pageNumber = 1; void load(); });
@@ -89,8 +108,11 @@
         get('retry-events').addEventListener('click', () => void load());
         try {
             const categories = await api('/api/event-categories');
+            const tabs=get('catalog-categories');
+            function tab(text,value){const button=node('button',text);button.type='button';button.dataset.category=value;button.addEventListener('click',()=>{get('category').value=value;pageNumber=1;[...tabs.children].forEach(t=>{t.classList.toggle('active',t===button);t.setAttribute('aria-pressed',String(t===button));});void load();});tabs.append(button);}
+            tab('Tất cả','');
             for (const category of categories.data) {
-                const option = node('option', category.name); option.value = category.categoryId; get('category').append(option);
+                const option = node('option', category.name); option.value = category.categoryId; get('category').append(option);tab(category.name,category.categoryId);
             }
             if (search.has('categoryId')) get('category').value = search.get('categoryId');
             if (search.has('category')) {
@@ -98,6 +120,7 @@
                 if (selected) get('category').value = selected.categoryId;
             }
         } catch (_) { get('category').disabled = true; get('category-help').textContent = 'Chưa tải được danh mục. Bạn vẫn có thể tìm bằng từ khóa.'; }
+        for(const tab of get('catalog-categories').children){tab.classList.toggle('active',tab.dataset.category===get('category').value);tab.setAttribute('aria-pressed',String(tab.dataset.category===get('category').value));}
         await load();
     }
     async function detailPage() {

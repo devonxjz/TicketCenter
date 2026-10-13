@@ -16,44 +16,19 @@
 <link rel="stylesheet" href="<%= financeContext %>/assets/css/finance.css">
 <link rel="stylesheet" href="<%= financeContext %>/assets/css/production-ui.css">
 <link rel="stylesheet" href="<%= financeContext %>/assets/css/admin-ui.css">
+<script defer src="<%= financeContext %>/assets/js/ui-components.js"></script>
+<script defer src="<%= financeContext %>/assets/js/site-shell.js"></script>
 </head><body class="finance-body">
 <a class="finance-skip" href="#finance-content">Bỏ qua menu, đến nội dung</a>
 <% if (financePageAdmin) { %>
 <jsp:include page="/WEB-INF/views/layout/admin-navbar.jsp" />
 <% } else { %>
-<header class="finance-partner-bar">
-  <div class="finance-brand"><a class="navbar-brand-custom" href="<%= financeContext %>/">TicketsCenter</a><span class="status-pill status-neutral">Cổng Đối Tác</span></div>
-  <a class="finance-link" href="<%= financeContext %>/organizer/dashboard">Về tổng quan tổ chức &rarr;</a>
-</header>
+<jsp:include page="/WEB-INF/views/layout/header.jsp" />
 <% } %>
 <div class="dashboard-layout finance-layout">
-<aside class="dashboard-sidebar finance-sidebar">
-  <p class="sidebar-title"><%= financePageAdmin ? "Quản trị tài chính" : "Tài chính tổ chức" %></p>
-  <nav aria-label="Điều hướng tài chính"><ul class="sidebar-menu">
-  <% if (financePageAdmin) { %>
-    <li><a href="<%= financeContext %>/finance/overview" <%= "overview".equals(financeCurrentPage) ? "aria-current=\"page\" class=\"active\"" : "" %>>Tổng quan</a></li>
-  <% } %>
-    <li><a href="<%= financeContext %>/finance/reports" <%= "reports".equals(financeCurrentPage) ? "aria-current=\"page\" class=\"active\"" : "" %>>Báo cáo doanh thu</a></li>
-  <% if (financePageAdmin) { %>
-    <li><a href="<%= financeContext %>/finance/commission" <%= "commission".equals(financeCurrentPage) ? "aria-current=\"page\" class=\"active\"" : "" %>>Chính sách hoa hồng</a></li>
-    <li><a href="<%= financeContext %>/finance/settlements" <%= "settlements".equals(financeCurrentPage) ? "aria-current=\"page\" class=\"active\"" : "" %>>Quyết toán &amp; chi trả</a></li>
-    <li><a href="<%= financeContext %>/finance/audit" <%= "audit".equals(financeCurrentPage) ? "aria-current=\"page\" class=\"active\"" : "" %>>Nhật ký hệ thống</a></li>
-  <% } %>
-  </ul></nav>
-  <div class="finance-sidebar-secondary">
-    <p class="sidebar-title">Điều hướng chung</p>
-    <ul class="sidebar-menu">
-    <% if (financePageAdmin) { %>
-      <li><a href="<%= financeContext %>/admin/orgs/approval">Duyệt hồ sơ tổ chức &rarr;</a></li>
-      <li><a href="<%= financeContext %>/admin/events/approval">Duyệt sự kiện &rarr;</a></li>
-      <li><a href="<%= financeContext %>/admin/refunds/approval">Duyệt hoàn vé &rarr;</a></li>
-    <% } %>
-      <li><a href="<%= financeContext %>/organizer/dashboard">Cổng Ban tổ chức &rarr;</a></li>
-      <li><a href="<%= financeContext %>/">Sàn bán vé &rarr;</a></li>
-    </ul>
-    <p class="finance-sidebar-note">Tiền nguyên VND<br>Thời gian theo UTC</p>
-  </div>
-</aside>
+<% request.setAttribute("activeTab", "overview".equals(financeCurrentPage) ? "dashboard" : "audit".equals(financeCurrentPage) ? "audit-logs" : financeCurrentPage); %>
+<% if (financePageAdmin) { %><jsp:include page="/WEB-INF/views/layout/admin-sidebar.jsp" /><% } else { %><jsp:include page="/WEB-INF/views/layout/organizer-sidebar.jsp" /><% } %>
+
 <main class="dashboard-content finance-content" id="<%= financeWritable ? "finance-app" : "finance-readside" %>"
  data-context="<%= financeContext %>" data-page="<%= ReadsideHttp.escapeHtml(financeCurrentPage) %>" data-admin="<%= financePageAdmin %>"
  data-organization="<%= ReadsideHttp.escapeHtml((String) request.getAttribute("financeOrganizationId")) %>"

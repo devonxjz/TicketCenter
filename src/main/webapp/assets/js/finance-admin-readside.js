@@ -50,11 +50,11 @@
   const form=document.getElementById('filters'),notice=document.getElementById('notice');
   const org=document.getElementById('organization'),event=document.getElementById('event');
   let page=1,sequence=0,revision=0,detailSequence=0,scopeSequence=0;
-  const labels={id:'Mã nhật ký',createdAt:'Thời gian (UTC)',actorId:'Người thực hiện',action:'Thao tác',entityType:'Loại đối tượng',entityId:'Mã đối tượng',eventId:'Sự kiện',organizationId:'Tổ chức',amount:'Số tiền',totalUsers:'Tổng người dùng',activeOrganizations:'Tổ chức đã duyệt',pendingOrganizations:'Tổ chức chờ duyệt',pendingEvents:'Sự kiện chờ duyệt',pendingRefunds:'Yêu cầu hoàn chờ xử lý',draftSettlements:'Quyết toán nháp',asOf:'Cập nhật (UTC)',todayCohortGrossRevenue:'Doanh thu đơn thanh toán hôm nay',todayCohortCommission:'Hoa hồng của đơn thanh toán hôm nay',ticketCaptured:'Thu tiền vé',compensationCaptured:'Thu thanh toán thừa',ticketRefund:'Chi hoàn vé',compensationRefund:'Chi hoàn thanh toán thừa',netCashFlow:'Dòng tiền ròng'};
+  const labels={id:'Mã nhật ký',createdAt:'Thời gian (UTC)',actorName:'Người thực hiện',entityName:'Đối tượng',actorId:'Người thực hiện',action:'Thao tác',entityType:'Loại đối tượng',entityId:'Mã đối tượng',eventId:'Sự kiện',organizationId:'Tổ chức',amount:'Số tiền',totalUsers:'Tổng người dùng',activeOrganizations:'Tổ chức đã duyệt',pendingOrganizations:'Tổ chức chờ duyệt',pendingEvents:'Sự kiện chờ duyệt',pendingRefunds:'Yêu cầu hoàn chờ xử lý',draftSettlements:'Quyết toán nháp',asOf:'Cập nhật (UTC)',todayCohortGrossRevenue:'Doanh thu đơn thanh toán hôm nay',todayCohortCommission:'Hoa hồng của đơn thanh toán hôm nay',ticketCaptured:'Thu tiền vé',compensationCaptured:'Thu thanh toán thừa',ticketRefund:'Chi hoàn vé',compensationRefund:'Chi hoàn thanh toán thừa',netCashFlow:'Dòng tiền ròng'};
   Object.assign(labels,{ratePercent:'Tỷ lệ hoa hồng (%)',fixedFee:'Phí cố định',grossRevenue:'Doanh thu gộp',totalRefund:'Tổng hoàn vé',totalCommission:'Tổng hoa hồng',netPayable:'Phải trả tổ chức',paidAmount:'Đã chi',pendingAmount:'Đang chờ chi',previousStatus:'Trạng thái trước',newStatus:'Trạng thái sau',status:'Trạng thái',result:'Kết quả',settlementId:'Quyết toán',commissionRuleId:'Chính sách hoa hồng',payoutId:'Lần chi trả',refundId:'Hoàn tiền',orderId:'Đơn hàng',effectiveFrom:'Hiệu lực từ',effectiveTo:'Hiệu lực đến',processedAt:'Xử lý lúc',confirmedAt:'Chốt lúc'});
   const money=new Set(['amount','grossRevenue','totalRefund','totalCommission','netPayable','paidAmount','pendingAmount','fixedFee','todayCohortGrossRevenue','todayCohortCommission','ticketCaptured','compensationCaptured','ticketRefund','compensationRefund','netCashFlow']);
   function node(tag,text) {const el=document.createElement(tag);if(text!=null)el.textContent=String(text);return el;}
-  function display(key,value) {if(value==null)return '—';if(money.has(key))return formatVnd(value);return String(value);}
+  function display(key,value) {if(value==null)return '—';if(money.has(key))return formatVnd(value);return ({Event:'Sự kiện',Organization:'Tổ chức',Refund:'Hoàn tiền',Settlement:'Quyết toán',CommissionRule:'Hoa hồng',SETTLEMENT_CONFIRMED:'Chốt quyết toán',SETTLEMENT_RECALCULATED:'Tính lại quyết toán',REFUND_APPROVED:'Duyệt hoàn tiền',REFUND_REJECTED:'Từ chối hoàn tiền',EVENT_PUBLISHED:'Công khai sự kiện',DRAFT:'Bản nháp',CONFIRMED:'Đã chốt',PAID:'Đã chi trả'}[value])||String(value);}
   function clear() {
     ++detailSequence;
     for(const id of ['rows','columns','summary','queue-summary','audit-detail','daily-chart','daily-values'])document.getElementById(id)?.replaceChildren();
@@ -81,15 +81,15 @@
       const result=await data('/api/admin/audit-logs/'+encodeURIComponent(id));
       if(current!==detailSequence||selected!==revision)return;
       const fields=node('dl');
-      for(const key of ['id','createdAt','actorId','action','entityType','entityId'])fields.append(node('dt',labels[key]),node('dd',display(key,result[key])));
-      const metadata=node('dl');for(const [key,value]of Object.entries(result.metadata||{}))metadata.append(node('dt',labels[key]||key),node('dd',display(key,value)));
+      for(const key of ['createdAt','actorName','action','entityType','entityName'])fields.append(node('dt',labels[key]),node('dd',display(key,result[key])));
+      const metadata=node('dl');for(const [key,value]of Object.entries(result.metadata||{}).filter(([key])=>!/(Id|Key)$/.test(key)))metadata.append(node('dt',labels[key]||key),node('dd',display(key,value)));
       panel.append(node('h2','Chi tiết nhật ký'),fields,node('h3','Thông tin được phép hiển thị'),Object.keys(result.metadata||{}).length?metadata:node('p','Không có thông tin bổ sung.'));
       panel.scrollIntoView({behavior:'smooth',block:'start'});
     } catch(error) {if(current===detailSequence&&selected===revision)notice.textContent=error.message;}
   }
   function table(result) {
     if(!Array.isArray(result.rows))throw new Error('Dữ liệu nhật ký không hợp lệ.');
-    const keys=['createdAt','action','entityType','entityId','actorId'],head=node('tr');
+    const keys=['createdAt','action','entityType','entityName','actorName'],head=node('tr');
     for(const key of keys){const th=node('th',labels[key]);th.scope='col';head.append(th);}head.append(node('th','Chi tiết'));
     document.getElementById('columns').append(head);
     const rows=document.getElementById('rows');

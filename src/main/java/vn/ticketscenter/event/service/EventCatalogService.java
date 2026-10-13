@@ -40,7 +40,7 @@ public final class EventCatalogService {
         if(url==null || url.isBlank()) throw new NotFound();return url;
     }
     private String cached(String key, int ttl, Supplier<String> load) {
-        // A prior demo projection or changed synthetic label must never bypass the real-data SQL boundary.
+        // Shared database changes are read immediately in the live runtime.
         if (!vn.ticketscenter.config.ServerConfig.isDemoData()) return load.get();
         try { var hit = cache.get(key); if (hit.isPresent()) return hit.get(); }
         catch (RuntimeException ignored) { }

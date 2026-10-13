@@ -45,6 +45,12 @@ public final class RoleAuthorizationFilter implements Filter {
 
         UserPrincipal user = userOpt.get();
 
+        // Every signed-in buyer can submit an organization application.
+        if (path.equals("/organizer/request")) {
+            chain.doFilter(request, response);
+            return;
+        }
+
         // 2. Kiểm tra truy cập khu vực /admin/*
         if (path.startsWith("/admin")) {
             if (!user.isAdmin()) {

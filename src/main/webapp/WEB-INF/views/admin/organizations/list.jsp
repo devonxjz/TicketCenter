@@ -47,6 +47,7 @@
     </style>
 <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/production-ui.css">
 <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/admin-ui.css">
+<script defer src="${pageContext.request.contextPath}/assets/js/ui-components.js"></script>
 </head>
 <body class="bg-light min-h-screen admin-workspace">
 
@@ -114,7 +115,7 @@
                     <table class="table table-hover align-middle mb-0 table-custom">
                         <thead>
                             <tr>
-                                <th style="width: 28%;">Tên tổ chức & Mã hồ sơ</th>
+                                <th style="width: 28%;">Tên tổ chức</th>
                                 <th style="width: 22%;">Người đại diện & Email</th>
                                 <th style="width: 15%;">Ngày nộp</th>
                                 <th style="width: 15%;">Trạng thái</th>
@@ -138,10 +139,10 @@
                     <nav aria-label="Page navigation">
                         <ul class="pagination pagination-sm mb-0" id="paginationList">
                             <li class="page-item disabled" id="prevPageItem">
-                                <a class="page-link rounded-0" href="#" onclick="changePage(-1); return false;">Trước</a>
+                                <a class="page-link rounded-0" href="#" onclick="changePage(-1); return false;">Trang trước</a>
                             </li>
                             <li class="page-item disabled" id="nextPageItem">
-                                <a class="page-link rounded-0" href="#" onclick="changePage(1); return false;">Sau</a>
+                                <a class="page-link rounded-0" href="#" onclick="changePage(1); return false;">Trang sau</a>
                             </li>
                         </ul>
                     </nav>

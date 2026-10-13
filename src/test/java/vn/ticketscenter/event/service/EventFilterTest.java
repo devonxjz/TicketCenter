@@ -22,13 +22,13 @@ class EventFilterTest {
             assertThrows(IllegalArgumentException.class, () -> EventFilter.parse(input));
         }
     }
-    @Test void issueDefaultsAndAllSortValuesAreSupported() {
+    @Test void catalogLimitsPagesToSixAndAllSortValuesAreSupported() {
         var defaults = EventFilter.parse(Map.of());
-        assertEquals(12, defaults.pageSize()); assertEquals("startTime_asc", defaults.sort());
+        assertEquals(6, defaults.pageSize()); assertEquals("startTime_asc", defaults.sort());
         for (String sort : java.util.List.of("startTime_asc", "startTime_desc", "price_asc", "price_desc")) {
             assertTrue(EventFilter.parse(Map.of("sort", sort)).orderBy().endsWith("event_id ASC"));
         }
-        assertEquals(50, EventFilter.parse(Map.of("pageSize", "50")).pageSize());
+        assertEquals(6, EventFilter.parse(Map.of("pageSize", "50")).pageSize());
     }
     @Test void keepsLiteralSearchCharactersAndUsesStableAllowlistedOrder() {
         var filter = EventFilter.parse(Map.of("keyword", "%_[x]\\", "sort", "price_desc"));

@@ -4,7 +4,7 @@
 <a href="#main-content" class="tc-skip-link">Đến nội dung chính</a>
 <nav class="navbar navbar-custom sticky-top tc-header" data-site-header data-context="${pageContext.request.contextPath}" aria-label="Điều hướng chính">
     <div class="container d-flex align-items-center justify-content-between flex-nowrap">
-        
+
         <!-- Logo Thương hiệu -->
         <a class="navbar-brand-custom flex-shrink-0" href="${pageContext.request.contextPath}/">
             TicketsCenter
@@ -27,14 +27,14 @@
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow-sm rounded-0 border-secondary-subtle">
                             <c:if test="${sessionScope.TC_CURRENT_USER.isAdmin()}">
-                                <li><a class="dropdown-item py-2 fw-bold text-danger" href="${pageContext.request.contextPath}/admin/dashboard"><i class="fa-solid fa-shield-halved me-2"></i>Bảng Quản trị Admin</a></li>
+                                <li><a class="dropdown-item py-2 fw-bold text-danger" href="${pageContext.request.contextPath}/admin/dashboard"><i class="fa-solid fa-shield-halved me-2"></i>Quản lý hệ thống</a></li>
                                 <li><hr class="dropdown-divider"></li>
                             </c:if>
-                            <c:if test="${sessionScope.TC_CURRENT_USER.isManager()}">
-                                <li><a class="dropdown-item py-2 fw-semibold text-primary" href="${pageContext.request.contextPath}/organizer/dashboard"><i class="fa-solid fa-building me-2"></i>Kênh Ban tổ chức</a></li>
+                            <c:if test="${!sessionScope.TC_CURRENT_USER.isAdmin() && sessionScope.TC_CURRENT_USER.isManager()}">
+                                <li><a class="dropdown-item py-2 fw-semibold text-primary" href="${pageContext.request.contextPath}/organizer/dashboard"><i class="fa-solid fa-building me-2"></i>Quản lý tổ chức</a></li>
                             </c:if>
-                            <c:if test="${sessionScope.TC_CURRENT_USER.isStaff()}">
-                                <li><a class="dropdown-item py-2 fw-semibold text-success" href="${pageContext.request.contextPath}/organizer/checkin-select"><i class="fa-solid fa-qrcode me-2"></i>Kênh Soát vé Check-in</a></li>
+                            <c:if test="${!sessionScope.TC_CURRENT_USER.isAdmin() && sessionScope.TC_CURRENT_USER.organizationRole == 'CHECK_IN_STAFF'}">
+                                <li><a class="dropdown-item py-2 fw-semibold text-success" href="${pageContext.request.contextPath}/organizer/checkin-select"><i class="fa-solid fa-qrcode me-2"></i>Soát vé sự kiện</a></li>
                                 <li><hr class="dropdown-divider"></li>
                             </c:if>
                             <li><a class="dropdown-item py-2" href="${pageContext.request.contextPath}/profile"><i class="fa-solid fa-user me-2 text-muted"></i>Hồ sơ cá nhân</a></li>
@@ -49,8 +49,8 @@
                     </div>
                 </c:when>
                 <c:otherwise>
-                    <a href="${pageContext.request.contextPath}/auth/login" class="btn-outline-custom d-none d-sm-inline-flex">Đăng nhập</a>
-                    <a href="${pageContext.request.contextPath}/auth/register" class="btn-primary-custom">Đăng ký</a>
+                    <a href="${pageContext.request.contextPath}/auth/login" class="btn-outline-custom">Đăng nhập</a>
+                    <a href="${pageContext.request.contextPath}/auth/register" class="btn-primary-custom d-none d-sm-inline-flex">Đăng ký</a>
                 </c:otherwise>
             </c:choose>
             <a href="${pageContext.request.contextPath}/me/tickets" class="btn-outline-custom p-0 d-inline-flex align-items-center justify-content-center" title="Vé & Đơn hàng của tôi" style="width: 42px; height: 40px;">

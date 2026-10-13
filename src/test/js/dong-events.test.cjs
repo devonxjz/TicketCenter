@@ -13,7 +13,7 @@ class Element {
 }
 function deferred(){let resolve;const promise=new Promise(r=>{resolve=r;});return {promise,resolve};}
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
-function event(id){return {eventId:id,title:id===A?'Event A':'Event B',organizationName:'Fixture org',status:'PENDING_APPROVAL',version:1,totalCapacity:1};}
+function event(id){return {eventId:id,title:id===A?'Event A':'Event B',organizationName:'Fixture org',status:'PENDING_APPROVAL',version:1,totalCapacity:1,coverImageUrl:'https://example.com/cover.jpg'};}
 function harness(delays={}){
  const ids=new Map(),posts=[],requests=[];
  const get=id=>{if(!ids.has(id))ids.set(id,new Element());return ids.get(id);};get('filter-status').value='PENDING_APPROVAL';get('rule').tagName='select';

@@ -7,7 +7,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chi Tiết Đơn Hàng ${fn:escapeXml(order.orderCode)} - TicketsCenter</title>
+    <title>Đơn vé ${fn:escapeXml(order.eventTitle)} - TicketsCenter</title>
 
 <jsp:include page="/WEB-INF/views/layout/meta-head.jsp" />
 <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/buyer-ui.css">
@@ -21,7 +21,7 @@
             <a href="${pageContext.request.contextPath}/me/orders" class="btn btn-outline-secondary btn-sm mb-2">
                 <i class="fa-solid fa-arrow-left me-1"></i> Danh sách đơn hàng
             </a>
-            <h1 class="h3 fw-bold mb-0">Đơn hàng #${fn:escapeXml(order.orderCode)}</h1>
+            <h1 class="h3 fw-bold mb-0">Đơn vé ${fn:escapeXml(order.eventTitle)}</h1>
         </div>
         <div>
             <c:choose>
@@ -105,11 +105,11 @@
         <div class="detail-card">
             <h5 class="fw-bold mb-3"><i class="fa-solid fa-qrcode text-primary me-2"></i>Vé & Mã QR Đã Phát Hành</h5>
             <div class="list-group">
-                <c:forEach var="t" items="${order.tickets}">
+                <c:forEach var="t" items="${order.tickets}" varStatus="ticketPosition">
                     <div class="list-group-item d-flex justify-content-between align-items-center p-3">
                         <div>
-                            <span class="font-monospace fw-bold">${fn:escapeXml(t.ticketCode)}</span>
-                            <span class="badge bg-success-subtle text-success ms-2">${fn:escapeXml(t.status)}</span>
+                            <span class="font-monospace fw-bold">Vé ${ticketPosition.count}</span>
+                            <span class="badge bg-light text-dark ms-2"><c:choose><c:when test="${t.status == 'ACTIVE'}">Còn hiệu lực</c:when><c:when test="${t.status == 'USED'}">Đã sử dụng</c:when><c:when test="${t.status == 'REFUND_PENDING'}">Chờ hoàn tiền</c:when><c:when test="${t.status == 'REFUNDED'}">Đã hoàn tiền</c:when><c:otherwise>Không còn hiệu lực</c:otherwise></c:choose></span>
                         </div>
                         <a href="${pageContext.request.contextPath}/tickets/${fn:escapeXml(t.id)}" class="btn btn-outline-primary btn-sm">
                             <i class="fa-solid fa-qrcode me-1"></i> Xem QR vé

@@ -29,7 +29,13 @@ public record EventFilter(String keyword, UUID categoryId, Instant from, Instant
         String category = text(parameters, "categoryId", "");
         return new EventFilter(text(parameters, "keyword", ""), category.isEmpty() ? null : id(category),
                 instant(parameters.get("from")), instant(parameters.get("to")),
-                text(parameters, "sort", "startTime_asc"), integer(parameters, "page", 1), integer(parameters, "pageSize", 12));
+                text(parameters, "sort", "startTime_asc"), integer(parameters, "page", 1), catalogSize(parameters));
+    }
+
+    private static int catalogSize(Map<String, String> parameters) {
+        int requested = integer(parameters, "pageSize", 6);
+        if (requested < 1 || requested > 50) throw new IllegalArgumentException("Invalid page size");
+        return Math.min(6, requested);
     }
 
     public static UUID id(String value) {

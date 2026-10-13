@@ -1,31 +1,10 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
-<!-- Left Sidebar -->
-<aside class="dashboard-sidebar">
-    <c:choose>
-        <c:when test="${not empty sessionScope.TC_CURRENT_USER && sessionScope.TC_CURRENT_USER.organizationRole == 'CHECK_IN_STAFF' && !sessionScope.TC_CURRENT_USER.isAdmin()}">
-            <div class="sidebar-title">Soát vé tại cửa</div>
-            <ul class="sidebar-menu">
-                <li><a href="${pageContext.request.contextPath}/organizer/checkin-select" class="${activeTab == 'checkin' || activeTab == 'checkin-select' || empty activeTab ? 'active' : ''}">• Chọn sự kiện soát vé</a></li>
-                <li><a href="${pageContext.request.contextPath}/organizer/checkin-scanner" class="${activeTab == 'checkin-scanner' ? 'active' : ''}">• Máy quét camera QR</a></li>
-            </ul>
-        </c:when>
-        <c:otherwise>
-            <div class="sidebar-title">Quản lý tổ chức</div>
-            <ul class="sidebar-menu">
-                <li><a href="${pageContext.request.contextPath}/organizer/dashboard" class="${activeTab == 'dashboard' || (empty activeTab && empty param.active) ? 'active' : ''}">• Tổng quan</a></li>
-                <li><a href="${pageContext.request.contextPath}/organizer/events" class="${activeTab == 'events' ? 'active' : ''}">• Danh sách sự kiện</a></li>
-                <li><a href="${pageContext.request.contextPath}/organizer/event-editor" class="${activeTab == 'event-editor' ? 'active' : ''}">• Tạo mới sự kiện</a></li>
-                <li><a href="${pageContext.request.contextPath}/organizer/coupons" class="${activeTab == 'coupons' ? 'active' : ''}">• Mã khuyến mãi</a></li>
-                <li><a href="${pageContext.request.contextPath}/organizer/members" class="${activeTab == 'members' ? 'active' : ''}">• Nhân sự & Phân quyền</a></li>
-                <li><a href="${pageContext.request.contextPath}/organizer/checkin-select" class="${activeTab == 'checkin' || activeTab == 'checkin-select' ? 'active' : ''}">• Soát vé tại cửa</a></li>
-                <li><a href="${pageContext.request.contextPath}/organizer/reports" class="${activeTab == 'reports' ? 'active' : ''}">• Báo cáo & Quyết toán</a></li>
-            </ul>
-        </c:otherwise>
-    </c:choose>
-
-    <div class="sidebar-title">Hệ thống</div>
-    <ul class="sidebar-menu">
-        <li><a href="${pageContext.request.contextPath}/">• Xem sàn bán vé</a></li>
-    </ul>
-</aside>
+<aside class="dashboard-sidebar tc-management-sidebar"><c:choose><c:when test="${sessionScope.TC_CURRENT_USER.organizationRole == 'CHECK_IN_STAFF' && !sessionScope.TC_CURRENT_USER.isAdmin()}"><div class="sidebar-title">Soát vé</div><nav aria-label="Soát vé"><ul class="sidebar-menu"><li><a href="${pageContext.request.contextPath}/check-ins" class="${activeTab == 'checkin' || empty activeTab ? 'active' : ''}"><i class="fa-solid fa-qrcode" aria-hidden="true"></i><span>Sự kiện soát vé</span></a></li></ul></nav></c:when><c:otherwise><div class="sidebar-title">Quản lý tổ chức</div><nav aria-label="Quản lý tổ chức"><ul class="sidebar-menu">
+<li><a href="${pageContext.request.contextPath}/organizer/dashboard" class="${activeTab == 'dashboard' ? 'active' : ''}"><i class="fa-solid fa-chart-line" aria-hidden="true"></i><span>Tổng quan</span></a></li>
+<li><a href="${pageContext.request.contextPath}/organizer/events" class="${activeTab == 'events' || activeTab == 'event-editor' ? 'active' : ''}"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i><span>Sự kiện</span></a></li>
+<li><a href="${pageContext.request.contextPath}/organizer/coupons" class="${activeTab == 'coupons' ? 'active' : ''}"><i class="fa-solid fa-tag" aria-hidden="true"></i><span>Khuyến mãi</span></a></li>
+<li><a href="${pageContext.request.contextPath}/organizer/members" class="${activeTab == 'members' ? 'active' : ''}"><i class="fa-solid fa-users" aria-hidden="true"></i><span>Thành viên</span></a></li>
+<li><a href="${pageContext.request.contextPath}/check-ins" class="${activeTab == 'checkin' ? 'active' : ''}"><i class="fa-solid fa-qrcode" aria-hidden="true"></i><span>Soát vé</span></a></li>
+<li><a href="${pageContext.request.contextPath}/finance/reports" class="${activeTab == 'reports' ? 'active' : ''}"><i class="fa-solid fa-chart-column" aria-hidden="true"></i><span>Báo cáo</span></a></li>
+</ul></nav></c:otherwise></c:choose><a class="tc-sidebar-exit" href="${pageContext.request.contextPath}/"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i>Khám phá sự kiện</a></aside>
