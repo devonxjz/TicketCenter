@@ -22,6 +22,7 @@ public final class AdminSeeder {
     }
 
     public void seed(TransactionManager transactions) {
+        if (!ServerConfig.isDemoData()) return;
         String password = AppConfig.get("admin.password");
         validateProductionSecret(ServerConfig.getEnv(), password);
         if (!AppConfig.getBoolean("admin.seed.enabled", false)) return;

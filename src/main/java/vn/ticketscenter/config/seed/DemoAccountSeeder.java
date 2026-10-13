@@ -33,6 +33,7 @@ public final class DemoAccountSeeder {
     }
 
     public void seed(TransactionManager transactions) {
+        if (!vn.ticketscenter.config.ServerConfig.isDemoData()) return;
         transactions.execute(DatabasePrincipal.AUTH, entityManager -> {
             UserDAO userDAO = new UserDAO(entityManager);
 

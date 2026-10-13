@@ -34,7 +34,6 @@ public final class PersistenceListener implements ServletContextListener {
 
     @Override
     public void contextInitialized(ServletContextEvent event) {
-        AdminSeeder.validateProductionSecret(ServerConfig.getEnv(), AppConfig.get("admin.password"));
         PersistenceRegistry registry = new PersistenceRegistry();
         try {
             registry.initialize();
@@ -47,7 +46,7 @@ public final class PersistenceListener implements ServletContextListener {
             LOGGER.log(Level.SEVERE, "Database persistence initialization failed", exception);
         }
         event.getServletContext().setAttribute(REGISTRY_ATTRIBUTE, registry);
-        if (registry.hasPrincipal(DatabasePrincipal.WORKER)) {
+        if (ServerConfig.isDemoData() && registry.hasPrincipal(DatabasePrincipal.WORKER)) {
             EventCancellationJob job = new EventCancellationJob(
                     registry.transactionManager(), new EventCancellationRepository(), 50);
             cancellationWorker = Executors.newSingleThreadScheduledExecutor(

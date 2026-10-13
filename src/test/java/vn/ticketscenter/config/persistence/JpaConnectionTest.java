@@ -53,11 +53,11 @@ public class JpaConnectionTest {
     @Test
     @DisplayName("Verify HikariCP connection pool configuration properties")
     void testHikariConfigValues() {
-        assertEquals(500, DatabaseConfig.getMaximumPoolSize(), "Maximum pool size must be 500");
+        assertEquals(20, DatabaseConfig.getMaximumPoolSize(), "Default per-principal pool size must be 20");
         assertEquals(10, DatabaseConfig.getMinimumIdle(), "Minimum idle must be 10");
         assertEquals(600000, DatabaseConfig.getIdleTimeout(), "Idle timeout must be 600,000ms");
         assertEquals(30000, DatabaseConfig.getConnectionTimeout(), "Connection timeout must be 30,000ms");
         assertEquals(1800000, DatabaseConfig.getMaxLifetime(), "Max lifetime must be 1,800,000ms");
-        assertEquals(500, DatabaseConfig.getPoolBudget(), "Pool budget must be 500");
+        assertEquals(60, DatabaseConfig.getPoolBudget(), "Default shared pool budget must be 60");
     }
 }

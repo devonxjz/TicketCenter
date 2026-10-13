@@ -67,7 +67,7 @@ if(Test-Path -LiteralPath (Join-Path $app 'WEB-INF/web.xml')) {
 $adminPassword=[Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(24))
 $config=[ordered]@{
  'db.host'='127.0.0.1';'db.port'='1433';'db.name'=$fixture.database;'db.url'=$jdbcUrl;'db.user'=$fixture.user;'db.password'=$fixture.password;
- 'db.encrypt'='false';'db.trustServerCertificate'='true';'db.loginTimeout'='5';'app.env'='test';'app.base.url'="http://127.0.0.1:$Port/ticketscenter";
+ 'db.encrypt'='false';'db.trustServerCertificate'='true';'db.loginTimeout'='5';'app.env'='test';'app.data.mode'='demo';'demo.seed.enabled'='true';'app.base.url'="http://127.0.0.1:$Port/ticketscenter";
  'app.secret.key'=[Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(32));'admin.seed.enabled'='true';'admin.email'='vuong.acceptance@test.invalid';'admin.password'=$adminPassword;
  'hikari.maximum-pool-size'='2';'hikari.minimum-idle'='0';'hikari.pool-budget'='24';'hikari.connection-timeout'='5000';
  'redis.host'='127.0.0.1';'redis.port'=[string]$RedisPort;'redis.timeout'='300';'redis.password'='';'finance.redis.enabled'='false';'payout.adapter'='unavailable';

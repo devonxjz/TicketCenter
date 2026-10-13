@@ -48,6 +48,7 @@ db.worker.password=<your_worker_db_password>
 # 2. Cấu hình Ứng dụng Web
 app.base.url=http://localhost:8080/ticketscenter
 app.env=development
+app.data.mode=real
 app.secret.key=<your_secret_key_here>
 event.image.directory=/var/lib/ticketscenter/event-images
 

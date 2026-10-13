@@ -46,6 +46,7 @@ public class LoginServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        req.setAttribute("showDemoAccounts", vn.ticketscenter.config.ServerConfig.isDemoData());
         String csrfToken = SecurityContext.getOrCreateCsrfToken(req);
         req.setAttribute("csrfToken", csrfToken);
         req.getRequestDispatcher("/WEB-INF/views/auth/login.jsp").forward(req, resp);

@@ -105,6 +105,7 @@
                     </div>
                 </form>
 
+                <c:if test="${showDemoAccounts}">
                 <div class="p-3 bg-light border small text-muted">
                     <strong class="text-dark d-block mb-1">Tài khoản trải nghiệm mẫu (Email hoặc Username):</strong>
                     <div class="small">
@@ -114,6 +115,7 @@
                         • Mua vé: <code>buyer1</code> hoặc <code>buyer@ticketscenter.vn</code> (pass: <code>123</code>)
                     </div>
                 </div>
+                </c:if>
             </div>
         </div>
     </main>

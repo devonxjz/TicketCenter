@@ -32,4 +32,8 @@ public final class ServerConfig {
     public static boolean isTest() {
         return "test".equalsIgnoreCase(getEnv());
     }
+
+    public static boolean isDemoData() {
+        return !isProduction() && "demo".equalsIgnoreCase(AppConfig.get("app.data.mode", "real"));
+    }
 }

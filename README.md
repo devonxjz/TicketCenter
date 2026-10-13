@@ -7,6 +7,9 @@ Redis phục vụ cache/idempotency.
 
 ## Chạy local trên Windows từ checkout sạch
 
+**Để xem cùng dữ liệu Azure của nhóm:** làm theo [bộ chạy Azure](tools/azure/README.md).
+Bộ chạy local dưới đây dùng database test riêng, không phải database dùng chung.
+
 Cài **JDK25**, **Maven**, **Node.js**, **PowerShell7.4+**, **Tomcat11** và
 **SQL Server** trước. SQL Server phải cho phép TCP tại `127.0.0.1:1433`,
 SQL authentication; Windows account hiện tại có quyền tạo database/login.

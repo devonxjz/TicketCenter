@@ -31,9 +31,12 @@ class DemoAccountSeederTest {
     private static TransactionManager transactions;
     private static PasswordHasher passwordHasher;
     private static AuthService authService;
+    private static String previousDataMode;
 
     @BeforeAll
     static void init() {
+        previousDataMode = System.getProperty("app.data.mode");
+        System.setProperty("app.data.mode", "demo");
         registry = new PersistenceRegistry();
         registry.initialize();
         transactions = registry.transactionManager();
@@ -50,6 +53,8 @@ class DemoAccountSeederTest {
         if (registry != null) {
             registry.close();
         }
+        if (previousDataMode == null) System.clearProperty("app.data.mode");
+        else System.setProperty("app.data.mode", previousDataMode);
     }
 
     @Test
