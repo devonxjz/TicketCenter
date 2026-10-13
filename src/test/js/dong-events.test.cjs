@@ -9,6 +9,8 @@ class Element {
  replaceChildren(...items){this.children=[...items];if(this.tagName==='select')this.value=this.children[0]?.value||'';}
  addEventListener(name,callback){this.listeners[name]=callback;}
  setAttribute(name,value){this[name]=value;}
+ focus(){}
+ scrollIntoView(){}
  emit(name){if(name==='click'&&this.disabled)return Promise.resolve();return this.listeners[name]?.({preventDefault(){}});}
 }
 function deferred(){let resolve;const promise=new Promise(r=>{resolve=r;});return {promise,resolve};}
@@ -33,7 +35,7 @@ function harness(delays={}){
  };
  const session=new Map();
  vm.runInNewContext(fs.readFileSync('src/main/webapp/assets/js/dong-events.js','utf8'),{
-  document,fetch,URL,URLSearchParams,TextEncoder,crypto:webcrypto,XMLHttpRequest:function(){},
+  document,fetch,URL,URLSearchParams,TextEncoder,crypto:webcrypto,XMLHttpRequest:function(){},matchMedia:()=>({matches:false}),
   location:{search:'',origin:'http://localhost'},confirm:()=>true,
   sessionStorage:{getItem:k=>session.get(k),setItem:(k,v)=>session.set(k,v),removeItem:k=>session.delete(k)}
  });
