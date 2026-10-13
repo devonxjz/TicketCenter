@@ -57,9 +57,6 @@ public class Event {
     @Column(name = "venue_address", nullable = false, length = 1000)
     private String venueAddress;
 
-    @Column(name = "cover_image_url", length = 2048)
-    private String coverImageUrl;
-
     @Column(name = "event_image", length = 2048)
     private String eventImage;
 
@@ -140,7 +137,7 @@ public class Event {
     public EventCategory getCategory() { return category; }
     public String getVenueName() { return venueName; }
     public String getVenueAddress() { return venueAddress; }
-    public String getCoverImageUrl() { return eventImage == null || eventImage.isBlank() ? coverImageUrl : eventImage; }
+    public String getCoverImageUrl() { return eventImage; }
     public String getEventImage() { return eventImage; }
     public String getEventImagePublicId() { return eventImagePublicId; }
     public Instant getSaleStart() { return saleStart; }
