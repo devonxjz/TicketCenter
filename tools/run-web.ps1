@@ -2,7 +2,10 @@
 param([string]$TomcatHome,[string]$JavaHome,[string]$ConfigPath,[int]$Port=0,[switch]$CheckConfig)
 $ErrorActionPreference='Stop'
 $repo=(Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-if(-not $ConfigPath){$ConfigPath=Join-Path $repo 'src/main/resources/application.properties'}
+if(-not $ConfigPath){
+ if(Test-Path -LiteralPath (Join-Path $repo '.local/application.properties')){$ConfigPath=Join-Path $repo '.local/application.properties'}
+ else{$ConfigPath=Join-Path $repo 'src/main/resources/application.properties'}
+}
 if(-not(Test-Path -LiteralPath $ConfigPath)){throw 'Copy src/main/resources/application.properties.example to src/main/resources/application.properties and fill the credentials.'}
 $settings=@{}
 foreach($line in [IO.File]::ReadAllLines($ConfigPath)){
