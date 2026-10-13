@@ -2,7 +2,8 @@
 
 Issue: [#26](https://github.com/devonxjz/TicketCenter/issues/26).
 Branch: `feat/khanh/khanh-06-event-cancellation`, from refreshed `dev` at
-`67fec06` (already includes KHANH-01–05). The live issue was read on
+`cddb945` (already includes KHANH-01–05 and the current canonical read models).
+The current dev was merged without changing requirements. The live issue was read on
 2026-10-13 and its body exactly matches the locally saved assignment.
 SPEC, business rules and historical migration files are unchanged.
 
@@ -64,21 +65,41 @@ leases, durable idempotency entries and order fences.
 
 | Check | Actual result |
 |---|---|
-| Focused acceptance on legacy-adapter SQL/Redis | 31 tests, zero failures/errors/skips |
-| SQL cases on newly created canonical-050 fixture | 16 tests, zero failures/errors/skips |
-| Final focused acceptance on canonical-050 SQL/Redis | 31 tests, zero failures/errors/skips |
-| Complete WAR on Tomcat 11 with native restricted ADMIN and WORKER | 23 HTTP/JSP checks; partial SQL batch resumed; actual Tomcat restart retains two obligations/two transfers and returns inventory exactly once |
-| Browser on final canonical WAR | Real login, dialog/validation, lost committed response, same-key retry, refreshed CANCELLED review, completed progress, desktop/mobile screenshots, no JavaScript errors or mobile overflow |
-| Safe-default Maven regression | 991 discovered, 825 executed, 166 explicitly disabled external cases; zero failures/errors; BUILD SUCCESS |
+| Focused acceptance on legacy-adapter SQL/Redis with current dev | 36 tests, zero failures/errors/skips |
+| SQL cases on canonical-050 fixture with current dev | 21 tests, zero failures/errors/skips |
+| Focused acceptance on canonical-050 SQL/Redis with current dev | 36 tests, zero failures/errors/skips |
+| Complete WAR on both schemas, Tomcat 11, native restricted ADMIN and WORKER | 23 HTTP/JSP checks per schema; partial SQL batch resumed; actual Tomcat restart retains two obligations/two transfers and returns inventory exactly once |
+| Browser on both current-dev WAR schemas | Real login, dialog/validation, lost committed response, same-key retry, refreshed CANCELLED review, completed progress, desktop/mobile screenshots, no JavaScript errors or mobile overflow |
+| Safe-default Maven regression | 1010 discovered, 839 executed, 171 explicitly disabled external cases; zero failures/errors; BUILD SUCCESS |
 | JavaScript `.js` unit regression | 60 passed, zero failures/skips |
 | JavaScript/guard `.cjs` unit regression | 72 passed, 8 unavailable-platform checks skipped, zero failures |
 | Workflow and source checks | actionlint, JavaScript syntax and Git whitespace checks pass |
+
+A tracked-source archive plus only the PR's pending files was built separately,
+excluding the user's existing local edits and all ignored configuration/data.
+Its safe-default `mvn verify` also passes 1010 discovered / 839 executed / 171
+disabled external cases. Both focused suite summaries independently require all
+five suites and zero skips: 36 executed, zero failures/errors on each schema.
 
 SQL cases cover start-time denial, immediate hold release, replay/payload conflict,
 adoption, zero refund, USED exception, revoked ADMIN/authVersion after lock waits,
 two competing cancellation requests, concurrent workers, outer rollback, an
 injected error after adoption but before cursor update, partial-batch worker
 restart, least privilege, UNKNOWN preservation and late capture compensation.
+The expanded cases also verify two distinct ADMIN actors racing, missing events,
+cross-event key reuse, seated hold/coupon release exactly once, partial REQUESTED
+adoption and preservation of an approved partial attempt while remaining tickets
+receive separate cancellation obligations. Redis additionally rejects quoted
+numeric counters and a percentage inconsistent with the durable counts.
+
+The fixture installer now includes current dev's committed read-model, image and
+worker dependencies for full-WAR acceptance, on disposable targets only. It
+preserves 050's canonical refund projection and uses the historical legacy
+projection only when its legacy table still exists. The pure Hikari test now
+verifies explicit configurable overrides rather than requiring the obsolete
+500-connection example. Production pool settings are unchanged. The canonical
+SPEC enum `RefundTransferResult` supplies the existing local Refund model's type;
+the user's uncommitted Refund.java edits and demo-data are excluded from this PR.
 
 All mutating tests used owned loopback fixtures: `TicketCenter_Khanh02_Test` and
 the newly created `TC_Khanh06_Test_Canonical`. Existing databases/logins were not
@@ -87,10 +108,15 @@ AUTH/BUYER/MANAGER/CHECK_IN use fixture-owner credentials only for bootstrap in
 the WAR harness; native least-privilege evidence here concerns ADMIN/WORKER.
 Transfers use the required simulator, not real banking or VNPAY Refund API.
 
-Ignored artifacts: `target/khanh06-final-focused.log`,
-`target/khanh06-final-web.log`, `target/khanh06-web-acceptance.json`,
+Ignored artifacts: `target/khanh06-current-focused.log`,
+`target/khanh06-current-legacy-focused.log`, `target/khanh06-current-web.log`,
+`target/khanh06-current-legacy-web.log`, `target/khanh06-web-acceptance.json`,
 `target/khanh06-browser-acceptance.json`, `target/khanh06-review-*.png`,
-`target/khanh06-regression.log`, `target/khanh06-js*.log`.
+`target/khanh06-current-regression.log`, `target/khanh06-current-js.log`,
+`target/khanh06-current-cjs.log`.
+The reviewed-source run is recorded in `target/khanh06-reviewed-source.log`,
+`target/khanh06-reviewed-{canonical,legacy}-focused.log`, and isolated focused XML
+reports in `target/khanh06-reviewed-{canonical,legacy}-focus-only/`.
 Some generic HTTP smoke files were initially invoked without their explicit
 fixture; their guard failures are excluded from acceptance. The correctly scoped
 unit suites and the complete cancellation WAR harness are the results above.
@@ -117,13 +143,16 @@ requires all focused suites with zero skips, and checks the complete WAR/browser
 and real restart for both legacy-adapter and canonical-050 schemas. Merge to `dev`
 still requires the project's green checks and an independent approving review.
 
-PR: [#79](https://github.com/devonxjz/TicketCenter/pull/79), kept as draft.
-GitHub Actions on `cd6a2b0` did **not start**: check annotations report failed
+PR: [#79](https://github.com/devonxjz/TicketCenter/pull/79), ready for review.
+GitHub Actions attempts did **not start**: check annotations report failed
 account payments or a spending limit needing attention. This affects every
 attempted workflow, including both cancellation matrix jobs; it is not a
 completed test run or a code-test failure. The [KHANH-06 PR run](https://github.com/devonxjz/TicketCenter/actions/runs/38343318417)
 and PR check annotations record the external billing gate. No payment settings,
-spending limit, repository visibility or merge protection were changed.
+spending limit, repository visibility or merge protection were changed. A bounded
+rerun confirmed the same billing gate with zero executed steps. CodeRabbit's
+green status says review was skipped for the non-default base branch; it is not
+an independent approving review. PR approval is still absent, so no merge is claimed.
 
 ## Reproduction
 

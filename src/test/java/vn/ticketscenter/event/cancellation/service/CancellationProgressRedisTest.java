@@ -22,7 +22,8 @@ class CancellationProgressRedisTest {
     }
     @Test void corruptionWrongEventAndRedisOutageFallBackToSql() {
         var helper=new CancellationProgressCacheHelper(CancellationProgressRedisTest::redis);var p=EventCancellationServiceTest.result();String key="tc:event:cancel-progress:"+p.eventId();
-        try(var r=redis()) {for(String json:List.of("broken",p.json().replace(p.eventId().toString(),UUID.randomUUID().toString()),p.json().replace("\"processedOrders\":2","\"processedOrders\":500"))) {
+        try(var r=redis()) {for(String json:List.of("broken",p.json().replace(p.eventId().toString(),UUID.randomUUID().toString()),p.json().replace("\"processedOrders\":2","\"processedOrders\":500"),
+                p.json().replace("\"processedOrders\":2","\"processedOrders\":\"2\""),p.json().replace("\"progressPercentage\":50.0","\"progressPercentage\":90.0"))) {
             r.setex(key,10,json);assertTrue(helper.get(p.eventId()).isEmpty());
         }r.del(key);}
         assertTrue(new CancellationProgressCacheHelper(()->{throw new IllegalStateException("Down");}).get(p.eventId()).isEmpty());

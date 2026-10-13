@@ -125,9 +125,10 @@ public class EventCancellationSqlServerTest {
         assertEquals("PUBLISHED",value("SELECT status FROM dbo.tc_events WHERE id=?",f.base().event()));
     }
     @Test void twoConcurrentAdministratorsProduceOneJobAndOneConflict()throws Exception {
-        var f=fixture(true,false);var barrier=new CyclicBarrier(2);var pool=Executors.newFixedThreadPool(2);
-        Callable<Integer> work=()->{barrier.await(5,TimeUnit.SECONDS);try{cancel(f);return 200;}catch(RefundException e){return e.status();}};
-        try{var a=pool.submit(work);var b=pool.submit(work);assertEquals(Set.of(200,409),Set.of(a.get(25,TimeUnit.SECONDS),b.get(25,TimeUnit.SECONDS)));}
+        var f=fixture(true,false);var other=fixture(false,false);var barrier=new CyclicBarrier(2);var pool=Executors.newFixedThreadPool(2);
+        Callable<Integer> first=()->{barrier.await(5,TimeUnit.SECONDS);try{cancel(f);return 200;}catch(RefundException e){return e.status();}};
+        Callable<Integer> second=()->{barrier.await(5,TimeUnit.SECONDS);try{repository(other).cancel(other.actor(),f.base().event(),new EventCancelRequestDto(REASON),UUID.randomUUID());return 200;}catch(RefundException e){return e.status();}};
+        try{var a=pool.submit(first);var b=pool.submit(second);assertEquals(Set.of(200,409),Set.of(a.get(25,TimeUnit.SECONDS),b.get(25,TimeUnit.SECONDS)));}
         finally{pool.shutdownNow();}
         assertEquals("1",value("SELECT COUNT(*) FROM dbo.tc_cancellation_jobs WHERE event_id=?",f.base().event()));
     }
@@ -201,5 +202,63 @@ public class EventCancellationSqlServerTest {
         assertEquals("NEEDS_RECONCILIATION",value("SELECT status FROM dbo.tc_refund_obligations WHERE id=?",refund));
         assertEquals("1",value("SELECT COUNT(*) FROM dbo.tc_refund_obligations WHERE order_id=?",f.base().order()));
         assertEquals(1,repository(f).progress(f.actor(),f.base().event()).unknownRefunds());
+    }
+    @Test void missingEventReturns404WithoutCreatingAJob()throws Exception {
+        var f=fixture(false,false);var id=UUID.randomUUID();
+        assertEquals(404,assertThrows(RefundException.class,()->repository(f).cancel(f.actor(),id,new EventCancelRequestDto(REASON),UUID.randomUUID())).status());
+        assertEquals("0",value("SELECT COUNT(*) FROM dbo.tc_cancellation_jobs WHERE event_id=?",id));
+    }
+    @Test void oneKeyCannotCancelAnotherEvent()throws Exception {
+        var f=fixture(false,false);var other=fixture(false,false);var key=UUID.randomUUID();var repo=repository(f);
+        repo.cancel(f.actor(),f.base().event(),new EventCancelRequestDto(REASON),key);
+        assertEquals(409,assertThrows(RefundException.class,()->repo.cancel(f.actor(),other.base().event(),new EventCancelRequestDto(REASON),key)).status());
+        assertEquals("PUBLISHED",value("SELECT status FROM dbo.tc_events WHERE id=?",other.base().event()));
+    }
+    @Test void cancellationReleasesTheAllocatedSeatAndReservedCouponExactlyOnce()throws Exception {
+        var f=fixture(false,false);var b=f.base();UUID seat=UUID.randomUUID(),coupon=UUID.randomUUID();
+        sql("UPDATE dbo.tc_events SET status='DRAFT' WHERE id=?",b.event());
+        sql("UPDATE dbo.tc_zones SET type='SEATED',capacity=NULL,held_quantity=0 WHERE id=?",b.zone());
+        sql("INSERT dbo.tc_seats(id,zone_id,row_name,seat_number,label,status) VALUES(?,?,'A',1,'A1','HELD')",seat,b.zone());
+        sql("UPDATE dbo.tc_ticket_hold_items SET seat_id=? WHERE hold_id=?;UPDATE dbo.tc_order_items SET seat_id=? WHERE id=?",seat,b.hold(),seat,b.item());
+        sql("UPDATE dbo.tc_events SET status='PUBLISHED' WHERE id=?",b.event());
+        sql("INSERT dbo.tc_coupons(id,organization_id,code,discount_type,percentage_value,max_uses,valid_from,valid_to) VALUES(?,?,?,'PERCENTAGE',10,1,DATEADD(day,-1,SYSUTCDATETIME()),DATEADD(day,1,SYSUTCDATETIME()))",coupon,b.org(),coupon.toString());
+        sql("UPDATE dbo.tc_payments SET status='FAILED' WHERE id=?",b.payment());
+        sql("EXEC dbo.usp_ApplyOrderCoupon ?,?,?",b.order(),b.user(),coupon.toString());
+        assertEquals("RESERVED",value("SELECT status FROM dbo.tc_coupon_redemptions WHERE order_id=?",b.order()));
+        cancel(f);process(f);process(f);
+        assertEquals("AVAILABLE",value("SELECT status FROM dbo.tc_seats WHERE id=?",seat));
+        assertEquals("RELEASED",value("SELECT status FROM dbo.tc_coupon_redemptions WHERE order_id=?",b.order()));
+        assertEquals("1",value("SELECT COUNT(*) FROM dbo.tc_coupon_redemptions WHERE order_id=?",b.order()));
+    }
+    static Fixture twoTicketOrder()throws Exception {
+        var f=fixture(false,false);var b=f.base();
+        sql("UPDATE dbo.tc_zones SET held_quantity=2 WHERE id=?;UPDATE dbo.tc_ticket_hold_items SET quantity=2 WHERE hold_id=?;UPDATE dbo.tc_order_items SET quantity=2 WHERE id=?",b.zone(),b.hold(),b.item());
+        sql("UPDATE dbo.tc_orders SET subtotal_amount=2000,total_amount=2000 WHERE id=?;UPDATE dbo.tc_payments SET amount=2000 WHERE id=?",b.order(),b.payment());
+        String codes="[{\"ticketCode\":\""+UUID.randomUUID()+"\",\"qrSecretHashHex\":\"01020304\"},{\"ticketCode\":\""+UUID.randomUUID()+"\",\"qrSecretHashHex\":\"01020304\"}]";
+        try(var c=ScanFixture.owner();var q=c.prepareStatement("EXEC dbo.usp_ApplyPaymentResult @order_id=?,@payment_id=?,@verified_result=?,@ticket_codes=?")) {
+            q.setString(1,b.order().toString());q.setString(2,b.payment().toString());q.setString(3,"{\"status\":\"CAPTURED\",\"providerReference\":\""+b.payment()+"\"}");q.setString(4,codes);q.setQueryTimeout(20);
+            boolean result=q.execute();while(true){if(result){try(var r=q.getResultSet()){while(r.next()){ }}}else if(q.getUpdateCount()==-1)break;result=q.getMoreResults();}
+        }
+        return new Fixture(b,f.admin(),f.actor(),UUID.fromString(value("SELECT TOP(1) CONVERT(varchar(36),id) FROM dbo.tc_tickets WHERE order_item_id=? ORDER BY id",b.item())));
+    }
+    @Test void partialRequestedRefundIsAdoptedAndOnlyRemainingTicketGetsNewObligation()throws Exception {
+        var f=twoTicketOrder();String original=requested(f);cancel(f);process(f);process(f);
+        assertEquals("1000",value("SELECT amount FROM dbo.tc_refund_obligations WHERE id=?",original));
+        assertEquals("EVENT_CANCELLATION",value("SELECT reason_type FROM dbo.tc_refund_obligations WHERE id=?",original));
+        assertEquals("2",value("SELECT COUNT(*) FROM dbo.tc_refund_obligations WHERE order_id=? AND purpose='CUSTOMER_REFUND'",f.base().order()));
+        assertEquals("2000",value("SELECT SUM(amount) FROM dbo.tc_refund_obligations WHERE order_id=? AND purpose='CUSTOMER_REFUND'",f.base().order()));
+        assertEquals("2",value("SELECT COUNT(*) FROM dbo.tc_refund_tickets rt JOIN dbo.tc_refund_obligations r ON r.id=rt.refund_id WHERE r.order_id=?",f.base().order()));
+        assertEquals("1",value("SELECT COUNT(*) FROM dbo.tc_refund_tickets WHERE ticket_id=? AND is_open=1",f.ticket()));
+    }
+    @Test void approvedPartialRefundRetainsItsAttemptAndRemainingTicketGetsCancellationRefund()throws Exception {
+        var f=twoTicketOrder();String original=requested(f);
+        try(var c=PaymentCrossDomainSqlTest.source("admin",f.admin()).getConnection()){ScanFixture.execute(c,"EXEC dbo.sp_refund_approve ?,?,?,?,?",original,f.admin(),"Approved partial refund",UUID.randomUUID(),f.actor().authVersion());}
+        String attempt=value("SELECT CONVERT(varchar(36),current_attempt_id) FROM dbo.tc_refund_obligations WHERE id=?",original);
+        cancel(f);process(f);process(f);
+        assertEquals(attempt,value("SELECT CONVERT(varchar(36),current_attempt_id) FROM dbo.tc_refund_obligations WHERE id=?",original));
+        assertEquals("CUSTOMER_REQUEST",value("SELECT reason_type FROM dbo.tc_refund_obligations WHERE id=?",original));
+        assertEquals("2",value("SELECT COUNT(*) FROM dbo.tc_refund_obligations WHERE order_id=?",f.base().order()));
+        assertEquals("1",value("SELECT COUNT(*) FROM dbo.tc_refund_transfer_logs WHERE refund_id=?",original));
+        assertEquals("1",value("SELECT COUNT(*) FROM dbo.tc_refund_obligations WHERE order_id=? AND reason_type='EVENT_CANCELLATION'",f.base().order()));
     }
 }

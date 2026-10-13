@@ -53,11 +53,26 @@ public class JpaConnectionTest {
     @Test
     @DisplayName("Verify HikariCP connection pool configuration properties")
     void testHikariConfigValues() {
-        assertEquals(500, DatabaseConfig.getMaximumPoolSize(), "Maximum pool size must be 500");
-        assertEquals(10, DatabaseConfig.getMinimumIdle(), "Minimum idle must be 10");
-        assertEquals(600000, DatabaseConfig.getIdleTimeout(), "Idle timeout must be 600,000ms");
-        assertEquals(30000, DatabaseConfig.getConnectionTimeout(), "Connection timeout must be 30,000ms");
-        assertEquals(1800000, DatabaseConfig.getMaxLifetime(), "Max lifetime must be 1,800,000ms");
-        assertEquals(500, DatabaseConfig.getPoolBudget(), "Pool budget must be 500");
+        // Operator values are configurable; a pure test must not require a former
+        // application.properties.example default or read private deployment settings.
+        var configured = java.util.Map.of(
+                "hikari.maximum-pool-size", "7", "hikari.minimum-idle", "2",
+                "hikari.idle-timeout", "610000", "hikari.connection-timeout", "17000",
+                "hikari.max-lifetime", "1900000", "hikari.pool-budget", "19");
+        var previous = new java.util.HashMap<String, String>();
+        configured.forEach((key, value) -> previous.put(key, System.getProperty(key)));
+        try {
+            configured.forEach(System::setProperty);
+            assertEquals(7, DatabaseConfig.getMaximumPoolSize());
+            assertEquals(2, DatabaseConfig.getMinimumIdle());
+            assertEquals(610000, DatabaseConfig.getIdleTimeout());
+            assertEquals(17000, DatabaseConfig.getConnectionTimeout());
+            assertEquals(1900000, DatabaseConfig.getMaxLifetime());
+            assertEquals(19, DatabaseConfig.getPoolBudget());
+        } finally {
+            previous.forEach((key, value) -> {
+                if (value == null) System.clearProperty(key); else System.setProperty(key, value);
+            });
+        }
     }
 }

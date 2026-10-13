@@ -34,6 +34,15 @@ public class CancellationProgressCacheHelper {
             if(percentage.signum()<0||percentage.compareTo(BigDecimal.valueOf(100))>0)return Optional.empty();
             Instant.parse(fields.get("updatedAt"));Instant.parse(fields.get("cancelledAt"));
             if(fields.get("reason")==null||fields.get("reason").length()>500)return Optional.empty();
+            var normalized=new CancellationProgressDto(id,null,fields.get("status"),fields.get("reason"),
+                    Instant.parse(fields.get("cancelledAt")),Long.parseLong(fields.get("totalOrders")),
+                    Long.parseLong(fields.get("processedOrders")),null,Instant.parse(fields.get("updatedAt")),
+                    Long.parseLong(fields.get("successfulRefunds")),Long.parseLong(fields.get("failedRefunds")),
+                    Long.parseLong(fields.get("unknownRefunds")),Long.parseLong(fields.get("pendingRefunds")),
+                    Long.parseLong(fields.get("usedTicketExceptions"))).json();
+            // The shared flat parser can coerce quoted numbers. Only accept the exact typed
+            // serialization produced by publish(), including the derived percentage.
+            if(!normalized.equals(json))return Optional.empty();
             return Optional.of(json); // A hit does not renew the ten-second TTL.
         }catch(Exception unavailable){return Optional.empty();}
     }
