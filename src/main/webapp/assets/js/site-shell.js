@@ -17,3 +17,15 @@
  const searchForm=nav.querySelector('form.tc-header-search');if(searchForm){searchForm.addEventListener('submit',event=>{if(doc.body.dataset.publicPage==='catalog'){const filters=doc.getElementById('filters');if(filters){event.preventDefault();const kw=(searchForm.querySelector('input[name=keyword]')?.value||'').trim(),cat=searchForm.querySelector('select[name=categoryId]')?.value||'';const kwInput=filters.elements.namedItem('keyword');if(kwInput)kwInput.value=kw;const catSelect=filters.elements.namedItem('categoryId');if(catSelect)catSelect.value=cat;filters.dispatchEvent(new Event('submit',{cancelable:true,bubbles:true}));}}});}
  const mainKeyword=doc.getElementById('keyword');if(mainKeyword&&search){mainKeyword.addEventListener('input',()=>{search.value=mainKeyword.value;});}
 })(typeof window!=='undefined'?window:globalThis);
+
+// Hiển thị <time class="tc-local-time" datetime="ISO-8601"> theo giờ địa phương của người xem.
+(function () {
+    if (typeof document === "undefined") return;
+    const format = () => {
+        for (const node of document.querySelectorAll("time.tc-local-time[datetime]")) {
+            const value = new Date(node.getAttribute("datetime"));
+            if (!Number.isNaN(value.getTime())) node.textContent = value.toLocaleString("vi-VN", { dateStyle: "medium", timeStyle: "short" });
+        }
+    };
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", format); else format();
+})();

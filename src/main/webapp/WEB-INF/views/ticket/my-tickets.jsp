@@ -76,7 +76,7 @@
 
                                 <div class="text-muted small mb-1">
                                     <i class="fa-regular fa-clock me-1"></i>
-                                    <span>${fn:escapeXml(t.startTime)}</span>
+                                    <span><time class="tc-local-time" datetime="${fn:escapeXml(t.startTime)}">${fn:escapeXml(t.startTime)}</time></span>
                                 </div>
 
                                 <div class="text-muted small mb-3 text-truncate" title="${fn:escapeXml(t.venueName)}">
