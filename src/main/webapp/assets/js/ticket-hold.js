@@ -538,15 +538,15 @@
                 label.append(stepper);controls.append(label);field.append(controls);
             } else {
                 // Chọn số lượng trước; sơ đồ ghế thật (theo hàng, kèm ghế đang giữ/đã bán) hiện ra sau đó.
-                field.append(element("p", zone.availableSeats.length ? "Vé ngồi · Còn " + zone.availableSeats.length + " ghế trống. Nhập số lượng rồi chọn ghế trên sơ đồ." : "Không còn ghế khả dụng."));
-                const countLabel = element("label", "Số lượng");
+                const stock=element("p",zone.availableSeats.length+" ghế trống");stock.className="hold-seat-stock";field.append(stock);
+                const countLabel = element("label", "Số ghế");countLabel.className="hold-seat-count-label";
                 const counter = element("input");
                 counter.type = "number"; counter.min = "0"; counter.max = String(Math.min(8, zone.availableSeats.length)); counter.step = "1"; counter.value = "0";
                 counter.className = "hold-quantity"; counter.dataset.seatCount = "1"; counter.setAttribute("aria-label","Số ghế muốn đặt tại "+zone.name); counter.disabled = !zone.availableSeats.length;
                 countLabel.append(counter);
                 const hint = element("p"); hint.hidden = true;
                 const panel = element("div"); panel.hidden = true;
-                
+
                 const seats = element("div"); seats.className = "hold-seat-map";
                 if(zone.layoutUnavailable)seats.append(element('p','Chưa tải được bố cục; danh sách bên dưới gồm các ghế còn trống do máy chủ xác nhận.'));
                 const boxes = [];
