@@ -45,7 +45,7 @@ class FinanceReadsidePageServletTest {
             attributes.put(SecurityContext.REQUEST_USER_ATTRIBUTE,new UserPrincipal(user,PlatformRole.CUSTOMER,0));
             FinanceDatabase factory = () -> proxy(Connection.class,(method,args)-> {
                 if(!method.equals("prepareStatement"))return null;
-                boolean actor=((String)args[0]).contains("tc_users"); boolean[] first={true};
+                boolean actor=((String)args[0]).contains("vw_ActorAuthority"); boolean[] first={true};
                 return proxy(PreparedStatement.class,(operation,values)-> {
                     if(!operation.equals("executeQuery"))return null;
                     return proxy(ResultSet.class,(name,columns)-> switch(name) {

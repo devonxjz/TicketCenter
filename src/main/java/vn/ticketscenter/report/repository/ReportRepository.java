@@ -9,7 +9,7 @@ public final class ReportRepository {
     private static final Set<String> MONEY=Set.of("gross_revenue","total_refund","remaining_amount","total_commission","net_payable","ticket_captured","compensation_captured","ticket_refund","compensation_refund","net_cash_flow","paid_amount","pending_amount","available_to_pay");
     public void requireEventScope(Connection db,ReportFilter filter)throws SQLException{
         if(filter.eventId()==null)return;
-        String sql="SELECT id FROM dbo.tc_events WHERE id=?"+(filter.organizationId()==null?"":" AND organization_id=?");
+        String sql="SELECT id FROM dbo.vw_FinanceEvents WHERE id=?"+(filter.organizationId()==null?"":" AND organization_id=?");
         try(var query=db.prepareStatement(sql)){query.setString(1,filter.eventId().toString());if(filter.organizationId()!=null)query.setString(2,filter.organizationId().toString());try(var row=query.executeQuery()){if(!row.next())throw new FinanceException("NOT_FOUND",404);}}
     }
     public Map<String,Object> page(Connection db,ReportFilter filter)throws SQLException{
@@ -42,7 +42,7 @@ public final class ReportRepository {
             case COHORT_REVENUE->{columns=List.of("event_id","organization_id","paid_order_count","gross_revenue","total_refund","remaining_amount","total_commission","net_payable");source="dbo.fn_GetOrganizationRevenue(?,?,?)";parameters.add(f.organizationId());parameters.add(f.from());parameters.add(f.to());}
             case CASH_FLOW->{columns=List.of("event_id","organization_id","ticket_captured","compensation_captured","ticket_refund","compensation_refund","net_cash_flow");source="dbo.fn_GetOrganizationCashFlow(?,?,?)";parameters.add(f.organizationId());parameters.add(f.from());parameters.add(f.to());}
             case EVENT_SALES->{columns=List.of("event_id","organization_id","event_title","event_status","end_time","paid_order_count","ticket_count","valid_ticket_count","refunded_ticket_count","tickets_checked_in_count","gross_revenue","total_refund","total_commission","net_payable","settlement_id","settlement_status","is_confirmed");source="(SELECT v.*,COALESCE(c.tickets_checked_in_count,CONVERT(bigint,0)) tickets_checked_in_count FROM dbo.vw_EventSalesReport v LEFT JOIN dbo.vw_VuongEventCheckinCounts c ON c.event_id=v.event_id) event_sales";date=" AND end_time>=? AND end_time<?";}
-            case SETTLEMENT_BALANCE->{columns=List.of("settlement_id","event_id","organization_id","status","gross_revenue","total_refund","total_commission","net_payable","paid_amount","pending_amount","available_to_pay","confirmed_at");source="dbo.vw_SettlementPayoutBalance";id="settlement_id";date=" AND EXISTS (SELECT 1 FROM dbo.tc_events e WHERE e.id=event_id AND e.end_time>=? AND e.end_time<?)";}
+            case SETTLEMENT_BALANCE->{columns=List.of("settlement_id","event_id","organization_id","status","gross_revenue","total_refund","total_commission","net_payable","paid_amount","pending_amount","available_to_pay","confirmed_at");source="dbo.vw_SettlementSummary";id="settlement_id";date=" AND end_time>=? AND end_time<?";}
             default->throw new FinanceException("INVALID_REPORT_FILTER",400);
         }
         String sql="SELECT "+String.join(",",columns)+" FROM "+source+" WHERE 1=1";

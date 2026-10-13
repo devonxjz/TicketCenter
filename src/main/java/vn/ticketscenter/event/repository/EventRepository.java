@@ -35,7 +35,7 @@ public class EventRepository {
     private static final String COLUMNS =
             "e.id,e.organization_id,e.category_id,e.title,e.description,e.venue_name,"
                 + "e.venue_address,e.sale_start,e.sale_end,e.start_time,e.end_time,e.status,e.version,"
-                + "NULLIF(e.event_image,''),e.event_image_public_id";
+                + "e.image_url,e.event_image_public_id";
     private final DataSource manager;
     private final DataSource buyer;
     private final DataSource worker;
@@ -127,7 +127,7 @@ public class EventRepository {
                                     asset == null ? null : asset.secureUrl());
                     if (Boolean.TRUE.equals(saved[0]))
                         return EventDto.fromSnapshot((String) saved[1]);
-                    EventDto result = find(c, claim.eventId(), false);
+                    EventDto result = find(c, claim.eventId());
                     execute(
                             c,
                             "EXEC dbo.usp_EventImageCommit ?,?,?,?,?,?",
@@ -196,7 +196,7 @@ public class EventRepository {
                             c,
                             "SELECT TOP(100) "
                                     + COLUMNS
-                                    + " FROM dbo.tc_events e WHERE organization_id=? ORDER BY"
+                                    + " FROM dbo.vw_ManagedEvents e WHERE organization_id=? ORDER BY"
                                     + " start_time DESC,id",
                             organizationId);
                 });
@@ -206,7 +206,7 @@ public class EventRepository {
         return tx(
                 manager,
                 c -> {
-                    EventDto event = find(c, id, false);
+                    EventDto event = find(c, id);
                     authorize(c, actor, event.organizationId(), false);
                     return event;
                 });
@@ -221,11 +221,8 @@ public class EventRepository {
                     try (PreparedStatement q =
                                     query(
                                             c,
-                                            "SELECT o.id,o.name FROM dbo.tc_organizations o JOIN"
-                                                + " dbo.tc_organization_memberships m ON"
-                                                + " m.organization_id=o.id WHERE m.user_id=? AND"
-                                                + " m.active=1 AND m.role='MANAGER' AND"
-                                                + " o.status='APPROVED' ORDER BY o.name",
+                                            "SELECT o.id,o.name FROM dbo.vw_ManagerOrganizations o"
+                                                + " WHERE o.user_id=? ORDER BY o.name",
                                             actor.actorId());
                             ResultSet r = q.executeQuery()) {
                         while (r.next())
@@ -240,7 +237,7 @@ public class EventRepository {
                     try (PreparedStatement q =
                                     query(
                                             c,
-                                            "SELECT id,name,slug FROM dbo.tc_event_categories ORDER"
+                                            "SELECT id,name,slug FROM dbo.vw_EventCategories ORDER"
                                                     + " BY name");
                             ResultSet r = q.executeQuery()) {
                         while (r.next())
@@ -270,7 +267,7 @@ public class EventRepository {
                     try (PreparedStatement q =
                                     query(
                                             c,
-                                            "SELECT slug FROM dbo.tc_event_categories WHERE id=?",
+                                            "SELECT slug FROM dbo.vw_EventCategories WHERE id=?",
                                             categoryId);
                             ResultSet r = q.executeQuery()) {
                         if (!r.next()) throw failure(400, "CATEGORY_NOT_FOUND", "Unknown category");
@@ -290,10 +287,8 @@ public class EventRepository {
                                             c,
                                             "SELECT "
                                                     + COLUMNS
-                                                    + ",cat.slug,e.event_image,e.event_image"
-                                                    + " FROM dbo.tc_events e JOIN"
-                                                    + " dbo.tc_event_categories cat ON"
-                                                    + " cat.id=e.category_id ORDER BY e.id");
+                                                    + ",e.category_slug,e.event_image,e.event_image"
+                                                    + " FROM dbo.vw_ManagedEvents e ORDER BY e.id");
                             ResultSet r = q.executeQuery()) {
                         while (r.next())
                             list.add(
@@ -334,78 +329,32 @@ public class EventRepository {
                 });
     }
 
+    /** Session, manager membership and organization approval are checked by the database. */
     private static void authorize(
             Connection c, UserPrincipal actor, UUID organizationId, boolean maintenance)
             throws SQLException {
-        if (maintenance) {
-            requireMaintenance(c);
-            return;
-        }
-        currentUser(c, actor);
-        try (PreparedStatement q =
-                        query(
-                                c,
-                                "SELECT 1 FROM dbo.tc_organization_memberships"
-                                        + " WITH(UPDLOCK,HOLDLOCK) WHERE user_id=? AND"
-                                        + " organization_id=? AND active=1 AND role='MANAGER'",
-                                actor.actorId(),
-                                organizationId);
-                ResultSet r = q.executeQuery()) {
-            if (!r.next())
-                throw failure(403, "EVENT_FORBIDDEN", "Current Manager membership is required");
-        }
-        try (PreparedStatement q =
-                        query(
-                                c,
-                                "SELECT 1 FROM dbo.tc_organizations WITH(HOLDLOCK) WHERE id=? AND"
-                                        + " status='APPROVED'",
-                                organizationId);
-                ResultSet r = q.executeQuery()) {
-            if (!r.next())
-                throw failure(403, "ORGANIZATION_NOT_APPROVED", "Organization is not approved");
-        }
+        if (!maintenance && actor == null) throw failure(401, "AUTH_REQUIRED", "Sign in first");
+        execute(
+                c,
+                "EXEC dbo.usp_EventImageAuthorize ?,?,?,?",
+                maintenance ? null : actor.actorId(),
+                maintenance ? null : actor.authVersion(),
+                maintenance ? null : organizationId,
+                maintenance);
     }
 
     private static void currentUser(Connection c, UserPrincipal actor) throws SQLException {
         if (actor == null) throw failure(401, "AUTH_REQUIRED", "Sign in first");
-        try (PreparedStatement q =
-                        query(
-                                c,
-                                "SELECT 1 FROM dbo.tc_users WITH(UPDLOCK,HOLDLOCK) WHERE id=? AND"
-                                        + " status='ACTIVE' AND auth_version=?",
-                                actor.actorId(),
-                                actor.authVersion());
-                ResultSet r = q.executeQuery()) {
-            if (!r.next())
-                throw failure(401, "SESSION_EXPIRED", "Current session is no longer valid");
-        }
+        execute(c, "EXEC dbo.usp_EventRequireSession ?,?", actor.actorId(), actor.authVersion());
     }
 
     private static void requireMaintenance(Connection c) throws SQLException {
-        try (PreparedStatement q =
-                        query(
-                                c,
-                                "SELECT CASE WHEN USER_NAME()='dbo' OR IS_ROLEMEMBER('db_owner')=1"
-                                        + " OR IS_SRVROLEMEMBER('sysadmin')=1 THEN 1 ELSE 0 END");
-                ResultSet r = q.executeQuery()) {
-            if (!r.next() || !r.getBoolean(1))
-                throw failure(
-                        403,
-                        "MAINTENANCE_FORBIDDEN",
-                        "Database owner connection is required for maintenance");
-        }
+        authorize(c, null, null, true);
     }
 
-    private static EventDto find(Connection c, UUID id, boolean lock) throws SQLException {
+    private static EventDto find(Connection c, UUID id) throws SQLException {
         List<EventDto> rows =
-                events(
-                        c,
-                        "SELECT "
-                                + COLUMNS
-                                + " FROM dbo.tc_events e "
-                                + (lock ? "WITH(UPDLOCK,HOLDLOCK) " : "")
-                                + "WHERE e.id=?",
-                        id);
+                events(c, "SELECT " + COLUMNS + " FROM dbo.vw_ManagedEvents e WHERE e.id=?", id);
         if (rows.isEmpty()) throw failure(404, "EVENT_NOT_FOUND", "Event was not found");
         return rows.getFirst();
     }

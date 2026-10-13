@@ -15,14 +15,14 @@ public final class FinanceAuthorization {
         String role = currentRole(db,actor);
         if (organizationId == null) throw new FinanceException("INVALID_ORGANIZATION",400);
         if (role.equals("ADMIN")) return;
-        try (var query = db.prepareStatement("SELECT role FROM dbo.tc_organization_memberships WHERE user_id=? AND organization_id=? AND active=1 AND role='MANAGER'")) {
+        try (var query = db.prepareStatement("SELECT 1 FROM dbo.vw_ActiveManagerMemberships WHERE user_id=? AND organization_id=?")) {
             query.setString(1, actor.actorId().toString()); query.setString(2,organizationId.toString());
             try (var row = query.executeQuery()) { if (!row.next()) throw new FinanceException("FORBIDDEN",403); }
         }
     }
     private static String currentRole(Connection db, UserPrincipal actor) throws SQLException {
         if (actor == null) throw new FinanceException("UNAUTHENTICATED",401);
-        try (var query = db.prepareStatement("SELECT status,auth_version,platform_role FROM dbo.tc_users WHERE id=?")) {
+        try (var query = db.prepareStatement("SELECT status,auth_version,platform_role FROM dbo.vw_ActorAuthority WHERE id=?")) {
             query.setString(1, actor.actorId().toString());
             try (var row = query.executeQuery()) {
                 if (!row.next() || !"ACTIVE".equals(row.getString("status")) || row.getInt("auth_version") != actor.authVersion())

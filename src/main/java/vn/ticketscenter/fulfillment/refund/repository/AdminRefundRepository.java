@@ -69,7 +69,7 @@ public final class AdminRefundRepository implements AdminRefundStore {
                 while(r.next())attempts.add(new AdminRefundDetailDto.Attempt(uuid(r,"attempt_id"),r.getInt("attempt_no"),r.getString("status"),r.getString("provider_reference"),instant(r,"created_at"),instant(r,"processed_at")));
             }
             String note=null;
-            try(var q=query(c,"SELECT TOP(1) JSON_VALUE(detail,'$.note') FROM dbo.tc_audit_logs WHERE aggregate_id=? AND action='ADMIN_REFUND_APPROVE' AND ISJSON(detail)=1 ORDER BY created_at DESC,id DESC",id);var r=q.executeQuery()){if(r.next())note=r.getString(1);}
+            try(var q=query(c,"SELECT TOP(1) note FROM dbo.vw_AdminRefundApprovalNotes WHERE refund_id=? ORDER BY created_at DESC,id DESC",id);var r=q.executeQuery()){if(r.next())note=r.getString(1);}
             return new AdminRefundDetailDto(refund,current,reviewer,decided,note,tickets,attempts);
         });
     }

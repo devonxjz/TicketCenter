@@ -40,7 +40,7 @@ class ReportServiceTest {
     Connection connection(Tracker tracker){return proxy(Connection.class,(method,args)->{
         if(method.equals("close")){tracker.connectionClosed=true;return null;}
         if(method.equals("prepareStatement")){
-            String sql=(String)args[0];boolean users=sql.contains("tc_users"),members=sql.contains("tc_organization_memberships"),report=sql.contains("fn_GetOrganizationRevenue");if(report)tracker.reportQueries++;
+            String sql=(String)args[0];boolean users=sql.contains("vw_ActorAuthority"),members=sql.contains("vw_ActiveManagerMemberships"),report=sql.contains("fn_GetOrganizationRevenue");if(report)tracker.reportQueries++;
             return proxy(PreparedStatement.class,(op,a)->{
                 if(op.equals("close")){if(report)tracker.reportStatementClosed=true;return null;}
                 if(op.equals("executeQuery")){boolean[] first={true};return proxy(ResultSet.class,(name,v)->switch(name){

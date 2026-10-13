@@ -51,7 +51,7 @@ class EventCatalogRepositoryTest {
                 "from", "2026-10-10T01:00:00Z", "to", "2026-10-11T01:00:00Z", "page", "2", "pageSize", "10", "sort", "price_desc"));
         var page = EventRepositoryFixture.repository(connection()).events(filter);
         assertEquals(1, page.total()); assertEquals(1, page.events().size());
-        assertTrue(sql.stream().allMatch(q -> q.contains("dbo.vw_PublicEvents") && !q.contains("x' OR")));
+        assertTrue(sql.stream().allMatch(q -> (q.contains("dbo.vw_PublicEvents") || q.contains("dbo.vw_PublicEventCatalog")) && !q.contains("x' OR")));
         assertTrue(sql.get(1).contains("ORDER BY minimum_price DESC, event_id ASC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"));
         assertEquals("%x' OR 1=1 --%", binds.get(1).get(1)); assertEquals(id.toString(), binds.get(1).get(4));
         assertEquals(binds.get(1).get(1), binds.get(1).get(2)); assertEquals(binds.get(1).get(1), binds.get(1).get(3));
@@ -69,7 +69,7 @@ class EventCatalogRepositoryTest {
         var repository = EventRepositoryFixture.repository(connection());
         assertTrue(repository.event(id).isEmpty()); assertTrue(repository.zones(id).isEmpty()); assertTrue(repository.seats(id).isEmpty());
         assertEquals(3, sql.size());
-        assertTrue(sql.stream().allMatch(q -> q.contains("dbo.vw_PublicEvents") && !q.contains(id.toString())));
+        assertTrue(sql.stream().allMatch(q -> (q.contains("dbo.vw_PublicEvents") || q.contains("dbo.vw_PublicEventCatalog")) && !q.contains(id.toString())));
         assertTrue(binds.stream().allMatch(p -> p.get(1).equals(id.toString())));
     }
     @Test void leftJoinEmptyPublicParentMapsToEmptyCollection() {
