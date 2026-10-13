@@ -359,6 +359,7 @@
     let renderedOptions = null;
     let expiryRead = null;
     let payNow = false;
+    let seatZones = [];
     let client;
 
     function payOverlay(show) {
@@ -403,14 +404,36 @@
     }
 
     function selections() {
-        return Array.from(get("hold-zones")?.querySelectorAll("input") || []).filter(input =>
+        return Array.from(get("hold-zones")?.querySelectorAll("input") || []).filter(input => !input.dataset.seatCount).filter(input =>
             input.type === "checkbox" ? input.checked : Number(input.value) > 0).map(input => ({
                 zoneId: input.dataset.zoneId, seatId: input.dataset.seatId || null,
                 quantity: input.type === "checkbox" ? 1 : Number(input.value)
             }));
     }
 
+    // Khu ghế ngồi: chọn số lượng trước, sau đó chọn đúng bấy nhiêu ghế trong danh sách ghế còn trống máy chủ trả về.
+    function syncSeatZones() {
+        let wantedSeats = 0;
+        const missing = [];
+        for (const zone of seatZones) {
+            const raw = Number(zone.counter.value);
+            const wanted = Number.isInteger(raw) && raw > 0 ? Math.min(raw, zone.boxes.length, 8) : 0;
+            const checked = zone.boxes.filter(box => box.checked);
+            for (const extra of checked.slice(wanted)) extra.checked = false;
+            const picked = Math.min(checked.length, wanted);
+            zone.wanted = wanted; zone.picked = picked;
+            zone.seats.hidden = wanted === 0;
+            zone.hint.hidden = wanted === 0;
+            zone.hint.textContent = picked === wanted ? "Đã chọn đủ " + wanted + " ghế." : "Chọn thêm " + (wanted - picked) + " ghế (" + picked + " / " + wanted + ").";
+            zone.hint.className = picked === wanted ? "small text-success mb-0" : "small text-danger fw-semibold mb-0";
+            wantedSeats += wanted;
+            if (picked < wanted) missing.push({ name: zone.name, left: wanted - picked });
+        }
+        return { wantedSeats, missing };
+    }
+
     function summary() {
+        const seatState = syncSeatZones();
         const selected = selections();
         const count = selected.reduce((sum, item) => sum + item.quantity, 0);
         const options = client.state.options;
@@ -437,18 +460,28 @@
                 warn.className = 'text-danger fw-semibold';
                 selectionList.append(warn);
             }
-            if (!items.length) selectionList.append(element('li', 'Chưa chọn vé.'));
+            for (const gap of seatState.missing) {
+                const warn = element('li', 'Khu ' + gap.name + ': chọn thêm ' + gap.left + ' ghế.');
+                warn.className = 'text-danger fw-semibold';
+                selectionList.append(warn);
+            }
+            if (!items.length && !seatState.missing.length) selectionList.append(element('li', 'Chưa chọn vé.'));
         }
         let valid = false;
         try { selectionPayload(options, selected); valid = true; } catch (_) { }
         const submitBtn = get("hold-submit");
         if (submitBtn) {
-            submitBtn.disabled = !valid || count > 8 || client.state.phase !== "selecting";
+            submitBtn.disabled = !valid || count > 8 || seatState.missing.length > 0 || client.state.phase !== "selecting";
         }
         if (get("hold-pay-now")) get("hold-pay-now").disabled = !submitBtn || submitBtn.disabled;
         const zonesEl = get("hold-zones");
         if (zonesEl) {
             for (const input of zonesEl.querySelectorAll("input[type=checkbox]")) input.disabled = input.dataset.unavailable === 'true' || count >= 8 && !input.checked;
+            for (const zone of seatZones) {
+                for (const box of zone.boxes) if (!box.checked && zone.picked >= zone.wanted) box.disabled = true;
+                // Số ghế còn có thể thêm = 8 trừ các vé đã chọn ở khu khác.
+                zone.counter.max = String(Math.max(0, Math.min(zone.boxes.length, 8 - (count - zone.picked))));
+            }
             for (const input of zonesEl.querySelectorAll("input.hold-quantity")) {
                 const val = Number(input.value) || 0;
                 if (val > 8 || count > 8) {
@@ -464,6 +497,7 @@
         if (document.body.dataset.publicPage !== 'detail') get("hold-heading").textContent = options.title;
         get("sale-deadline").textContent = "Đóng bán lúc " + dateText(options.saleEnd);
         get("hold-zones").replaceChildren();
+        seatZones = [];
         for (const zone of options.zones) {
             const field = element("fieldset");
             field.className = "hold-zone";
@@ -476,11 +510,19 @@
                 input.className = "hold-quantity"; input.dataset.zoneId = zone.id; input.disabled = zone.availableStanding === 0;
                 label.append(input); field.append(label);
             } else {
-                field.append(element('p','Vé ngồi · Chọn từng ghế trên sơ đồ.'));
-                const legend=element('p','Trống · Đang chọn · Đang giữ · Đã bán');legend.className='hold-seat-legend';field.append(legend);
+                // Chọn số lượng trước; sơ đồ ghế thật (theo hàng, kèm ghế đang giữ/đã bán) hiện ra sau đó.
+                field.append(element("p", zone.availableSeats.length ? "Vé ngồi · Còn " + zone.availableSeats.length + " ghế trống. Nhập số lượng rồi chọn ghế trên sơ đồ." : "Không còn ghế khả dụng."));
+                const countLabel = element("label", "Số lượng");
+                const counter = element("input");
+                counter.type = "number"; counter.min = "0"; counter.max = String(Math.min(8, zone.availableSeats.length)); counter.step = "1"; counter.value = "0";
+                counter.className = "hold-quantity"; counter.dataset.seatCount = "1"; counter.disabled = !zone.availableSeats.length;
+                countLabel.append(counter);
+                const hint = element("p"); hint.hidden = true;
+                const panel = element("div"); panel.hidden = true;
+                const legend=element('p','Trống · Đang chọn · Đang giữ · Đã bán');legend.className='hold-seat-legend';panel.append(legend);
                 const seats = element("div"); seats.className = "hold-seat-map";
-                if (!zone.availableSeats.length) seats.append(element("p", "Không còn ghế khả dụng."));
                 if(zone.layoutUnavailable)seats.append(element('p','Chưa tải được bố cục; danh sách bên dưới gồm các ghế còn trống do máy chủ xác nhận.'));
+                const boxes = [];
                 for (const row of zone.seatRows || seatRows(zone,{data:[]})) {
                     const line=element('div');line.className='hold-seat-row';
                     const name=element('span',row.name?'Hàng '+row.name:'Ghế');name.className='hold-row-label';line.append(name);
@@ -491,10 +533,13 @@
                         const status={AVAILABLE:'Còn trống',HELD:'Đang được giữ',SOLD:'Đã bán',UNAVAILABLE:'Không còn khả dụng'}[seat.status];
                         input.setAttribute('aria-label','Ghế '+seat.label+' · '+status);label.title='Ghế '+seat.label+' · '+status;
                         label.append(input, element("span", seat.label));line.append(label);
+                        if (seat.selectable) boxes.push(input);
                     }
                     seats.append(line);
                 }
-                field.append(seats);
+                panel.append(seats);
+                field.append(countLabel, hint, panel);
+                seatZones.push({ name: zone.name, counter, hint, seats: panel, boxes, wanted: 0, picked: 0 });
             }
             get("hold-zones").append(field);
         }
