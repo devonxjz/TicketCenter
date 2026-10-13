@@ -1,0 +1,750 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TicketsCenter — Final Project</title>
+<style>
+:root{--bg:#fbfbff;--card:#ffffff;--line:#e3e6f5;--tx:#171c3a;--mut:#565f8a;--fc:#6d4aff;--fc2:#ec4899}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;background:var(--bg);color:var(--tx);font-family:Inter,system-ui,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+#deck{position:fixed;inset:0}
+.slide{position:absolute;inset:0;padding:4vh 5vw 7vh;display:flex;flex-direction:column;opacity:0;pointer-events:none;overflow:hidden;
+  transform:translateX(40px) scale(.99);transition:opacity .35s,transform .35s;background:var(--bg)}
+.slide.on{opacity:1;pointer-events:auto;transform:none}
+.slide.past{transform:translateX(-40px) scale(.99)}
+.slide>*{position:relative;z-index:2}
+.slide>.deco{position:absolute;inset:0;z-index:0;pointer-events:none}
+.blob{position:absolute;border-radius:50%;filter:blur(70px);opacity:.38}
+.dots{position:absolute;inset:0;background-image:radial-gradient(color-mix(in srgb,var(--fc) 28%,transparent) 1.2px,transparent 1.3px);background-size:26px 26px;
+  -webkit-mask-image:linear-gradient(120deg,#000 0%,transparent 38%,transparent 62%,#000 100%);mask-image:linear-gradient(120deg,#000 0%,transparent 38%,transparent 62%,#000 100%);opacity:.7}
+.strip{position:absolute;left:0;top:0;bottom:0;width:.6vw;background:linear-gradient(180deg,var(--fc),var(--fc2))}
+.tag{display:inline-flex;align-items:center;gap:.6vw;font-size:1.35vh;letter-spacing:.22em;text-transform:uppercase;font-weight:800;color:#fff;
+  background:linear-gradient(90deg,var(--fc),var(--fc2));padding:.6vh 1vw;border-radius:99px;align-self:flex-start;box-shadow:0 6px 18px color-mix(in srgb,var(--fc) 35%,transparent)}
+h1{font-size:7.4vh;line-height:1.02;font-weight:900;letter-spacing:-.025em}
+h2{font-size:4.3vh;font-weight:900;letter-spacing:-.015em;margin:1.2vh 0 1.4vh}
+.grad{background:linear-gradient(90deg,var(--fc),var(--fc2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.rain{background:linear-gradient(90deg,#6d4aff,#ec4899,#f97316,#eab308,#10b981,#06b6d4);-webkit-background-clip:text;background-clip:text;color:transparent}
+p.sub{color:var(--mut);font-size:2.2vh;margin-top:1.2vh}
+.body{flex:1;min-height:0;display:flex;gap:1.6vw}
+.grid{display:grid;gap:1.6vh 1.2vw;width:100%;align-content:start}
+.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:1.6vh 1.1vw;box-shadow:0 6px 22px rgba(60,70,150,.10);position:relative;overflow:hidden}
+.card:before{content:"";position:absolute;left:0;top:0;right:0;height:5px;background:linear-gradient(90deg,var(--k,var(--fc)),var(--k2,var(--fc2)))}
+.card h3{font-size:2.1vh;margin-bottom:.7vh;font-weight:800}
+.card p,.card li{color:var(--mut);font-size:1.65vh;line-height:1.45}
+.card ul{list-style:none;padding:0}.card li{padding-left:1.2em;position:relative}
+.card li:before{content:"";position:absolute;left:.1em;top:.55em;width:.5em;height:.5em;border-radius:50%;background:linear-gradient(135deg,var(--k,var(--fc)),var(--k2,var(--fc2)))}
+.big{font-size:5.6vh;font-weight:900;line-height:1}
+.ico{width:5.4vh;height:5.4vh;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:2.9vh;margin-bottom:.9vh;
+  background:linear-gradient(135deg,var(--k,var(--fc)),var(--k2,var(--fc2)));box-shadow:0 8px 18px color-mix(in srgb,var(--k,var(--fc)) 35%,transparent)}
+code,.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace}
+code{background:color-mix(in srgb,var(--k,var(--fc)) 10%,#fff);border:1px solid color-mix(in srgb,var(--k,var(--fc)) 25%,#fff);padding:.08em .38em;border-radius:6px;font-size:.9em;color:color-mix(in srgb,var(--k,var(--fc)) 70%,#111);white-space:nowrap}
+.pill{display:inline-block;padding:.5vh .9vw;border-radius:99px;font-size:1.5vh;font-weight:800;color:#fff;margin:.3vh .25vw .3vh 0}
+.svgbox{flex:1;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center}
+.svgbox svg{width:100%;height:100%}
+.panel{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 8px 26px rgba(60,70,150,.10);padding:1vh .6vw}
+.side{width:22vw;flex:none;display:flex;flex-direction:column;gap:1.2vh;justify-content:center}
+.side .card{padding:1.4vh .9vw}
+.note{font-size:1.55vh;color:var(--mut);line-height:1.4;margin-top:1vh}
+/* cover */
+.cover{flex:1;display:flex;gap:3vw;align-items:center;min-height:0}
+.cover .l{flex:1.1}.cover .r{flex:.9;height:100%;display:flex;align-items:center;justify-content:center}
+.no{font-size:15vh;font-weight:900;line-height:.85;letter-spacing:-.05em;opacity:.16}
+.art{width:min(38vw,62vh);aspect-ratio:1;border-radius:36% 64% 58% 42%/45% 40% 60% 55%;background:linear-gradient(135deg,var(--fc),var(--fc2));display:flex;align-items:center;justify-content:center;position:relative;
+  box-shadow:0 30px 70px color-mix(in srgb,var(--fc) 40%,transparent);animation:morph 9s ease-in-out infinite}
+.art span{font-size:20vh;filter:drop-shadow(0 12px 18px rgba(0,0,0,.25))}
+.art i{position:absolute;border:3px solid rgba(255,255,255,.55);border-radius:50%;inset:9%}.art i+i{inset:20%;border-style:dashed;animation:spin 30s linear infinite}
+.chipf{position:absolute;background:#fff;border-radius:14px;padding:1vh 1vw;font-weight:800;font-size:1.7vh;box-shadow:0 10px 26px rgba(40,50,120,.2);animation:float 5s ease-in-out infinite;white-space:nowrap}
+@keyframes morph{50%{border-radius:58% 42% 40% 60%/55% 60% 40% 45%}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes float{50%{transform:translateY(-10px)}}
+/* tiles */
+.tile{border-radius:18px;padding:1.6vh 1vw;color:#fff;cursor:pointer;position:relative;overflow:hidden;box-shadow:0 10px 24px rgba(40,50,120,.18);transition:transform .2s}
+.tile:hover{transform:translateY(-4px) scale(1.02)}
+.tile b{font-size:2vh;display:block}.tile small{opacity:.9;font-size:1.4vh}.tile .e{font-size:3.4vh}
+.tile:after{content:"";position:absolute;right:-18%;bottom:-40%;width:60%;aspect-ratio:1;border-radius:50%;background:rgba(255,255,255,.18)}
+/* sequence svg */
+.lane{stroke:#cfd5ee;stroke-dasharray:4 5}
+.msg{opacity:1}.msg.show{opacity:1}.msg.cur .ln{stroke-width:3.2}.msg.cur .bd{r:11}
+.ln{stroke-width:2;fill:none}
+.lbl{font-size:12.5px;font-weight:600;fill:#171c3a;font-family:Inter,system-ui,sans-serif;paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round}
+.nt{font-size:11.5px;font-weight:600;font-family:Inter,system-ui,sans-serif;paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round}
+.bn{font-size:10px;font-weight:800;fill:#fff;font-family:Inter,system-ui,sans-serif}
+.pl{font-size:13px;font-weight:800;fill:#fff;font-family:Inter,system-ui,sans-serif}
+.ps{font-size:10.5px;fill:#ffffffdd;font-family:Inter,system-ui,sans-serif}
+.st{font-size:13px;font-weight:800;fill:#fff;font-family:"JetBrains Mono",ui-monospace,monospace}
+.el{font-size:11.5px;font-weight:600;fill:#3a4270;font-family:Inter,system-ui,sans-serif;paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+/* chrome */
+#bar{position:fixed;left:0;top:0;height:5px;background:linear-gradient(90deg,#6d4aff,#ec4899,#f97316,#eab308,#10b981,#06b6d4);width:0;transition:width .3s;z-index:9}
+#hud{position:fixed;right:2vw;bottom:1.8vh;color:var(--mut);font-size:1.5vh;z-index:9;display:flex;gap:.8vw;align-items:center}
+#hud b{color:var(--tx)}
+.nav{background:#fff;border:1px solid var(--line);color:var(--tx);border-radius:10px;width:3.8vh;height:3.8vh;cursor:pointer;font-size:1.9vh;box-shadow:0 3px 10px rgba(60,70,150,.12)}
+.nav:hover{background:linear-gradient(135deg,#6d4aff,#ec4899);color:#fff}
+#brand{position:fixed;left:5vw;bottom:2.1vh;color:var(--mut);font-size:1.35vh;z-index:9;letter-spacing:.12em;font-weight:700}
+.flow{display:flex;align-items:center;gap:.5vw;flex-wrap:wrap}
+.node{background:#fff;border-radius:14px;padding:1.2vh .9vw;font-size:1.75vh;font-weight:800;text-align:center;border:2px solid var(--k,var(--fc));box-shadow:0 6px 16px color-mix(in srgb,var(--k,var(--fc)) 22%,transparent)}
+.node small{display:block;font-weight:500;color:var(--mut);font-size:1.3vh;margin-top:.3vh}
+.arr{font-size:2.4vh;font-weight:900;color:var(--fc)}
+@media (max-width:900px){.side{display:none}.g3,.g4{grid-template-columns:repeat(2,1fr)}.cover .r{display:none}}
+</style>
+</head>
+<body>
+<div id="bar"></div>
+<div id="deck"></div>
+<div id="brand">TICKETSCENTER <span id="feat"></span></div>
+<div id="hud"><button class="nav" id="prev">‹</button><span><b id="cur">1</b> / <span id="tot">1</span></span><button class="nav" id="next">›</button></div>
+
+<script>
+/* ================= palette ================= */
+const C={violet:'#6d4aff',pink:'#ec4899',rose:'#f43f5e',orange:'#f97316',amber:'#f59e0b',yellow:'#eab308',lime:'#84cc16',green:'#10b981',teal:'#14b8a6',cyan:'#06b6d4',blue:'#3b82f6',indigo:'#4f46e5',purple:'#a855f7',slate:'#64748b',red:'#ef4444'};
+const KIND={user:C.orange,app:C.violet,cache:C.rose,db:C.green,ext:C.cyan,job:C.blue};
+const ALL=Object.values(C);
+
+/* ================= decorations ================= */
+function deco(seed,c1,c2){
+  let r=seed*9301+49297;const rnd=()=>(r=(r*9301+49297)%233280)/233280;
+  const cols=[c1,c2,...ALL];let s='';
+  for(let i=0;i<16;i++){
+    const edge=rnd()<.5, x=edge?(rnd()<.5?rnd()*14:86+rnd()*14):rnd()*100, y=edge?rnd()*100:(rnd()<.5?rnd()*10:90+rnd()*10);
+    const c=cols[Math.floor(rnd()*cols.length)],z=10+rnd()*22,t=Math.floor(rnd()*5),o=(.35+rnd()*.4).toFixed(2),rot=Math.floor(rnd()*360);
+    const g=`transform="translate(${x*16} ${y*9}) rotate(${rot})" opacity="${o}"`;
+    s+= t===0?`<circle ${g} r="${z/2}" fill="${c}"/>`
+      : t===1?`<circle ${g} r="${z/2}" fill="none" stroke="${c}" stroke-width="3"/>`
+      : t===2?`<path ${g} d="M0 ${-z/2}L${z/2} ${z/2}L${-z/2} ${z/2}Z" fill="none" stroke="${c}" stroke-width="3" stroke-linejoin="round"/>`
+      : t===3?`<path ${g} d="M${-z/2} 0H${z/2}M0 ${-z/2}V${z/2}" stroke="${c}" stroke-width="4" stroke-linecap="round"/>`
+      :       `<path ${g} d="M${-z} 0q${z/4} ${-z/2} ${z/2} 0t${z/2} 0t${z/2} 0" fill="none" stroke="${c}" stroke-width="3.5" stroke-linecap="round"/>`;
+  }
+  return `<div class="deco"><div class="blob" style="width:42vw;height:42vw;right:-12vw;top:-16vw;background:${c1}"></div>
+   <div class="blob" style="width:36vw;height:36vw;left:-12vw;bottom:-16vw;background:${c2}"></div>
+   <div class="blob" style="width:20vw;height:20vw;left:38vw;top:-12vw;background:${ALL[(seed*3)%ALL.length]};opacity:.22"></div>
+   <div class="dots"></div><svg viewBox="0 0 1600 900" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%">${s}</svg><div class="strip"></div></div>`;
+}
+
+/* ================= sequence renderer ================= */
+let gid=0;
+function seq(def){
+  const P=def.p,n=P.length,W=1200,left=78,right=78,gap=(W-left-right)/(n-1),id=++gid;
+  const x=i=>left+i*gap, top=98, step=def.step||46, H=top+def.m.length*step+24;
+  let s=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet"><defs>
+   ${Object.entries(KIND).map(([k,c])=>`<marker id="a${id}${k}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="${c}"/></marker>
+   <linearGradient id="g${id}${k}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c}"/><stop offset="1" stop-color="${c}" stop-opacity=".72"/></linearGradient>`).join('')}</defs>`;
+  def.m.forEach((m,j)=>{ if(j%2===0) s+=`<rect x="10" y="${top+j*step-10}" width="${W-20}" height="${step}" rx="8" fill="#f4f5fd"/>`; });
+  P.forEach((p,i)=>{
+    s+=`<line class="lane" x1="${x(i)}" y1="64" x2="${x(i)}" y2="${H-8}"/>
+    <rect x="${x(i)-68}" y="8" width="136" height="56" rx="14" fill="url(#g${id}${p.k})"/>
+    <text class="pl" x="${x(i)}" y="32" text-anchor="middle">${p.n}</text><text class="ps" x="${x(i)}" y="50" text-anchor="middle">${p.s||''}</text>`;
+  });
+  const clamp=(cx,t)=>{const w=t.replace(/&[a-z]+;/g,'x').length*3.25;return Math.max(w+8,Math.min(W-w-8,cx));};
+  def.m.forEach((m,j)=>{
+    const y=top+j*step+16,a=P.findIndex(q=>q.id===m.f),b=P.findIndex(q=>q.id===m.t),c=KIND[P[a].k];
+    let g=`<g class="msg">`;
+    if(a===b){
+      const xa=x(a),L=a>n/2;
+      g+=`<path class="ln" d="M${xa} ${y-9} h${L?-36:36} v18 h${L?36:-36}" stroke="${c}" marker-end="url(#a${id}${P[a].k})"/>
+      <text class="lbl" x="${xa+(L?-46:46)}" y="${y-1}" ${L?'text-anchor="end"':''}>${m.x}</text>`;
+      if(m.n)g+=`<text class="nt" fill="${c}" x="${xa+(L?-46:46)}" y="${y+14}" ${L?'text-anchor="end"':''}>${m.n}</text>`;
+      g+=`<circle class="bd" cx="${xa}" cy="${y-9}" r="9.5" fill="${c}"/><text class="bn" x="${xa}" y="${y-5.5}" text-anchor="middle">${j+1}</text>`;
+    }else{
+      const x1=x(a),x2=x(b),dir=x2>x1?1:-1,mid=(x1+x2)/2;
+      g+=`<line class="ln" x1="${x1+dir*10}" y1="${y}" x2="${x2-dir*3}" y2="${y}" stroke="${c}" marker-end="url(#a${id}${P[a].k})" ${m.d?'stroke-dasharray="6 4"':''}/>
+      <text class="lbl" x="${clamp(mid,m.x)}" y="${y-7}" text-anchor="middle">${m.x}</text>`;
+      if(m.n)g+=`<text class="nt" fill="${c}" x="${clamp(mid,m.n)}" y="${y+15}" text-anchor="middle">${m.n}</text>`;
+      g+=`<circle class="bd" cx="${x1}" cy="${y}" r="9.5" fill="${c}"/><text class="bn" x="${x1}" y="${y+3.5}" text-anchor="middle">${j+1}</text>`;
+    }
+    s+=g+'</g>';
+  });
+  return s+'</svg>';
+}
+
+/* ================= state-machine renderer ================= */
+function stm(nodes,edges,o={}){
+  const cw=o.cw||220,rh=o.rh||120,bw=o.bw||166,bh=50,id=++gid;
+  const cols=Math.max(...nodes.map(n=>n.c))+1,rows=Math.max(...nodes.map(n=>n.r))+1,W=cols*cw,H=rows*rh;
+  const pos=n=>({x:n.c*cw+cw/2,y:n.r*rh+rh/2}),by=Object.fromEntries(nodes.map(n=>[n.id,n]));
+  let s=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet"><defs>
+   <marker id="m${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#3a4270"/></marker>
+   <filter id="f${id}" x="-20%" y="-30%" width="140%" height="170%"><feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#28327a" flood-opacity=".22"/></filter></defs>`;
+  edges.forEach(([a,b,l,off])=>{
+    const A=pos(by[a]),B=pos(by[b]);let dx=B.x-A.x,dy=B.y-A.y;const len=Math.hypot(dx,dy),ux=dx/len,uy=dy/len;
+    const t=Math.min(Math.abs(ux)<1e-6?1e9:(bw/2+4)/Math.abs(ux),Math.abs(uy)<1e-6?1e9:(bh/2+4)/Math.abs(uy));
+    const ox=-uy*(off||0),oy=ux*(off||0);
+    const x1=A.x+ux*t+ox,y1=A.y+uy*t+oy,x2=B.x-ux*(t+3)+ox,y2=B.y-uy*(t+3)+oy;
+    s+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#3a4270" stroke-width="2" marker-end="url(#m${id})"/>`;
+    if(l)s+=`<text class="el" x="${(x1+x2)/2}" y="${(y1+y2)/2-7}" text-anchor="middle">${l}</text>`;
+  });
+  nodes.forEach(n=>{const p=pos(n),c=C[n.k]||n.k;
+    s+=`<rect x="${p.x-bw/2}" y="${p.y-bh/2}" width="${bw}" height="${bh}" rx="25" fill="${c}" filter="url(#f${id})"/>
+    <text class="st" x="${p.x}" y="${p.y+4.5}" text-anchor="middle">${n.l||n.id}</text>`;});
+  return s+'</svg>';
+}
+
+/* ================= slide builders ================= */
+const S=[];let cur={n:'',c:[C.violet,C.pink],no:0};
+const push=(html,o={})=>S.push({html,c:cur.c,feat:cur.n,...o});
+const slide=(tag,title,body)=>push(`<div class="tag">${tag}</div><h2>${title}</h2>${body}`);
+const card=(t,items,k,k2)=>`<div class="card" style="--k:${k||'var(--fc)'};--k2:${k2||k||'var(--fc2)'}"><h3>${t}</h3><ul>${items.map(i=>`<li>${i}</li>`).join('')}</ul></div>`;
+const cd=a=>a.map(x=>`<code>${x}</code>`).join(' ');
+function feature(name,emoji,c1,c2,tagline,chips,stats){
+  cur={n:name,c:[c1,c2],no:cur.no+1};const no=String(cur.no).padStart(2,'0');
+  push(`<div class="cover"><div class="l">
+    <div class="no grad">${no}</div><div class="tag" style="margin-top:-2vh">Feature ${no}</div>
+    <h1 style="margin-top:1.6vh"><span class="grad">${name}</span></h1>
+    <p class="sub" style="font-size:2.9vh;color:var(--tx)">${tagline}</p>
+    <div class="grid g3" style="margin-top:3vh">${stats.map(([b,t],i)=>`<div class="card" style="--k:${[c1,c2,ALL[(cur.no*2+3)%ALL.length]][i]};--k2:${[c2,c1,c1][i]}"><div class="big" style="color:${[c1,c2,c1][i]};font-size:4.4vh">${b}</div><p>${t}</p></div>`).join('')}</div>
+   </div><div class="r"><div class="art"><i></i><i></i><span>${emoji}</span>
+    ${chips.map((c,i)=>`<div class="chipf mono" style="${['left:-8%;top:10%','right:-10%;top:36%','left:2%;bottom:6%'][i]};color:${[c1,c2,c1][i]};animation-delay:${i*.9}s">${c}</div>`).join('')}</div></div></div>`,{cover:1,emoji});
+}
+const seqS=(title,def,side)=>push(`<div class="tag">${cur.n} · sequence</div><h2>${title}</h2>
+  <div class="body"><div class="svgbox panel">${seq(def)}</div>${side?`<div class="side">${side}</div>`:''}</div>`,{seq:true});
+const deep=(title,diagram,cards,note)=>push(`<div class="tag">${cur.n} · inside</div><h2>${title}</h2>
+  <div class="body"><div class="svgbox panel" style="flex:1.15">${diagram}</div><div class="side" style="width:34vw">${cards.join('')}</div></div>${note?`<p class="note">${note}</p>`:''}`);
+
+/* =====================================================================
+   INTRO
+   ===================================================================== */
+cur={n:'',c:[C.violet,C.pink],no:0};
+push(`<div style="display:flex;flex-direction:column;height:100%;justify-content:center;gap:2.4vh">
+  <div class="tag">Final project · Database Management Systems</div>
+  <h1 style="font-size:11vh">Tickets<span class="rain">Center</span></h1>
+  <p class="sub" style="font-size:3vh;max-width:62vw;color:var(--tx)">A third-party ticketing platform — organizers sell, buyers pay, venues scan.<br>Every business rule lives in <b style="color:${C.green}">SQL Server</b>.</p>
+  <div>${[['Java 25',C.violet],['Servlet 6.1 · JSP',C.pink],['Hibernate · HikariCP',C.orange],['Azure SQL',C.green],['Redis',C.rose],['VNPAY Sandbox',C.cyan],['Cloudinary',C.blue]].map(([t,c])=>`<span class="pill" style="background:${c}">${t}</span>`).join('')}</div>
+  <p class="sub" style="font-size:1.8vh">← → or Space to navigate · F fullscreen</p></div>`);
+
+cur.c=[C.orange,C.pink];
+slide('The platform','One marketplace, <span class="grad">three sides</span>',`
+<div class="body" style="flex-direction:column;justify-content:center;gap:2vh">
+ <div class="grid g3">
+  <div class="card" style="--k:${C.orange};--k2:${C.amber}"><div class="ico">🎟️</div><h3>Buyer</h3><ul><li>Browse published events</li><li>Hold seats for 10 minutes</li><li>Pay through VNPAY</li><li>QR ticket · refund request</li></ul></div>
+  <div class="card" style="--k:${C.cyan};--k2:${C.blue}"><div class="ico">🏢</div><h3>Organizer</h3><ul><li>Register an organization</li><li>Design zones, seats, prices</li><li>Coupons · check-in staff</li><li>Revenue, settlement, payout</li></ul></div>
+  <div class="card" style="--k:${C.violet};--k2:${C.pink}"><div class="ico">🛡️</div><h3>Platform admin</h3><ul><li>Approve organizations &amp; events</li><li>Decide refunds</li><li>Commission rules</li><li>Audit log · reports</li></ul></div>
+ </div>
+ <div class="grid g4">${[['367','Java classes',C.violet],['48','SQL migrations',C.green],['36','tables · 6 DB roles',C.orange],['335','tests in baseline run',C.cyan]].map(([b,t,c])=>`<div class="card" style="--k:${c}"><div class="big" style="color:${c}">${b}</div><p>${t}</p></div>`).join('')}</div>
+</div>`);
+
+const FEATS=[['Auth &amp; Identity','🔐',C.violet,C.pink],['Organization','🏢',C.cyan,C.blue],['Event &amp; Seat map','🎪',C.blue,C.indigo],['Seat Hold','⏱️',C.pink,C.orange],['Checkout &amp; Coupon','🧾',C.orange,C.yellow],['Payment','💳',C.rose,C.violet],['Ticket &amp; QR','🎫',C.teal,C.green],['Check-in','✅',C.green,C.lime],['Refund &amp; Cancel','↩️',C.amber,C.red],['Settlement','💰',C.indigo,C.cyan],['Reports · Audit · Mail','📊',C.purple,C.blue]];
+cur.c=[C.cyan,C.violet];
+push(`<div class="tag">Feature map</div><h2>Eleven features, <span class="rain">one journey</span></h2>
+<div class="body" style="align-items:center"><div class="grid g4">
+${FEATS.map(([n,e,a,b],i)=>`<div class="tile" data-f="${i+1}" style="background:linear-gradient(135deg,${a},${b})"><div class="e">${e}</div><b>${String(i+1).padStart(2,'0')} · ${n}</b></div>`).join('')}
+<div class="tile" style="background:linear-gradient(135deg,#171c3a,#565f8a)"><div class="e">🧱</div><b>Foundation</b><small>architecture · DB · jobs</small></div>
+</div></div><p class="note">Click a tile to jump straight to that feature.</p>`);
+
+cur.c=[C.violet,C.green];
+slide('Architecture','Thin Java, <span class="grad">thick database</span>',`
+<div class="body" style="flex-direction:column;justify-content:center;gap:2.6vh">
+ <div class="flow">
+  <div class="node" style="--k:${C.orange}">Browser<small>JSP · JS · Swagger</small></div><span class="arr">➜</span>
+  <div class="node" style="--k:${C.pink}">Filter chain<small>6 filters</small></div><span class="arr">➜</span>
+  <div class="node" style="--k:${C.violet}">Servlet<small>route · DTO</small></div><span class="arr">➜</span>
+  <div class="node" style="--k:${C.indigo}">Service<small>idempotency · orchestration</small></div><span class="arr">➜</span>
+  <div class="node" style="--k:${C.blue}">Repository<small>StoredProcedureQuery</small></div><span class="arr">➜</span>
+  <div class="node" style="--k:${C.green}">SQL Server<small>usp_* · fn_* · vw_* · trg_*</small></div>
+ </div>
+ <div class="grid g4">
+  ${card('Redis',['Idempotency receipts','Active-hold cache','Order locks · IPN replay','Never the authority'],C.rose,C.pink)}
+  ${card('VNPAY',['Signed pay URL','Return + IPN callbacks','Query API for reconcile'],C.cyan,C.blue)}
+  ${card('Background jobs',['Scheduled inside the WAR','Run as <code>WORKER</code> principal','Lease → act → record'],C.blue,C.indigo)}
+  ${card('Cloudinary · SMTP',['Event images','Transactional email','Driven by the outbox'],C.orange,C.yellow)}
+ </div>
+</div>`);
+
+cur.c=[C.green,C.cyan];
+slide('Foundation · database','The database <span class="grad">is</span> the product',`
+<div class="body"><div class="svgbox panel"><svg viewBox="0 0 930 480">
+ <defs><marker id="k" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#565f8a"/></marker></defs>
+ ${[['tc_users',20,20,C.violet],['tc_organizations',250,20,C.cyan],['tc_events',480,20,C.blue],['tc_zones / seats',710,20,C.indigo],
+  ['tc_coupons',20,150,C.orange],['tc_payments',250,150,C.rose],['tc_orders',480,150,C.orange],['tc_ticket_holds',710,150,C.pink],
+  ['tc_refund_requests',20,280,C.amber],['tc_refunds',250,280,C.red],['tc_tickets',480,280,C.teal],['tc_check_ins',710,280,C.green],
+  ['tc_audit_logs',20,405,C.slate],['tc_outbox',250,405,C.purple],['tc_settlements',480,405,C.indigo],['tc_payouts',710,405,C.cyan]
+ ].map(([n,x,y,c])=>`<rect x="${x}" y="${y}" width="200" height="56" rx="14" fill="${c}"/><text x="${x+100}" y="${y+34}" text-anchor="middle" fill="#fff" font-size="15" font-weight="800" font-family="JetBrains Mono,monospace">${n}</text>`).join('')}
+ <g stroke="#565f8a" stroke-width="2" fill="none" marker-end="url(#k)">
+  <path d="M220 48H250"/><path d="M450 48H480"/><path d="M680 48H710"/><path d="M580 76V150"/><path d="M710 178H680"/><path d="M480 178H450"/><path d="M220 178H250"/>
+  <path d="M580 206V280"/><path d="M680 308H710"/><path d="M350 206V280"/><path d="M220 308H250"/><path d="M580 336V405"/><path d="M680 433H710"/></g>
+</svg></div>
+<div class="side" style="width:27vw">
+ ${card('Stored procedures own writes',[cd(['usp_CreateHoldRequest','usp_ApplyPaymentResult']),cd(['sp_ticket_check_in','usp_RecordPayout'])],C.green,C.teal)}
+ ${card('Functions &amp; views own reads',[cd(['fn_CalculateCommission','fn_GetRefundableTickets']),cd(['vw_EventSalesReport','vw_PublicEvents'])],C.cyan,C.blue)}
+ ${card('Triggers guard invariants',['Append-only audit &amp; ledgers','Frozen financial snapshots','Protected published layout'],C.rose,C.orange)}
+ <p class="note">Money = <code>decimal(19,0)</code> VND · UTC <code>datetime2</code> · UUID keys · row <code>version</code></p>
+</div></div>`);
+
+cur.c=[C.rose,C.orange];
+slide('Foundation · permissions','Six database roles. <span class="grad">No shared superuser.</span>',`
+<div class="body" style="align-items:center"><div class="grid g3">
+ ${[['tc_auth','Register · login · OTP · password reset',C.violet,'🔐'],['tc_buyer','Holds · orders · pay · tickets · refund request',C.orange,'🎟️'],['tc_manager','Organization events · coupons · members',C.cyan,'🏢'],['tc_checkin','Scan tickets · check-in window · recent logs',C.green,'✅'],['tc_platform_admin','Approvals · refunds · commission · payout',C.rose,'🛡️'],['tc_worker','Outbox · expiry · refund attempts · reconcile',C.blue,'⚙️']]
+  .map(([r,d,c,e])=>`<div class="card" style="--k:${c};--k2:${c}"><div class="ico">${e}</div><h3 class="mono" style="color:${c}">${r}</h3><p>${d}</p></div>`).join('')}
+</div></div>
+<p class="note">Java picks one principal per request (<code>DatabasePrincipal</code>: BUYER · MANAGER · CHECK_IN · ADMIN · AUTH · WORKER). Each role only gets EXECUTE on its own procedures.</p>`);
+
+/* =====================================================================
+   01 AUTH
+   ===================================================================== */
+feature('Auth &amp; Identity','🔐',C.violet,C.pink,'Prove who you are — then prove it again on every request.',
+ ['/api/auth/*','authVersion','PBKDF2'],[['600,000','PBKDF2 iterations, 256-bit key'],['5 min','OTP life · 5 tries · 60 s resend cooldown'],['15 min','password-reset token']]);
+
+slide('Auth &amp; Identity · pipeline','Every request runs the <span class="grad">same gauntlet</span>',`
+<div class="body" style="flex-direction:column;justify-content:center;gap:3vh">
+ <div class="flow">
+  ${[['SecurityHeaders','CSP · nosniff',C.orange],['DatabaseActor','bind actor to DB session',C.green],['RequestValidation','size · content type',C.cyan],['SessionValidation','user status · authVersion',C.violet],['Csrf','token per session',C.rose],['RoleAuthorization','/admin/* · /organizer/*',C.blue]]
+   .map(([n,d,c],i)=>`${i?'<span class="arr">➜</span>':''}<div class="node" style="--k:${c}">${n}<small>${d}</small></div>`).join('')}
+ </div>
+ <div class="grid g3">
+  ${card('Never trust the client',['userId, role, amount, expiry come from session or SQL','Every mutation is POST + CSRF, logout included'],C.rose,C.orange)}
+  ${card('authVersion',['Stored on the user row','Compared on every API call','Stale session → 401 immediately'],C.violet,C.pink)}
+  ${card('Least privilege',['Filter binds the actor to the connection','Service checks object-level rights','SQL role enforces it a third time'],C.green,C.cyan)}
+ </div>
+</div>`);
+
+seqS('Register → verify email → sign in',{p:[
+ {id:'u',n:'Visitor',s:'browser',k:'user'},{id:'a',n:'Auth servlets',s:'Register · Otp · Login',k:'app'},{id:'s',n:'Auth services',s:'Otp · PasswordHasher',k:'app'},{id:'d',n:'SQL Server',s:'tc_users · tc_otps',k:'db'},{id:'m',n:'Mail',s:'SMTP',k:'ext'}],
+ m:[
+ {f:'u',t:'a',x:'GET /api/auth/csrf',n:'token bound to the session'},
+ {f:'u',t:'a',x:'POST /api/auth/register {userName, fullName, email, password}'},
+ {f:'a',t:'s',x:'validate · hash password (PBKDF2, v2 format)'},
+ {f:'s',t:'d',x:'insert user',n:'email + userName normalized and unique (trigger)'},
+ {f:'u',t:'a',x:'POST /api/auth/otp/send'},
+ {f:'s',t:'d',x:'store OTP hash only · 60 s cooldown check'},
+ {f:'s',t:'m',x:'send 6-digit code',d:1},
+ {f:'u',t:'a',x:'POST /api/auth/otp/verify',n:'5 wrong tries → code locked'},
+ {f:'u',t:'a',x:'POST /api/auth/login (email + password)',n:'LoginThrottle'},
+ {f:'a',t:'u',x:'session cookie + authVersion',d:1}]},
+ card('Secrets never stored',['Password → PBKDF2 hash','OTP → hash only','Reset token expires in 15 min'])+card('Legacy-safe',['Old 10,000-iteration hashes still verify','New hashes use 600,000'],C.pink,C.orange));
+
+deep('Account lifecycle',stm([
+ {id:'Visitor',c:0,r:1,k:'slate'},{id:'Registered',c:1,r:1,k:'violet'},{id:'Verified',c:2,r:1,k:'pink'},{id:'Signed in',c:3,r:1,k:'green'},
+ {id:'Session revoked',c:3,r:0,k:'orange'},{id:'DISABLED',c:2,r:2,k:'red'},{id:'Reset password',c:1,r:0,k:'cyan'}],
+ [['Visitor','Registered','register'],['Registered','Verified','OTP ok'],['Verified','Signed in','login'],['Signed in','Session revoked','authVersion++'],
+  ['Verified','DISABLED','admin'],['Verified','Reset password','forgot'],['Reset password','Verified','token ok',0]]),
+ [card('SQL objects',[cd(['tc_users','tc_otps','tc_user_platform_roles']),cd(['trg_tc_users_normalize','trg_User_AuthRoleGuard']),cd(['usp_UpdateMyProfile','vw_ActorAuthority'])],C.violet,C.pink),
+  card('Java',[cd(['AuthService','OtpService','PasswordResetService']),cd(['SessionValidationFilter','CsrfFilter','LoginThrottle'])],C.pink,C.orange),
+  card('Rules',['User status is only <code>ACTIVE</code> or <code>DISABLED</code>','Profile edits go through a procedure','Role changes guarded by trigger'],C.green,C.cyan)]);
+
+/* =====================================================================
+   02 ORGANIZATION
+   ===================================================================== */
+feature('Organization','🏢',C.cyan,C.blue,'Become a seller — after the platform says yes.',
+ ['/api/organizations/*','sp_organization_approve','last-manager trigger'],[['3','states: PENDING · APPROVED · REJECTED'],['1','profile kept across submit / approve / reject'],['≥ 1','manager always remains (trigger)']]);
+
+seqS('Request → approval → team',{p:[
+ {id:'o',n:'Organizer',s:'signed-in user',k:'user'},{id:'s',n:'Org servlets',s:'/api/organizations/*',k:'app'},{id:'d',n:'SQL Server',s:'tc_organization_*',k:'db'},{id:'x',n:'Admin servlets',s:'/api/admin/*',k:'app'},{id:'a',n:'Admin',s:'platform',k:'user'}],
+ m:[
+ {f:'o',t:'s',x:'submit organization profile'},
+ {f:'s',t:'d',x:'usp_OrganizationSubmit',n:'request = PENDING'},
+ {f:'a',t:'x',x:'GET /api/admin/organization-requests/pending'},
+ {f:'a',t:'x',x:'POST …/{id}/approve  or  …/reject (reason)'},
+ {f:'x',t:'d',x:'sp_organization_approve / sp_organization_reject',n:'approve grants the manager membership'},
+ {f:'o',t:'s',x:'add member by existing userName + role'},
+ {f:'s',t:'d',x:'usp_AddMember',n:'usp_RequireOrganizationManager first'},
+ {f:'o',t:'s',x:'change role / deactivate'},
+ {f:'s',t:'d',x:'usp_ChangeMemberRole',n:'trigger blocks removing the last manager'},
+ {f:'s',t:'o',x:'GET /api/me/memberships',d:1}]},
+ card('Scope by membership',['Every org route re-checks membership in SQL','404 instead of 403 — no leaking of what exists']));
+
+deep('Request states &amp; membership',stm([
+ {id:'PENDING',c:0,r:0,k:'amber'},{id:'APPROVED',c:1,r:0,k:'green'},{id:'REJECTED',c:0,r:1,k:'red'},
+ {id:'MANAGER',c:2,r:0,k:'cyan'},{id:'STAFF',c:2,r:1,k:'blue'},{id:'CHECK-IN',c:1,r:1,k:'indigo'}],
+ [['PENDING','APPROVED','approve'],['PENDING','REJECTED','reject'],['APPROVED','MANAGER','owner'],['MANAGER','STAFF','add member'],['MANAGER','CHECK-IN','add member']]),
+ [card('SQL objects',[cd(['tc_organizations','tc_organization_requests']),cd(['tc_organization_memberships']),cd(['vw_OrganizationMembers','vw_ActiveManagerMemberships'])],C.cyan,C.blue),
+  card('Guards',[cd(['trg_Membership_ProtectLastManager']),cd(['usp_RequireOrganizationManager']),cd(['usp_RequireActiveMember'])+' runs as owner'],C.rose,C.orange),
+  card('Java',[cd(['OrganizationRequestService','OrganizationMembershipService']),cd(['OrganizationApiRoutesFilter'])],C.violet,C.pink)],
+ 'Role names in the diagram are illustrative of manager / staff / check-in duties; the stored value is the membership <code>role</code> column.');
+
+/* =====================================================================
+   03 EVENT
+   ===================================================================== */
+feature('Event &amp; Seat map','🎪',C.blue,C.indigo,'Design the show: zones, seats, prices, one cover image.',
+ ['/api/events/*','usp_EventCommand','Cloudinary'],[['5','states from DRAFT to CANCELLED'],['version','optimistic lock on every save'],['frozen','layout locked once published']]);
+
+seqS('Draft → image → review → publish',{step:44,p:[
+ {id:'m',n:'Manager',s:'event editor',k:'user'},{id:'s',n:'Event servlets',s:'EventManagement',k:'app'},{id:'d',n:'SQL Server',s:'usp_Event*',k:'db'},{id:'c',n:'Cloudinary',s:'storage',k:'ext'},{id:'a',n:'Admin',s:'reviewer',k:'user'}],
+ m:[
+ {f:'m',t:'s',x:'save draft {zones, seats, prices, expectedVersion}'},
+ {f:'s',t:'d',x:'usp_EventCommand → save draft',n:'version mismatch → 409'},
+ {f:'m',t:'s',x:'upload cover (multipart)'},
+ {f:'s',t:'d',x:'usp_EventImageAuthorize → usp_EventImageClaim'},
+ {f:'s',t:'c',x:'upload bytes — outside any DB transaction'},
+ {f:'s',t:'d',x:'usp_EventImageCommit  (or Release on failure)',n:'orphans swept by usp_EventImageClaimCleanup'},
+ {f:'m',t:'s',x:'submit for review'},
+ {f:'s',t:'d',x:'status → PENDING_APPROVAL'},
+ {f:'a',t:'s',x:'/api/admin/events/{id} publish or reject (reason)'},
+ {f:'s',t:'d',x:'status → PUBLISHED',n:'trg_Event_AuditStatusChange writes the audit row'},
+ {f:'d',t:'m',x:'now visible in vw_PublicEvents',d:1}]},
+ card('Claim → upload → commit',['The image slot is reserved first','A crashed upload leaves a claim, not a broken event','A cleanup pass releases stale claims']));
+
+deep('Event states &amp; seat inventory',stm([
+ {id:'DRAFT',c:0,r:0,k:'slate'},{id:'PENDING_APPROVAL',c:1,r:0,k:'amber'},{id:'PUBLISHED',c:2,r:0,k:'green'},{id:'REJECTED',c:1,r:1,k:'red'},{id:'CANCELLED',c:2,r:1,k:'rose'},
+ {id:'AVAILABLE',c:0,r:2,k:'cyan'},{id:'HELD',c:1,r:2,k:'pink'},{id:'SOLD',c:2,r:2,k:'indigo'}],
+ [['DRAFT','PENDING_APPROVAL','submit'],['PENDING_APPROVAL','PUBLISHED','publish'],['PENDING_APPROVAL','REJECTED','reject'],['PUBLISHED','CANCELLED','cancel'],
+  ['AVAILABLE','HELD','hold',-9],['HELD','AVAILABLE','expire',-9],['HELD','SOLD','paid']],{bw:176}),
+ [card('SQL objects',[cd(['tc_events','tc_zones','tc_seats','tc_event_categories']),cd(['usp_EventCommand','usp_EventRead','usp_EventReceipt']),cd(['vw_PublicEvents','vw_ZoneInventory','fn_GetZoneAvailability'])],C.blue,C.indigo),
+  card('Triggers',[cd(['trg_Zone_ProtectPublishedLayout']),cd(['trg_Seat_ProtectPublishedLayout']),cd(['trg_Event_AuditStatusChange'])],C.rose,C.orange),
+  card('Java',[cd(['EventManagementServlet','EventMultipartParser']),cd(['EventCatalogServlet'])+' public catalogue'],C.violet,C.pink)],
+ 'Top row: event status. Bottom row: seat status. Zones also keep <code>held_quantity</code> / <code>sold_quantity</code> counters.');
+
+/* =====================================================================
+   04 HOLD
+   ===================================================================== */
+feature('Seat Hold','⏱️',C.pink,C.orange,'Ten minutes that belong to one buyer — and nobody else.',
+ ['/api/holds','usp_CreateHoldRequest','Redis receipts'],[['10 min','HoldExpiryPolicy.LIFETIME, server clock only'],['0','oversold seats — row locks decide'],['1','active hold per buyer']]);
+
+seqS('Reserve seats without overselling',{p:[
+ {id:'b',n:'Buyer',s:'seat map',k:'user'},{id:'h',n:'HoldApiServlet',s:'/api/holds',k:'app'},{id:'v',n:'HoldService',s:'mutate()',k:'app'},{id:'r',n:'Redis',s:'cache · receipts',k:'cache'},{id:'d',n:'SQL Server',s:'holds · seats',k:'db'},{id:'j',n:'Expiry job',s:'worker',k:'job'}],
+ m:[
+ {f:'b',t:'h',x:'GET /api/hold-options?eventId',n:'usp_ReadHoldOptions'},
+ {f:'b',t:'h',x:'POST /api/holds + idempotency key'},
+ {f:'h',t:'v',x:'mutate(actor, command)'},
+ {f:'v',t:'d',x:'usp_CreateHoldRequest',n:'authorize actor + authVersion'},
+ {f:'d',t:'d',x:'lock selection in fixed order · seats → HELD',n:'expires_at = server now + 10 min'},
+ {f:'d',t:'v',x:'receipt {status, body, changes[]}',d:1},
+ {f:'v',t:'r',x:'invalidateAfterCommit(actor) · save receipt'},
+ {f:'v',t:'b',x:'201 hold {expiresAt}',d:1},
+ {f:'j',t:'d',x:'usp_ExpireHolds(batch)',n:'reads vw_ExpiredHolds · seats → AVAILABLE'},
+ {f:'j',t:'r',x:'invalidate each affected buyer',d:1}]},
+ card('Redis is a helper',['Same key + same body → same reply','Same key + different body → conflict','Redis down → request still succeeds from SQL'],C.rose,C.pink));
+
+deep('Hold states &amp; the cache contract',stm([
+ {id:'ACTIVE',c:1,r:0,k:'pink'},{id:'CONSUMED',c:2,r:0,k:'green'},{id:'RELEASED',c:1,r:1,k:'slate'},{id:'(none)',c:0,r:0,k:'cyan'}],
+ [['(none)','ACTIVE','create'],['ACTIVE','CONSUMED','order paid'],['ACTIVE','RELEASED','cancel / 10 min']],{rh:140}),
+ [card('SQL objects',[cd(['tc_ticket_holds','tc_ticket_hold_items']),cd(['usp_CreateHoldRequest','usp_CancelHoldRequest','usp_ExpireHolds']),cd(['usp_HoldLockSelection','usp_ReadActiveHold','vw_ExpiredHolds'])],C.pink,C.orange),
+  card('Java',[cd(['HoldService','HoldExpiryPolicy']),cd(['RedisActiveHoldCache','RedisHoldIdempotency'])],C.violet,C.pink),
+  card('Cache rules',['Read: compare cache with SQL, SQL wins','Fill only with a token — late fills are dropped','Invalidate strictly after commit'],C.rose,C.amber)]);
+
+/* =====================================================================
+   05 CHECKOUT
+   ===================================================================== */
+feature('Checkout &amp; Coupon','🧾',C.orange,C.yellow,'Turn a hold into an order with a price that can never drift.',
+ ['/api/orders','/api/checkout','fn_CalculateCouponDiscount'],[['4','order states'],['3','coupon redemption states'],['SQL','computes every total']]);
+
+seqS('Hold → order → coupon',{p:[
+ {id:'b',n:'Buyer',s:'checkout page',k:'user'},{id:'o',n:'OrderApiServlet',s:'/api/orders',k:'app'},{id:'s',n:'OrderService',s:'checkout()',k:'app'},{id:'c',n:'RedisOrderCache',s:'receipts',k:'cache'},{id:'d',n:'SQL Server',s:'orders · coupons',k:'db'}],
+ m:[
+ {f:'b',t:'o',x:'GET /api/checkout'},
+ {f:'o',t:'d',x:'usp_ReadCheckout',n:'order + holdStatus + paymentResolution'},
+ {f:'b',t:'o',x:'POST /api/orders {holdId} + idempotency key'},
+ {f:'o',t:'s',x:'OrderCommand (fingerprint of the body)'},
+ {f:'s',t:'d',x:'usp_CreateOrderRequest',n:'hold items → order_items · PENDING_PAYMENT'},
+ {f:'b',t:'o',x:'check coupon → usp_ReadOrderCouponEligibility'},
+ {f:'b',t:'o',x:'apply coupon code'},
+ {f:'s',t:'d',x:'usp_ApplyOrderCouponRequest',n:'redemption RESERVED · discount capped at subtotal'},
+ {f:'s',t:'c',x:'store receipt after commit'},
+ {f:'o',t:'b',x:'order {subtotal, discount, total}',d:1}]},
+ card('Price is frozen',['Subtotal, discount, total are written by SQL','Payment later snapshots that total','A 0đ order skips VNPAY entirely'],C.orange,C.yellow));
+
+deep('Order &amp; coupon states',stm([
+ {id:'PENDING_PAYMENT',c:0,r:0,k:'amber'},{id:'PAID',c:1,r:0,k:'green'},{id:'EXPIRED',c:0,r:1,k:'slate'},{id:'CANCELLED',c:1,r:1,k:'red'},
+ {id:'RESERVED',c:0,r:2,k:'orange'},{id:'CONSUMED',c:1,r:2,k:'teal'},{id:'RELEASED',c:2,r:2,k:'cyan'}],
+ [['PENDING_PAYMENT','PAID','captured'],['PENDING_PAYMENT','EXPIRED','hold ran out'],['PENDING_PAYMENT','CANCELLED','cancel'],
+  ['RESERVED','CONSUMED','order paid']],{bw:176,cw:230}),
+ [card('SQL objects',[cd(['tc_orders','tc_order_items']),cd(['tc_coupons','tc_coupon_redemptions']),cd(['usp_CreateOrderRequest','usp_ApplyOrderCouponRequest']),cd(['fn_GetCouponEligibility','fn_CalculateCouponDiscountCapped'])],C.orange,C.yellow),
+  card('Coupon management',[cd(['usp_CreateManagedCoupon','usp_UpdateManagedCoupon']),cd(['usp_SetManagedCouponActive','vw_CouponUsage']),cd(['trg_Coupon_ProtectUsageLimit'])],C.pink,C.rose),
+  card('Java',[cd(['OrderService','CouponPolicy','RedisOrderCache'])],C.violet,C.pink)],
+ 'Top: order status. Bottom: coupon redemption — a reservation is released when the order does not complete.');
+
+/* =====================================================================
+   06 PAYMENT
+   ===================================================================== */
+feature('Payment','💳',C.rose,C.violet,'Real money, an unreliable network, and exactly one outcome.',
+ ['VNPAY IPN','vnp_SecureHash','usp_ApplyPaymentResult'],[['×100','VNPAY amount unit checked against our snapshot'],['4','payment states incl. UNKNOWN'],['1','accepted payment per order']]);
+
+seqS('Pay URL → IPN → order PAID',{step:42,p:[
+ {id:'b',n:'Buyer',s:'browser',k:'user'},{id:'p',n:'PaymentService',s:'initiate · IPN',k:'app'},{id:'r',n:'Redis',s:'claim · lock',k:'cache'},{id:'d',n:'SQL Server',s:'payments · tickets',k:'db'},{id:'v',n:'VNPAY',s:'sandbox',k:'ext'}],
+ m:[
+ {f:'b',t:'p',x:'pay order {orderId} + idempotency key'},
+ {f:'p',t:'r',x:'checkOrClaim(actor, key, fingerprint) · 10 min',n:'Replay · Conflict · InProgress · Acquired'},
+ {f:'p',t:'r',x:'acquireOrderLock(orderId)'},
+ {f:'p',t:'d',x:'usp_BeginOrderPayment',n:'Payment PENDING · txnRef · amount snapshot'},
+ {f:'p',t:'p',x:'VnpaySigner builds URL + vnp_SecureHash'},
+ {f:'p',t:'b',x:'redirectUrl',d:1},
+ {f:'b',t:'v',x:'pays on the VNPAY page'},
+ {f:'v',t:'p',x:'GET /api/payments/vnpay/ipn  (server → server)'},
+ {f:'p',t:'p',x:'verify signature · find txnRef · vnp_Amount = amount × 100'},
+ {f:'p',t:'d',x:'usp_ApplyPaymentResult(CAPTURED | FAILED)',n:'one transaction — see next slide'},
+ {f:'p',t:'v',x:'protocol response (RspCode)',d:1},
+ {f:'v',t:'b',x:'redirect → /api/payments/vnpay/return  (read-only)',d:1}]},
+ card('Two callbacks, one writer',['Only the IPN changes data','The return URL just shows status','Repeated IPN → “already confirmed”'],C.rose,C.violet));
+
+slide('Payment · inside','What one <span class="grad">CAPTURED</span> does — atomically',`
+<div class="body" style="flex-direction:column;justify-content:center;gap:2.4vh">
+ <div class="flow">
+  ${[['Lock hold','UPDLOCK · HOLDLOCK',C.pink],['Payment','→ CAPTURED',C.rose],['Seats','→ SOLD',C.indigo],['Zone counters','held − / sold +',C.blue],['Hold','→ CONSUMED',C.orange],['Coupon','→ CONSUMED',C.yellow],['Order','→ PAID',C.green],['Tickets','insert + qr hash',C.teal],['Outbox','ORDER_PAID',C.purple]]
+   .map(([n,d,c],i)=>`${i?'<span class="arr">➜</span>':''}<div class="node" style="--k:${c}">${n}<small>${d}</small></div>`).join('')}
+ </div>
+ <div class="grid g3">
+  ${card('If the hold already expired',['Money arrived but seats are gone','Order result = <code>COMPENSATION_PENDING</code>','Auto refund with purpose <code>PAYMENT_COMPENSATION</code>'],C.rose,C.orange)}
+  ${card('Guards inside the procedure',['A captured payment needs a provider reference','CAPTURED can never be downgraded','Ticket count must equal order quantity'],C.violet,C.pink)}
+  ${card('Paid amount per ticket',[cd(['fn_AllocateTicketPaidAmounts']),'Splits the discounted total across tickets','Used later for partial refunds'],C.teal,C.green)}
+ </div>
+</div>`);
+
+seqS('When nobody tells us the result',{p:[
+ {id:'j',n:'Reconcile job',s:'worker',k:'job'},{id:'d',n:'SQL Server',s:'views · procs',k:'db'},{id:'r',n:'Redis',s:'order lock',k:'cache'},{id:'v',n:'VNPAY Query',s:'VnpayQueryClient',k:'ext'},{id:'a',n:'Admin',s:'payments',k:'user'}],
+ m:[
+ {f:'j',t:'d',x:'vw_PaymentsToReconcile',n:'PENDING / UNKNOWN payments'},
+ {f:'j',t:'v',x:'query the transaction — outside any DB transaction'},
+ {f:'v',t:'j',x:'CAPTURED · FAILED · UNKNOWN',d:1},
+ {f:'j',t:'r',x:'acquire order lock'},
+ {f:'j',t:'d',x:'usp_ApplyPaymentResult',n:'exact same path as the IPN'},
+ {f:'a',t:'d',x:'vw_FailedCompensationAttempts'},
+ {f:'a',t:'d',x:'/api/admin/payments/* → usp_RetryPaymentCompensation',n:'manual retry of a stuck compensation refund'}]},
+ card('UNKNOWN is a real state',['Still UNKNOWN → skip, try next tick','One failing payment never blocks the batch','Never assume failure after a timeout'],C.blue,C.cyan));
+
+deep('Payment states',stm([
+ {id:'PENDING',c:0,r:0,k:'amber'},{id:'CAPTURED',c:2,r:0,k:'green'},{id:'FAILED',c:2,r:1,k:'red'},{id:'UNKNOWN',c:1,r:1,k:'slate'}],
+ [['PENDING','CAPTURED','IPN ok'],['PENDING','FAILED','IPN declined'],['PENDING','UNKNOWN','no answer'],['UNKNOWN','CAPTURED','reconcile'],['UNKNOWN','FAILED','reconcile']],{rh:150}),
+ [card('SQL objects',[cd(['tc_payments','tc_refunds']),cd(['usp_BeginOrderPayment','usp_ApplyPaymentResult']),cd(['usp_CompleteFreeOrder','usp_RetryPaymentCompensation']),cd(['vw_PaymentsToReconcile'])],C.rose,C.violet),
+  card('Java',[cd(['PaymentService','VnpaySigner','VnpayQueryClient']),cd(['RedisPaymentIdempotency','PaymentReconciliationJob'])],C.violet,C.pink),
+  card('Freeze',['A freeze trigger on <code>tc_payments</code>','Financial columns cannot be rewritten after capture'],C.green,C.teal)]);
+
+/* =====================================================================
+   07 TICKET
+   ===================================================================== */
+feature('Ticket &amp; QR','🎫',C.teal,C.green,'A ticket that proves itself — no database lookup needed to spot a fake.',
+ ['HMAC-SHA256','/api/tickets/*','ZXing'],[['43','base64url chars of signature'],['5','ticket states'],['hash','only the QR secret hash is stored']]);
+
+seqS('From paid order to a signed QR',{step:48,p:[
+ {id:'b',n:'Buyer',s:'my tickets',k:'user'},{id:'a',n:'TicketApiServlet',s:'/api/tickets/*',k:'app'},{id:'t',n:'TicketService',s:'SignedTicketQrSigner',k:'app'},{id:'d',n:'SQL Server',s:'tc_tickets',k:'db'}],
+ m:[
+ {f:'b',t:'a',x:'GET /api/me/tickets'},
+ {f:'a',t:'d',x:'vw_TicketRuntimeDetails',n:'rows were created inside usp_ApplyPaymentResult'},
+ {f:'b',t:'a',x:'open one ticket  /api/tickets/…'},
+ {f:'a',t:'d',x:'usp_AssertTicketAccess',n:'owner only — others get 403, unknown gets 404'},
+ {f:'t',t:'t',x:'canonical JSON {"id","name"} — fixed field order'},
+ {f:'t',t:'t',x:'HMAC-SHA256(payload, secret)'},
+ {f:'t',t:'t',x:'envelope = base64url(payload) . base64url(signature)'},
+ {f:'t',t:'b',x:'QR PNG rendered with ZXing',d:1}]},
+ card('Why canonical JSON?',['Signer and scanner must hash identical bytes','Field order and escaping are fixed','An interoperability test covers both sides'],C.teal,C.green));
+
+deep('Ticket states',stm([
+ {id:'ACTIVE',c:0,r:1,k:'teal'},{id:'USED',c:1,r:0,k:'green'},{id:'REFUND_PENDING',c:1,r:1,k:'amber'},{id:'REFUNDED',c:2,r:1,k:'red'},{id:'INVALIDATED',c:1,r:2,k:'slate'}],
+ [['ACTIVE','USED','check-in'],['ACTIVE','REFUND_PENDING','refund asked'],['REFUND_PENDING','REFUNDED','refund done'],['ACTIVE','INVALIDATED','invalidated']],{bw:170}),
+ [card('SQL objects',[cd(['tc_tickets'])+' — ticket_code · qr_secret_hash · paid_amount',cd(['vw_TicketDetails','vw_TicketRuntimeDetails']),cd(['usp_AssertTicketAccess','usp_AssertOrderAccess'])],C.teal,C.green),
+  card('Immutable snapshot',[cd(['trg_Ticket_ProtectIssuedSnapshot']),'Issued ticket data cannot be rewritten'],C.rose,C.orange),
+  card('Java',[cd(['TicketService','SignedTicketQrSigner','RedisTicketCache'])],C.violet,C.pink)],
+ 'States come from the CHECK constraint on <code>tc_tickets.status</code>; the transitions shown are the main paths.');
+
+/* =====================================================================
+   08 CHECK-IN
+   ===================================================================== */
+feature('Check-in','✅',C.green,C.lime,'One scan, one entry — even with two gates and one screenshot.',
+ ['/api/check-ins','sp_ticket_check_in','−60 min window'],[['−60 min','gate opens before start_time'],['≤ 4096','QR chars accepted'],['1','successful scan per ticket']]);
+
+seqS('Scan at the gate',{step:46,p:[
+ {id:'g',n:'Staff scanner',s:'camera · JS',k:'user'},{id:'c',n:'TicketCheckInService',s:'+ SignedQrDecoder',k:'app'},{id:'r',n:'Redis',s:'scan lock',k:'cache'},{id:'d',n:'SQL Server',s:'tc_check_ins',k:'db'}],
+ m:[
+ {f:'g',t:'c',x:'GET /api/check-ins/events',n:'only events of organizations the staff belongs to'},
+ {f:'g',t:'c',x:'POST /api/check-ins {eventId, qrContent | ticketCode} + key'},
+ {f:'c',t:'c',x:'decode: shape regex · canonical base64 · constant-time MAC',n:'bad signature is still passed on and recorded'},
+ {f:'c',t:'c',x:'fingerprint = SHA-256(eventId + content)'},
+ {f:'c',t:'r',x:'lock(ticketId)',n:'reduces contention only'},
+ {f:'c',t:'d',x:'sp_ticket_check_in(actor, key, event, ticket, fingerprint)',n:'fn_event_is_check_in_open'},
+ {f:'d',t:'d',x:'first scan wins → ticket USED + log row'},
+ {f:'c',t:'r',x:'cache completed result for this key',d:1},
+ {f:'c',t:'g',x:'accepted / rejected + holder name',d:1}]},
+ card('Manual fallback',['Damaged QR? type the ticket code','Same procedure, same rules','Recent scans: <code>sp_checkin_recent_logs</code> (1–100)'],C.green,C.lime));
+
+deep('The decision ladder',stm([
+ {id:'Scan',c:0,r:0,k:'slate'},{id:'Signature ok',c:1,r:0,k:'cyan'},{id:'Window open',c:2,r:0,k:'blue'},{id:'Ticket ACTIVE',c:3,r:0,k:'teal'},{id:'USED ✓',c:3,r:1,k:'green'},
+ {id:'INVALID',c:0,r:1,k:'red'},{id:'CLOSED',c:1,r:1,k:'orange'},{id:'ALREADY USED',c:2,r:1,k:'rose'}],
+ [['Scan','Signature ok','HMAC'],['Signature ok','Window open','event'],['Window open','Ticket ACTIVE','ticket'],['Ticket ACTIVE','USED ✓','ok'],
+  ['Scan','INVALID','forged'],['Signature ok','CLOSED','too early / over'],['Window open','ALREADY USED','2nd scan']],{cw:200,bw:150,rh:150}),
+ [card('SQL objects',[cd(['tc_check_ins','tc_ticket_check_in_logs']),cd(['sp_ticket_check_in','sp_checkin_recent_logs']),cd(['fn_event_is_check_in_open','fn_CheckInEventTicketCounts']),cd(['vw_CheckInEvents','vw_CheckInStaffOrganizations'])],C.green,C.lime),
+  card('Hostile input',['Signature verified before JSON is parsed','Only keys <code>id</code> and <code>name</code> allowed','Secret must be ≥ 32 bytes'],C.rose,C.orange),
+  card('Java',[cd(['TicketCheckInService','SignedQrDecoder']),cd(['RedisCheckInScanCache','CheckInEventRoutesFilter'])],C.violet,C.pink)],
+ 'Window rule from <code>fn_event_is_check_in_open</code>: event PUBLISHED and now ≥ start − 60 min and now &lt; end.');
+
+/* =====================================================================
+   09 REFUND
+   ===================================================================== */
+feature('Refund &amp; Cancel','↩️',C.amber,C.red,'Give money back exactly once — even when the gateway goes silent.',
+ ['sp_refund_*','RefundProcessingWorker','attemptId'],[['7','refund obligation states'],['120 s','Redis lease per refund'],['1','transfer per attemptId']]);
+
+seqS('Request → decision → transfer',{step:42,p:[
+ {id:'b',n:'Buyer',s:'my orders',k:'user'},{id:'a',n:'Admin',s:'review',k:'user'},{id:'s',n:'Refund servlets',s:'/api/refund-requests',k:'app'},{id:'d',n:'SQL Server',s:'refund_* · v_*',k:'db'},{id:'w',n:'Refund worker',s:'every 5 s',k:'job'},{id:'g',n:'RefundGateway',s:'simulated',k:'ext'}],
+ m:[
+ {f:'b',t:'s',x:'pick tickets to refund',n:'v_refundable_orders · v_refundable_ticket_options'},
+ {f:'b',t:'s',x:'POST /api/refund-requests'},
+ {f:'s',t:'d',x:'sp_refund_request_for_tickets'},
+ {f:'a',t:'s',x:'/api/admin/refund-requests → approve / reject'},
+ {f:'s',t:'d',x:'sp_refund_approve  |  sp_refund_reject'},
+ {f:'w',t:'d',x:'vw_RefundWorkerCandidates'},
+ {f:'w',t:'d',x:'lease + sp_refund_begin_attempt → PROCESSING',n:'committed BEFORE the gateway call'},
+ {f:'w',t:'g',x:'executeRefund(attemptId)'},
+ {f:'g',t:'w',x:'SUCCEEDED · FAILED · timeout ⇒ UNKNOWN',d:1},
+ {f:'w',t:'d',x:'sp_refund_record_attempt_result'},
+ {f:'d',t:'b',x:'outbox REFUND_SUCCEEDED → email',d:1}]},
+ card('Never refund twice',['A recovered attempt only <b>queries</b> the same attemptId','Only a verified FAILED earns a new attempt','Admin retry: <code>sp_refund_retry</code>'],C.amber,C.red));
+
+seqS('Cancel an event → refund every order',{p:[
+ {id:'a',n:'Admin',s:'platform',k:'user'},{id:'s',n:'Admin servlets',s:'/api/admin/events/*',k:'app'},{id:'d',n:'SQL Server',s:'usp_* · vw_*',k:'db'},{id:'j',n:'Cancellation job',s:'every 5 s',k:'job'},{id:'w',n:'Refund worker',s:'every 5 s',k:'job'}],
+ m:[
+ {f:'a',t:'s',x:'cancel event'},
+ {f:'s',t:'d',x:'usp_CancelEvent',n:'status → CANCELLED · audit row'},
+ {f:'j',t:'d',x:'vw_EventCancellationWork'},
+ {f:'j',t:'d',x:'usp_ProcessCancelledOrder(event, order)',n:'one order per call — resumable'},
+ {f:'d',t:'d',x:'refund obligation for the order'},
+ {f:'w',t:'d',x:'picks it up like any approved refund',d:1},
+ {f:'a',t:'d',x:'vw_EventCancellationProgress · vw_EventCancellationExceptions'}]},
+ card('Crash-safe by design',['Progress is a SQL view, not memory','Stop the server mid-way → it resumes','Exceptions surface in their own view'],C.red,C.rose));
+
+deep('Refund obligation states',stm([
+ {id:'REQUESTED',c:0,r:0,k:'amber'},{id:'APPROVED',c:1,r:0,k:'blue'},{id:'PROCESSING',c:2,r:0,k:'violet'},{id:'COMPLETED',c:3,r:0,k:'green'},
+ {id:'REJECTED',c:0,r:1,k:'red'},{id:'RETRYABLE',c:2,r:1,k:'orange'},{id:'NEEDS_RECON…',c:3,r:1,k:'slate'}],
+ [['REQUESTED','APPROVED','approve'],['REQUESTED','REJECTED','reject'],['APPROVED','PROCESSING','begin'],['PROCESSING','COMPLETED','SUCCEEDED'],
+  ['PROCESSING','RETRYABLE','FAILED',-10],['RETRYABLE','PROCESSING','new id',-10],['PROCESSING','NEEDS_RECON…','UNKNOWN'],['NEEDS_RECON…','COMPLETED','query']],{cw:200,bw:156,rh:150}),
+ [card('SQL objects',[cd(['tc_refund_requests','tc_refund_obligations']),cd(['tc_refund_transfer_logs','tc_refund_tickets']),cd(['fn_GetRefundableTickets','vw_GatewayRefundReconciliation'])],C.amber,C.red),
+  card('Java',[cd(['RefundProcessingWorker','RefundReconciliationJob']),cd(['RedisRefundLease','SimulatedRefundGateway'])],C.violet,C.pink),
+  card('Edge cases',['0đ refund completes with no transfer log','Transfer log is evidence — frozen by trigger','Full name: <code>NEEDS_RECONCILIATION</code>'],C.green,C.teal)]);
+
+/* =====================================================================
+   10 SETTLEMENT
+   ===================================================================== */
+feature('Settlement','💰',C.indigo,C.cyan,'Close the books: what the platform keeps, what the organizer receives.',
+ ['fn_CalculateCommission','usp_ConfirmSettlement','usp_RecordPayout'],[['3','states: DRAFT · CONFIRMED · PAID'],['≤ net','paid + pending can never exceed it'],['frozen','totals after confirm']]);
+
+seqS('Commission → confirm → payout',{step:44,p:[
+ {id:'m',n:'Organizer',s:'finance pages',k:'user'},{id:'a',n:'Admin',s:'finance',k:'user'},{id:'s',n:'AdminFinanceServlet',s:'/api/admin/settlements',k:'app'},{id:'d',n:'SQL Server',s:'settlement_*',k:'db'}],
+ m:[
+ {f:'a',t:'s',x:'POST /api/admin/commission-rules'},
+ {f:'s',t:'d',x:'usp_CreateCommissionRule',n:'rate % + fixed fee'},
+ {f:'a',t:'s',x:'recalculate settlement for an event'},
+ {f:'s',t:'d',x:'usp_RecalculateSettlement',n:'DRAFT only · fn_GetSettlementBlockers'},
+ {f:'d',t:'d',x:'per-order snapshot → gross, refund, commission'},
+ {f:'a',t:'s',x:'confirm'},
+ {f:'s',t:'d',x:'usp_ConfirmSettlement',n:'snapshots become immutable'},
+ {f:'a',t:'s',x:'payout {payoutId, amount}'},
+ {f:'s',t:'d',x:'usp_RecordPayout',n:'same payoutId → same result · different amount → rejected'},
+ {f:'m',t:'s',x:'GET /finance/settlements',d:1}]},
+ card('Blockers first',['<code>fn_GetSettlementBlockers</code> lists what still stands in the way','Nothing is confirmed while blockers exist'],C.indigo,C.cyan));
+
+slide('Settlement · inside','The <span class="grad">money equation</span>',`
+<div class="body" style="flex-direction:column;justify-content:center;gap:2.4vh">
+ <div class="flow" style="justify-content:center">
+  <div class="node" style="--k:${C.green};font-size:2.4vh">gross revenue<small>captured orders</small></div><span class="arr">−</span>
+  <div class="node" style="--k:${C.red};font-size:2.4vh">total refund<small>completed refunds</small></div><span class="arr">−</span>
+  <div class="node" style="--k:${C.violet};font-size:2.4vh">total commission<small>fn_CalculateCommission</small></div><span class="arr">=</span>
+  <div class="node" style="--k:${C.indigo};font-size:2.4vh;background:linear-gradient(135deg,${C.indigo},${C.cyan});color:#fff">net payable<small style="color:#fff">paid + pending ≤ net</small></div>
+ </div>
+ <div class="grid g3">
+  ${card('States',['<code>DRAFT</code> — recalculable','<code>CONFIRMED</code> — totals frozen','<code>PAID</code> — only when paid = net and pending = 0'],C.indigo,C.cyan)}
+  ${card('SQL objects',[cd(['tc_settlements','tc_settlement_order_snapshots']),cd(['tc_settlement_transfer_logs','tc_payouts']),cd(['vw_SettlementPayoutBalance','vw_OrderFinancialSummary'])],C.green,C.teal)}
+  ${card('Triggers that say no',[cd(['trg_Settlement_ProtectConfirmedSnapshot']),cd(['trg_CommissionRule_ProtectAppliedTerms']),cd(['trg_SettlementItem_ProtectConfirmedAmounts'])],C.rose,C.orange)}
+ </div>
+ <p class="note">Commission is computed on the amount remaining after refunds: <code>fn_CalculateCommission(@remaining_amount, @rate_percent, @fixed_fee)</code>. Payouts are simulated transfers in this project.</p>
+</div>`);
+
+/* =====================================================================
+   11 REPORTS / AUDIT / MAIL
+   ===================================================================== */
+feature('Reports · Audit · Mail','📊',C.purple,C.blue,'See everything, change nothing, tell the customer.',
+ ['/api/reports/export','tc_audit_logs','tc_outbox'],[['CSV','streamed and sanitised export'],['append-only','audit log, enforced by trigger'],['4','outbox states with lease']]);
+
+seqS('Reports and the audit trail',{p:[
+ {id:'m',n:'Manager / Admin',s:'dashboard',k:'user'},{id:'r',n:'ReportServlet',s:'/api/reports/*',k:'app'},{id:'p',n:'ReportRepository',s:'read projections',k:'app'},{id:'d',n:'SQL Server',s:'views · functions',k:'db'},{id:'c',n:'CSV stream',s:'download',k:'ext'}],
+ m:[
+ {f:'m',t:'r',x:'GET /api/reports/options'},
+ {f:'m',t:'r',x:'GET /api/reports/export?…'},
+ {f:'r',t:'p',x:'ReportFilter → bound parameters'},
+ {f:'p',t:'d',x:'vw_EventSalesReport'},
+ {f:'p',t:'d',x:'fn_GetOrganizationRevenue · fn_GetOrganizationCashFlow',n:'(organization, from, to)'},
+ {f:'r',t:'c',x:'StreamingCsvExporter + CsvSanitizer'},
+ {f:'m',t:'r',x:'GET /api/admin/audit-logs'},
+ {f:'r',t:'d',x:'tc_audit_logs',n:'UPDATE / DELETE rejected by trg_AuditLog_AppendOnly'}]},
+ card('Read side only',['Reports read views and functions','Nothing here can change business data','Admin overview: <code>/api/admin/overview</code>'],C.purple,C.blue));
+
+seqS('Transactional outbox → email',{step:50,p:[
+ {id:'b',n:'Business proc',s:'e.g. ApplyPaymentResult',k:'db'},{id:'o',n:'tc_outbox',s:'same transaction',k:'db'},{id:'w',n:'OutboxWorker',s:'every 10 s',k:'job'},{id:'e',n:'OutboxEmailJob',s:'template',k:'app'},{id:'m',n:'SMTP',s:'mail server',k:'ext'}],
+ m:[
+ {f:'b',t:'o',x:'INSERT ORDER_PAID',n:'idempotency_key = order-paid:{orderId}'},
+ {f:'w',t:'o',x:'usp_OutboxLease(batch)',n:'lease_owner · lease_until · attempts'},
+ {f:'w',t:'e',x:'send(outboxId, eventType, payload)'},
+ {f:'e',t:'o',x:'vw_OutboxEmailContext',n:'recipient, order code, event title, amount'},
+ {f:'e',t:'m',x:'“Thanh toán thành công đơn …”'},
+ {f:'w',t:'o',x:'usp_OutboxComplete',n:'unsupported event type throws → row goes to FAILED'}]},
+ card('Why an outbox?',['Email intent commits with the money change','A crash can delay a mail, never lose it','The idempotency key identifies each event'],C.purple,C.pink));
+
+deep('Outbox states',stm([
+ {id:'PENDING',c:0,r:0,k:'amber'},{id:'PROCESSING',c:1,r:0,k:'violet'},{id:'PUBLISHED',c:2,r:0,k:'green'},{id:'FAILED',c:2,r:1,k:'red'}],
+ [['PENDING','PROCESSING','lease'],['PROCESSING','PUBLISHED','sent'],['PROCESSING','FAILED','error']],{rh:150}),
+ [card('SQL objects',[cd(['tc_outbox','tc_audit_logs']),cd(['usp_OutboxLease','usp_OutboxComplete']),cd(['vw_OutboxEmailContext','vw_EventSalesReport']),cd(['trg_AuditLog_AppendOnly'])],C.purple,C.blue),
+  card('Java',[cd(['OutboxWorker','OutboxEmailJob']),cd(['ReportServlet','StreamingCsvExporter','CsvSanitizer']),cd(['AuditServlet','AuditService'])],C.violet,C.pink),
+  card('Event types today',['<code>ORDER_PAID</code>','<code>REFUND_SUCCEEDED</code>'],C.green,C.teal)]);
+
+/* =====================================================================
+   OUTRO
+   ===================================================================== */
+cur={n:'',c:[C.blue,C.pink],no:cur.no};
+slide('Foundation · runtime','Four <span class="grad">heartbeats</span> inside the WAR',`
+<div class="body" style="align-items:center"><div class="svgbox panel"><svg viewBox="0 0 1100 370">
+ <defs><marker id="wk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#565f8a"/></marker></defs>
+ ${[['EventCancellationJob','every 5 s','usp_ProcessCancelledOrder',C.rose,14],['RefundJob','every 5 s','Redis lease → gateway → record',C.amber,104],['OutboxWorker','every 10 s','lease → SMTP → complete',C.purple,194],['PaymentReconciliationJob','scheduled','VNPAY query → apply result',C.green,284]]
+  .map(([n,t,d,c,y])=>`<rect x="14" y="${y}" width="380" height="70" rx="16" fill="${c}"/><text x="34" y="${y+30}" fill="#fff" font-size="18" font-weight="800" font-family="JetBrains Mono,monospace">${n}</text><text x="34" y="${y+54}" fill="#fff" font-size="14">${t} · ${d}</text>
+  <path d="M394 ${y+35}H520" stroke="${c}" stroke-width="3" marker-end="url(#wk)"/>
+  ${Array.from({length:10},(_,i)=>`<circle cx="${556+i*56}" cy="${y+35}" r="9" fill="${c}"><animate attributeName="r" values="9;4;9" dur="2s" begin="${i*0.2}s" repeatCount="indefinite"/><animate attributeName="opacity" values="1;.25;1" dur="2s" begin="${i*0.2}s" repeatCount="indefinite"/></circle>`).join('')}`).join('')}
+</svg></div></div>
+<p class="note">Cancellation, refund and outbox are scheduled by <code>PersistenceListener</code> at context init · a failed tick is logged and retried.</p>`);
+
+cur.c=[C.orange,C.violet];
+slide('Engineering patterns','Correct <span class="grad">under pressure</span>',`
+<div class="body" style="align-items:center"><div class="grid g3">
+ ${[['🔁','Idempotency everywhere','Keys are business IDs: hold, order, txnRef, refund + attempt, payout.',C.rose,C.pink],
+    ['🔒','One lock order','A documented order for user, event, order and inventory rows.',C.green,C.teal],
+    ['📮','Transactional outbox','Intent commits with the data. External calls never sit inside a transaction.',C.purple,C.blue],
+    ['🧾','Immutable money','Triggers freeze payments, refunds, snapshots. Ledgers are append-only.',C.amber,C.orange],
+    ['🧩','Cache ≠ truth','Redis accelerates; SQL decides. Redis down means slower, not wrong.',C.cyan,C.blue],
+    ['🛰️','Reconcile unknowns','UNKNOWN is a state. A worker asks the provider instead of guessing.',C.indigo,C.violet]]
+  .map(([e,t,d,a,b])=>`<div class="card" style="--k:${a};--k2:${b}"><div class="ico">${e}</div><h3>${t}</h3><p>${d}</p></div>`).join('')}
+</div></div>`);
+
+cur.c=[C.green,C.blue];
+slide('Quality &amp; delivery','Proof, <span class="grad">not promises</span>',`
+<div class="body" style="align-items:center"><div class="grid g3">
+ ${[['335','tests executed · 60 external opt-in skips · 0 failures (baseline run)',C.green],['T-SQL','scenario tests that THROW: concurrency, permissions, temporal, guardrails',C.violet],['13','GitHub workflows: quality, CVE scan, build, staging smoke, deploy',C.orange]]
+   .map(([b,t,c])=>`<div class="card" style="--k:${c};--k2:${c}"><div class="big" style="color:${c}">${b}</div><p>${t}</p></div>`).join('')}
+ ${card('Local fixture',['<code>setup.ps1</code> builds a fresh database','<code>run.ps1 -Smoke</code>: real login, CSRF, finance, JSP'],C.cyan,C.blue)}
+ ${card('Migrations',['Ledger <code>tc_schema_migrations</code> by file name + SHA-256','Applied files are never edited'],C.pink,C.rose)}
+ ${card('Backup &amp; recovery',['Full · differential · log','Point-in-time restore · BACPAC export'],C.amber,C.orange)}
+</div></div>`);
+
+cur.c=[C.violet,C.cyan];
+push(`<div style="display:flex;flex-direction:column;height:100%;justify-content:center;align-items:center;gap:2.6vh;text-align:center">
+ <div class="tag" style="align-self:center">Summary</div>
+ <h1 style="font-size:6.6vh"><span class="rain">Hold · Pay · Scan · Refund · Settle</span></h1>
+ <p class="sub" style="font-size:2.6vh;max-width:58vw;color:var(--tx)">Eleven features, one source of truth: <b style="color:${C.green}">the database</b>.</p>
+ <div class="flow" style="justify-content:center"><div class="node" style="--k:${C.orange}">Thin Java edge</div><span class="arr">+</span><div class="node" style="--k:${C.green}">SQL authority</div><span class="arr">+</span><div class="node" style="--k:${C.rose}">Redis speed</div><span class="arr">+</span><div class="node" style="--k:${C.blue}">Idempotent workers</div></div>
+ <h2 class="grad" style="margin-top:2vh;font-size:5vh">Thank you — questions?</h2></div>`);
+
+/* ================= engine ================= */
+const deck=document.getElementById('deck');
+S.forEach((s,k)=>{const d=document.createElement('section');d.className='slide';
+  d.style.setProperty('--fc',s.c[0]);d.style.setProperty('--fc2',s.c[1]);
+  d.innerHTML=deco(k+3,s.c[0],s.c[1])+s.html;deck.appendChild(d);s.el=d;
+  s.steps=0;s.step=0;});
+document.getElementById('tot').textContent=S.length;
+let i=0;
+function render(){
+  S.forEach((s,k)=>{s.el.classList.toggle('on',k===i);s.el.classList.toggle('past',k<i);
+    if(s.seq)s.el.querySelectorAll('.msg').forEach((m,j)=>{m.classList.toggle('show',j<s.step);m.classList.toggle('cur',j===s.step-1);});});
+  document.getElementById('cur').textContent=i+1;
+  document.getElementById('feat').innerHTML=S[i].feat?'· '+S[i].feat.toUpperCase():'· FINAL PROJECT';
+  document.getElementById('bar').style.width=((i+1)/S.length*100)+'%';
+  try{history.replaceState(null,'','#'+(i+1));}catch(e){}
+}
+function next(){const s=S[i];if(s.seq&&s.step<s.steps){s.step++;render();return;}if(i<S.length-1){i++;render();}}
+function prev(){const s=S[i];if(s.seq&&s.step>0){s.step--;render();return;}if(i>0){i--;const t=S[i];if(t.seq)t.step=t.steps;render();}}
+function jump(n){i=Math.max(0,Math.min(S.length-1,n));const s=S[i];if(s.seq&&s.step===0)s.step=s.steps;render();}
+addEventListener('keydown',e=>{
+  if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();next();}
+  else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();prev();}
+  else if(e.key==='Home')jump(0);else if(e.key==='End')jump(S.length-1);
+  else if(e.key==='ArrowDown'){e.preventDefault();jump(i+1);}else if(e.key==='ArrowUp'){e.preventDefault();jump(i-1);}
+  else if(e.key==='f'||e.key==='F'){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();}
+});
+document.getElementById('next').onclick=next;document.getElementById('prev').onclick=prev;
+document.querySelectorAll('.tile[data-f]').forEach(t=>t.onclick=()=>{let n=+t.dataset.f,c=0;const k=S.findIndex(s=>s.cover&&++c===n);if(k>=0)jump(k);});
+let tx=null;addEventListener('touchstart',e=>tx=e.touches[0].clientX);
+addEventListener('touchend',e=>{if(tx===null)return;const d=e.changedTouches[0].clientX-tx;if(Math.abs(d)>50)(d<0?next:prev)();tx=null;});
+const h=parseInt(location.hash.slice(1));if(h>1)jump(h-1);else render();
+</script>
+</body>
+</html>
