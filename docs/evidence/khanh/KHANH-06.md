@@ -117,6 +117,14 @@ requires all focused suites with zero skips, and checks the complete WAR/browser
 and real restart for both legacy-adapter and canonical-050 schemas. Merge to `dev`
 still requires the project's green checks and an independent approving review.
 
+PR: [#79](https://github.com/devonxjz/TicketCenter/pull/79), kept as draft.
+GitHub Actions on `cd6a2b0` did **not start**: check annotations report failed
+account payments or a spending limit needing attention. This affects every
+attempted workflow, including both cancellation matrix jobs; it is not a
+completed test run or a code-test failure. The [KHANH-06 PR run](https://github.com/devonxjz/TicketCenter/actions/runs/38343318417)
+and PR check annotations record the external billing gate. No payment settings,
+spending limit, repository visibility or merge protection were changed.
+
 ## Reproduction
 
 ```powershell
