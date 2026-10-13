@@ -77,4 +77,22 @@ class EventCatalogRepositoryTest {
         var repository = EventRepositoryFixture.repository(connection());
         assertTrue(repository.zones(id).orElseThrow().isEmpty()); assertTrue(repository.seats(id).orElseThrow().isEmpty());
     }
+
+    @Test void realModeUsesOneSyntheticVisibilityBoundaryForCountListAndChildren() {
+        String previous = System.getProperty("app.data.mode");
+        System.setProperty("app.data.mode", "real");
+        try {
+            var repository = EventRepositoryFixture.repository(connection());
+            repository.events(EventFilter.parse(Map.of()));
+            repository.event(id); repository.zones(id); repository.seats(id);
+            assertEquals(5, sql.size());
+            String policy = RealEventVisibility.predicate("e");
+            assertTrue(sql.stream().allMatch(query -> query.contains(policy)));
+            assertTrue(sql.get(0).contains("FROM dbo.vw_PublicEventCatalog e"));
+            assertTrue(sql.get(1).contains("FROM dbo.vw_PublicEventCatalog e"));
+        } finally {
+            if (previous == null) System.clearProperty("app.data.mode");
+            else System.setProperty("app.data.mode", previous);
+        }
+    }
 }

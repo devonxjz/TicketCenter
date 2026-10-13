@@ -66,7 +66,7 @@
         constructor({ fetch, storage, randomUUID, now, changed = () => {} }) {
             Object.assign(this, { fetch, storage, randomUUID, now, changed });
             this.actorId = null; this.epoch = 0; this.anchor = null; this.holdId = null;
-            this.state = { phase: "loading", hold: null, order: null, pending: null, preview: null, message: "Đang đối chiếu đơn hàng..." };
+            this.state = { phase: "loading", hold: null, order: null, pending: null, preview: null, paymentRedirect: null, message: "Đang đối chiếu đơn hàng..." };
         }
         set(phase, values = {}) { this.state = Object.freeze({ ...this.state, phase, ...values }); this.changed(this.state); }
         begin(actorId = this.actorId) { return { epoch: ++this.epoch, actorId }; }
@@ -101,7 +101,8 @@
             if (pending.actorId !== this.actorId || !uuid(pending.key) || !uuid(pending.holdId) ||
                 !(pending.kind === "create" && pending.path === "/api/orders" && body.holdId === pending.holdId && Object.keys(body).length === 1 ||
                     pending.kind === "coupon" && uuid(pending.orderId) && pending.path === "/api/orders/" + pending.orderId + "/coupon" &&
-                    Object.keys(body).length === 1 && (body.couponCode === null || coupon(body.couponCode)))) {
+                    Object.keys(body).length === 1 && (body.couponCode === null || coupon(body.couponCode)) ||
+                    pending.kind === "payment" && uuid(pending.orderId) && pending.path === "/api/orders/" + pending.orderId + "/payments" && Object.keys(body).length === 0)) {
                 throw new Error("Yêu cầu đã lưu không hợp lệ. Không thể gửi lại.");
             }
             return Object.freeze(pending);
@@ -139,7 +140,7 @@
         }
         async refresh() {
             let op = this.begin(null);
-            this.apply(op, "loading", { hold: null, order: null, pending: null, preview: null, message: "Đang đối chiếu đơn hàng..." });
+            this.apply(op, "loading", { hold: null, order: null, pending: null, preview: null, paymentRedirect: null, message: "Đang đối chiếu đơn hàng..." });
             try {
                 const actorId = await this.identity(op); this.guard(op);
                 if (actorId !== this.actorId) this.holdId = null;
@@ -163,7 +164,7 @@
                 if (kind === "coupon" && body.couponCode !== null && !coupon(body.couponCode)) throw new Error("Nhập mã giảm giá từ 1 đến 80 ký tự.");
                 if (this.restore()) throw new Error("Còn yêu cầu chưa rõ kết quả. Hãy thử lại yêu cầu đã lưu.");
                 const pending = Object.freeze({ actorId: this.actorId, kind, holdId: this.holdId, orderId: this.state.order?.orderId || null,
-                    path: kind === "create" ? "/api/orders" : "/api/orders/" + this.state.order.orderId + "/coupon", body: JSON.stringify(body), key: this.randomUUID() });
+                    path: kind === "create" ? "/api/orders" : "/api/orders/" + this.state.order.orderId + (kind === "payment" ? "/payments" : "/coupon"), body: JSON.stringify(body), key: this.randomUUID() });
                 if (!uuid(pending.key)) throw new Error("Không tạo được mã yêu cầu an toàn.");
                 this.save(op, pending);
                 this.apply(op, "submitting", { pending, preview: null, message: "Đang gửi yêu cầu đơn hàng..." });
@@ -173,6 +174,7 @@
         create() { return this.command("create", { holdId: this.holdId }); }
         applyCoupon(code) { return this.command("coupon", { couponCode: code }); }
         removeCoupon() { return this.command("coupon", { couponCode: null }); }
+        pay() { return this.command("payment", {}); }
         async retry() {
             if (this.state.phase !== "uncertain" || !this.state.pending) return;
             const op = this.begin();
@@ -191,12 +193,26 @@
                     "Content-Type": "application/json", "X-CSRF-Token": csrf.data.token, "Idempotency-Key": pending.key
                 }, body: pending.body });
                 if (pending.kind === "create") orderSnapshot(receipt, pending.actorId, pending.holdId);
+                else if (pending.kind === "payment") {
+                    if (receipt.currency !== "VND" || typeof receipt.zeroOrder !== "boolean" || !money(receipt.amount)) fail();
+                    if (receipt.zeroOrder) {
+                        if (receipt.orderId !== pending.orderId || receipt.amount !== "0" || receipt.status !== "PAID") fail();
+                    } else {
+                        if (!uuid(receipt.paymentId) || typeof receipt.txnRef !== "string" || !receipt.txnRef || typeof receipt.redirectUrl !== "string") fail();
+                        const target = new URL(receipt.redirectUrl);
+                        if (target.protocol !== "https:" || target.username || target.password) fail();
+                    }
+                }
                 else {
                     if (receipt?.orderId !== pending.orderId || !(receipt.appliedCouponCode === null || coupon(receipt.appliedCouponCode)) ||
                         !Number.isSafeInteger(receipt.version) || receipt.version < 0) fail();
                     totals(receipt);
                 }
                 if (!this.forget(op, pending)) { await this.refresh(); return; }
+                if (pending.kind === "payment" && !receipt.zeroOrder) {
+                    this.apply(op, "redirecting", { pending: null, preview: null, paymentRedirect: receipt.redirectUrl, message: "Đang chuyển đến cổng thanh toán…" });
+                    return;
+                }
                 this.apply(op, "loading", { pending: null, order: null, preview: null });
                 await this.reconcile(op);
             } catch (error) {
@@ -252,6 +268,14 @@
         get("order-summary").hidden = !state.order;
         for (const id of ["order-coupon-code", "order-preview", "order-apply", "order-remove"]) get(id).disabled = holdBusy || !client.editable();
         get("order-remove").disabled ||= state.order?.appliedCouponCode === null;
+        if (get("order-pay")) {
+            get("order-pay").disabled = holdBusy || !client.editable();
+            get("order-pay").textContent = state.order?.totalAmount === "0" ? "Hoàn tất đơn miễn phí" : "Tiếp tục thanh toán";
+            get("payment-message").textContent = state.phase === "redirecting" ? state.message : "";
+            get("order-detail-link").hidden = !state.order;
+            if (state.order) get("order-detail-link").href = context + "/orders/" + state.order.orderId;
+            if (state.paymentRedirect && state.phase === "redirecting") root.location.assign(state.paymentRedirect);
+        }
         const preview = state.preview;
         get("order-preview-result").textContent = preview ? preview.eligible ? "Mã " + preview.couponCode + " giảm dự kiến " + holdApi.vnd(preview.discountAmount) +
             ". Tổng dự kiến " + holdApi.vnd(preview.totalAmount) + ". Còn " + preview.remainingUses + " lượt tại " + new Date(preview.serverTime).toLocaleString("vi-VN") + "." : reason[preview.reason] : "";
@@ -281,6 +305,7 @@
     get("order-preview").addEventListener("click", () => void client.preview(get("order-coupon-code").value));
     get("order-coupon-code").addEventListener("input", () => { if (client.state.phase === "ready") client.set("ready", { preview: null }); });
     get("order-remove").addEventListener("click", () => void client.removeCoupon());
+    get("order-pay")?.addEventListener("click", () => void client.pay());
     get("order-retry").addEventListener("click", () => void client.retry());
     get("order-refresh").addEventListener("click", () => void client.refresh());
     for (const id of ["hold-cancel", "hold-retry", "hold-refresh"]) get(id).addEventListener("click", () => {

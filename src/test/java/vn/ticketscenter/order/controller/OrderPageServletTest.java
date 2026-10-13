@@ -41,7 +41,13 @@ class OrderPageServletTest {
     @Test
     void unauthenticatedRedirectsToLogin() throws Exception {
         Result r = call(null, "GET", "/me/orders", Map.of());
-        assertEquals("/login?redirect=/me/orders", r.redirectUrl);
+        assertEquals("/auth/login?redirect=%2Fme%2Forders", r.redirectUrl);
+    }
+
+    @Test
+    void anonymousOrdersPreserveApplicationContextAndFilterQuery() throws Exception {
+        Result r = call(null, "GET", "/ticketscenter/me/orders", Map.of(), "/ticketscenter", "page=2&status=PAID");
+        assertEquals("/ticketscenter/auth/login?redirect=%2Fticketscenter%2Fme%2Forders%3Fpage%3D2%26status%3DPAID", r.redirectUrl);
     }
 
     @Test
@@ -79,6 +85,10 @@ class OrderPageServletTest {
     }
 
     private Result call(UserPrincipal actor, String method, String uri, Map<String, String> params) throws Exception {
+        return call(actor, method, uri, params, "", null);
+    }
+
+    private Result call(UserPrincipal actor, String method, String uri, Map<String, String> params, String context, String query) throws Exception {
         Result result = new Result();
         HttpServletRequest request = (HttpServletRequest) Proxy.newProxyInstance(
                 HttpServletRequest.class.getClassLoader(),
@@ -86,7 +96,8 @@ class OrderPageServletTest {
                 (proxy, m, args) -> switch (m.getName()) {
                     case "getMethod" -> method;
                     case "getRequestURI" -> uri;
-                    case "getContextPath" -> "";
+                    case "getContextPath" -> context;
+                    case "getQueryString" -> query;
                     case "getAttribute" -> SecurityContext.REQUEST_USER_ATTRIBUTE.equals(args[0]) ? actor : result.attributes.get(args[0]);
                     case "setAttribute" -> {
                         result.attributes.put((String) args[0], args[1]);

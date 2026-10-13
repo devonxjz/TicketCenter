@@ -48,9 +48,12 @@ public class OrganizationRequestServiceTest {
     private List<Object> persistedEntities;
     private FakeDecisionRepository decisions;
     private OrganizationRequestService service;
+    private String previousDataMode, previousEnvironment;
 
     @BeforeEach
     void setUp() {
+        previousDataMode = System.getProperty("app.data.mode"); previousEnvironment = System.getProperty("app.env");
+        System.setProperty("app.data.mode", "real"); System.setProperty("app.env", "test");
         userRepository = new FakeUserRepository();
         organizationRepository = new FakeOrganizationRepository();
         redisStore = new InMemoryRedisStore();
@@ -58,6 +61,11 @@ public class OrganizationRequestServiceTest {
         transactionManager = createFakeTransactionManager(persistedEntities);
         decisions = new FakeDecisionRepository(organizationRepository, userRepository);
         service = OrganizationRequestService.withRedisStore(transactionManager, organizationRepository, userRepository, redisStore, decisions);
+    }
+
+    @org.junit.jupiter.api.AfterEach void restoreDataMode() {
+        if (previousDataMode == null) System.clearProperty("app.data.mode"); else System.setProperty("app.data.mode", previousDataMode);
+        if (previousEnvironment == null) System.clearProperty("app.env"); else System.setProperty("app.env", previousEnvironment);
     }
 
     @Test
@@ -365,8 +373,17 @@ public class OrganizationRequestServiceTest {
     }
 
     @Test
-    @DisplayName("Admin approves request elevates requester to manager and creates initial event")
+    @DisplayName("Real approval preserves organization approval without inventing an event")
     void testApproveRequestSuccess() {
+        approveAndAssertInitialEvent(false);
+    }
+
+    @Test void demoApprovalRetainsFixtureInitialEvent() {
+        System.setProperty("app.data.mode", "demo");
+        approveAndAssertInitialEvent(true);
+    }
+
+    private void approveAndAssertInitialEvent(boolean demo) {
         UUID adminId = UUID.randomUUID();
         User admin = new User("admin@test.vn", "adminuser", "Admin User", "hash");
         setEntityId(admin, adminId);
@@ -385,7 +402,9 @@ public class OrganizationRequestServiceTest {
         org.submitForApproval();
         organizationRepository.putOrg(org);
 
-        OrganizationRequestDetailDto approved = service.approveRequest(adminId, orgId);
+        java.time.Instant policyFrom = java.time.Instant.parse("2026-10-13T00:00:00Z");
+        OrganizationRequestDetailDto approved = demo ? service.approveRequest(adminId, orgId)
+                : service.approveRequest(adminId, orgId, new java.math.BigDecimal("5"), 1000L, policyFrom);
 
         assertNotNull(approved);
         assertEquals(OrganizationStatus.APPROVED, approved.status());
@@ -396,13 +415,22 @@ public class OrganizationRequestServiceTest {
         FakeDecisionRepository.ApprovalCall call = decisions.approvals.get(0);
         assertEquals(orgId, call.organizationId());
         assertEquals(adminId, call.adminId());
-        assertNull(call.policy());
+        if (demo) assertNull(call.policy());
+        else {
+            assertEquals(new java.math.BigDecimal("5"), call.policy().ratePercent());
+            assertEquals(1000L, call.policy().fixedFee());
+            assertEquals(policyFrom, call.policy().effectiveFrom());
+        }
         assertEquals(requesterId, approved.requesterId());
-        assertEquals("Rock Night 2026", call.event().title());
-        assertEquals("My Dinh Stadium", call.event().venue());
-        assertNotNull(call.event().startTime());
-        assertNotNull(call.event().endTime());
-        assertTrue(call.event().startTime().isBefore(call.event().endTime()));
+        if (demo) {
+            assertEquals("Rock Night 2026", call.event().title());
+            assertEquals("My Dinh Stadium", call.event().venue());
+            assertNotNull(call.event().startTime());
+            assertNotNull(call.event().endTime());
+            assertTrue(call.event().startTime().isBefore(call.event().endTime()));
+        } else {
+            assertNull(call.event(), "Approval must not submit fabricated schedule or venue to SQL");
+        }
     }
 
     @Test

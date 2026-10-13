@@ -9,5 +9,5 @@
 <section class="finance-panel"><div class="finance-panel-heading"><h2>Chi tiết báo cáo</h2><span class="finance-tag">Theo bộ lọc</span></div>
 <div class="scroll" tabindex="0" aria-label="Bảng báo cáo"><table><caption class="finance-table-caption">Chi tiết báo cáo</caption><thead id="columns"></thead><tbody id="rows"></tbody></table></div>
 <div class="finance-pagination" aria-label="Phân trang"><button id="previous" class="finance-button-secondary" type="button" disabled>&larr; Trang trước</button><span id="pagination" aria-live="polite"></span><button id="next" class="finance-button-secondary" type="button" disabled>Trang sau &rarr;</button></div></section>
-<details class="finance-help"><summary>Đọc báo cáo CSV bằng Excel</summary><p>CSV dùng cùng bộ lọc và bao gồm tất cả các trang. Dùng Dữ liệu → Từ văn bản/CSV, mã hóa UTF-8 và dấu phẩy. Chọn kiểu Văn bản cho cột tiền và mã định danh để giữ nguyên số lớn. Tên có nguy cơ thành công thức được bảo vệ bằng tab trong ô được quote.</p></details>
+<details class="finance-help"><summary>Đọc báo cáo CSV bằng Excel</summary><p>CSV dùng cùng bộ lọc và bao gồm tất cả các trang. Dùng Dữ liệu → Từ văn bản/CSV, mã hóa UTF-8 và dấu phẩy. Chọn kiểu Văn bản cho cột tiền và mã định danh để giữ nguyên số lớn. Các cột văn bản được bảo vệ khi mở bằng phần mềm bảng tính.</p></details>
 <%@ include file="_footer.jsp" %>

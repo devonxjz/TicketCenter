@@ -1,51 +1,19 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<c:url var="loginUrl" value="/auth/login"><c:if test="${not empty param.redirect}"><c:param name="redirect" value="${param.redirect}" /></c:if></c:url>
+<c:url var="registerUrl" value="/auth/register"><c:if test="${not empty param.redirect}"><c:param name="redirect" value="${param.redirect}" /></c:if></c:url>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Đăng nhập — TicketsCenter</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
-    <style>
-        .auth-container {
-            max-width: 480px;
-            margin: 60px auto;
-            border: 1px solid var(--gray-border);
-            padding: 40px;
-            background: var(--white);
-        }
-        .auth-tabs {
-            display: flex;
-            border-bottom: 1px solid var(--gray-border);
-            margin-bottom: 32px;
-        }
-        .auth-tab-btn {
-            flex: 1;
-            text-align: center;
-            padding: 12px 0;
-            font-size: 0.95rem;
-            font-weight: 700;
-            background: transparent;
-            border: none;
-            border-bottom: 2px solid transparent;
-            color: var(--gray-text);
-            cursor: pointer;
-            transition: all 0.15s ease;
-            text-decoration: none;
-        }
-        .auth-tab-btn.active {
-            color: var(--black);
-            border-bottom-color: var(--primary);
-        }
-        .auth-tab-btn:hover {
-            color: var(--black);
-        }
-    </style>
+
+<jsp:include page="/WEB-INF/views/layout/meta-head.jsp" />
+<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/buyer-ui.css">
 </head>
-<body class="bg-light min-h-screen d-flex flex-column justify-content-between">
+<body class="buyer-page bg-light min-h-screen d-flex flex-column justify-content-between">
     <!-- Header -->
     <nav class="navbar navbar-custom">
         <div class="container d-flex align-items-center justify-content-between">
@@ -63,8 +31,8 @@
         <div class="auth-container shadow-sm">
             <!-- Auth Switcher Tabs -->
             <div class="auth-tabs">
-                <a href="${pageContext.request.contextPath}/auth/login${not empty param.redirect ? '?redirect='.concat(param.redirect) : ''}" class="auth-tab-btn active">Đăng nhập</a>
-                <a href="${pageContext.request.contextPath}/auth/register${not empty param.redirect ? '?redirect='.concat(param.redirect) : ''}" class="auth-tab-btn">Đăng ký</a>
+                <a href="${fn:escapeXml(loginUrl)}" class="auth-tab-btn active">Đăng nhập</a>
+                <a href="${fn:escapeXml(registerUrl)}" class="auth-tab-btn">Đăng ký</a>
             </div>
 
             <!-- Login Form -->
@@ -80,11 +48,11 @@
 
                 <div id="alertBox" class="alert d-none mb-3" role="alert"></div>
 
-                <form id="loginForm" action="${pageContext.request.contextPath}/api/auth/login" method="post">
-                    <input type="hidden" name="_csrf" value="${csrfToken != null ? csrfToken : sessionScope.TC_CSRF_TOKEN}">
+                <form id="loginForm" action="${fn:escapeXml(loginUrl)}" method="post">
+                    <input type="hidden" id="login-csrf" name="_csrf" value="${csrfToken != null ? csrfToken : sessionScope.TC_CSRF_TOKEN}">
                     <div class="mb-3">
                         <label class="filter-label" for="identifier">Email hoặc Tên tài khoản</label>
-                        <input type="text" id="identifier" name="identifier" class="form-control rounded-0 border-secondary-subtle py-2" required autofocus>
+                        <input type="text" id="identifier" name="identifier" autocomplete="username" class="form-control rounded-0 border-secondary-subtle py-2" required autofocus>
                     </div>
 
                     <div class="mb-4">
@@ -92,7 +60,7 @@
                             <label class="filter-label" for="password">Mật khẩu</label>
                             <a href="${pageContext.request.contextPath}/auth/forgot-password" class="small text-danger text-decoration-none">Quên mật khẩu?</a>
                         </div>
-                        <input type="password" id="password" name="password" class="form-control rounded-0 border-secondary-subtle py-2" required>
+                        <input type="password" id="password" name="password" autocomplete="current-password" class="form-control rounded-0 border-secondary-subtle py-2" required>
                     </div>
 
                     <button type="submit" id="btnLogin" class="btn-primary-custom w-100 py-3 mb-3 fs-6">
@@ -101,21 +69,10 @@
 
                     <div class="text-center mb-4">
                         <span class="small text-muted">Chưa có tài khoản?</span>
-                        <a href="${pageContext.request.contextPath}/auth/register${not empty param.redirect ? '?redirect='.concat(param.redirect) : ''}" class="small fw-bold text-dark text-decoration-underline ms-1">Tạo tài khoản</a>
+                        <a href="${fn:escapeXml(registerUrl)}" class="small fw-bold text-dark text-decoration-underline ms-1">Tạo tài khoản</a>
                     </div>
                 </form>
 
-                <c:if test="${showDemoAccounts}">
-                <div class="p-3 bg-light border small text-muted">
-                    <strong class="text-dark d-block mb-1">Tài khoản trải nghiệm mẫu (Email hoặc Username):</strong>
-                    <div class="small">
-                        • Admin: <code>admin</code> hoặc <code>adminTIcket@gmail.com</code> (pass: <code>123123ticketCenter</code>)<br>
-                        • Quản lý BTC: <code>abcc_manager</code> hoặc <code>abcc@manager.com</code> (pass: <code>123</code>)<br>
-                        • Soát vé: <code>abcc_staff</code> hoặc <code>abcc@staff.com</code> (pass: <code>123</code>)<br>
-                        • Mua vé: <code>buyer1</code> hoặc <code>buyer@ticketscenter.vn</code> (pass: <code>123</code>)
-                    </div>
-                </div>
-                </c:if>
             </div>
         </div>
     </main>
@@ -129,7 +86,7 @@
 
     <script>
         const contextPath = '${pageContext.request.contextPath}';
-        let csrfToken = '${csrfToken != null ? csrfToken : sessionScope.TC_CSRF_TOKEN}';
+        let csrfToken = document.getElementById('login-csrf').value;
 
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -148,6 +105,7 @@
                     const cData = await cResp.json();
                     if (cData && cData.data && cData.data.token) {
                         csrfToken = cData.data.token;
+                        document.getElementById('login-csrf').value = csrfToken;
                     }
                 } catch (e) {}
             }
@@ -157,7 +115,9 @@
                 if (csrfToken) {
                     reqHeaders['X-CSRF-Token'] = csrfToken;
                 }
-                const resp = await fetch(contextPath + '/api/auth/login', {
+                const loginApi = new URL(document.getElementById('loginForm').action, window.location.href);
+                loginApi.pathname = contextPath + '/api/auth/login';
+                const resp = await fetch(loginApi.pathname + loginApi.search, {
                     method: 'POST',
                     headers: reqHeaders,
                     body: JSON.stringify({ identifier: identifier, password: password })

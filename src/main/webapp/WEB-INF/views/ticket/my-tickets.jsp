@@ -8,57 +8,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vé Của Tôi - TicketsCenter</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <style>
-        body {
-            background-color: #f8fafc;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            color: #1e293b;
-        }
-        .ticket-card {
-            background: #ffffff;
-            border-radius: 14px;
-            border: 1px solid #e2e8f0;
-            transition: transform 0.2s, box-shadow 0.2s;
-            overflow: hidden;
-        }
-        .ticket-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.06);
-        }
-        .badge-status {
-            font-size: 0.85rem;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-weight: 600;
-        }
-        .btn-qr {
-            background-color: #2563eb;
-            color: white;
-            font-weight: 600;
-            border-radius: 8px;
-            transition: all 0.2s;
-        }
-        .btn-qr:hover {
-            background-color: #1d4ed8;
-            color: white;
-        }
-        .empty-state {
-            padding: 60px 20px;
-            text-align: center;
-            background: white;
-            border-radius: 16px;
-            border: 1px dashed #cbd5e1;
-        }
-    </style>
-</head>
-<body>
 
-<div class="container py-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<jsp:include page="/WEB-INF/views/layout/meta-head.jsp" />
+<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/buyer-ui.css">
+</head>
+<body class="buyer-page">
+<jsp:include page="/WEB-INF/views/layout/header.jsp" />
+
+<main class="container py-5 buyer-container">
+    <nav class="buyer-navigation" aria-label="Tài khoản"><a href="${pageContext.request.contextPath}/profile">Hồ sơ</a><a href="${pageContext.request.contextPath}/me/orders">Đơn hàng của tôi</a><a href="${pageContext.request.contextPath}/me/tickets" aria-current="page">Vé của tôi</a><a href="${pageContext.request.contextPath}/my-refunds">Hoàn vé</a></nav>
+    <div class="d-flex justify-content-between align-items-center buyer-heading">
         <div>
-            <h2 class="fw-bold mb-1"><i class="fa-solid fa-ticket text-primary me-2"></i>Vé Của Tôi</h2>
+            <h1 class="fw-bold mb-1">Vé của tôi</h1>
             <p class="text-muted mb-0">Quản lý các vé sự kiện bạn đã mua và xuất trình mã QR khi check-in</p>
         </div>
         <a href="${pageContext.request.contextPath}/" class="btn btn-outline-secondary">
@@ -145,8 +106,9 @@
             </div>
         </c:otherwise>
     </c:choose>
-</div>
+</main>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<jsp:include page="/WEB-INF/views/layout/footer.jsp" />
 </body>
 </html>

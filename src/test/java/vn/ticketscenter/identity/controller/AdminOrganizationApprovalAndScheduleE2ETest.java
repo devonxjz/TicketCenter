@@ -84,9 +84,17 @@ public class AdminOrganizationApprovalAndScheduleE2ETest {
     private User adminUser;
     private static final String DEFAULT_PASSWORD = "Password123456";
     private PasswordHasher passwordHasher;
+    private String previousDataMode, previousEnvironment;
+
+    @org.junit.jupiter.api.AfterEach void restoreDataMode() {
+        if (previousDataMode == null) System.clearProperty("app.data.mode"); else System.setProperty("app.data.mode", previousDataMode);
+        if (previousEnvironment == null) System.clearProperty("app.env"); else System.setProperty("app.env", previousEnvironment);
+    }
 
     @BeforeEach
     void setUp() {
+        previousDataMode = System.getProperty("app.data.mode"); previousEnvironment = System.getProperty("app.env");
+        System.setProperty("app.data.mode", "demo"); System.setProperty("app.env", "test");
         userDatabase = new LinkedHashMap<>();
         organizationDatabase = new LinkedHashMap<>();
         membershipDatabase = new ArrayList<>();

@@ -10,6 +10,15 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class EventCatalogServiceTest {
+    private String previousMode, previousEnv;
+    @org.junit.jupiter.api.BeforeEach void fixtureMode() {
+        previousMode = System.getProperty("app.data.mode"); previousEnv = System.getProperty("app.env");
+        System.setProperty("app.data.mode", "demo"); System.setProperty("app.env", "test");
+    }
+    @org.junit.jupiter.api.AfterEach void restoreMode() {
+        if (previousMode == null) System.clearProperty("app.data.mode"); else System.setProperty("app.data.mode", previousMode);
+        if (previousEnv == null) System.clearProperty("app.env"); else System.setProperty("app.env", previousEnv);
+    }
     private final UUID id = UUID.randomUUID();
     private static class Cache implements EventCatalogCache {
         final Map<String, String> values = new HashMap<>();
@@ -49,6 +58,15 @@ class EventCatalogServiceTest {
         assertTrue(service.event(id).contains(id.toString()));
         cache.broken = false; repository.broken = true;
         assertThrows(IllegalStateException.class, () -> service.event(id)); assertTrue(cache.values.isEmpty());
+    }
+    @Test void realModeRejectsPreviouslyCachedSyntheticProjectionAndRechecksEveryRead() {
+        var repository = new Repository(); var cache = new Cache(); var service = new EventCatalogService(repository, cache);
+        service.event(id); // A fixture projection is already cached.
+        System.setProperty("app.data.mode", "real");
+        repository.hidden = true;
+        assertThrows(EventCatalogService.NotFound.class, () -> service.event(id));
+        assertThrows(EventCatalogService.NotFound.class, () -> service.event(id));
+        assertEquals(3, repository.calls);
     }
     @Test void missingOrHiddenParentsAre404AndEmptyCollectionsAreSuccess() {
         var repository = new Repository(); var cache = new Cache(); var service = new EventCatalogService(repository, cache);

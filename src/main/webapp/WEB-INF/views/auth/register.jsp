@@ -1,68 +1,19 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<c:url var="loginUrl" value="/auth/login"><c:if test="${not empty param.redirect}"><c:param name="redirect" value="${param.redirect}" /></c:if></c:url>
+<c:url var="registerUrl" value="/auth/register"><c:if test="${not empty param.redirect}"><c:param name="redirect" value="${param.redirect}" /></c:if></c:url>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Đăng ký tài khoản — TicketsCenter</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
-    <style>
-        .auth-container {
-            max-width: 480px;
-            margin: 60px auto;
-            border: 1px solid var(--gray-border, #dee2e6);
-            padding: 40px;
-            background: #fff;
-        }
-        .auth-tabs {
-            display: flex;
-            border-bottom: 1px solid var(--gray-border, #dee2e6);
-            margin-bottom: 32px;
-        }
-        .auth-tab-btn {
-            flex: 1;
-            text-align: center;
-            padding: 12px 0;
-            font-size: 0.95rem;
-            font-weight: 700;
-            background: transparent;
-            border: none;
-            border-bottom: 2px solid transparent;
-            color: var(--gray-text, #6c757d);
-            cursor: pointer;
-            transition: all 0.15s ease;
-            text-decoration: none;
-        }
-        .auth-tab-btn.active {
-            color: #000;
-            border-bottom-color: var(--primary, #0d6efd);
-        }
-        .auth-tab-btn:hover {
-            color: #000;
-        }
-        .otp-input {
-            width: 48px;
-            height: 56px;
-            text-align: center;
-            font-size: 1.5rem;
-            font-weight: 700;
-            border: 1px solid var(--gray-border, #dee2e6);
-            outline: none;
-            border-radius: 0;
-            background: #fff;
-            color: #212529;
-            transition: border-color 0.15s ease;
-        }
-        .otp-input:focus {
-            border-color: #212529;
-            box-shadow: 0 0 0 2px rgba(33, 37, 41, 0.15);
-        }
-    </style>
+
+<jsp:include page="/WEB-INF/views/layout/meta-head.jsp" />
+<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/buyer-ui.css">
 </head>
-<body class="bg-light min-h-screen d-flex flex-column justify-content-between">
+<body class="buyer-page bg-light min-h-screen d-flex flex-column justify-content-between">
     <!-- Header -->
     <nav class="navbar navbar-custom">
         <div class="container d-flex align-items-center justify-content-between">
@@ -80,8 +31,8 @@
         <div class="auth-container shadow-sm">
             <!-- Auth Switcher Tabs (Chỉ 2 tab Đăng nhập và Đăng ký) -->
             <div class="auth-tabs" id="authTabsHeader">
-                <a href="${pageContext.request.contextPath}/auth/login${not empty param.redirect ? '?redirect='.concat(param.redirect) : ''}" class="auth-tab-btn">Đăng nhập</a>
-                <a href="${pageContext.request.contextPath}/auth/register${not empty param.redirect ? '?redirect='.concat(param.redirect) : ''}" class="auth-tab-btn active">Đăng ký</a>
+                <a href="${fn:escapeXml(loginUrl)}" class="auth-tab-btn">Đăng nhập</a>
+                <a href="${fn:escapeXml(registerUrl)}" class="auth-tab-btn active">Đăng ký</a>
             </div>
 
             <!-- Bước 1: Form Đăng Ký -->
@@ -124,7 +75,7 @@
 
                     <div class="text-center mb-2">
                         <span class="small text-muted">Đã có tài khoản?</span>
-                        <a href="${pageContext.request.contextPath}/auth/login${not empty param.redirect ? '?redirect='.concat(param.redirect) : ''}" class="small fw-bold text-dark text-decoration-underline ms-1">Đăng nhập</a>
+                        <a href="${fn:escapeXml(loginUrl)}" class="small fw-bold text-dark text-decoration-underline ms-1">Đăng nhập</a>
                     </div>
                 </form>
             </div>
@@ -302,11 +253,11 @@
                 if (resp.ok && res.data && res.data.registered) {
                     currentRegisteredEmail = email;
                     document.getElementById('displayRegisteredEmail').innerText = email;
-                    
+
                     // Ẩn form đăng ký, hiển thị ngay ô nhập OTP tại chỗ
                     document.getElementById('formRegister').classList.add('d-none');
                     document.getElementById('formOtp').classList.remove('d-none');
-                    
+
                     // Khởi động đếm ngược gửi lại OTP và focus ô số đầu tiên
                     startCooldown(60);
                     otpInputs.forEach(i => i.value = '');

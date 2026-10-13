@@ -128,7 +128,7 @@ class EventHttpWarIT {
         assertEquals(200,get(anonymous,"/api/events/"+event).statusCode());
         for(String query:List.of("eventId=","id=")) {
             var detail=get(anonymous,"/event-detail?"+query+event);assertEquals(200,detail.statusCode());
-            assertTrue(detail.body().contains("event-hold-link"));assertTrue(detail.body().contains("select-tickets?eventId="));
+            assertTrue(detail.body().contains("event-hold-link"));assertTrue(detail.body().contains("bookingSection"));
             assertTrue(detail.body().contains("zone-status"),"Keep the Event seat projection beside the Hold handoff");
         }
         var selection=get(anonymous,"/select-tickets?eventId="+event);assertEquals(200,selection.statusCode());

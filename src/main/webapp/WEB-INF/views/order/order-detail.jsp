@@ -8,32 +8,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chi Tiết Đơn Hàng ${fn:escapeXml(order.orderCode)} - TicketsCenter</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <style>
-        body {
-            background-color: #f8fafc;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            color: #1e293b;
-        }
-        .detail-card {
-            background: #ffffff;
-            border-radius: 16px;
-            border: 1px solid #e2e8f0;
-            padding: 24px;
-            margin-bottom: 24px;
-        }
-    </style>
-</head>
-<body>
 
-<div class="container py-5" style="max-width: 800px;">
+<jsp:include page="/WEB-INF/views/layout/meta-head.jsp" />
+<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/buyer-ui.css">
+</head>
+<body class="buyer-page">
+<jsp:include page="/WEB-INF/views/layout/header.jsp" />
+
+<main class="container py-5 buyer-detail">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <a href="${pageContext.request.contextPath}/me/orders" class="btn btn-outline-secondary btn-sm mb-2">
                 <i class="fa-solid fa-arrow-left me-1"></i> Danh sách đơn hàng
             </a>
-            <h3 class="fw-bold mb-0">Đơn Hàng #${fn:escapeXml(order.orderCode)}</h3>
+            <h1 class="h3 fw-bold mb-0">Đơn hàng #${fn:escapeXml(order.orderCode)}</h1>
         </div>
         <div>
             <c:choose>
@@ -131,8 +119,11 @@
             </div>
         </div>
     </c:if>
-</div>
+    <c:if test="${order.status == 'PENDING_PAYMENT'}"><div class="detail-card"><h2 class="h5 fw-bold">Hoàn tất đơn vé</h2><p class="text-muted">Tiếp tục với vé đang giữ để kiểm tra trạng thái và thanh toán.</p><a href="${pageContext.request.contextPath}/checkout" class="btn btn-primary">Tiếp tục thanh toán</a></div></c:if>
+    <c:if test="${order.status == 'PAID'}"><a href="${pageContext.request.contextPath}/refund-requests?orderId=${fn:escapeXml(order.id)}" class="btn btn-outline-dark">Yêu cầu hoàn vé</a></c:if>
+</main>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<jsp:include page="/WEB-INF/views/layout/footer.jsp" />
 </body>
 </html>

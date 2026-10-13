@@ -57,7 +57,7 @@
   function display(key,value) {if(value==null)return '—';if(money.has(key))return formatVnd(value);return String(value);}
   function clear() {
     ++detailSequence;
-    for(const id of ['rows','columns','summary','audit-detail','daily-chart','daily-values'])document.getElementById(id)?.replaceChildren();
+    for(const id of ['rows','columns','summary','queue-summary','audit-detail','daily-chart','daily-values'])document.getElementById(id)?.replaceChildren();
     for(const id of ['previous','next']){const button=document.getElementById(id);if(button)button.disabled=true;}
     const pagination=document.getElementById('pagination');if(pagination)pagination.textContent='';
   }
@@ -102,14 +102,25 @@
   function svgNode(tag,attributes,text) {const el=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [key,value]of Object.entries(attributes))el.setAttribute(key,String(value));if(text!=null)el.textContent=String(text);return el;}
   function overview(result) {
     const summary=document.getElementById('summary');
+    const queue=document.getElementById('queue-summary');
+    if(queue)for(const [key,path,linkLabel]of [
+      ['pendingOrganizations','/admin/orgs/approval','Xem hồ sơ tổ chức →'],
+      ['pendingEvents','/admin/events/approval','Thẩm định sự kiện →'],
+      ['pendingRefunds','/admin/refund-requests','Xử lý hoàn vé →'],
+      ['draftSettlements','/finance/settlements','Đối soát bảng kê →']
+    ]){
+      if(result[key]==null)continue;
+      const card=node('div'),link=node('a',linkLabel);card.className='finance-queue';link.href=context+path;
+      card.append(node('dt',labels[key]),node('dd',String(result[key])),link);queue.append(card);
+    }
     function stat(key,value){const card=node('div');card.className=key==='asOf'?'finance-stat finance-stat-wide':'finance-stat';card.append(node('dt',labels[key]||key),node('dd',display(key,value)));summary.append(card);}
-    for(const key of ['totalUsers','activeOrganizations','pendingOrganizations','pendingEvents','pendingRefunds','draftSettlements','asOf','todayCohortGrossRevenue','todayCohortCommission'])if(result[key]!=null)stat(key,result[key]);
+    for(const key of ['totalUsers','activeOrganizations','asOf','todayCohortGrossRevenue','todayCohortCommission'])if(result[key]!=null)stat(key,result[key]);
     for(const [key,value]of Object.entries(result.todayCashFlow||{}))stat(key,value);
     const bars=chartBars(result.dailyMetrics||[]),svg=svgNode('svg',{viewBox:'0 0 640 310',role:'img','aria-label':'Doanh thu và dòng tiền trong 7 ngày UTC'});
     svg.append(svgNode('line',{x1:20,y1:150,x2:620,y2:150,stroke:'#555'}));
     const rows=document.getElementById('daily-values');
     bars.forEach((bar,i)=>{const x=36+i*84;
-      for(const [offset,height,negative,color]of [[0,bar.revenueHeight,false,'#286a50'],[26,bar.cashHeight,bar.cashNegative,'#8d5434']]){
+      for(const [offset,height,negative,color]of [[0,bar.revenueHeight,false,'#e50914'],[26,bar.cashHeight,bar.cashNegative,'#111111']]){
         const rect=svgNode('rect',{x:x+offset,y:negative?150:150-height,width:22,height,fill:color});rect.append(svgNode('title',{},bar.date+' · '+formatVnd(offset?bar.netCashFlow:bar.cohortGrossRevenue)));svg.append(rect);
       }
       svg.append(svgNode('text',{x:x+24,y:300,'text-anchor':'middle','font-size':12},String(bar.date).slice(5)));
