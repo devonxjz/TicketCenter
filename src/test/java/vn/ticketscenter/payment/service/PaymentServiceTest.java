@@ -417,11 +417,15 @@ class PaymentServiceTest {
         assertTrue(validReturn.validSignature());
         assertTrue(validReturn.success());
         assertEquals(0, new BigDecimal("100000").compareTo(validReturn.amount()));
+        // Return hợp lệ phải ghi nhận kết quả ngay, không chờ IPN
+        assertEquals("CAPTURED", repo.appliedStatus);
 
         // Sai hash
+        repo.appliedStatus = null;
         Map<String, String> invalidParams = new HashMap<>(validParams);
         invalidParams.put("vnp_SecureHash", "TAMPERED");
         var invalidReturn = service.processReturn(invalidParams);
+        assertNull(repo.appliedStatus, "Chữ ký sai không được thay đổi trạng thái thanh toán");
         assertFalse(invalidReturn.validSignature());
         assertFalse(invalidReturn.success());
         assertTrue(invalidReturn.orderId().isEmpty());

@@ -17,12 +17,12 @@
 <section id="current-hold" hidden class="hold-panel" aria-labelledby="held-tickets-heading">
 <div class="hold-timer-bar mb-4"><span>Thời gian giữ vé còn lại</span><strong id="hold-countdown" role="timer" aria-label="Thời gian còn lại"></strong></div>
 <h2 id="held-tickets-heading" class="h5 fw-bold">1. Vé đang giữ</h2><p id="hold-id" hidden class="hold-id text-muted small"></p><p id="hold-deadline" class="small text-muted"></p><ul id="hold-items" class="hold-items"></ul><p class="d-flex justify-content-between border-top pt-3">Giá vé đã giữ <strong id="hold-total"></strong></p>
-<p class="small text-muted">Hoàn tất thanh toán trước khi hết thời gian giữ vé.</p><div class="d-flex flex-wrap gap-2"><a id="hold-view" class="btn btn-outline-dark">Xem sự kiện</a><button id="hold-cancel" type="button" class="btn btn-outline-danger">Hủy lượt giữ</button></div>
+<p class="small text-muted">Vé được giữ cho bạn đến hết thời gian trên. Bạn có thể thanh toán ngay hoặc quay lại thanh toán trước khi hết hạn.</p><div class="d-flex flex-wrap gap-2"><a id="hold-view" class="btn btn-outline-dark">Xem sự kiện</a><button id="hold-cancel" type="button" class="btn btn-outline-danger">Hủy lượt giữ</button></div>
 </section>
 <section id="order-checkout" class="hold-panel" aria-labelledby="order-heading">
 <h2 id="order-heading" class="h5 fw-bold">2. Chi tiết đơn vé</h2><p id="order-message" role="status" aria-live="polite">Đang tải đơn hàng…</p>
 <div id="order-recovery" hidden class="hold-notice"><p>Chưa xác định được kết quả yêu cầu. Thử lại với cùng yêu cầu đã lưu.</p><button id="order-retry" type="button" class="btn btn-dark">Thử lại yêu cầu đơn hàng</button></div>
-<button id="order-create" hidden type="button" class="btn btn-dark w-100">Xác nhận tạo đơn từ vé đang giữ</button>
+<button id="order-create" hidden type="button" class="btn btn-dark w-100">Tạo đơn &amp; tiếp tục thanh toán</button>
 <div id="order-summary" hidden><p id="order-code" class="hold-id small"></p><p id="order-status" class="small text-muted"></p><ul id="order-items" class="hold-items"></ul>
 <form id="order-coupon-form" class="border-top pt-3 mb-4"><label for="order-coupon-code" class="filter-label">Mã khuyến mãi / Giảm giá</label><input id="order-coupon-code" class="form-control" type="text" maxlength="80" autocomplete="off" placeholder="Nhập mã giảm giá" aria-describedby="order-coupon-help"><p id="order-coupon-help" class="small text-muted mt-2">Mã giảm giá được kiểm tra khi bạn áp dụng vào đơn hàng.</p><div class="d-flex flex-wrap gap-2"><button id="order-preview" type="button" class="btn btn-outline-dark">Kiểm tra mã</button><button id="order-apply" type="submit" class="btn btn-dark">Áp dụng</button><button id="order-remove" type="button" class="btn btn-outline-danger">Gỡ mã</button></div></form>
 <p id="order-preview-result" role="status" aria-live="polite" class="small"></p><p id="order-applied-coupon" class="small"></p>
@@ -34,6 +34,6 @@
 <button id="hold-refresh" type="button" class="btn btn-outline-dark mt-2">Cập nhật vé đang giữ</button>
 <noscript>Vui lòng bật JavaScript để xem và thanh toán vé đang giữ.</noscript>
 </main><jsp:include page="/WEB-INF/views/layout/footer.jsp" />
-<script src="${pageContext.request.contextPath}/assets/js/ticket-hold.js?v=2" defer></script>
-<script src="${pageContext.request.contextPath}/assets/js/order-checkout.js?v=2" defer></script>
+<script src="${pageContext.request.contextPath}/assets/js/ticket-hold.js?v=4" defer></script>
+<script src="${pageContext.request.contextPath}/assets/js/order-checkout.js?v=3" defer></script>
 </body></html>

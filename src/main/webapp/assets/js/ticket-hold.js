@@ -330,6 +330,7 @@
     const dateText = value => new Date(value).toLocaleString("vi-VN");
     let renderedOptions = null;
     let expiryRead = null;
+    let payNow = false;
     let client;
 
     function selections() {
@@ -375,6 +376,7 @@
         if (submitBtn) {
             submitBtn.disabled = !valid || count > 8 || client.state.phase !== "selecting";
         }
+        if (get("hold-pay-now")) get("hold-pay-now").disabled = !submitBtn || submitBtn.disabled;
         const zonesEl = get("hold-zones");
         if (zonesEl) {
             for (const input of zonesEl.querySelectorAll("input[type=checkbox]")) input.disabled = count >= 8 && !input.checked;
@@ -433,11 +435,21 @@
         if (form) {
             form.hidden = state.phase !== "selecting";
             get("hold-zones").disabled = state.phase !== "selecting";
-            if (state.phase !== "selecting") get("hold-submit").disabled = true;
+            if (state.phase !== "selecting") {
+                get("hold-submit").disabled = true;
+                if (get("hold-pay-now")) get("hold-pay-now").disabled = true;
+            }
             if (state.options && state.options !== renderedOptions) {
                 renderedOptions = state.options;
                 renderOptions(state.options);
             }
+        }
+        // "Thanh toán ngay": lượt giữ vừa được máy chủ xác nhận thì chuyển thẳng sang thanh toán.
+        if (payNow && ["selecting", "expired"].includes(state.phase)) payNow = false;
+        if (payNow && state.phase === "active" && state.hold) {
+            payNow = false;
+            root.location.assign(context + "/checkout?pay=now");
+            return;
         }
         get("current-hold").hidden = !state.hold;
         if (page === "current") get("hold-heading").textContent = displayText(state.hold?.eventTitle) || "Lượt giữ vé";
@@ -464,7 +476,11 @@
         storage: { getItem: key => root.sessionStorage.getItem(key), setItem: (key, value) => root.sessionStorage.setItem(key, value), removeItem: key => root.sessionStorage.removeItem(key) },
         randomUUID: () => root.crypto.randomUUID(), now: () => root.performance.now(),
         eventId: resolveEventId(root.location.search), page, changed: render });
-    get("hold-form")?.addEventListener("submit", event => { event.preventDefault(); void client.submit(selections()); });
+    get("hold-form")?.addEventListener("submit", event => {
+        event.preventDefault();
+        payNow = event.submitter?.id === "hold-pay-now";
+        void client.submit(selections());
+    });
     get("hold-cancel").addEventListener("click", () => void client.cancel());
     get("hold-retry").addEventListener("click", () => void client.retry());
     get("hold-refresh").addEventListener("click", () => void client.refresh());

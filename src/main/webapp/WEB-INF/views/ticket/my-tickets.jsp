@@ -67,6 +67,13 @@
 
                                 <h5 class="fw-bold mb-2 text-truncate" title="${fn:escapeXml(t.eventTitle)}">${fn:escapeXml(t.eventTitle)}</h5>
 
+                                <c:if test="${t.status == 'ACTIVE'}">
+                                    <a href="${pageContext.request.contextPath}/tickets/${fn:escapeXml(t.id)}" class="d-block text-center mb-3" title="Mở vé điện tử">
+                                        <img src="${pageContext.request.contextPath}/api/tickets/${fn:escapeXml(t.id)}/qr" alt="Mã QR vé ${fn:escapeXml(t.ticketCode)}" width="160" height="160" loading="lazy" class="border rounded bg-white p-1">
+                                        <span class="d-block small font-monospace text-muted mt-1">${fn:escapeXml(t.ticketCode)}</span>
+                                    </a>
+                                </c:if>
+
                                 <div class="text-muted small mb-1">
                                     <i class="fa-regular fa-clock me-1"></i>
                                     <span>${fn:escapeXml(t.startTime)}</span>

@@ -252,6 +252,19 @@
         NOT_STARTED: "Mã chưa bắt đầu", EXPIRED: "Mã đã hết hạn", QUOTA_EXHAUSTED: "Mã đã hết lượt", INVALID_CONFIGURATION: "Mã có cấu hình không hợp lệ" };
     const status = { PENDING_PAYMENT: "Chờ thanh toán", PAID: "Đã thanh toán", CANCELLED: "Đã hủy", EXPIRED: "Đã hết hạn" };
     let expiryTimer = null;
+    // ?pay=now ("Thanh toán ngay"): tự tạo đơn từ lượt giữ rồi chuyển sang cổng thanh toán, mỗi bước chỉ thử một lần.
+    let autoPay = new URLSearchParams(root.location.search).get("pay") === "now", autoCreated = false;
+    function advanceAutoPay(state, holdBusy) {
+        if (!autoPay || holdBusy || state.phase !== "ready") return;
+        if (client.creatable() && !autoCreated) {
+            autoCreated = true;
+            root.setTimeout(() => void client.create(), 0);
+        } else if (client.editable()) {
+            autoPay = false;
+            root.history.replaceState(null, "", root.location.pathname);
+            root.setTimeout(() => void client.pay(), 0);
+        } else autoPay = false;
+    }
     const client = new OrderClient({ fetch: (path, options) => root.fetch(context + path, options), storage: {
         getItem: key => root.sessionStorage.getItem(key), setItem: (key, value) => root.sessionStorage.setItem(key, value), removeItem: key => root.sessionStorage.removeItem(key)
     }, randomUUID: () => root.crypto.randomUUID(), now: () => root.performance.now(), changed: render });
@@ -296,6 +309,7 @@
             get("order-total").textContent = holdApi.vnd(order.totalAmount);
             get("order-applied-coupon").textContent = order.appliedCouponCode === null ? "Chưa áp dụng mã giảm giá." : "Mã đang áp dụng " + order.appliedCouponCode;
         }
+        advanceAutoPay(state, holdBusy);
         if (["ready", "uncertain"].includes(state.phase) && client.remaining() > 0) {
             expiryTimer = root.setTimeout(() => void client.refresh(), Math.min(2147483647, client.remaining() + 1));
         }
