@@ -677,12 +677,15 @@ test('seat map enriches actual available IDs and keeps booking usable if layout 
 
 test('prototype layout keeps seated and standing inventory separate and steppers enforce their shared limit', async () => {
     const f=fixture();
+    f.server.options.zones.push({...f.server.options.zones[0],id:'90000000-0000-4000-8000-000000000001',name:'Floor B'});
     class Node {
         constructor(tag='div'){this.tag=tag;this.dataset={};this.children=[];this.listeners={};this.value='';this.className='';this.classList={add:value=>{this.className+=' '+value;},remove:value=>{this.className=this.className.replace(value,'');}};}
         append(...children){this.children.push(...children);}
         replaceChildren(...children){this.children=children;}
         setAttribute(key,value){this[key]=value;}
         addEventListener(key,handler){this.listeners[key]=handler;}
+        focus(){this.focused=true;}
+        scrollIntoView(options){this.reveal=options;}
         querySelectorAll(selector){const all=this.children.flatMap(child=>[child,...child.querySelectorAll('*')]);return selector==='*'?all:all.filter(child=>selector==='input'?child.tag==='input':selector==='input[type=checkbox]'?child.type==='checkbox':selector==='input.hold-quantity'?child.tag==='input'&&child.className==='hold-quantity':selector==='button[data-quantity-step]'?child.tag==='button'&&child.dataset.quantityStep: false);}
     }
     const ids=new Map(),get=id=>{if(!ids.has(id))ids.set(id,new Node());return ids.get(id);},body=new Node();
@@ -692,15 +695,47 @@ test('prototype layout keeps seated and standing inventory separate and steppers
         fetch:f.create().fetch,setInterval:()=>1,clearInterval:()=>{},addEventListener:()=>{}};
     vm.runInNewContext(fs.readFileSync(require.resolve('../../main/webapp/assets/js/ticket-hold.js'),'utf8'),{window:root,URLSearchParams});
     for(let i=0;i<6;i++)await new Promise(resolve=>setImmediate(resolve));
+    const tabs=get('zone-tabs').children;
+    assert.equal(tabs.length,3);
+    assert.equal(tabs[0].textContent,f.server.options.zones[0].name);
+    assert.equal(tabs[0]['aria-selected'],'true');
+    assert.equal(get('seat-workspace').hidden,true);
+    assert.equal(get('standing-zones').hidden,false);
+    let prevented=false;
+    tabs[0].listeners.keydown({key:'End',preventDefault:()=>{prevented=true;}});
+    assert.equal(prevented,true);
+    assert.equal(tabs[2]['aria-selected'],'true');
+    assert.equal(tabs[2].focused,true);
+    assert.equal(tabs[2].reveal.inline,'nearest');
+    assert.equal(get('standing-zones').children[0].hidden,true);
+    assert.equal(get('standing-zones').children[1].hidden,false);
+    tabs[2].listeners.keydown({key:'Home',preventDefault:()=>{}});
+    assert.equal(tabs[0]['aria-selected'],'true');
+    assert.equal(get('standing-zones').children[0].hidden,false);
+    assert.equal(get('standing-zones').children[1].hidden,true);
+    tabs[1].listeners.click();
     assert.equal(get('hold-form').dataset.ticketLayout,'seated');
-    assert.equal(get('standing-zones').children.length,1);
+    assert.equal(get('seat-workspace').hidden,false);
+    assert.equal(get('standing-zones').hidden,true);
+    assert.equal(tabs[1]['aria-selected'],'true');
+    assert.equal(get('standing-zones').children.length,2);
     assert.equal(get('hold-zones').children.length,1);
+    const seatedSteps=get('hold-zones').querySelectorAll('button[data-quantity-step]');
+    assert.equal(seatedSteps.length,2);
     const quantity=get('standing-zones').querySelectorAll('input')[0],buttons=get('standing-zones').querySelectorAll('button[data-quantity-step]');
     const minus=buttons.find(button=>button.dataset.quantityStep==='-1'),plus=buttons.find(button=>button.dataset.quantityStep==='1');
     assert.equal(minus.disabled,true);
-    const seatCounter=get('hold-zones').querySelectorAll('input').find(input=>input.dataset.seatCount);seatCounter.value='1';get('hold-zones').oninput();assert.equal(get('hold-submit').disabled,true);const seat=get('hold-zones').querySelectorAll('input[type=checkbox]')[0];
+    const seatCounter=get('hold-zones').querySelectorAll('input').find(input=>input.dataset.seatCount);
+    seatedSteps.find(button=>button.dataset.quantityStep==='1').listeners.click();
+    assert.equal(seatCounter.value,'1');
+    assert.equal(seatedSteps.find(button=>button.dataset.quantityStep==='1').disabled,true);
+    assert.equal(get('hold-submit').disabled,true);const seat=get('hold-zones').querySelectorAll('input[type=checkbox]')[0];
     for(let i=0;i<7;i++)plus.listeners.click();assert.equal(plus.disabled,true);assert.equal(get('hold-submit').disabled,true);seat.checked=true;get('hold-zones').oninput();
     assert.equal(quantity.value,'7');assert.equal(plus.disabled,true);assert.equal(get('hold-submit').disabled,false);
+    assert.equal(get('selection-total').textContent,'1.250.000 đ');
+    tabs[0].listeners.click();
+    assert.equal(seat.checked,true);
+    assert.equal(quantity.value,'7');
     assert.equal(get('selection-total').textContent,'1.250.000 đ');
     plus.listeners.click();assert.equal(quantity.value,'7');
     minus.listeners.click();assert.equal(quantity.value,'6');assert.equal(plus.disabled,false);

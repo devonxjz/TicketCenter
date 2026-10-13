@@ -508,16 +508,84 @@
         get("sale-deadline").textContent = "Đóng bán lúc " + dateText(options.saleEnd);
         get("hold-zones").replaceChildren();
         get('standing-zones')?.replaceChildren();
-        if(get('standing-zones'))get('standing-zones').hidden=!options.zones.some(zone=>zone.type==='STANDING');
-        if(get('seat-workspace'))get('seat-workspace').hidden=!options.zones.some(zone=>zone.type==='SEATED');
-        get('hold-form').dataset.ticketLayout=options.zones.some(zone=>zone.type==='SEATED')?'seated':'standing';
+        const tabs = get('zone-tabs');
+        tabs?.replaceChildren();
+        const zonePanels = [];
+        function quantityStepper(input, zoneName) {
+            const stepper = element('div');
+            stepper.className = 'hold-stepper';
+            for (const delta of [-1, 1]) {
+                const button = element('button', delta < 0 ? '−' : '+');
+                button.type = 'button';
+                button.dataset.quantityStep = String(delta);
+                button.quantityInput = input;
+                button.setAttribute('aria-label', (delta < 0 ? 'Giảm' : 'Tăng') + ' số lượng vé ' + zoneName);
+                button.addEventListener('click', () => {
+                    if (client.state.phase !== 'selecting') return;
+                    const count = selections().filter(item => item.seatId === null).reduce((sum, item) => sum + item.quantity, 0) + seatZones.reduce((sum, zone) => sum + zone.wanted, 0);
+                    const next = (Number(input.value) || 0) + delta;
+                    if (next >= 0 && next <= Number(input.max) && (delta < 0 || count < 8)) {
+                        input.value = String(next);
+                        summary();
+                    }
+                });
+                stepper.append(button);
+                if (delta < 0) stepper.append(input);
+            }
+            return stepper;
+        }
+        function activateZone(index, focus = false, reveal = false) {
+            if (client.state.phase !== 'selecting') return;
+            zonePanels.forEach(({field, tab, zone}, position) => {
+                const active = position === index;
+                field.hidden = !active;
+                if (tab) {
+                    tab.setAttribute('aria-selected', String(active));
+                    tab.tabIndex = active ? 0 : -1;
+                    if (active && focus) tab.focus();
+                    if (active && reveal) tab.scrollIntoView?.({block: 'nearest', inline: 'nearest'});
+                }
+                if (active) {
+                    get('hold-form').dataset.ticketLayout = zone.type === 'SEATED' ? 'seated' : 'standing';
+                    if (get('seat-workspace')) get('seat-workspace').hidden = zone.type !== 'SEATED';
+                    if (get('standing-zones')) get('standing-zones').hidden = zone.type !== 'STANDING';
+                    if (get('seat-map-heading')) get('seat-map-heading').textContent = 'Chọn ghế · ' + zone.name;
+                }
+            });
+        }
         seatZones = [];
         for (const zone of options.zones) {
             const field = element("fieldset");
+            field.id = 'zone-panel-' + zone.id;
+            field.hidden = true;
+            field.setAttribute('role', 'tabpanel');
+            const tab = tabs ? element('button', zone.name) : null;
+            if (tab) {
+                const index = zonePanels.length;
+                tab.type = 'button';
+                tab.id = 'zone-tab-' + zone.id;
+                tab.className = 'hold-zone-tab';
+                tab.setAttribute('role', 'tab');
+                tab.setAttribute('aria-controls', field.id);
+                field.setAttribute('aria-labelledby', tab.id);
+                tab.addEventListener('click', () => activateZone(index, false, true));
+                tab.addEventListener('keydown', event => {
+                    let next;
+                    if (event.key === 'ArrowRight') next = (index + 1) % zonePanels.length;
+                    else if (event.key === 'ArrowLeft') next = (index - 1 + zonePanels.length) % zonePanels.length;
+                    else if (event.key === 'Home') next = 0;
+                    else if (event.key === 'End') next = zonePanels.length - 1;
+                    else return;
+                    event.preventDefault();
+                    activateZone(next, true, true);
+                });
+                tabs.append(tab);
+            }
+            zonePanels.push({field, tab, zone});
             field.className = "hold-zone "+(zone.type==='STANDING'?'hold-standing-tier':/vip/i.test(zone.name)?'hold-seated-tier is-premium':'hold-seated-tier');
             field.append(element("legend", zone.type==='STANDING'?zone.name:zone.name+" · "+vnd(zone.unitPrice)));
             if (zone.type === "STANDING") {
-                const availability=element('p','Còn '+zone.availableStanding+' vé');availability.className='hold-stock';field.append(availability);
+                const availability=element('p',zone.availableStanding ? 'Vé đứng · Còn '+zone.availableStanding+' vé' : 'Vé đứng · Đã hết vé');availability.className='hold-stock';field.append(availability);
                 const controls=element('div');controls.className='hold-standing-controls';
                 const price=element('strong',vnd(zone.unitPrice)+' / vé');price.className='hold-standing-price';controls.append(price);
                 const label = element("label", "Số lượng");
@@ -526,26 +594,15 @@
                 input.type = "number"; input.min = "0"; input.max = String(Math.min(8, zone.availableStanding)); input.step = "1"; input.value = "0";
                 input.className = "hold-quantity"; input.dataset.zoneId = zone.id; input.disabled = zone.availableStanding === 0;
                 input.setAttribute('aria-label','Số lượng vé '+zone.name);
-                const stepper=element('div');stepper.className='hold-stepper';
-                for(const delta of [-1,1]){
-                    const button=element('button',delta<0?'−':'+');button.type='button';button.dataset.quantityStep=String(delta);button.quantityInput=input;
-                    button.setAttribute('aria-label',(delta<0?'Giảm':'Tăng')+' số lượng vé '+zone.name);
-                    button.addEventListener('click',()=>{
-                        if(client.state.phase!=='selecting')return;
-                        const value=Number(input.value)||0,count=selections().filter(item=>item.seatId===null).reduce((sum,item)=>sum+item.quantity,0)+seatZones.reduce((sum,zone)=>sum+zone.wanted,0),next=value+delta;
-                        if(next>=0&&next<=Number(input.max)&&(delta<0||count<8)){input.value=String(next);summary();}
-                    });
-                    stepper.append(button);if(delta<0)stepper.append(input);
-                }
-                label.append(stepper);controls.append(label);field.append(controls);
+                label.append(quantityStepper(input, zone.name));controls.append(label);field.append(controls);
             } else {
                 // Chọn số lượng trước; sơ đồ ghế thật (theo hàng, kèm ghế đang giữ/đã bán) hiện ra sau đó.
-                const stock=element("p",zone.availableSeats.length+" ghế trống");stock.className="hold-seat-stock";field.append(stock);
+                const stock=element("p",zone.availableSeats.length ? "Vé ngồi · "+zone.availableSeats.length+" ghế trống" : "Vé ngồi · Đã hết ghế trống");stock.className="hold-seat-stock";field.append(stock);
                 const countLabel = element("label", "Số ghế");countLabel.className="hold-seat-count-label";
                 const counter = element("input");
                 counter.type = "number"; counter.min = "0"; counter.max = String(Math.min(8, zone.availableSeats.length)); counter.step = "1"; counter.value = "0";
                 counter.className = "hold-quantity"; counter.dataset.seatCount = "1"; counter.setAttribute("aria-label","Số ghế muốn đặt tại "+zone.name); counter.disabled = !zone.availableSeats.length;
-                countLabel.append(counter);
+                countLabel.append(quantityStepper(counter, zone.name));
                 const hint = element("p"); hint.hidden = true;
                 const panel = element("div"); panel.hidden = true;
 
@@ -574,6 +631,7 @@
         }
         get("hold-zones").oninput = summary;
         if(get('standing-zones'))get('standing-zones').oninput=summary;
+        activateZone(0);
         summary();
     }
 
