@@ -93,4 +93,10 @@
         <servlet-name>CheckInWindowServlet</servlet-name>
         <servlet-class>vn.ticketscenter.fulfillment.checkin.controller.CheckInWindowServlet</servlet-class>
     </servlet>
+
+    <!-- Mọi lỗi (sendError hoặc exception chưa bắt) đi qua ErrorPageServlet: trang HTML nhận giao diện
+         lỗi của hệ thống, request API vẫn nhận envelope JSON. Không khai báo mã cụ thể để phủ hết 4xx/5xx. -->
+    <error-page>
+        <location>/error-handler</location>
+    </error-page>
 </web-app>
