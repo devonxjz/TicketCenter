@@ -22,6 +22,8 @@ import java.util.Map;
 @WebServlet(name = "LoginServlet", urlPatterns = {"/api/auth/login", "/auth/login"})
 public class LoginServlet extends HttpServlet {
 
+    private final vn.ticketscenter.identity.security.LoginThrottle throttle = new vn.ticketscenter.identity.security.LoginThrottle();
+
     private AuthService authService;
 
     public LoginServlet() {}
@@ -95,9 +97,19 @@ public class LoginServlet extends HttpServlet {
             password = req.getParameter("password");
         }
 
+        String client = req.getRemoteAddr();
+        long retryAfter = throttle.retryAfterSeconds(identifier, client);
+        if (retryAfter > 0) {
+            resp.setHeader("Retry-After", Long.toString(retryAfter));
+            HttpResponses.error(resp, 429, "LOGIN_THROTTLED",
+                    "Bạn đã đăng nhập sai quá nhiều lần. Vui lòng thử lại sau.");
+            return;
+        }
+
         try {
             LoginRequestDto dto = new LoginRequestDto(identifier, password);
             UserPrincipal principal = service.login(dto);
+            throttle.recordSuccess(identifier, client);
 
             // Chống Session Fixation: Cấp mới session ID, lưu UserPrincipal và rotate CSRF token
             SecurityContext.setSessionUser(req, principal);
@@ -124,7 +136,7 @@ public class LoginServlet extends HttpServlet {
 
             String requestedRedirect = req.getParameter("redirect");
             String targetRedirect = defaultRedirect;
-            if (requestedRedirect != null && !requestedRedirect.isBlank() && !requestedRedirect.startsWith("http")) {
+            if (isLocalRedirect(requestedRedirect, req.getContextPath())) {
                 boolean isRestricted = (principal.isCustomerOnly() && (requestedRedirect.contains("/admin") || requestedRedirect.contains("/organizer")))
                         || (principal.organizationRole() == vn.ticketscenter.identity.model.OrganizationRole.CHECK_IN_STAFF && requestedRedirect.contains("/admin"));
                 if (!isRestricted) {
@@ -134,11 +146,12 @@ public class LoginServlet extends HttpServlet {
 
             boolean isApiRequest = req.getRequestURI().contains("/api/") || (contentType != null && contentType.startsWith("application/json"));
             if (isApiRequest) {
-                HttpResponses.data(resp, "{\"authenticated\":true,\"role\":\"" + roleName + "\",\"redirect\":\"" + targetRedirect + "\"}");
+                HttpResponses.data(resp, "{\"authenticated\":true,\"role\":\"" + roleName + "\",\"redirect\":" + HttpResponses.jsonString(targetRedirect) + "}");
             } else {
                 resp.sendRedirect(targetRedirect);
             }
         } catch (SecurityException ex) {
+            throttle.recordFailure(identifier, client);
             String code = ex.getMessage();
             String message = "ACCOUNT_DISABLED".equals(code)
                     ? "Tài khoản của bạn đã bị vô hiệu hóa"
@@ -148,5 +161,16 @@ public class LoginServlet extends HttpServlet {
             HttpResponses.error(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
                     "SERVER_ERROR", "Đã xảy ra lỗi trong quá trình xử lý đăng nhập");
         }
+    }
+
+    /** Only same-application paths are accepted; scheme-relative and backslash forms leave the site. */
+    static boolean isLocalRedirect(String target, String contextPath) {
+        if (target == null || target.isBlank() || !target.startsWith("/")) return false;
+        if (target.startsWith("//") || target.indexOf('\\') >= 0) return false;
+        for (int index = 0; index < target.length(); index++) {
+            if (Character.isISOControl(target.charAt(index))) return false;
+        }
+        String base = contextPath == null ? "" : contextPath;
+        return base.isEmpty() || target.equals(base) || target.startsWith(base + "/") || target.startsWith(base + "?");
     }
 }

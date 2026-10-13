@@ -32,7 +32,8 @@ public class AuthService {
     private final PasswordHasher passwordHasher;
     private final RedisClientProvider redisProvider;
 
-    private static final String DUMMY_HASH = "c2FsdHNhbHRzYWx0c2FsdA==:aGFzaGhhc2hoYXNoaGFzaGhhc2hoYXNoaGFzaGhhc2g=";
+    /** Same cost as a real hash, so an unknown account takes as long as a wrong password. */
+    private static final String DUMMY_HASH = new PasswordHasher().hash("dummy-password-for-timing");
 
     public AuthService(TransactionManager transactions, UserRepository userRepository, PasswordHasher passwordHasher) {
         this(transactions, userRepository, passwordHasher, null);
@@ -141,6 +142,22 @@ public class AuthService {
             throw new SecurityException("ACCOUNT_DISABLED");
         }
 
+        if (passwordHasher.needsRehash(user.getPasswordHash())) {
+            // Upgrade hashes stored with fewer iterations while the plain password is at hand.
+            String upgraded = passwordHasher.hash(request.password());
+            try {
+                transactions.execute(DatabasePrincipal.AUTH, em -> {
+                    userRepository.findById(em, user.getId()).ifPresent(current -> {
+                        current.rehashPassword(upgraded);
+                        userRepository.save(em, current);
+                    });
+                    return null;
+                });
+            } catch (RuntimeException ignored) {
+                // The login itself succeeded; the upgrade is retried on the next login.
+            }
+        }
+
         OrganizationRole orgRole = transactions.execute(DatabasePrincipal.AUTH, em -> {
             try {
                 return em.createQuery(
@@ -213,6 +230,44 @@ public class AuthService {
     /**
      * Lấy thông tin tài khoản hiện tại cho endpoint GET /api/me.
      */
+    public vn.ticketscenter.identity.dto.ProfileDto getProfile(UUID actorId) {
+        if (actorId == null) return null;
+        return transactions.execute(DatabasePrincipal.AUTH, em -> userRepository.findById(em, actorId)
+                .map(user -> new vn.ticketscenter.identity.dto.ProfileDto(user.getId(), user.getEmail(),
+                        user.getUserName(), user.getFullName(), user.getPhone()))
+                .orElse(null));
+    }
+
+    /** The write is {@code usp_UpdateMyProfile}; its THROW 52800 is the validation message, 52801 means no active user. */
+    public vn.ticketscenter.identity.dto.ProfileDto updateProfile(UUID actorId, String fullName, String phone) {
+        if (actorId == null) return null;
+        if (fullName == null || fullName.isBlank() || fullName.length() > 200) {
+            throw new IllegalArgumentException("Họ tên là bắt buộc và tối đa 200 ký tự");
+        }
+        if (phone != null && phone.length() > 30) throw new IllegalArgumentException("Số điện thoại không hợp lệ");
+        try {
+            return transactions.execute(DatabasePrincipal.AUTH, em -> {
+                @SuppressWarnings("unchecked")
+                java.util.List<Object[]> rows = em.createNativeQuery(
+                                "EXEC dbo.usp_UpdateMyProfile @actor_id=:actor,@full_name=:name,@phone=:phone")
+                        .setParameter("actor", actorId).setParameter("name", fullName)
+                        .setParameter("phone", phone == null ? "" : phone).getResultList();
+                if (rows.isEmpty()) return null;
+                Object[] row = rows.get(0);
+                return new vn.ticketscenter.identity.dto.ProfileDto(UUID.fromString(row[0].toString()),
+                        (String) row[1], (String) row[2], (String) row[3], (String) row[4]);
+            });
+        } catch (RuntimeException failure) {
+            for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+                if (cause instanceof java.sql.SQLException sql) {
+                    if (sql.getErrorCode() == 52800) throw new IllegalArgumentException("Họ tên hoặc số điện thoại không hợp lệ");
+                    if (sql.getErrorCode() == 52801) return null;
+                }
+            }
+            throw failure;
+        }
+    }
+
     public CurrentUserDto getCurrentUser(UUID actorId) {
         if (actorId == null) return null;
 

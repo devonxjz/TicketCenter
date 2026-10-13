@@ -1,4 +1,5 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <!DOCTYPE html>
@@ -110,7 +111,7 @@
                         <i class="fa-solid fa-circle-xmark"></i>
                     </div>
                     <h3 class="fw-bold mb-1">Giao dịch chưa hoàn tất</h3>
-                    <p class="mb-0 text-muted">${message}</p>
+                    <p class="mb-0 text-muted">${fn:escapeXml(message)}</p>
                 </div>
             </c:otherwise>
         </c:choose>
@@ -120,13 +121,13 @@
 
             <div class="detail-row">
                 <span class="detail-label">Mã giao dịch</span>
-                <span class="detail-value">${not empty txnRef ? txnRef : 'N/A'}</span>
+                <span class="detail-value">${fn:escapeXml(not empty txnRef ? txnRef : 'N/A')}</span>
             </div>
 
             <c:if test="${not empty orderId}">
                 <div class="detail-row">
                     <span class="detail-label">Mã đơn hàng</span>
-                    <span class="detail-value font-monospace">${orderId}</span>
+                    <span class="detail-value font-monospace">${fn:escapeXml(orderId)}</span>
                 </div>
             </c:if>
 
@@ -168,7 +169,7 @@
                     </c:when>
                     <c:otherwise>
                         <c:if test="${not empty orderId}">
-                            <a href="${pageContext.request.contextPath}/api/orders/${orderId}" class="btn btn-custom-primary flex-fill text-center">
+                            <a href="${pageContext.request.contextPath}/api/orders/${fn:escapeXml(orderId)}" class="btn btn-custom-primary flex-fill text-center">
                                 <i class="fa-solid fa-arrow-rotate-right me-2"></i>Chi tiết đơn hàng
                             </a>
                         </c:if>

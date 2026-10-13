@@ -87,7 +87,7 @@ public final class DatabaseConfig {
     }
 
     public static int getMaximumPoolSize() {
-        return AppConfig.getInt("hikari.maximum-pool-size", AppConfig.getInt("db.pool.max-size", 500));
+        return AppConfig.getInt("hikari.maximum-pool-size", AppConfig.getInt("db.pool.max-size", 20));
     }
 
     public static int getMinimumIdle() {
@@ -107,6 +107,7 @@ public final class DatabaseConfig {
     }
 
     public static int getPoolBudget() {
-        return AppConfig.getInt("hikari.pool-budget", getMaximumPoolSize());
+        // One pool per database principal shares this many connections in total.
+        return AppConfig.getInt("hikari.pool-budget", getMaximumPoolSize() * 3);
     }
 }

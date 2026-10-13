@@ -66,7 +66,9 @@ public class TicketApiServlet extends HttpServlet {
         } catch (Exception e) {
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             response.setContentType("application/json;charset=UTF-8");
-            response.getWriter().write("{\"error\":\"INTERNAL_ERROR\",\"message\":\"" + e.getMessage() + "\"}");
+            java.util.logging.Logger.getLogger(TicketApiServlet.class.getName())
+                    .log(java.util.logging.Level.SEVERE, "Ticket request failed", e);
+            response.getWriter().write("{\"error\":\"INTERNAL_ERROR\",\"message\":\"Đã xảy ra lỗi hệ thống.\"}");
         }
     }
 

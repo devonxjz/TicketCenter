@@ -69,7 +69,9 @@ public class MyMembershipsServlet extends HttpServlet {
         } catch (IllegalArgumentException ex) {
             HttpResponses.error(resp, HttpServletResponse.SC_BAD_REQUEST, "BAD_REQUEST", ex.getMessage());
         } catch (Exception ex) {
-            HttpResponses.error(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "SERVER_ERROR", ex.getMessage());
+            java.util.logging.Logger.getLogger(MyMembershipsServlet.class.getName())
+                    .log(java.util.logging.Level.SEVERE, "Membership request failed", ex);
+            HttpResponses.error(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "SERVER_ERROR", "Đã xảy ra lỗi hệ thống.");
         }
     }
 }

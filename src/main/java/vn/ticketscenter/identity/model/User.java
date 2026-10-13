@@ -79,6 +79,11 @@ public class User extends BaseEntity {
         this.phone = phone;
     }
 
+    /** Stores the same password under a stronger hash; sessions stay valid, unlike {@link #changePassword}. */
+    public void rehashPassword(String newPasswordHash) {
+        this.passwordHash = newPasswordHash;
+    }
+
     public void changePassword(String newPasswordHash) {
         this.passwordHash = newPasswordHash;
         this.authVersion++;

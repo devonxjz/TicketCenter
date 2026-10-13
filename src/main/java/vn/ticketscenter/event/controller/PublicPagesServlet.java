@@ -55,25 +55,23 @@ public class PublicPagesServlet extends HttpServlet {
             }
         }
 
-        String view;
-        if (path.equals("/checkout")) {
-            view = "/WEB-INF/views/public/checkout.jsp";
-        } else if (path.equals("/payment-result")) {
-            view = "/WEB-INF/views/public/payment-result.jsp";
-        } else if (path.equals("/my-orders")) {
-            view = "/WEB-INF/views/public/my-orders.jsp";
-        } else if (path.equals("/tickets") || path.equals("/my-tickets")) {
-            view = "/WEB-INF/views/public/tickets.jsp";
-        } else if (path.equals("/refund-request")) {
-            view = "/WEB-INF/views/public/refund-request.jsp";
-        } else if (path.equals("/profile")) {
-            view = "/WEB-INF/views/public/profile.jsp";
-        } else if (path.equals("/organizer-request") || path.equals("/organizer/request")) {
-            view = "/WEB-INF/views/public/organizer-request.jsp";
-        } else {
-            view = "/WEB-INF/views/public/index.jsp";
+        // Buyer pages with their own data-backed servlets are reached by redirect, never by a static view.
+        String redirect = switch (path) {
+            case "/my-orders", "/payment-result" -> "/me/orders";
+            case "/tickets", "/my-tickets" -> "/me/tickets";
+            case "/refund-request" -> "/my-refunds";
+            default -> null;
+        };
+        if (redirect != null) {
+            resp.sendRedirect(req.getContextPath() + redirect);
+            return;
         }
-
+        String view = switch (path) {
+            case "/checkout" -> "/WEB-INF/views/public/checkout.jsp";
+            case "/profile" -> "/WEB-INF/views/account/profile.jsp";
+            case "/organizer-request", "/organizer/request" -> "/WEB-INF/views/public/organizer-request.jsp";
+            default -> "/WEB-INF/views/public/index.jsp";
+        };
         req.getRequestDispatcher(view).forward(req, resp);
     }
 }

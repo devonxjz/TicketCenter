@@ -27,6 +27,11 @@ public final class DemoAccountSeeder {
         this.clock = clock;
     }
 
+    /** Demo accounts carry a published password, so they are opt-in and never created in production. */
+    public static boolean enabled(String environment, boolean flag) {
+        return flag && !"production".equalsIgnoreCase(environment);
+    }
+
     public void seed(TransactionManager transactions) {
         transactions.execute(DatabasePrincipal.AUTH, entityManager -> {
             UserDAO userDAO = new UserDAO(entityManager);

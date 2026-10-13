@@ -1,4 +1,5 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <!DOCTYPE html>
@@ -69,8 +70,8 @@
                         <div class="order-card p-4">
                             <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 pb-3 border-bottom">
                                 <div class="d-flex align-items-center gap-3">
-                                    <span class="badge bg-light text-dark font-monospace border px-2 py-1">Mã đơn: ${o.orderCode}</span>
-                                    <span class="text-muted small"><i class="fa-regular fa-clock me-1"></i>${o.createdAt}</span>
+                                    <span class="badge bg-light text-dark font-monospace border px-2 py-1">Mã đơn: ${fn:escapeXml(o.orderCode)}</span>
+                                    <span class="text-muted small"><i class="fa-regular fa-clock me-1"></i>${fn:escapeXml(o.createdAt)}</span>
                                 </div>
                                 <div>
                                     <c:choose>
@@ -87,7 +88,7 @@
                                             <span class="badge bg-danger-subtle text-danger badge-status">Hết hạn</span>
                                         </c:when>
                                         <c:otherwise>
-                                            <span class="badge bg-light text-dark badge-status">${o.status}</span>
+                                            <span class="badge bg-light text-dark badge-status">${fn:escapeXml(o.status)}</span>
                                         </c:otherwise>
                                     </c:choose>
                                 </div>
@@ -95,14 +96,14 @@
 
                             <div class="row align-items-center">
                                 <div class="col-md-7 mb-3 mb-md-0">
-                                    <h5 class="fw-bold mb-1">${o.eventTitle}</h5>
-                                    <p class="text-muted small mb-2"><i class="fa-solid fa-location-dot me-1"></i>${o.venueName}</p>
+                                    <h5 class="fw-bold mb-1">${fn:escapeXml(o.eventTitle)}</h5>
+                                    <p class="text-muted small mb-2"><i class="fa-solid fa-location-dot me-1"></i>${fn:escapeXml(o.venueName)}</p>
                                     <span class="badge bg-primary-subtle text-primary">
-                                        <i class="fa-solid fa-ticket me-1"></i>${o.ticketCount} vé
+                                        <i class="fa-solid fa-ticket me-1"></i>${fn:escapeXml(o.ticketCount)} vé
                                     </span>
                                     <c:if test="${not empty o.couponCode}">
                                         <span class="badge bg-info-subtle text-info ms-2">
-                                            <i class="fa-solid fa-tag me-1"></i>Mã giảm giá: ${o.couponCode}
+                                            <i class="fa-solid fa-tag me-1"></i>Mã giảm giá: ${fn:escapeXml(o.couponCode)}
                                         </span>
                                     </c:if>
                                 </div>
@@ -113,7 +114,7 @@
                                             <fmt:formatNumber value="${o.totalAmount}" type="currency" currencySymbol="₫" maxFractionDigits="0"/>
                                         </span>
                                     </div>
-                                    <a href="${pageContext.request.contextPath}/orders/${o.id}" class="btn btn-outline-primary btn-sm px-3">
+                                    <a href="${pageContext.request.contextPath}/orders/${fn:escapeXml(o.id)}" class="btn btn-outline-primary btn-sm px-3">
                                         <i class="fa-solid fa-circle-info me-1"></i> Chi tiết đơn hàng
                                     </a>
                                 </div>

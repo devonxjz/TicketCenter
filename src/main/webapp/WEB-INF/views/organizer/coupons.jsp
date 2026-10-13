@@ -1,161 +1,46 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<% response.setHeader("Cache-Control", "no-store"); %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mã Khuyến Mãi — TicketsCenter Partner</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
+    <title>Mã giảm giá | TicketsCenter</title>
+    <jsp:include page="/WEB-INF/views/layout/meta-head.jsp" />
+    <style>[hidden]{display:none!important}</style>
 </head>
-<body class="bg-light min-h-screen">
-    <div class="small text-center py-2 bg-light text-muted" role="note">Prototype tĩnh • Dữ liệu và thao tác mô phỏng • Chưa kết nối backend, email hoặc cổng thanh toán.</div>
-
-    <!-- Top Navbar -->
-    <nav class="navbar navbar-custom sticky-top">
-        <div class="container-fluid px-4 d-flex align-items-center justify-content-between">
-            <div class="d-flex align-items-center gap-3">
-                <a class="navbar-brand-custom" href="${pageContext.request.contextPath}/">TicketsCenter</a>
-                <span class="status-pill status-dark">Cổng Đối Tác</span>
+<body class="bg-light" data-live-page="organizer-coupons" data-context="${pageContext.request.contextPath}">
+<jsp:include page="/WEB-INF/views/layout/header.jsp" />
+<div class="dashboard-layout">
+    <jsp:include page="/WEB-INF/views/layout/organizer-sidebar.jsp" />
+    <main class="dashboard-content">
+        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-end gap-3 mb-4">
+            <div>
+                <h1 class="h3 fw-bold mb-1 text-dark">Mã giảm giá</h1>
+                <p class="small text-muted mb-0">Mã phần trăm giảm tối đa 30% giá trị đơn hàng.</p>
             </div>
-
-            <div class="d-flex align-items-center gap-3">
-                <select class="form-select form-select-sm rounded-0 border-secondary-subtle fw-bold" style="width: auto;">
-                    <option selected>Bảo tàng Phụ nữ Việt Nam (Quản lý)</option>
-                </select>
-                <div class="vr mx-2"></div>
-                <span class="small fw-bold">Trần Minh Thảo</span>
-                <a href="${pageContext.request.contextPath}/auth/logout" class="btn btn-sm btn-outline-dark rounded-0 px-3">Đăng xuất</a>
-            </div>
+            <div><label class="form-label small mb-1" for="organization">Tổ chức</label><select id="organization" class="form-select form-select-sm rounded-0"></select></div>
         </div>
-    </nav>
-
-    <!-- Layout -->
-    <div class="dashboard-layout">
-        <aside class="dashboard-sidebar">
-            <div class="sidebar-title">Quản lý tổ chức</div>
-            <ul class="sidebar-menu">
-                <li><a href="${pageContext.request.contextPath}/organizer/dashboard">• Tổng quan</a></li>
-                <li><a href="${pageContext.request.contextPath}/organizer/events">• Danh sách sự kiện</a></li>
-                <li><a href="${pageContext.request.contextPath}/organizer/events/new">• Tạo mới sự kiện</a></li>
-                <li><a href="${pageContext.request.contextPath}/organizer/coupons" class="active">• Mã khuyến mãi</a></li>
-                <li><a href="${pageContext.request.contextPath}/organizer/members">• Nhân sự & Phân quyền</a></li>
-                <li><a href="${pageContext.request.contextPath}/organizer/checkin/select">• Soát vé tại cửa</a></li>
-                <li><a href="${pageContext.request.contextPath}/organizer/reports">• Báo cáo & Quyết toán</a></li>
-            </ul>
-        </aside>
-
-        <main class="dashboard-content">
-            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-5">
-                <div>
-                    <h1 class="h3 fw-bold mb-1 text-dark">Quản Lý Mã Khuyến Mãi</h1>
-                    <p class="small text-muted mb-0">Tạo mã giảm giá kích cầu mua vé và theo dõi số lượt sử dụng thực tế.</p>
-                </div>
-                <div class="mt-3 mt-sm-0">
-                    <button class="btn-primary-custom" onclick="document.getElementById('couponFormBox').classList.toggle('d-none')">
-                         Tạo mã khuyến mãi mới
-                    </button>
-                </div>
-            </div>
-
-            <!-- Policy Notice -->
-            <div class="p-3 bg-white border small text-muted mb-4">
-                 <strong>Chính sách chiết khấu:</strong> 
-                Mọi mã khuyến mãi áp dụng vào đơn đặt vé được giới hạn tối đa <strong>không quá 30%</strong> trên tổng tiền vé để đảm bảo doanh thu đối soát cho nhà tổ chức.
-            </div>
-
-            <!-- Create Coupon Form -->
-            <div id="couponFormBox" class="panel-box d-none mb-5 bg-white">
-                <div class="panel-header">
-                    <span class="panel-title">Tạo mã khuyến mãi mới</span>
-                </div>
-                <form onsubmit="event.preventDefault(); alert('Mô phỏng: Đã phát hành mã khuyến mãi thành công!');">
-                    <input type="hidden" name="_csrf" value="${sessionScope.TC_CSRF_TOKEN}">
-                    <div class="row g-4">
-                        <div class="col-md-3">
-                            <label class="filter-label">Mã khuyến mãi (In hoa) *</label>
-                            <input type="text" class="form-control rounded-0 border-secondary-subtle text-uppercase py-2" placeholder="VD: CHAOTHU20" required>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="filter-label">Hình thức giảm *</label>
-                            <select class="form-select rounded-0 border-secondary-subtle py-2">
-                                <option value="PERCENTAGE">Theo phần trăm (%)</option>
-                                <option value="FIXED">Số tiền cố định (đ)</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="filter-label">Mức giảm *</label>
-                            <input type="number" class="form-control rounded-0 border-secondary-subtle py-2" placeholder="20" required>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="filter-label">Số lượt sử dụng tối đa</label>
-                            <input type="number" class="form-control rounded-0 border-secondary-subtle py-2" placeholder="100">
-                        </div>
-                        <div class="col-12 d-flex justify-content-end gap-3 pt-2">
-                            <button type="button" class="btn-outline-custom px-4" onclick="document.getElementById('couponFormBox').classList.add('d-none')">Hủy</button>
-                            <button type="submit" class="btn-primary-custom px-4">Lưu và Kích hoạt</button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Coupons Table -->
-            <div class="panel-box">
-                <div class="panel-header">
-                    <span class="panel-title">Danh sách mã đang lưu hành</span>
-                </div>
-
-                <div class="table-responsive">
-                    <table class="table-custom">
-                        <thead>
-                            <tr>
-                                <th>Mã Khuyến Mãi</th>
-                                <th>Mức Giảm</th>
-                                <th>Đã dùng / Giới hạn</th>
-                                <th>Hạn sử dụng</th>
-                                <th>Trạng thái</th>
-                                <th>Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><strong class="font-monospace text-danger fs-6">CHAOTHU20</strong></td>
-                                <td>Giảm <strong>20%</strong> (Áp dụng trần tối đa 30%)</td>
-                                <td>42 / 100 lượt</td>
-                                <td>31/10/2026</td>
-                                <td><span class="status-pill status-dark">Đang hoạt động</span></td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-danger rounded-0 px-2 py-1" onclick="confirm('Tạm dừng mã này?')">Tạm dừng</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td><strong class="font-monospace text-dark fs-6">VWM10K</strong></td>
-                                <td>Giảm cố định <strong>10.000 đ</strong></td>
-                                <td>88 / 200 lượt</td>
-                                <td>15/11/2026</td>
-                                <td><span class="status-pill status-dark">Đang hoạt động</span></td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-danger rounded-0 px-2 py-1" onclick="confirm('Tạm dừng mã này?')">Tạm dừng</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td><strong class="font-monospace text-muted fs-6">HEVUI2026</strong></td>
-                                <td>Giảm <strong>15%</strong></td>
-                                <td>100 / 100 lượt (Hết số lượng)</td>
-                                <td>31/08/2026</td>
-                                <td><span class="status-pill status-subtle">Đã kết thúc</span></td>
-                                <td>
-                                    <span class="small text-muted">Hết hạn</span>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </main>
-    </div>
-
+        <p id="live-status" role="status" aria-live="polite" class="text-muted">Đang tải mã giảm giá…</p>
+        <div class="panel-box mb-4">
+            <div class="panel-header"><span class="panel-title">Danh sách mã</span></div>
+            <div class="table-responsive"><table class="table-custom"><thead><tr><th>Mã</th><th>Giá trị</th><th>Đã dùng / Tổng</th><th>Còn lại</th><th>Hiệu lực</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="coupons"></tbody></table></div>
+        </div>
+        <div class="panel-box">
+            <div class="panel-header"><span class="panel-title">Tạo mã mới</span></div>
+            <form id="coupon-form" class="row g-3">
+                <div class="col-md-4"><label class="form-label" for="coupon-code">Mã</label><input id="coupon-code" class="form-control rounded-0" maxlength="80" required autocomplete="off"></div>
+                <div class="col-md-4"><label class="form-label" for="coupon-type">Loại giảm</label><select id="coupon-type" class="form-select rounded-0"><option value="PERCENTAGE">Phần trăm</option><option value="FIXED_AMOUNT">Số tiền cố định</option></select></div>
+                <div class="col-md-4" id="coupon-percent-group"><label class="form-label" for="coupon-percent">Phần trăm (%)</label><input id="coupon-percent" type="number" class="form-control rounded-0" min="1" max="30" step="0.01"></div>
+                <div class="col-md-4" id="coupon-fixed-group" hidden><label class="form-label" for="coupon-fixed">Số tiền (đ)</label><input id="coupon-fixed" type="number" class="form-control rounded-0" min="1" step="1"></div>
+                <div class="col-md-4"><label class="form-label" for="coupon-max-uses">Số lượt tối đa</label><input id="coupon-max-uses" type="number" class="form-control rounded-0" min="1" step="1" required></div>
+                <div class="col-md-4"><label class="form-label" for="coupon-from">Hiệu lực từ</label><input id="coupon-from" type="datetime-local" class="form-control rounded-0" required></div>
+                <div class="col-md-4"><label class="form-label" for="coupon-to">Hiệu lực đến</label><input id="coupon-to" type="datetime-local" class="form-control rounded-0" required></div>
+                <div class="col-12"><button class="btn btn-dark rounded-0">Tạo mã</button></div>
+            </form>
+        </div>
+        <noscript>Vui lòng bật JavaScript để quản lý mã giảm giá.</noscript>
+    </main>
+</div>
+<script defer src="${pageContext.request.contextPath}/assets/js/live-pages.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
