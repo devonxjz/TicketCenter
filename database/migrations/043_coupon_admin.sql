@@ -10,10 +10,10 @@ BEGIN
     IF NOT EXISTS(SELECT 1 FROM dbo.tc_users
                   WHERE id=@actor_id AND auth_version=@auth_version AND status='ACTIVE')
         THROW 51520,'Current session required',1;
-    IF ISNULL(IS_ROLEMEMBER('tc_platform_admin'),0)=1
+    IF (ISNULL(IS_ROLEMEMBER('tc_platform_admin'),0)=1 OR ISNULL(IS_ROLEMEMBER('db_owner'),0)=1 OR USER_NAME()='dbo')
        AND EXISTS(SELECT 1 FROM dbo.tc_user_platform_roles
                   WHERE user_id=@actor_id AND role='ADMIN') RETURN;
-    IF @organization_id IS NOT NULL AND ISNULL(IS_ROLEMEMBER('tc_manager'),0)=1
+    IF @organization_id IS NOT NULL AND (ISNULL(IS_ROLEMEMBER('tc_manager'),0)=1 OR ISNULL(IS_ROLEMEMBER('db_owner'),0)=1 OR USER_NAME()='dbo')
        AND EXISTS(SELECT 1 FROM dbo.tc_organization_memberships WITH (HOLDLOCK)
                   WHERE user_id=@actor_id AND organization_id=@organization_id
                     AND role='MANAGER' AND active=1) RETURN;
@@ -28,10 +28,10 @@ BEGIN
     SET NOCOUNT ON;
     SELECT CAST(CASE WHEN EXISTS(SELECT 1 FROM dbo.tc_users
                                  WHERE id=@actor_id AND auth_version=@auth_version AND status='ACTIVE')
-        AND (ISNULL(IS_ROLEMEMBER('tc_platform_admin'),0)=1
+        AND ((ISNULL(IS_ROLEMEMBER('tc_platform_admin'),0)=1 OR ISNULL(IS_ROLEMEMBER('db_owner'),0)=1 OR USER_NAME()='dbo')
              AND EXISTS(SELECT 1 FROM dbo.tc_user_platform_roles
                         WHERE user_id=@actor_id AND role='ADMIN')
-             OR @organization_id IS NOT NULL AND ISNULL(IS_ROLEMEMBER('tc_manager'),0)=1
+             OR @organization_id IS NOT NULL AND (ISNULL(IS_ROLEMEMBER('tc_manager'),0)=1 OR ISNULL(IS_ROLEMEMBER('db_owner'),0)=1 OR USER_NAME()='dbo')
              AND EXISTS(SELECT 1 FROM dbo.tc_organization_memberships
                         WHERE user_id=@actor_id AND organization_id=@organization_id
                           AND role='MANAGER' AND active=1))

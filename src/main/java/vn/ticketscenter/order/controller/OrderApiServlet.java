@@ -75,6 +75,7 @@ public final class OrderApiServlet extends HttpServlet {
         catch (vn.ticketscenter.payment.service.PaymentException failure) { HttpResponses.error(response, failure.status(), failure.code(), failure.getMessage()); }
         catch (OrderRequests.BodyTooLargeException failure) { HttpResponses.error(response, 413, "PAYLOAD_TOO_LARGE", "Order request body is too large."); }
         catch (IllegalArgumentException failure) { HttpResponses.error(response, 400, "INVALID_REQUEST", "Invalid Order request."); }
+        catch (Exception failure) { HttpResponses.error(response, 500, "INTERNAL_ERROR", failure.getMessage() != null ? failure.getMessage() : "Internal server error."); }
     }
     private OrderService service() { return supplied == null ? OrderRuntime.resolve(getServletContext()) : supplied; }
     private vn.ticketscenter.payment.service.PaymentService paymentService() {

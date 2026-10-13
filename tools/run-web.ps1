@@ -2,7 +2,10 @@
 param([string]$TomcatHome,[string]$JavaHome,[string]$ConfigPath,[int]$Port=0,[switch]$CheckConfig)
 $ErrorActionPreference='Stop'
 $repo=(Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-if(-not $ConfigPath){$ConfigPath=Join-Path $repo 'src/main/resources/application.properties'}
+if(-not $ConfigPath){
+ if(Test-Path -LiteralPath (Join-Path $repo '.local/application.properties')){$ConfigPath=Join-Path $repo '.local/application.properties'}
+ else{$ConfigPath=Join-Path $repo 'src/main/resources/application.properties'}
+}
 if(-not(Test-Path -LiteralPath $ConfigPath)){throw 'Copy src/main/resources/application.properties.example to src/main/resources/application.properties and fill the credentials.'}
 $settings=@{}
 foreach($line in [IO.File]::ReadAllLines($ConfigPath)){
@@ -65,7 +68,9 @@ $settings['app.env']='development';$settings['app.data.mode']='real';$settings['
 $settings['app.base.url']="http://127.0.0.1:$Port/ticketscenter"
 if([string]::IsNullOrWhiteSpace($settings['app.secret.key'])){
  $settings['app.secret.key']=[Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
- [IO.File]::AppendAllText([IO.Path]::GetFullPath($ConfigPath),"`n# Generated once for this machine; use the existing shared key for cross-machine QR verification.`napp.secret.key="+$settings['app.secret.key']+"`n")
+ if(Test-Path -LiteralPath $ConfigPath){
+  [IO.File]::AppendAllText([IO.Path]::GetFullPath($ConfigPath),"`n# Generated once for this machine; use the existing shared key for cross-machine QR verification.`napp.secret.key="+$settings['app.secret.key']+"`n")
+ }
 }
 $settings['hikari.maximum-pool-size']='2';$settings['hikari.minimum-idle']='0';$settings['hikari.pool-budget']='24';$settings['hikari.connection-timeout']='15000'
 $settings['finance.redis.enabled']='false';$settings['redis.host']='127.0.0.1';$settings['redis.port']='16379';$settings['redis.timeout']='300'
