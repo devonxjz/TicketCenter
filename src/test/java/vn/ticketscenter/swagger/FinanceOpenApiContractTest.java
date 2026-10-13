@@ -20,10 +20,10 @@ class FinanceOpenApiContractTest {
         assertEquals("string",schemas.getJSONObject("Money").getString("type"));
         assertTrue(schemas.getJSONObject("SettlementSummary").getJSONObject("properties").getJSONObject("settlementId").getBoolean("nullable"));
     }
-    @Test void undeliveredCancellationRoutesRemainPlanned() throws Exception {
+    @Test void deliveredCancellationRoutesMatchSource() throws Exception {
         var paths=document().getJSONObject("paths");
-        assertEquals("planned",paths.getJSONObject("/api/admin/events/{eventId}/cancel").getJSONObject("post").getString("x-implementation-status"));
-        assertEquals("planned",paths.getJSONObject("/api/admin/events/{eventId}/cancellation-progress").getJSONObject("get").getString("x-implementation-status"));
+        assertEquals("implemented",paths.getJSONObject("/api/admin/events/{eventId}/cancel").getJSONObject("post").getString("x-implementation-status"));
+        assertEquals("implemented",paths.getJSONObject("/api/admin/events/{eventId}/cancellation-progress").getJSONObject("get").getString("x-implementation-status"));
     }
     @Test void deliveredReadsideRoutesMatchSource() throws Exception {
         var paths=document().getJSONObject("paths");

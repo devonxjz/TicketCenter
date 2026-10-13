@@ -18,7 +18,8 @@ function harness(delays={}){
  const ids=new Map(),posts=[],requests=[];
  const get=id=>{if(!ids.has(id))ids.set(id,new Element());return ids.get(id);};get('filter-status').value='PENDING_APPROVAL';get('rule').tagName='select';
  const body=new Element('body');body.dataset={dongPage:'review',contextPath:''};
- const document={body,getElementById:get,createElement:tag=>new Element(tag)};
+ const document={body,getElementById:get,createElement:tag=>new Element(tag),listeners:{},
+  addEventListener(name,listener){this.listeners[name]=listener;},dispatchEvent(event){this.listeners[event.type]?.(event);}};
  const response=value=>({ok:true,status:200,json:async()=>value});
  const fetch=async(path,options={})=>{
   requests.push(path);
@@ -33,7 +34,7 @@ function harness(delays={}){
  };
  const session=new Map();
  vm.runInNewContext(fs.readFileSync('src/main/webapp/assets/js/dong-events.js','utf8'),{
-  document,fetch,URL,URLSearchParams,TextEncoder,crypto:webcrypto,XMLHttpRequest:function(){},
+  document,fetch,URL,URLSearchParams,TextEncoder,crypto:webcrypto,XMLHttpRequest:function(){},CustomEvent:class{constructor(type,options){this.type=type;this.detail=options.detail;}},
   location:{search:'',origin:'http://localhost'},confirm:()=>true,
   sessionStorage:{getItem:k=>session.get(k),setItem:(k,v)=>session.set(k,v),removeItem:k=>session.delete(k)}
  });

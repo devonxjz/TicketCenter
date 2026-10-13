@@ -33,7 +33,9 @@ public final class ScanFixture {
     }
     public static Connection owner()throws SQLException{return connect("OWNER");}
     public static Connection connect(String role)throws SQLException{
-        String url=required("TC_SCAN_TEST_URL");if(!url.startsWith("jdbc:sqlserver://127.0.0.1:")||!url.contains("databaseName=TicketCenter_Khanh02_Test;"))throw new IllegalStateException("Dedicated loopback database required");
+        String url=required("TC_SCAN_TEST_URL");
+        boolean canonical="true".equals(System.getenv("TC_CANCELLATION_CANONICAL_TEST"))&&url.contains("databaseName=TC_Khanh06_Test_Canonical;");
+        if(!url.startsWith("jdbc:sqlserver://127.0.0.1:")||(!url.contains("databaseName=TicketCenter_Khanh02_Test;")&&!canonical))throw new IllegalStateException("Dedicated loopback database required");
         return DriverManager.getConnection(url,required("TC_SCAN_"+role+"_USER"),required("TC_SCAN_"+role+"_PASSWORD"));
     }
     public static String required(String key){String value=System.getenv(key);if(value==null||value.isBlank())throw new IllegalStateException("Missing fixture setting: "+key);return value;}

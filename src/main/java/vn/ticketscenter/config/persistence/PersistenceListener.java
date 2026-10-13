@@ -47,7 +47,8 @@ public final class PersistenceListener implements ServletContextListener {
         event.getServletContext().setAttribute(REGISTRY_ATTRIBUTE, registry);
         if (registry.hasPrincipal(DatabasePrincipal.WORKER)) {
             EventCancellationJob job = new EventCancellationJob(
-                    registry.transactionManager(), new EventCancellationRepository(), 50);
+                    registry.transactionManager(), new EventCancellationRepository(), 50,
+                    new vn.ticketscenter.event.cancellation.service.CancellationProgressCacheHelper()::processed);
             cancellationWorker = Executors.newSingleThreadScheduledExecutor(
                     Thread.ofPlatform().name("event-cancellation-worker").daemon(true).factory());
             cancellationWorker.scheduleWithFixedDelay(() -> runCancellation(job), 0, 5, TimeUnit.SECONDS);

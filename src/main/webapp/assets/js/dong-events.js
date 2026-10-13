@@ -163,7 +163,7 @@
     async function reviewPage() {
         let page=1,selected=null,reviewRevision=0,listRevision=0;
         async function review(id) {
-            const current=++reviewRevision;selected=null;$('review').hidden=true;
+            const current=++reviewRevision;selected=null;$('review').hidden=true;document.dispatchEvent(new CustomEvent('tc:event-review-selected',{detail:null}));
             lock($('publish'),true);lock($('reject'),true);$('cancel-event').disabled=true;
             $('rule').replaceChildren();$('reason').value='';
             let detail,layout,policy;
@@ -179,16 +179,15 @@
             for(const rule of rules){const option=node('option',rule.ratePercent+'% + '+money(rule.fixedFee)+' · '+date(rule.effectiveTo));option.value=rule.commissionRuleId;$('rule').append(option);}
             lock($('publish'),selected.status!=='PENDING_APPROVAL' || !rules.length);lock($('reject'),selected.status!=='PENDING_APPROVAL');
             $('rule-note').textContent=rules.length?'Chính sách có hiệu lực hiện tại và tại ngày sự kiện.':'Chưa có chính sách phù hợp. Cần thiết lập hoa hồng trước khi công khai.';
-            $('cancel-event').disabled=selected.status!=='PUBLISHED';$('cancellation-status').textContent='Chọn xem tiến trình để kiểm tra trạng thái hủy.';
+            document.dispatchEvent(new CustomEvent('tc:event-review-selected',{detail:{eventId:selected.eventId,status:selected.status,startTime:selected.startTime}}));
         }
         async function load(){const current=++listRevision;message('Đang tải hồ sơ…');$('previous').disabled=$('next').disabled=true;const query=new URLSearchParams({status:$('filter-status').value,page:String(page),pageSize:'20'});const result=await api('/api/admin/events?'+query);if(current!==listRevision)return;$('events').replaceChildren();
             for(const item of result.data){const tr=document.createElement('tr');tr.append(node('td',item.title),node('td',item.organizationName),node('td',labels[item.status]),node('td',date(item.startTime)));const td=node('td');td.append(button('Xem hồ sơ',()=>review(item.eventId)));tr.append(td);$('events').append(tr);}
             message(result.total?'Có '+result.total+' hồ sơ.':'Chưa có hồ sơ phù hợp.');$('page-label').textContent='Trang '+page;$('previous').disabled=page<=1;$('next').disabled=page*result.pageSize>=result.total;}
         $('filters').addEventListener('submit',e=>{e.preventDefault();page=1;load().catch(e=>message(e.message,true));});$('previous').addEventListener('click',()=>{page--;load().catch(e=>message(e.message,true));});$('next').addEventListener('click',()=>{page++;load().catch(e=>message(e.message,true));});
+        document.addEventListener('tc:event-review-cancelled',e=>{if(selected?.eventId===e.detail.eventId)review(e.detail.eventId).catch(error=>message(error.message,true));load().catch(error=>message(error.message,true));});
         $('publish').addEventListener('click',()=>action($('publish'),async()=>{const chosen=selected;if(!chosen)return;await mutate('/api/admin/events/'+chosen.eventId+'/publish',{commissionRuleId:$('rule').value,expectedVersion:String(chosen.version)});if(selected?.eventId===chosen.eventId)await review(chosen.eventId);await load();}));
         $('reject').addEventListener('click',()=>action($('reject'),async()=>{const chosen=selected;if(!chosen)return;await mutate('/api/admin/events/'+chosen.eventId+'/reject',{reason:$('reason').value,expectedVersion:String(chosen.version)});if(selected?.eventId===chosen.eventId)await review(chosen.eventId);await load();}));
-        $('cancel-event').addEventListener('click',()=>action($('cancel-event'),async()=>{if(!confirm('Gửi yêu cầu hủy sự kiện này?'))return;await mutate('/api/admin/events/'+selected.eventId+'/cancel',{});$('cancellation-status').textContent='Đã gửi yêu cầu hủy.';}));
-        $('cancellation-progress').addEventListener('click',()=>action($('cancellation-progress'),async()=>{if(!selected)throw new Error('Chọn hồ sơ trước.');const result=await api('/api/admin/events/'+selected.eventId+'/cancellation-progress');$('cancellation-status').textContent=JSON.stringify(result.data);}));
         await load();const id=new URLSearchParams(location.search).get('eventId');if(id)await review(id);
     }
     const page=document.body.dataset.dongPage;

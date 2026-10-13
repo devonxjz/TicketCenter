@@ -2009,27 +2009,60 @@
         "tags": [
           "Events"
         ],
-        "summary": "Chờ triển khai · Admin hủy sự kiện bằng SP13",
+        "summary": "Admin hủy sự kiện",
         "responses": {
           "200": {
-            "description": "Đã hủy và tạo công việc xử lý"
+            "description": "Đã hủy và tạo công việc xử lý",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/EventCancellationResponse"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Cần ADMIN"
+            "description": "Cần ADMIN hiện tại; CSRF hợp lệ khi hủy"
           },
           "409": {
-            "description": "Sự kiện đã bắt đầu hoặc sai trạng thái"
+            "description": "Đã hủy với lệnh khác hoặc cùng Idempotency-Key nhưng payload khác"
+          },
+          "400": {
+            "description": "Sai định dạng, chưa công khai hoặc đã bắt đầu"
+          },
+          "401": {
+            "description": "Phiên hết hiệu lực"
+          },
+          "404": {
+            "description": "Không tìm thấy tác vụ hoặc sự kiện"
+          },
+          "503": {
+            "description": "SQL tạm thời không khả dụng"
+          },
+          "413": {
+            "description": "Body quá lớn"
+          },
+          "415": {
+            "description": "Yêu cầu application/json"
           }
         },
         "operationId": "postApiAdminEventsEventIdCancel",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
         "x-owner": "khanh",
         "externalDocs": {
           "description": "Issue giao việc và contract dự kiến",
           "url": "https://github.com/devonxjz/TicketCenter/issues/26"
         },
-        "description": "\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "description": "Chỉ ADMIN đang hoạt động, đúng authVersion. UUID, UTC. COMPLETED trong tiến độ nghĩa là đã tạo/tiếp nhận nghĩa vụ cho toàn bộ đơn; successfulRefunds, pendingRefunds, failedRefunds, unknownRefunds là kết quả chuyển tiền riêng. Vé USED là ngoại lệ, không tự động hoàn.",
         "parameters": [
           {
             "name": "eventId",
@@ -2047,7 +2080,28 @@
             "csrfToken": [],
             "idempotencyKey": []
           }
-        ]
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 500
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/admin/events/{eventId}/cancellation-progress": {
@@ -2055,27 +2109,51 @@
         "tags": [
           "Events"
         ],
-        "summary": "Chờ triển khai · Tiến độ hoàn do hủy sự kiện",
+        "summary": "Tiến độ xử lý hủy sự kiện",
         "responses": {
           "200": {
-            "description": "Số đơn pending/completed, nghĩa vụ hoàn và ngoại lệ USED/FAILED/UNKNOWN"
+            "description": "Số đơn pending/completed, nghĩa vụ hoàn và ngoại lệ USED/FAILED/UNKNOWN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CancellationProgress"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Cần ADMIN"
+            "description": "Cần ADMIN hiện tại; CSRF hợp lệ khi hủy"
           },
           "404": {
-            "description": "Không tìm thấy sự kiện"
+            "description": "Không tìm thấy tác vụ hoặc sự kiện"
+          },
+          "400": {
+            "description": "Sai định dạng, chưa công khai hoặc đã bắt đầu"
+          },
+          "401": {
+            "description": "Phiên hết hiệu lực"
+          },
+          "503": {
+            "description": "SQL tạm thời không khả dụng"
           }
         },
         "operationId": "getApiAdminEventsEventIdCancellationProgress",
-        "x-implementation-status": "planned",
-        "x-contract-status": "owner-review-required",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "matched-to-source",
         "x-owner": "khanh",
         "externalDocs": {
           "description": "Issue giao việc và contract dự kiến",
           "url": "https://github.com/devonxjz/TicketCenter/issues/26"
         },
-        "description": "\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "description": "Chỉ ADMIN đang hoạt động, đúng authVersion. UUID, UTC. COMPLETED trong tiến độ nghĩa là đã tạo/tiếp nhận nghĩa vụ cho toàn bộ đơn; successfulRefunds, pendingRefunds, failedRefunds, unknownRefunds là kết quả chuyển tiền riêng. Vé USED là ngoại lệ, không tự động hoàn.",
         "parameters": [
           {
             "name": "eventId",
@@ -9499,6 +9577,129 @@
             "items": {
               "$ref": "#/components/schemas/PublicEventCategory"
             }
+          }
+        }
+      },
+      "EventCancellationResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "success",
+          "eventId",
+          "status",
+          "cancelledAt",
+          "totalOrdersToRefund",
+          "message"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "CANCELLED"
+            ]
+          },
+          "cancelledAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalOrdersToRefund": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "CancellationProgress": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "eventId",
+          "status",
+          "reason",
+          "cancelledAt",
+          "totalOrders",
+          "processedOrders",
+          "progressPercentage",
+          "updatedAt",
+          "successfulRefunds",
+          "failedRefunds",
+          "unknownRefunds",
+          "pendingRefunds",
+          "usedTicketExceptions"
+        ],
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "IN_PROGRESS",
+              "COMPLETED"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "cancelledAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalOrders": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "processedOrders": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "progressPercentage": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "successfulRefunds": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "failedRefunds": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "unknownRefunds": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "pendingRefunds": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "usedTicketExceptions": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
           }
         }
       }
