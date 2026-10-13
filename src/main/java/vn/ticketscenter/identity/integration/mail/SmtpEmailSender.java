@@ -12,7 +12,11 @@ import java.io.OutputStreamWriter;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Base64;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -24,6 +28,7 @@ public class SmtpEmailSender implements EmailSender {
 
     private static final Logger LOGGER = Logger.getLogger(SmtpEmailSender.class.getName());
     private static final int SOCKET_TIMEOUT_MS = 5000;
+    private static final Base64.Encoder MIME_ENCODER = Base64.getMimeEncoder(76, new byte[]{'\r', '\n'});
 
     @Override
     public void send(EmailMessage message) throws EmailDeliveryException {
@@ -118,23 +123,50 @@ public class SmtpEmailSender implements EmailSender {
         sendCommand(writer, "DATA");
         expectReply(reader, "354");
 
-        writer.write("From: TicketsCenter <" + user + ">\r\n");
-        writer.write("To: <" + message.recipient() + ">\r\n");
-        writer.write("Subject: =?UTF-8?B?" + Base64.getEncoder().encodeToString(message.subject().getBytes(StandardCharsets.UTF_8)) + "?=\r\n");
-        writer.write("MIME-Version: 1.0\r\n");
-
-        if (message.bodyHtml() != null && !message.bodyHtml().isBlank()) {
-            writer.write("Content-Type: text/html; charset=UTF-8\r\n\r\n");
-            writer.write(message.bodyHtml());
-        } else {
-            writer.write("Content-Type: text/plain; charset=UTF-8\r\n\r\n");
-            writer.write(message.bodyText());
-        }
+        writer.write(buildMimeMessage(user, message));
         writer.write("\r\n.\r\n");
         writer.flush();
         expectReply(reader, "250");
 
         sendCommand(writer, "QUIT");
+    }
+
+    /**
+     * Dựng phần header + body MIME. Nội dung luôn mã hóa base64 (dòng 76 ký tự, CRLF) nên không
+     * vướng giới hạn 998 ký tự/dòng, ký tự xuống dòng trần hay dấu chấm đầu dòng của SMTP DATA.
+     * Có cả text và html thì gửi multipart/alternative để client không hiển thị HTML vẫn đọc được.
+     */
+    static String buildMimeMessage(String user, EmailMessage message) {
+        boolean hasText = message.bodyText() != null && !message.bodyText().isBlank();
+        boolean hasHtml = message.bodyHtml() != null && !message.bodyHtml().isBlank();
+        String domain = user.contains("@") ? user.substring(user.indexOf('@') + 1) : "ticketscenter.local";
+
+        StringBuilder mime = new StringBuilder();
+        mime.append("From: TicketsCenter <").append(user).append(">\r\n");
+        mime.append("To: <").append(message.recipient()).append(">\r\n");
+        mime.append("Subject: =?UTF-8?B?")
+                .append(Base64.getEncoder().encodeToString(message.subject().getBytes(StandardCharsets.UTF_8)))
+                .append("?=\r\n");
+        mime.append("Date: ").append(DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.now(ZoneOffset.UTC))).append("\r\n");
+        mime.append("Message-ID: <").append(UUID.randomUUID()).append('@').append(domain).append(">\r\n");
+        mime.append("MIME-Version: 1.0\r\n");
+
+        if (hasText && hasHtml) {
+            String boundary = "tc-alt-" + UUID.randomUUID();
+            mime.append("Content-Type: multipart/alternative; boundary=\"").append(boundary).append("\"\r\n\r\n");
+            appendPart(mime.append("--").append(boundary).append("\r\n"), "text/plain", message.bodyText());
+            appendPart(mime.append("--").append(boundary).append("\r\n"), "text/html", message.bodyHtml());
+            mime.append("--").append(boundary).append("--");
+        } else {
+            appendPart(mime, hasHtml ? "text/html" : "text/plain", hasHtml ? message.bodyHtml() : message.bodyText());
+        }
+        return mime.toString();
+    }
+
+    private static void appendPart(StringBuilder mime, String contentType, String body) {
+        mime.append("Content-Type: ").append(contentType).append("; charset=UTF-8\r\n");
+        mime.append("Content-Transfer-Encoding: base64\r\n\r\n");
+        mime.append(MIME_ENCODER.encodeToString(body.getBytes(StandardCharsets.UTF_8))).append("\r\n");
     }
 
     private void sendCommand(BufferedWriter writer, String command) throws IOException {

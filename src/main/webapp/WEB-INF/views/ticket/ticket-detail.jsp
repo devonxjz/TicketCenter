@@ -62,7 +62,7 @@
 
                 <div class="info-row">
                     <span class="info-label">Thời gian</span>
-                    <span class="info-val">${fn:escapeXml(ticket.startTime)}</span>
+                    <span class="info-val"><time class="tc-local-time" datetime="${fn:escapeXml(ticket.startTime)}">${fn:escapeXml(ticket.startTime)}</time></span>
                 </div>
 
                 <div class="info-row">

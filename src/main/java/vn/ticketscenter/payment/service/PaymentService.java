@@ -215,6 +215,22 @@ public class PaymentService {
                 ? "Giao dịch thanh toán thành công."
                 : (validSignature ? "Giao dịch không thành công hoặc bị người dùng hủy." : "Chữ ký giao dịch không hợp lệ.");
 
+        // Return URL mang cùng chữ ký HMAC như IPN nên được ghi nhận qua đúng đường IPN (idempotent).
+        // Nhờ vậy vé được phát hành ngay cả khi IPN không tới được máy chủ (localhost, mạng nội bộ);
+        // nếu bước này lỗi thì IPN hoặc job đối soát vẫn hoàn tất sau.
+        if (validSignature && maybePayment.isPresent()) {
+            boolean applied = false;
+            try {
+                String rspCode = processIpn(queryParams).rspCode();
+                applied = "00".equals(rspCode) || "02".equals(rspCode);
+            } catch (RuntimeException failure) {
+                applied = false;
+            }
+            if (success && !applied) {
+                message = "Giao dịch thanh toán thành công. Hệ thống đang xác nhận, vé sẽ xuất hiện sau ít phút.";
+            }
+        }
+
         return new vn.ticketscenter.payment.dto.VnpayReturnResult(
                 validSignature,
                 success,

@@ -44,3 +44,5 @@ a,button,input,select,textarea{transition:background-color .16s,border-color .16
 .tc-pagination-count{margin-left:12px;color:#666;font-size:12px}
 
 .tc-pagination[hidden]{display:none!important}
+.tc-error-page{min-height:100vh;display:flex;flex-direction:column;background:var(--gray-bg)}.tc-error-main{flex:1;display:flex;align-items:center;justify-content:center;padding-top:32px;padding-bottom:48px}.tc-error-card{width:100%;max-width:520px;padding:48px 32px;border:1px solid var(--gray-border);background:var(--white);text-align:center}.tc-error-icon{font-size:2.5rem;color:var(--primary)}.tc-error-code{margin:12px 0 4px;font-size:4rem;font-weight:800;line-height:1;color:var(--black);font-variant-numeric:tabular-nums}.tc-error-card .tc-page-actions{margin-top:24px}
+@media(max-width:575px){.tc-error-card{padding:32px 20px}.tc-error-code{font-size:3rem}.tc-error-card .tc-page-actions>*{width:100%;min-height:44px}}
