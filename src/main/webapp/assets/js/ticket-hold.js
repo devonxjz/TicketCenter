@@ -403,7 +403,7 @@
     }
 
     function selections() {
-        return Array.from(get("hold-zones")?.querySelectorAll("input") || []).filter(input =>
+        return ['hold-zones','standing-zones'].flatMap(id=>Array.from(get(id)?.querySelectorAll('input')||[])).filter(input =>
             input.type === "checkbox" ? input.checked : Number(input.value) > 0).map(input => ({
                 zoneId: input.dataset.zoneId, seatId: input.dataset.seatId || null,
                 quantity: input.type === "checkbox" ? 1 : Number(input.value)
@@ -430,7 +430,10 @@
             selectionList.replaceChildren();
             for (const item of items) {
                 const zone = options.zones.find(zone => zone.id === item.zoneId), seat = zone.availableSeats.find(seat => seat.id === item.seatId);
-                selectionList.append(element('li', (seat ? 'Ghế ' + seat.label : item.quantity + ' × ' + zone.name) + ' · ' + (Number.isInteger(item.quantity) && item.quantity > 0 && item.quantity <= 8 ? vnd(BigInt(item.unitPrice) * BigInt(item.quantity)) : 'Số lượng không hợp lệ')));
+                const row=element('li');
+                row.append(element('span',seat?'Ghế '+seat.label+' · '+zone.name:item.quantity+' × '+zone.name),
+                    element('strong',Number.isInteger(item.quantity)&&item.quantity>0&&item.quantity<=8?vnd(BigInt(item.unitPrice)*BigInt(item.quantity)):'Số lượng không hợp lệ'));
+                selectionList.append(row);
             }
             if (count > 8) {
                 const warn = element('li', 'Tổng số vé không được vượt quá 8 vé/lượt.');
@@ -446,8 +449,7 @@
             submitBtn.disabled = !valid || count > 8 || client.state.phase !== "selecting";
         }
         if (get("hold-pay-now")) get("hold-pay-now").disabled = !submitBtn || submitBtn.disabled;
-        const zonesEl = get("hold-zones");
-        if (zonesEl) {
+        for(const zonesEl of [get('hold-zones'),get('standing-zones')].filter(Boolean)) {
             for (const input of zonesEl.querySelectorAll("input[type=checkbox]")) input.disabled = input.dataset.unavailable === 'true' || count >= 8 && !input.checked;
             for (const input of zonesEl.querySelectorAll("input.hold-quantity")) {
                 const val = Number(input.value) || 0;
@@ -457,6 +459,10 @@
                     input.classList.remove("is-invalid");
                 }
             }
+            for(const button of zonesEl.querySelectorAll('button[data-quantity-step]')){
+                const input=button.quantityInput,value=Number(input.value)||0;
+                button.disabled=client.state.phase!=='selecting'||(button.dataset.quantityStep==='-1'?value<=0:value>=Number(input.max)||count>=8);
+            }
         }
     }
 
@@ -464,20 +470,37 @@
         if (document.body.dataset.publicPage !== 'detail') get("hold-heading").textContent = options.title;
         get("sale-deadline").textContent = "Đóng bán lúc " + dateText(options.saleEnd);
         get("hold-zones").replaceChildren();
+        get('standing-zones')?.replaceChildren();
+        if(get('standing-zones'))get('standing-zones').hidden=!options.zones.some(zone=>zone.type==='STANDING');
+        if(get('seat-workspace'))get('seat-workspace').hidden=!options.zones.some(zone=>zone.type==='SEATED');
+        get('hold-form').dataset.ticketLayout=options.zones.some(zone=>zone.type==='SEATED')?'seated':'standing';
         for (const zone of options.zones) {
             const field = element("fieldset");
-            field.className = "hold-zone";
-            field.append(element("legend", zone.name + " · " + vnd(zone.unitPrice)));
+            field.className = "hold-zone "+(zone.type==='STANDING'?'hold-standing-tier':/vip/i.test(zone.name)?'hold-seated-tier is-premium':'hold-seated-tier');
+            field.append(element("legend", zone.type==='STANDING'?zone.name:zone.name+" · "+vnd(zone.unitPrice)));
             if (zone.type === "STANDING") {
-                field.append(element("p", "Còn " + zone.availableStanding + " vé đứng"));
+                const availability=element('p','Còn '+zone.availableStanding+' vé');availability.className='hold-stock';field.append(availability);
+                const controls=element('div');controls.className='hold-standing-controls';
+                const price=element('strong',vnd(zone.unitPrice)+' / vé');price.className='hold-standing-price';controls.append(price);
                 const label = element("label", "Số lượng");
+                label.className='hold-quantity-label';
                 const input = element("input");
                 input.type = "number"; input.min = "0"; input.max = String(Math.min(8, zone.availableStanding)); input.step = "1"; input.value = "0";
                 input.className = "hold-quantity"; input.dataset.zoneId = zone.id; input.disabled = zone.availableStanding === 0;
-                label.append(input); field.append(label);
+                input.setAttribute('aria-label','Số lượng vé '+zone.name);
+                const stepper=element('div');stepper.className='hold-stepper';
+                for(const delta of [-1,1]){
+                    const button=element('button',delta<0?'−':'+');button.type='button';button.dataset.quantityStep=String(delta);button.quantityInput=input;
+                    button.setAttribute('aria-label',(delta<0?'Giảm':'Tăng')+' số lượng vé '+zone.name);
+                    button.addEventListener('click',()=>{
+                        if(client.state.phase!=='selecting')return;
+                        const value=Number(input.value)||0,count=selections().reduce((sum,item)=>sum+item.quantity,0),next=value+delta;
+                        if(next>=0&&next<=Number(input.max)&&(delta<0||count<8)){input.value=String(next);summary();}
+                    });
+                    stepper.append(button);if(delta<0)stepper.append(input);
+                }
+                label.append(stepper);controls.append(label);field.append(controls);
             } else {
-                field.append(element('p','Vé ngồi · Chọn từng ghế trên sơ đồ.'));
-                const legend=element('p','Trống · Đang chọn · Đang giữ · Đã bán');legend.className='hold-seat-legend';field.append(legend);
                 const seats = element("div"); seats.className = "hold-seat-map";
                 if (!zone.availableSeats.length) seats.append(element("p", "Không còn ghế khả dụng."));
                 if(zone.layoutUnavailable)seats.append(element('p','Chưa tải được bố cục; danh sách bên dưới gồm các ghế còn trống do máy chủ xác nhận.'));
@@ -496,9 +519,10 @@
                 }
                 field.append(seats);
             }
-            get("hold-zones").append(field);
+            (zone.type==='STANDING'&&get('standing-zones')?get('standing-zones'):get('hold-zones')).append(field);
         }
         get("hold-zones").oninput = summary;
+        if(get('standing-zones'))get('standing-zones').oninput=summary;
         summary();
     }
 
@@ -515,6 +539,7 @@
         if (form) {
             form.hidden = state.phase !== "selecting";
             get("hold-zones").disabled = state.phase !== "selecting";
+            if(get('standing-zones'))get('standing-zones').disabled=state.phase!=='selecting';
             if (state.phase !== "selecting") {
                 get("hold-submit").disabled = true;
                 if (get("hold-pay-now")) get("hold-pay-now").disabled = true;

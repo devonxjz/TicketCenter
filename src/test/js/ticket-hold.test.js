@@ -674,3 +674,38 @@ test('seat map enriches actual available IDs and keeps booking usable if layout 
     assert.equal(fallback.state.phase,'selecting');
     assert.equal(fallback.state.options.zones[1].seatRows[0].seats[0].id,SEAT);
 });
+
+test('prototype layout keeps seated and standing inventory separate and steppers enforce their shared limit', async () => {
+    const f=fixture();
+    class Node {
+        constructor(tag='div'){this.tag=tag;this.dataset={};this.children=[];this.listeners={};this.value='';this.className='';this.classList={add:value=>{this.className+=' '+value;},remove:value=>{this.className=this.className.replace(value,'');}};}
+        append(...children){this.children.push(...children);}
+        replaceChildren(...children){this.children=children;}
+        setAttribute(key,value){this[key]=value;}
+        addEventListener(key,handler){this.listeners[key]=handler;}
+        querySelectorAll(selector){const all=this.children.flatMap(child=>[child,...child.querySelectorAll('*')]);return selector==='*'?all:all.filter(child=>selector==='input'?child.tag==='input':selector==='input[type=checkbox]'?child.type==='checkbox':selector==='input.hold-quantity'?child.tag==='input'&&child.className==='hold-quantity':selector==='button[data-quantity-step]'?child.tag==='button'&&child.dataset.quantityStep: false);}
+    }
+    const ids=new Map(),get=id=>{if(!ids.has(id))ids.set(id,new Node());return ids.get(id);},body=new Node();
+    body.dataset={holdPage:'selection',publicPage:'detail',context:''};
+    const root={document:{body,createElement:tag=>new Node(tag),getElementById:get},sessionStorage:f.storage,
+        crypto:{randomUUID:()=> '60000000-0000-4000-8000-000000000001'},performance:{now:()=>0},location:{search:'?eventId='+EVENT},
+        fetch:f.create().fetch,setInterval:()=>1,clearInterval:()=>{},addEventListener:()=>{}};
+    vm.runInNewContext(fs.readFileSync(require.resolve('../../main/webapp/assets/js/ticket-hold.js'),'utf8'),{window:root,URLSearchParams});
+    for(let i=0;i<6;i++)await new Promise(resolve=>setImmediate(resolve));
+    assert.equal(get('hold-form').dataset.ticketLayout,'seated');
+    assert.equal(get('standing-zones').children.length,1);
+    assert.equal(get('hold-zones').children.length,1);
+    const quantity=get('standing-zones').querySelectorAll('input')[0],buttons=get('standing-zones').querySelectorAll('button[data-quantity-step]');
+    const minus=buttons.find(button=>button.dataset.quantityStep==='-1'),plus=buttons.find(button=>button.dataset.quantityStep==='1');
+    assert.equal(minus.disabled,true);
+    const seat=get('hold-zones').querySelectorAll('input[type=checkbox]')[0];seat.checked=true;get('hold-zones').oninput();
+    for(let i=0;i<7;i++)plus.listeners.click();
+    assert.equal(quantity.value,'7');assert.equal(plus.disabled,true);assert.equal(get('hold-submit').disabled,false);
+    assert.equal(get('selection-total').textContent,'1.250.000 đ');
+    plus.listeners.click();assert.equal(quantity.value,'7');
+    minus.listeners.click();assert.equal(quantity.value,'6');assert.equal(plus.disabled,false);
+    f.server.options={...f.server.options,zones:f.server.options.zones.filter(zone=>zone.type==='STANDING')};
+    await get('hold-refresh').listeners.click();
+    for(let i=0;i<6;i++)await new Promise(resolve=>setImmediate(resolve));
+    assert.equal(get('seat-workspace').hidden,true);assert.equal(get('hold-form').dataset.ticketLayout,'standing');
+});
