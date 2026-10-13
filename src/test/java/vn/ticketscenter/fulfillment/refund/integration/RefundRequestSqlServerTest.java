@@ -52,5 +52,5 @@ class RefundRequestSqlServerTest {
         finally{try(var c=owner()){execute(c,"DROP TRIGGER dbo.trg_Khanh03_Fault");}}
         assertNotNull(service.create(f.buyer(),request(f),key));
     }
-    @Test void buyerLoginCannotBypassStoredProcedureWithDirectWrites()throws Exception{try(var c=RefundFixture.connect("BUYER")){assertThrows(SQLException.class,()->execute(c,"UPDATE dbo.tc_tickets SET status='REFUNDED' WHERE 1=0"));assertThrows(SQLException.class,()->execute(c,"INSERT dbo.tc_refund_requests(id,order_id,requester_id,reason,reason_type) VALUES(NEWID(),NEWID(),NEWID(),N'x','CUSTOMER_REQUEST')"));}}
+    @Test void buyerLoginCannotBypassStoredProcedureWithDirectWrites()throws Exception{try(var c=RefundFixture.connect("BUYER")){assertThrows(SQLException.class,()->execute(c,"UPDATE dbo.tc_tickets SET status='REFUNDED' WHERE 1=0"));assertThrows(SQLException.class,()->execute(c,"INSERT dbo.tc_refund_obligations(id,order_id,requester_id,amount,purpose,reason,reason_type,status) VALUES(NEWID(),NEWID(),NEWID(),0,'CUSTOMER_REFUND',N'x','CUSTOMER_REQUEST','REQUESTED')"));}}
 }

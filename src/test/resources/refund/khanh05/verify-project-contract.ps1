@@ -22,7 +22,7 @@ try {
  foreach($sp in @('sp_refund_begin_attempt','sp_refund_record_attempt_result','sp_refund_complete_without_transfer')){
   $q.CommandText="SELECT HAS_PERMS_BY_NAME('dbo.$sp','OBJECT','EXECUTE')";if($q.ExecuteScalar() -ne 1){throw "Missing worker permission: $sp"}
  }
- foreach($table in @('tc_refund_dispatches','tc_refunds','tc_tickets')){
+ foreach($table in @('tc_refund_dispatches','tc_refund_obligations','tc_tickets')){
   $q.CommandText="SELECT HAS_PERMS_BY_NAME('dbo.$table','OBJECT','UPDATE')";if($q.ExecuteScalar() -ne 0){throw "Worker has unsafe direct write: $table"}
  }
  foreach($view in @('vw_RefundWorkerCandidates','tc_refund_attempts')){$q.CommandText="SELECT TOP(0) * FROM dbo.$view";[void]$q.ExecuteNonQuery()}
