@@ -2659,7 +2659,7 @@
                 "tc_orders",
                 "tc_order_items",
                 "tc_payments",
-                "tc_refunds",
+                "tc_refund_obligations",
                 "tc_refund_transfer_logs",
                 "tc_tickets",
                 "tc_ticket_holds"

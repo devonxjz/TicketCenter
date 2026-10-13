@@ -79,7 +79,7 @@ class RefundEventSqlIntegrationTest {
         assertEquals("PROCESSING",approved.canonicalStatus());
         assertNotNull(approved.attemptId());
         assertEquals("REFUND_PENDING",ScanFixture.scalar("SELECT status FROM dbo.tc_tickets WHERE id=?",tickets.getFirst().id()));
-        assertEquals("1",ScanFixture.scalar("SELECT COUNT(*) FROM dbo.tc_refunds WHERE id=? AND status='PENDING'",approved.attemptId()));
+        assertEquals("1",ScanFixture.scalar("SELECT COUNT(*) FROM dbo.tc_refund_transfer_logs WHERE id=? AND status='PENDING'",approved.attemptId()));
         try(var c=PaymentCrossDomainSqlTest.source("admin",administrator).getConnection();var q=c.prepareStatement("SELECT COUNT(*) FROM dbo.fn_GetSettlementBlockers(?,SYSUTCDATETIME()) WHERE blocker_type IN('REFUND','REFUND_REQUEST_OPEN','REFUND_UNRESOLVED')")) {
             q.setString(1,f.event().toString());try(var rows=q.executeQuery()){assertTrue(rows.next());assertTrue(rows.getInt(1)>0,"Queued refund must block settlement");}
         }

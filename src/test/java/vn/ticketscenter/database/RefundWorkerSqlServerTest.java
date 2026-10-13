@@ -79,7 +79,7 @@ public class RefundWorkerSqlServerTest {
  }
  @Test void WRK03TimeoutStaysUnknownUntilSameAttemptIsQueried()throws Exception{
   var f=fixture(false,false);var g=gateway(RefundGateway.Status.SUCCEEDED,true);var w=worker(f,g);assertEquals(1,w.runOnce());assertEquals("NEEDS_RECONCILIATION",status(f));
-  assertNull(value("SELECT provider_reference FROM dbo.tc_refunds WHERE id=?",f.attempt()));assertEquals("1",value("SELECT sold_quantity FROM dbo.tc_zones WHERE id=?",f.base().zone()));
+  assertNull(value("SELECT provider_reference FROM dbo.tc_refund_transfer_logs WHERE id=?",f.attempt()));assertEquals("1",value("SELECT sold_quantity FROM dbo.tc_zones WHERE id=?",f.base().zone()));
   assertEquals(0,w.runOnce());assertEquals(0,new RefundReconciliationJob(w).runOnce());due(f);
   var restarted=worker(f,gateway(RefundGateway.Status.FAILED,false));assertEquals(1,new RefundReconciliationJob(restarted).runOnce());assertEquals("COMPLETED",status(f));assertEquals("1",value("SELECT COUNT(*) FROM dbo.tc_refund_transfer_logs WHERE refund_id=?",f.refund()));
  }
@@ -107,7 +107,7 @@ public class RefundWorkerSqlServerTest {
  }
  @Test void unknownReceiptResolutionNeverAllocatesAnotherAttempt()throws Exception{
   var f=fixture(false,false);var g=gateway(RefundGateway.Status.UNKNOWN,false);var w=worker(f,g);w.runOnce();assertEquals("NEEDS_RECONCILIATION",status(f));
-  g.resolve(f.attempt(),RefundGateway.Status.SUCCEEDED);due(f);new RefundReconciliationJob(w).runOnce();assertEquals("COMPLETED",status(f));assertEquals("1",value("SELECT COUNT(*) FROM dbo.tc_refunds WHERE refund_request_id=(SELECT legacy_request_id FROM dbo.tc_refund_obligations WHERE id=?)",f.refund()));
+  g.resolve(f.attempt(),RefundGateway.Status.SUCCEEDED);due(f);new RefundReconciliationJob(w).runOnce();assertEquals("COMPLETED",status(f));assertEquals("1",value("SELECT COUNT(*) FROM dbo.tc_refund_transfer_logs WHERE refund_id=?",f.refund()));
  }
  @Test void reconciliationConfirmedFailureEnablesExplicitRetryOnly()throws Exception{
   var f=fixture(false,false);var g=gateway(RefundGateway.Status.UNKNOWN,false);var w=worker(f,g);w.runOnce();
@@ -147,7 +147,7 @@ public class RefundWorkerSqlServerTest {
  }
  @Test void compensationProcessesAcceptedExtraCaptureWithoutTouchingTickets()throws Exception{
   var base=SqlReportSafetyIT.fixture();SqlReportSafetyIT.capture(base,base.payment(),base.payment().toString());UUID extra=UUID.randomUUID();sql("INSERT dbo.tc_payments(id,order_id,txn_ref,amount) VALUES(?,?,?,1000)",extra,base.order(),extra.toString());SqlReportSafetyIT.capture(base,extra,extra.toString());
-  UUID attempt=UUID.fromString(value("SELECT CONVERT(varchar(36),id) FROM dbo.tc_refunds WHERE payment_id=?",extra));var f=new Fixture(base,attempt,attempt,base.user(),null);
+  UUID attempt=UUID.fromString(value("SELECT CONVERT(varchar(36),attempt_id) FROM dbo.vw_RefundAttemptLedger WHERE payment_id=?",extra));var f=new Fixture(base,attempt,attempt,base.user(),null);
   assertEquals(1,worker(f,gateway(RefundGateway.Status.SUCCEEDED,false)).runOnce());assertEquals("COMPLETED",status(f));assertEquals("ACTIVE",value("SELECT status FROM dbo.tc_tickets WHERE order_item_id=?",base.item()));assertEquals("1",value("SELECT sold_quantity FROM dbo.tc_zones WHERE id=?",base.zone()));
  }
  @Test void twoWorkersWithRedisDownExecuteGatewayOnce()throws Exception{

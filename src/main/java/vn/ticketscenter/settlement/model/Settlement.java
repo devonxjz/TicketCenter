@@ -46,7 +46,7 @@ public class Settlement extends BaseEntity {
     private List<SettlementItem> items = new ArrayList<>();
 
     @OneToMany(mappedBy = "settlement")
-    private List<Payout> payouts = new ArrayList<>();
+    private List<vn.ticketscenter.persistence.model.SettlementTransferLog> payouts = new ArrayList<>();
 
     protected Settlement() { }
 
@@ -62,5 +62,5 @@ public class Settlement extends BaseEntity {
     public long getNetPayable() { return grossRevenue - totalRefund - totalCommission; }
     public long getAvailableToPay() { return getNetPayable() - paidAmount - pendingAmount; }
     public List<SettlementItem> getItems() { return List.copyOf(items); }
-    public List<Payout> getPayouts() { return List.copyOf(payouts); }
+    public List<vn.ticketscenter.persistence.model.SettlementTransferLog> getPayouts() { return List.copyOf(payouts); }
 }

@@ -8,6 +8,8 @@ import vn.ticketscenter.config.ServerConfig;
 import vn.ticketscenter.config.seed.AdminSeeder;
 import vn.ticketscenter.identity.service.PasswordHasher;
 import vn.ticketscenter.config.worker.EventCancellationJob;
+import vn.ticketscenter.config.worker.OutboxEmailJob;
+import vn.ticketscenter.config.worker.OutboxWorker;
 import vn.ticketscenter.config.worker.RefundJob;
 import vn.ticketscenter.event.repository.EventCancellationRepository;
 import vn.ticketscenter.fulfillment.repository.RefundRepository;
@@ -29,6 +31,7 @@ public final class PersistenceListener implements ServletContextListener {
     private static final Logger LOGGER = Logger.getLogger(PersistenceListener.class.getName());
     private ScheduledExecutorService cancellationWorker;
     private ScheduledExecutorService refundWorker;
+    private ScheduledExecutorService outboxExecutor;
 
     @Override
     public void contextInitialized(ServletContextEvent event) {
@@ -57,6 +60,15 @@ public final class PersistenceListener implements ServletContextListener {
             refundWorker = Executors.newSingleThreadScheduledExecutor(
                     Thread.ofPlatform().name("refund-worker").daemon(true).factory());
             refundWorker.scheduleWithFixedDelay(() -> runRefund(refundJob), 0, 5, TimeUnit.SECONDS);
+            if (!"false".equalsIgnoreCase(String.valueOf(AppConfig.get("outbox.worker.enabled")).trim())) {
+                String owner = hostname() + "-" + java.util.UUID.randomUUID();
+                OutboxWorker outbox = new OutboxWorker(registry.transactionManager(),
+                        new OutboxEmailJob(OutboxEmailJob.databaseLoader(registry.transactionManager()),
+                                new vn.ticketscenter.identity.integration.mail.SmtpEmailSender()), owner);
+                outboxExecutor = Executors.newSingleThreadScheduledExecutor(
+                        Thread.ofPlatform().name("outbox-worker").daemon(true).factory());
+                outboxExecutor.scheduleWithFixedDelay(() -> runOutbox(outbox), 10, 10, TimeUnit.SECONDS);
+            }
         }
     }
 
@@ -64,6 +76,7 @@ public final class PersistenceListener implements ServletContextListener {
     public void contextDestroyed(ServletContextEvent event) {
         if (cancellationWorker != null) cancellationWorker.shutdownNow();
         if (refundWorker != null) refundWorker.shutdownNow();
+        if (outboxExecutor != null) outboxExecutor.shutdownNow();
         Object registry = event.getServletContext().getAttribute(REGISTRY_ATTRIBUTE);
         if (registry instanceof PersistenceRegistry persistenceRegistry) {
             persistenceRegistry.close();
@@ -87,6 +100,22 @@ public final class PersistenceListener implements ServletContextListener {
             job.runOnce();
         } catch (RuntimeException exception) {
             LOGGER.log(Level.WARNING, "Refund batch failed; it will be retried", exception);
+        }
+    }
+
+    private static void runOutbox(OutboxWorker worker) {
+        try {
+            worker.runOnce();
+        } catch (RuntimeException exception) {
+            LOGGER.log(Level.WARNING, "Outbox batch failed; it will be retried", exception);
+        }
+    }
+
+    private static String hostname() {
+        try {
+            return java.net.InetAddress.getLocalHost().getHostName();
+        } catch (java.io.IOException | RuntimeException exception) {
+            return "node";
         }
     }
 }

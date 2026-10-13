@@ -26,7 +26,7 @@ The issue's illustrative `tc_refunds`/`tc_refund_attempts` model differs from th
 | Approval / attempt allocation / zero completion | Existing SP10 `usp_ReviewRefundRequest` |
 | Transfer result, financial limits and inventory | Existing SP11 `usp_ApplyRefundResult` |
 
-Migration `045_khanh05_refund_worker.sql` adds the ledger, projection, candidate view and compatibility worker procedures. It creates no duplicate obligations or parallel business models and rewrites no historical migration. Worker procedures use short transactions/savepoints, established Event → Order → Payment → Request → Attempt → dispatch lock order, role checks and token fencing. Only WORKER receives dispatch/result execution; direct ledger writes are denied to runtime roles.
+Migration `048_khanh05_refund_worker.sql` adds the ledger, projection, candidate view and compatibility worker procedures. It creates no duplicate obligations or parallel business models and rewrites no historical migration. Worker procedures use short transactions/savepoints, established Event → Order → Payment → Request → Attempt → dispatch lock order, role checks and token fencing. Only WORKER receives dispatch/result execution; direct ledger writes are denied to runtime roles.
 
 ## Acceptance evidence
 

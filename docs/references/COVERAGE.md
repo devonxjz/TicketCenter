@@ -107,7 +107,7 @@ Nguồn danh mục: [diagram chuẩn](../classdiagram/diagram.md), spec §5 và 
 | SP04 | usp_CheckInTicket | D13-T01 | CheckInService; một success |
 | SP05 | usp_RequestTicketRefund | D14-T01 | RefundService; open unique/race scan |
 | SP06 | usp_CreateOrderFromHold | D09-T01 | OrderService; same Hold→same Order |
-| SP07 | usp_ReleaseTicketHold | D08-T01 | HoldService/HoldExpiryJob/SP02/SP17; một lần trả |
+| SP07 | usp_ReleaseTicketHold | D08-T01 | HoldService/HoldRuntime/SP02/SP17; một lần trả |
 | SP08 | usp_BeginOrderPayment | D10-T01 | PaymentService; pending reuse/zero |
 | SP09 | usp_ApplyPaymentResult | D11-T02 | Verified IPN/query worker/zero buyer; late compensation |
 | SP10 | usp_DecideRefund | D14-T02 | Admin RefundService/SP17; explicit failed retry |
@@ -158,7 +158,7 @@ Nguồn danh mục: [diagram chuẩn](../classdiagram/diagram.md), spec §5 và 
 | IX03 | IX_Order_User_CreatedAt | Lịch sử buyer D09 | D19-T03; D20-T01 |
 | IX04 | IX_Payment_Status_CreatedAt | PaymentReconciliationJob D12 | D19-T03; D20-T01 |
 | IX05 | IX_TicketCheckInLog_Event_ScannedAt | Check-in history D13 | D19-T03; D20-T01 |
-| IX06 | IX_TicketHold_Status_ExpiresAt | HoldExpiryJob D12 | D19-T03; D20-T01 |
+| IX06 | IX_TicketHold_Status_ExpiresAt | HoldRuntime D12 | D19-T03; D20-T01 |
 | IX07 | IX_Order_Event_Status_PaidAt | Settlement/cohort D17/D18 | D19-T03; D20-T01 |
 | IX08 | IX_RefundTransferLog_Status_CreatedAt | RefundJob D15 | D19-T03; D20-T01 |
 | IX09 | IX_CouponRedemption_Coupon_Status | V09/F08/SP03 D09 | D19-T03; D20-T01 |

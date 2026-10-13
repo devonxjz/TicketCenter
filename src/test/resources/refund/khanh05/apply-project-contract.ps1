@@ -34,7 +34,7 @@ try {
    $q=Query "IF (SELECT COUNT_BIG(*) FROM dbo.tc_schema_migrations WHERE version=@v OR version=@v+'.sql')<>1 THROW 53592,'Missing or ambiguous prerequisite migration',1;SELECT checksum_sha256 FROM dbo.tc_schema_migrations WHERE version=@v OR version=@v+'.sql'";[void]$q.Parameters.AddWithValue('@v',$name);$old=$q.ExecuteScalar();$q.Dispose()
    if($null -eq $old -or $old -is [DBNull] -or $old -notin @(Get-Hashes "database/migrations/$name.sql")){throw "Missing or mismatched required migration: $name"}
   }
-  $migration='database/migrations/045_khanh05_refund_worker.sql';$version=[IO.Path]::GetFileName($migration)
+  $migration='database/migrations/048_khanh05_refund_worker.sql';$version=[IO.Path]::GetFileName($migration)
   $hashes=@(Get-Hashes $migration)
   $q=Query "IF (SELECT COUNT_BIG(*) FROM dbo.tc_schema_migrations WITH(UPDLOCK,HOLDLOCK) WHERE version=@v OR version=REPLACE(@v,'.sql',''))>1 THROW 53592,'Ambiguous worker migration identity',1;SELECT checksum_sha256 FROM dbo.tc_schema_migrations WITH(UPDLOCK,HOLDLOCK) WHERE version=@v OR version=REPLACE(@v,'.sql','')";[void]$q.Parameters.AddWithValue('@v',$version);$old=$q.ExecuteScalar();$q.Dispose()
   if($null -ne $old -and $old -isnot [DBNull]) {
