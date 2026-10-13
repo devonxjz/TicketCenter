@@ -3,10 +3,33 @@ const assert = require('node:assert/strict');
 const ui = require('../../main/webapp/assets/js/finance-reports.js');
 const vm=require('node:vm'),fs=require('node:fs');
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
+test('report periods include historical sales and count recent UTC calendar days exactly',()=>{
+ assert.deepEqual(ui.periodBounds('all'),{from:'1970-01-01T00:00:00',to:'9999-12-31T23:59:59'});
+ assert.deepEqual(ui.periodBounds('30',new Date('2026-10-14T08:00:00Z')),{from:'2026-09-15T00:00:00',to:'2026-10-15T00:00:00'});
+ assert.deepEqual(ui.periodBounds('7',new Date('2026-01-02T08:00:00Z')),{from:'2025-12-27T00:00:00',to:'2026-01-03T00:00:00'});
+ assert.throws(()=>ui.periodBounds('bad'));
+});
+test('default report includes historical sales and a period change invalidates the earlier result and matches CSV',async()=>{
+ const h=harness();await h.ready();const initial=new URL(h.requests[1].url,'http://localhost');
+ assert.equal(initial.searchParams.get('from'),'1970-01-01T00:00:00.000Z');assert.equal(initial.searchParams.get('to'),'9999-12-31T23:59:59.000Z');
+ h.ids['report-period'].value='30';h.ids['report-period'].handlers.change();await tick();
+ const recent=new URL(h.requests[2].url,'http://localhost');assert.equal(Date.parse(recent.searchParams.get('to'))-Date.parse(recent.searchParams.get('from')),30*86400000);
+ h.requests[1].resolve(h.result());await tick();assert.equal(h.ids.rows.children.length,0);
+ h.requests[2].resolve(h.response({metric:'COHORT_REVENUE',rows:[{eventTitle:'Actual event',grossRevenue:'500000'}],summary:{grossRevenue:'500000',paidOrderCount:1},total:1,pageSize:20,topEvents:[],from:recent.searchParams.get('from'),to:recent.searchParams.get('to')}));await tick();await tick();
+ assert.match(h.ids['report-period-summary'].textContent,/30 ngày gần nhất/);
+ const download=h.ids.export.handlers.click();await tick();const exported=new URL(h.requests[3].url,'http://localhost');
+ for(const key of ['from','to','metric'])assert.equal(exported.searchParams.get(key),recent.searchParams.get(key));
+ h.requests[3].resolve(new Response('eventTitle,grossRevenue\r\nActual event,500000',{headers:{'Content-Type':'text/csv'}}));await download;assert.equal(h.downloads,1);
+});
+test('missing settlement shows absence of a statement instead of financial zero cards',async()=>{
+ const h=harness();h.ids.filters.elements.metric.value='SETTLEMENT_BALANCE';await h.ready();
+ h.requests[1].resolve(h.response({metric:'SETTLEMENT_BALANCE',rows:[],summary:{totalEvents:0,grossRevenue:'0',netPayable:'0'},total:0,pageSize:20,topEvents:[]}));await tick();await tick();
+ assert.equal(h.ids.summary.children.length,1);assert.match(h.ids.summary.children[0].textContent,/Chưa có bảng quyết toán/);
+});
 function harness(){
  class Element{constructor(value=''){this.value=value;this.children=[];this.handlers={};this.textContent='';this.dataset={};}append(...children){this.children.push(...children);}replaceChildren(...children){this.children=[...children];this.textContent='';}addEventListener(event,handler){this.handlers[event]=handler;}click(){downloads++;}remove(){} }
- const ids=Object.fromEntries(['finance-readside','filters','organization','event','notice','rows','columns','previous','next','pagination','summary','top-events','basis','export'].map(x=>[x,new Element()]));
- const form=ids.filters;form.elements={from:new Element(),to:new Element(),metric:new Element('COHORT_REVENUE'),pageSize:new Element('20')};ids['finance-readside'].dataset={context:'/ticketscenter',admin:'true'};
+ const ids=Object.fromEntries(['finance-readside','filters','organization','event','notice','rows','columns','previous','next','pagination','summary','top-events','basis','export','report-period','report-period-summary'].map(x=>[x,new Element()]));
+ if(ids['report-period'])ids['report-period'].value='all';const form=ids.filters;form.elements={from:new Element(),to:new Element(),metric:new Element('COHORT_REVENUE'),pageSize:new Element('20')};ids['finance-readside'].dataset={context:'/ticketscenter',admin:'true'};
  const requests=[];let downloads=0;const document={getElementById:id=>ids[id],createElement:()=>new Element(),body:new Element()};
  const network=url=>new Promise(resolve=>requests.push({url,resolve}));
  const response=data=>new Response(JSON.stringify({data}),{headers:{'Content-Type':'application/json'}});
@@ -64,7 +87,7 @@ test('successful response uses same-origin credentials and returns the original 
 test('page initialization does not crash when optional UI elements are missing', () => {
   class Element{constructor(value=''){this.value=value;this.children=[];this.handlers={};this.textContent='';this.dataset={};}append(...children){this.children.push(...children);}replaceChildren(...children){this.children=[...children];this.textContent='';}addEventListener(event,handler){this.handlers[event]=handler;}click(){}remove(){} }
   const ids=Object.fromEntries(['finance-readside','filters','organization','event','notice','rows','columns'].map(x=>[x,new Element()]));
-  const form=ids.filters;form.elements={from:new Element(),to:new Element(),metric:new Element('COHORT_REVENUE'),pageSize:new Element('20')};ids['finance-readside'].dataset={context:'/ticketscenter',admin:'true'};
+  if(ids['report-period'])ids['report-period'].value='all';const form=ids.filters;form.elements={from:new Element(),to:new Element(),metric:new Element('COHORT_REVENUE'),pageSize:new Element('20')};ids['finance-readside'].dataset={context:'/ticketscenter',admin:'true'};
   const document={getElementById:id=>ids[id]||null,createElement:()=>new Element(),body:new Element()};
   assert.doesNotThrow(() => {
     vm.runInNewContext(fs.readFileSync(require.resolve('../../main/webapp/assets/js/finance-reports.js'),'utf8'),{
