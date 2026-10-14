@@ -113,9 +113,19 @@
       const card=node('div'),link=node('a',linkLabel);card.className='finance-queue';link.href=context+path;
       card.append(node('dt',labels[key]),node('dd',String(result[key])),link);queue.append(card);
     }
-    function stat(key,value){const card=node('div');card.className=key==='asOf'?'finance-stat finance-stat-wide':'finance-stat';card.append(node('dt',labels[key]||key),node('dd',display(key,value)));summary.append(card);}
-    for(const key of ['totalUsers','activeOrganizations','asOf','cumulativeGrossRevenue','cumulativeCommission','cumulativeNetCashFlow','todayCohortGrossRevenue','todayCohortCommission'])if(result[key]!=null)stat(key,result[key]);
-    for(const [key,value]of Object.entries(result.todayCashFlow||{}))stat(key,value);
+    function group(title,entries,collapsible=false){
+      entries=entries.filter(([,value])=>value!=null);if(!entries.length)return;
+      const section=node(collapsible?'details':'section'),grid=node('dl');section.className='overview-stat-group';
+      section.append(node(collapsible?'summary':'h2',title));
+      grid.className=entries.length===2?'overview-stat-pair':'';
+      for(const [key,value]of entries){const card=node('div');card.className='finance-stat';card.append(node('dt',labels[key]||key),node('dd',display(key,value)));grid.append(card);}
+      section.append(grid);summary.append(section);
+    }
+    group('Quy mô hệ thống',['totalUsers','activeOrganizations'].map(key=>[key,result[key]]));
+    group('Tài chính lũy kế',['cumulativeGrossRevenue','cumulativeCommission','cumulativeNetCashFlow'].map(key=>[key,result[key]]));
+    group('Doanh thu hôm nay (UTC)',['todayCohortGrossRevenue','todayCohortCommission'].map(key=>[key,result[key]]));
+    group('Chi tiết dòng tiền hôm nay (UTC)',Object.entries(result.todayCashFlow||{}),true);
+    if(result.asOf){const timestamp=new Date(result.asOf);summary.append(node('p','Cập nhật: '+(Number.isNaN(timestamp.getTime())?result.asOf:timestamp.toLocaleString('vi-VN'))));}
     const bars=chartBars(result.dailyMetrics||[]),svg=svgNode('svg',{viewBox:'0 0 640 310',role:'img','aria-label':'Doanh thu và dòng tiền trong 7 ngày UTC'});
     svg.append(svgNode('line',{x1:20,y1:150,x2:620,y2:150,stroke:'#555'}));
     const rows=document.getElementById('daily-values');

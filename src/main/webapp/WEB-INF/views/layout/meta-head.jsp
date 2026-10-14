@@ -5,6 +5,7 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/style.css">
 <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/production-ui.css">
+<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/theme-components.css?v=20261014-2">
 <script defer src="${pageContext.request.contextPath}/assets/js/site-shell.js?v=3"></script>
 <script defer src="${pageContext.request.contextPath}/assets/js/ui-components.js"></script>
 

@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="<%= financeContext %>/assets/css/finance.css">
 <link rel="stylesheet" href="<%= financeContext %>/assets/css/production-ui.css">
 <link rel="stylesheet" href="<%= financeContext %>/assets/css/admin-ui.css">
+<link rel="stylesheet" href="<%= financeContext %>/assets/css/theme-components.css?v=20261014-2">
 <script defer src="<%= financeContext %>/assets/js/ui-components.js"></script>
 <script defer src="<%= financeContext %>/assets/js/site-shell.js?v=2"></script>
 </head><body class="finance-body">

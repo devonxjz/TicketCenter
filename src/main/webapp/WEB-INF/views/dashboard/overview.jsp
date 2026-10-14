@@ -3,7 +3,7 @@
 <%@ include file="../report/_header.jsp" %>
 <div class="finance-toolbar"><form id="filters"><button type="submit">Cập nhật tổng quan</button></form><a class="finance-link" href="<%= financeContext %>/finance/settlements">Xem bảng kê cần xử lý &rarr;</a></div>
 <dl id="queue-summary" aria-label="Hàng đợi cần xử lý"></dl>
-<p id="basis"></p><dl id="summary"></dl>
+<p id="basis"></p><div id="summary" class="overview-summary"></div>
 
 <section class="finance-panel"><div class="finance-panel-heading"><h2>Doanh thu và dòng tiền</h2><span class="finance-tag">7 ngày UTC</span></div>
 <p class="finance-chart-legend"><span><i class="finance-legend-revenue" aria-hidden="true"></i>Doanh thu theo ngày đơn thanh toán</span><span><i class="finance-legend-cash" aria-hidden="true"></i>Dòng tiền ròng thực tế</span></p>

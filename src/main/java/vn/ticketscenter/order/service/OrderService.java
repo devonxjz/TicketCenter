@@ -32,6 +32,7 @@ public final class OrderService {
         });
         return current;
     }
+    public String eligibleCoupons(OrderActor actor, UUID holdId) { return repository.eligibleCoupons(actor, holdId); }
     public String eligibility(OrderActor actor, UUID orderId, String couponCode) { return repository.eligibility(actor, orderId, couponCode); }
 
     public OrderRepository.OrderHistoryPage orderHistory(OrderActor actor, int page, int size, String status) {

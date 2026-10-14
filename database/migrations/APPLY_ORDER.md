@@ -32,3 +32,8 @@ Lưu ý: `045_order_ticket_access_assertions.sql` được áp **trước** `044
 
 Migration mới: lấy số kế tiếp chưa có trong `dbo.tc_schema_migrations` (kiểm tra cả các nhánh chưa merge),
 một số một file.
+
+
+`068_checkout_eligible_coupons.sql` bổ sung procedure chỉ đọc và quyền EXECUTE cho `tc_buyer`,
+phục vụ combo box ưu đãi trên trang thanh toán. Áp migration này trước khi triển khai API/UI chọn mã;
+việc áp dụng mã vẫn đi qua command hiện có để kiểm tra điều kiện và giữ lượt sử dụng.
