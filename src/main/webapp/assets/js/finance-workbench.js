@@ -10,7 +10,7 @@
     FORBIDDEN: 'Bạn không có quyền thực hiện thao tác này.',
     ADMIN_REQUIRED: 'Thao tác này cần quyền quản trị viên.',
     RULE_ALREADY_ATTACHED_TO_EVENTS: 'Chính sách đã gắn với sự kiện và không thể sửa.',
-    SETTLEMENT_BLOCKED: 'Còn giao dịch chưa giải quyết. Hãy xử lý trước khi chốt.',
+    SETTLEMENT_BLOCKED: 'Bảng kê chưa đủ điều kiện chốt. Vui lòng kiểm tra các mục cần xử lý bên dưới.',
     EVENT_NOT_ENDED: 'Sự kiện chưa kết thúc.',
     PAYOUT_EXCEEDS_BALANCE: 'Số tiền vượt quá số dư có thể chi trả.',
     PAYOUT_RECONCILIATION_REQUIRED: 'Có lệnh chưa xác định kết quả. Cần xác minh trước khi tạo lệnh mới.',
@@ -18,9 +18,21 @@
     PAYOUT_TERMS_CONFLICT: 'Lệnh này đã được lưu với thông tin khác.',
     DATABASE_UNAVAILABLE: 'Dữ liệu tạm thời chưa tải được. Vui lòng thử lại.'
   };
+  class UserFacingError extends Error {}
+  const errorText = error => error instanceof UserFacingError ? error.message : 'Không thể hoàn tất yêu cầu lúc này. Vui lòng thử lại sau.';
+  const blockerMessages = {
+    EVENT_NOT_ENDED: () => 'Sự kiện chưa kết thúc. Bạn có thể chốt quyết toán sau giờ kết thúc sự kiện.',
+    ORDER_PAYMENT: count => `Có ${count} đơn hàng chưa hoàn tất thanh toán. Vui lòng kiểm tra và xử lý trước khi chốt.`,
+    PAYMENT: count => `Có ${count} giao dịch thanh toán đang chờ kết quả. Vui lòng kiểm tra kết quả thanh toán trước khi chốt.`,
+    REFUND: count => `Có ${count} khoản hoàn tiền chưa xử lý xong. Vui lòng xử lý tại mục Hoàn vé trước khi chốt.`,
+    REFUND_VERIFICATION: count => `Có ${count} khoản hoàn tiền cần kiểm tra lại kết quả chuyển tiền trước khi chốt.`,
+    CANCELLATION_WORK: () => 'Việc hủy sự kiện đang được xử lý. Vui lòng chờ hoàn tất rồi thử lại.',
+    CANCELLED_REVENUE: count => `Có ${count} đơn hàng của sự kiện đã hủy chưa được hoàn đủ tiền. Vui lòng kiểm tra tại mục Hoàn vé.`,
+    INVALID_FINANCIALS: () => 'Số liệu doanh thu hoặc hoa hồng chưa hợp lệ. Vui lòng kiểm tra lại bảng kê trước khi chốt.'
+  };
   const tell = (text) => { notice.textContent = text; };
   const money = (value) => value == null ? '—' : BigInt(value).toLocaleString('vi-VN');
-  const state=value=>({DRAFT:'Bản nháp',CONFIRMED:'Đã chốt',PAID:'Đã chi trả',PENDING:'Đang chờ',SUCCEEDED:'Thành công',FAILED:'Thất bại'}[value]||value);
+  const state=value=>({DRAFT:'Bản nháp',CONFIRMED:'Đã chốt',PAID:'Đã chi trả',PENDING:'Đang chờ',SUCCEEDED:'Thành công',FAILED:'Thất bại'}[value]||'Chưa xác định');
   const date = (value) => value ? new Date(value).toLocaleString('vi-VN', { timeZone: 'UTC' }) + ' UTC' : '—';
   const cell = (tr, value) => { const td = document.createElement('td'); td.textContent = String(value ?? '—'); tr.appendChild(td); return td; };
   async function api(path, body, key) {
@@ -30,12 +42,12 @@
       body: body === undefined ? undefined : JSON.stringify(body)
     });
     const result = await response.json();
-    if (!response.ok) throw new Error(translations[result.error?.code] || 'Không thể hoàn tất yêu cầu. Kiểm tra dữ liệu và thử lại.');
+    if (!response.ok) throw new UserFacingError(translations[result.error?.code] || 'Không thể hoàn tất yêu cầu. Kiểm tra dữ liệu và thử lại.');
     return result.data;
   }
   const withBusy = async (button, action) => {
     button.disabled = true;
-    try { await action(); } catch (error) { tell(error.message); } finally {
+    try { await action(); } catch (error) { tell(errorText(error)); } finally {
       if (!['recalculate','confirm','payout-submit'].includes(button.id)) button.disabled = false;
     }
   };
@@ -64,7 +76,7 @@
           cell(tr, '').appendChild(edit); document.getElementById('rules').appendChild(tr);
         }
         globalThis.TicketUI?.paginateItems(document.getElementById('rules'),{pageSize:10,label:'Phân trang chính sách hoa hồng'});
-      } catch (error) { if (own === generation) tell(error.message); }
+      } catch (error) { if (own === generation) tell(errorText(error)); }
     }
     select.addEventListener('change', () => { tell(''); load(); });
     document.getElementById('cancel-edit').addEventListener('click', reset);
@@ -104,7 +116,16 @@
         for (const [label, value] of [['Trạng thái',state(next.status)],['Doanh thu',money(next.grossRevenue)],['Đã hoàn vé',money(next.totalRefund)],['Hoa hồng',money(next.totalCommission)],['Thực trả',money(next.netPayable)],['Đã chi trả',money(next.paidAmount)],['Đang chờ',money(next.pendingAmount)],['Có thể chi trả',money(next.availableToPay)]]) {
           const card = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); card.className = 'finance-stat'; dt.textContent = label; dd.textContent = value; card.append(dt, dd); document.getElementById('summary').append(card);
         }
-        for (const item of blocked.items) { const li = document.createElement('li'); li.textContent = item.detail; document.getElementById('blockers').appendChild(li); }
+        const grouped = new Map();
+        for (const item of blocked.items) {
+          const type = Object.hasOwn(blockerMessages, item.blockerType) ? item.blockerType : 'OTHER';
+          grouped.set(type, (grouped.get(type) || 0) + 1);
+        }
+        for (const [type, count] of grouped) {
+          const li = document.createElement('li');
+          li.textContent = type === 'OTHER' ? 'Bảng kê còn mục cần kiểm tra. Vui lòng liên hệ bộ phận hỗ trợ để được hướng dẫn trước khi chốt.' : blockerMessages[type](count);
+          document.getElementById('blockers').appendChild(li);
+        }
         if (!blocked.items.length) { const li = document.createElement('li'); li.textContent = 'Không còn giao dịch cần giải quyết.'; document.getElementById('blockers').appendChild(li); }
         if (next.settlementId) {
           const history = await api('/api/admin/settlements/' + next.settlementId + '/payouts');
@@ -125,14 +146,14 @@
         }
         globalThis.TicketUI?.paginateItems(document.getElementById('payouts'),{pageSize:10,label:'Phân trang lịch sử chi trả'});
         return true;
-      } catch (error) { if (own === generation) { summary = null; tell(error.message); } return false; }
+      } catch (error) { if (own === generation) { summary = null; tell(errorText(error)); } return false; }
       finally { if (own === generation) { loading = false; updateButtons(); } }
     }
     async function mutate(action) {
       if (busy) return;
       busy = true; mutationEvent = select.value; updateButtons();
       let message;
-      try { message = await action(); } catch (error) { message = error.message; }
+      try { message = await action(); } catch (error) { message = errorText(error); }
       finally {
         // A lost response may still have committed a reservation. Reload its durable history before unlocking.
         const refreshed = await load();
