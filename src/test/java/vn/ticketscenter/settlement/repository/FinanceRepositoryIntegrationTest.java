@@ -101,6 +101,19 @@ class FinanceRepositoryIntegrationTest {
         @SuppressWarnings("unchecked") var organizations=(List<Map<String,Object>>)options.get("organizations");
         assertTrue(organizations.stream().anyMatch(row->row.get("id").toString().equalsIgnoreCase(org.toString())));
     }
+    @Test void settlementSelectorExcludesFutureEventsAndReadyListExcludesConfirmedEvents() throws Exception {
+        UUID rule=UUID.fromString(repository.createRule(principal,org,UUID.randomUUID(),terms()).get("ruleId").toString()); paidEvent(rule);
+        UUID future=UUID.randomUUID();
+        try(var c=db.open()) {sql(c,"INSERT dbo.tc_events(id,organization_id,title,end_time) VALUES(?,?,'Future Event','2099-01-01')",future,org);}
+        @SuppressWarnings("unchecked") var ended=(List<Map<String,Object>>)repository.options(principal,true).get("events");
+        assertTrue(ended.stream().anyMatch(row->row.get("id").toString().equalsIgnoreCase(event.toString())));
+        assertFalse(ended.stream().anyMatch(row->row.get("id").toString().equalsIgnoreCase(future.toString())));
+        @SuppressWarnings("unchecked") var all=(List<Map<String,Object>>)repository.options(principal).get("events");
+        assertTrue(all.stream().anyMatch(row->row.get("id").toString().equalsIgnoreCase(future.toString())));
+        assertTrue(repository.readySettlementEvents(principal).stream().anyMatch(row->row.get("id").toString().equalsIgnoreCase(event.toString())));
+        UUID sid=UUID.fromString(repository.recalculate(principal,event).get("settlementId").toString());repository.confirm(principal,sid);
+        assertFalse(repository.readySettlementEvents(principal).stream().anyMatch(row->row.get("id").toString().equalsIgnoreCase(event.toString())));
+    }
     @Test void cachedEventReadsInvalidateAfterCommitAndRefuseStaleAuthority() throws Exception {
         UUID rule=UUID.fromString(repository.createRule(principal,org,UUID.randomUUID(),terms()).get("ruleId").toString());paidEvent(rule);
         var cached=new HashMap<String,String>();

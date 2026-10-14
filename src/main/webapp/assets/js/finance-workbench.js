@@ -93,12 +93,15 @@
     });
   } else {
     const select = document.getElementById('event');
+    const readyList = document.getElementById('ready-events');
+    const readyButtons = readyList ? Array.from(readyList.querySelectorAll('button')) : [];
     const form = document.getElementById('payout-form');
     const recalc = document.getElementById('recalculate'), confirm = document.getElementById('confirm'), pay = document.getElementById('payout-submit'), reconcile = document.getElementById('reconcile');
     let summary = null, generation = 0, payoutKey = null, blockers = [], busy = false, loading = false, mutationEvent = null;
     let historyButtons = [];
     const updateButtons = () => {
       select.disabled = busy;
+      for (const button of readyButtons) button.disabled = busy;
       for (const input of form.querySelectorAll('input')) input.disabled = busy;
       recalc.disabled = busy || loading || !summary || summary.status !== 'DRAFT';
       confirm.disabled = busy || loading || !summary?.settlementId || summary.status !== 'DRAFT' || blockers.length > 0 || !summary.endTime || new Date(summary.endTime) > new Date();
@@ -113,6 +116,14 @@
       try {
         const [next, blocked] = await Promise.all([api('/api/admin/events/' + eventId + '/settlement'), api('/api/admin/events/' + eventId + '/settlement-blockers')]);
         if (own !== generation) return false; summary = next; blockers = blocked.items;
+        if(next.status !== 'DRAFT' || blockers.length || !next.endTime || new Date(next.endTime) > new Date()) {
+          for(const button of readyButtons) if(button.dataset.readyEvent === eventId) button.closest('tr')?.remove();
+          if(readyList && !readyList.querySelectorAll('button').length) {
+            const row=document.createElement('tr'), td=document.createElement('td'); td.colSpan=3;
+            td.textContent='Chưa có sự kiện đã kết thúc đủ điều kiện quyết toán.'; row.appendChild(td); readyList.replaceChildren(row);
+          }
+          if(readyList) globalThis.TicketUI?.paginateItems(readyList,{pageSize:10,label:'Phân trang sự kiện có thể quyết toán'});
+        }
         for (const [label, value] of [['Trạng thái',state(next.status)],['Doanh thu',money(next.grossRevenue)],['Đã hoàn vé',money(next.totalRefund)],['Hoa hồng',money(next.totalCommission)],['Thực trả',money(next.netPayable)],['Đã chi trả',money(next.paidAmount)],['Đang chờ',money(next.pendingAmount)],['Có thể chi trả',money(next.availableToPay)]]) {
           const card = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); card.className = 'finance-stat'; dt.textContent = label; dd.textContent = value; card.append(dt, dd); document.getElementById('summary').append(card);
         }
@@ -172,6 +183,15 @@
       if (busy) { select.value = mutationEvent; return; }
       payoutKey = null; reconcile.hidden = true; tell(''); load();
     });
+    for(const button of readyButtons) button.addEventListener('click', () => {
+      if(busy) return;
+      const eventId=button.dataset.readyEvent;
+      if(!Array.from(select.options).some(option=>option.value===eventId)) {
+        const option=document.createElement('option'); option.value=eventId; option.textContent=button.dataset.readyTitle; select.appendChild(option);
+      }
+      select.value=eventId; payoutKey=null; reconcile.hidden=true; tell(''); load();
+    });
+    if(readyList) globalThis.TicketUI?.paginateItems(readyList,{pageSize:10,label:'Phân trang sự kiện có thể quyết toán'});
     recalc.addEventListener('click', () => {
       if (recalc.disabled) return;
       const eventId = select.value;

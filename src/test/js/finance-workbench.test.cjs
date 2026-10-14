@@ -8,20 +8,24 @@ const script=fs.readFileSync(path.resolve(__dirname,'../../main/webapp/assets/js
 const flush=async()=>{for(let i=0;i<4;i++) await new Promise(resolve=>setImmediate(resolve));};
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no});return {promise,resolve,reject};};
 
-function workbench({pending=false}={}) {
+function workbench({pending=false,ready=false}={}) {
  class Element {
   constructor(tag,id=''){this.tagName=tag.toUpperCase();this.id=id;this.dataset={};this.value='';this.disabled=false;this.hidden=false;this.children=[];this.listeners={};this.textContent='';}
   addEventListener(type,listener){this.listeners[type]=listener;}
   dispatch(type){return this.listeners[type]?.({preventDefault(){}});}
-  append(...nodes){this.children.push(...nodes);}
+  append(...nodes){this.children.push(...nodes);for(const node of nodes)node.parentElement=this;}
   appendChild(node){this.append(node);return node;}
   replaceChildren(...nodes){this.children=nodes;}
   get lastElementChild(){return this.children[this.children.length-1] || null;}
+  get options(){return this.children;}
+  closest(tag){return this.tagName.toLowerCase()===tag?this:this.parentElement?.closest(tag);}
+  remove(){if(this.parentElement)this.parentElement.children=this.parentElement.children.filter(node=>node!==this);}
   querySelectorAll(selector){const found=[];for(const child of this.children){if(child.tagName.toLowerCase()===selector)found.push(child);found.push(...child.querySelectorAll(selector));}return found;}
  }
  const elements={};
  const get=id=>elements[id] ||= new Element(id==='event'?'select':'div',id);
  get('finance-app').dataset={page:'settlements',context:'',csrf:'test-csrf',payoutMode:'fixture-simulated'};
+ if(ready) {const row=new Element('tr'),button=new Element('button');button.dataset={readyEvent:'A',readyTitle:'Ended Event'};row.append(button);get('ready-events').append(row);}
  for(const id of ['recalculate','confirm','payout-submit','reconcile']) {const button=get(id);button.tagName='BUTTON';button.disabled=id!=='reconcile';button.hidden=id==='reconcile';}
  const form=get('payout-form');form.elements=[];
  for(const name of ['amount','bankAccountNumber','bankName','accountHolderName','note']) {const input=new Element('input');input.name=name;input.value=name==='amount'?'40':'Test';form.elements.push(input);form.elements[name]=input;form.append(input);}
@@ -112,6 +116,24 @@ test('technical request errors and malformed responses never reach the notice',a
 test('known request errors retain useful Vietnamese guidance',async()=>{
  const ui=workbench();ui.setResponse(async()=>({ok:false,json:async()=>({error:{code:'UNAUTHENTICATED',message:'technical detail'}})}));
  await ui.choose('A');assert.equal(ui.get('notice').textContent,'Phiên đăng nhập đã hết hiệu lực. Vui lòng đăng nhập lại.');
+});
+
+test('ready event action loads the selected draft even beyond the initial selector limit',async()=>{
+ const ui=workbench({ready:true});ui.summaries.A.status='DRAFT';
+ ui.get('ready-events').querySelectorAll('button')[0].dispatch('click');await flush();
+ assert.equal(ui.get('event').value,'A');
+ assert.equal(ui.get('event').options[0].textContent,'Ended Event');
+ assert.equal(ui.get('recalculate').disabled,false);
+ assert.ok(ui.requests.some(request=>request.url==='/api/admin/events/A/settlement-blockers'));
+ const response=deferred();ui.setPost(()=>response.promise);ui.get('recalculate').dispatch('click');
+ assert.equal(ui.get('ready-events').querySelectorAll('button')[0].disabled,true);
+ response.resolve({});await flush();assert.equal(ui.get('ready-events').querySelectorAll('button')[0].disabled,false);
+});
+
+test('ready list removes an event once its statement has been confirmed',async()=>{
+ const ui=workbench({ready:true});await ui.choose('A');
+ assert.equal(ui.get('ready-events').querySelectorAll('button').length,0);
+ assert.equal(ui.get('ready-events').children[0].children[0].textContent,'Chưa có sự kiện đã kết thúc đủ điều kiện quyết toán.');
 });
 
 test('late event reads cannot replace the current event or its recovery action',async()=>{

@@ -16,8 +16,10 @@ public final class FinancePageServlet extends HttpServlet {
         var actor=SecurityContext.getCurrentUser(request).orElse(null);
         if(actor==null) { response.sendRedirect(request.getContextPath()+"/auth/login"); return; }
         try {
-            var options=new FinanceRepository(FinanceRuntime.database(getServletContext())).options(actor);
+            var repository=new FinanceRepository(FinanceRuntime.database(getServletContext()));
+            var options=repository.options(actor,request.getServletPath().endsWith("settlements"));
             request.setAttribute("organizations",options.get("organizations")); request.setAttribute("events",options.get("events"));
+            if(request.getServletPath().endsWith("settlements")) request.setAttribute("readyEvents",repository.readySettlementEvents(actor));
             request.setAttribute("csrf",SecurityContext.getOrCreateCsrfToken(request));
             request.setAttribute("payoutMode",AppConfig.get("payout.adapter","unavailable"));
             response.setHeader("Cache-Control","no-store");

@@ -22,10 +22,18 @@ public final class FinanceRepository implements PayoutStore {
     public void requireRuleRead(UserPrincipal actor,UUID organizationId) { admin(actor,c -> { require(c,"dbo.vw_FinanceOrganizations",organizationId); return null; }); }
     public void requireEventRead(UserPrincipal actor,UUID eventId) { admin(actor,c -> { require(c,"dbo.vw_FinanceEvents",eventId); return null; }); }
     public Map<String,Object> options(UserPrincipal actor) {
+        return options(actor,false);
+    }
+    public Map<String,Object> options(UserPrincipal actor,boolean endedOnly) {
         return admin(actor,c -> {
             List<Map<String,Object>> orgs,events;
             try(var q=c.prepareStatement("SELECT TOP(500) id,name FROM dbo.vw_FinanceOrganizations ORDER BY name,id")) { FinanceJdbc.bind(q); orgs=FinanceJdbc.list(q); }
-            try(var q=c.prepareStatement("SELECT TOP(500) id,title,organization_id,settlement_id,settlement_status FROM dbo.vw_FinanceEvents ORDER BY created_at DESC,id")) { FinanceJdbc.bind(q); events=FinanceJdbc.list(q); }
+            String eventSql="SELECT TOP(500) id,title,organization_id,settlement_id,settlement_status FROM dbo.vw_FinanceEvents"
+                    +(endedOnly?" WHERE end_time<=?":"")+" ORDER BY created_at DESC,id";
+            try(var q=c.prepareStatement(eventSql)) {
+                if(endedOnly) FinanceJdbc.bind(q,Instant.now()); else FinanceJdbc.bind(q);
+                events=FinanceJdbc.list(q);
+            }
             return Map.of("organizations",orgs,"events",events);
         });
     }
@@ -34,6 +42,20 @@ public final class FinanceRepository implements PayoutStore {
             require(c,"dbo.vw_FinanceOrganizations",org);
             try(var q=c.prepareStatement("SELECT rule_id,organization_id,rate_percent,fixed_fee,effective_from,effective_to,associated_events_count FROM dbo.vw_CommissionRuleUsage WHERE organization_id=? ORDER BY effective_from DESC,rule_id")) {
                 FinanceJdbc.bind(q,org); return FinanceJdbc.list(q);
+            }
+        });
+    }
+    public List<Map<String,Object>> readySettlementEvents(UserPrincipal actor) {
+        return admin(actor,c -> {
+            try(var q=c.prepareStatement("""
+                    SELECT e.id,e.title,e.end_time
+                    FROM dbo.vw_FinanceEvents e
+                    WHERE e.end_time<=? AND (e.settlement_status IS NULL OR e.settlement_status='DRAFT')
+                      AND EXISTS(SELECT 1 FROM dbo.vw_OrderFinancialSummary f WHERE f.event_id=e.id AND f.status='PAID')
+                      AND NOT EXISTS(SELECT 1 FROM dbo.fn_GetSettlementBlockers(e.id,?))
+                    ORDER BY e.end_time,e.id
+                    """)) {
+                var now=Instant.now(); FinanceJdbc.bind(q,now,now); return FinanceJdbc.list(q);
             }
         });
     }
