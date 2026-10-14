@@ -43,10 +43,11 @@ test('full WAR uses real identity, session, CSRF and finance authorization', {sk
   for(const path of ['/api/admin/overview','/api/admin/audit-logs'+period,'/finance/overview','/finance/audit','/finance/commission','/finance/settlements','/finance/reports']){
    const r=await admin.request(path);assert.equal(r.status,200,path);
    if(path.startsWith('/finance/')){
-    assert.match(r.text,/<nav[^>]+aria-label="Điều hướng tài chính"/, 'Finance pages must provide the same accessible navigation');
+    assert.match(r.text,/<nav[^>]+aria-label="Quản lý hệ thống"/, 'Finance pages use the shared accessible Admin navigation');
     assert.match(r.text,/id="adminNotificationBell"/, 'Keep the shared organization notification header');
     assert.ok(r.text.includes('TicketsCenter · Tài chính'),'The included footer must render Vietnamese as UTF-8');
-    assert.match(r.text,new RegExp('href="/ticketscenter'+path+'"[^>]*aria-current="page"'), 'Identify the current page');
+    const navigationPath=path==='/finance/overview'?'/admin/dashboard':path;
+    assert.match(r.text,new RegExp('href="/ticketscenter'+navigationPath+'"[^>]*aria-current="page"'), 'Identify the current page');
    }
    if(path==='/finance/audit'||path==='/finance/reports'){
     assert.match(r.text,/<label>Tổ chức<select/,'Shared scope labels must render as UTF-8');
@@ -57,7 +58,7 @@ test('full WAR uses real identity, session, CSRF and finance authorization', {sk
  });
  await t.test('MANAGER login and exact organization read dispatch succeed',async()=>{await manager.login('abcc@manager.com','123','MANAGER');const options=await manager.request('/api/reports/options');assert.equal(options.status,200);org=options.data.data.organizations[0].id;assert.match(org,/^[a-f0-9-]{36}$/);const r=await manager.request('/api/organizations/'+org+'/overview');assert.equal(r.status,200);assert.equal(r.data.data.organizationId,org);assert.equal((await manager.request('/api/organizations/'+org+'/reports'+period)).status,200);
   const page=await manager.request('/finance/reports');assert.equal(page.status,200);
-  assert.match(page.text,/<nav[^>]+aria-label="Điều hướng tài chính"/);
+  assert.match(page.text,/<nav[^>]+aria-label="Quản lý tổ chức"/);
   assert.match(page.text,/href="\/ticketscenter\/finance\/reports"[^>]*aria-current="page"/);
   assert.doesNotMatch(page.text,/id="adminNotificationBell"|href="[^\"]*\/finance\/(?:commission|settlements|audit|overview)"/,'Manager must not receive Admin navigation');
  });

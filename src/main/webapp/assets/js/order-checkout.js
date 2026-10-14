@@ -374,7 +374,11 @@
     observer.observe(document.body, { attributes: true, attributeFilter: ["data-hold-state"] });
     root.addEventListener("pagehide", () => { root.clearTimeout(expiryTimer); expiryTimer = null; client.pause(); });
     root.addEventListener("pageshow", event => { if (event.persisted) void client.refresh(); });
-    root.addEventListener("focus", () => void client.refresh());
+    root.addEventListener("focus", () => {
+        // Native select popups can return window focus before committing their change.
+        // Rebuilding checkout here would disable the select and discard that choice.
+        if (document.activeElement?.tagName !== "SELECT") void client.refresh();
+    });
     document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") void client.refresh(); else client.pause(); });
     void client.refresh();
 })(typeof window !== "undefined" ? window : globalThis);

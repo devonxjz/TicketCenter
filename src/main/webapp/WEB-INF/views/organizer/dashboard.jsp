@@ -6,7 +6,7 @@
         <head>
             <title>Tổng quan tổ chức | TicketsCenter</title>
             <jsp:include page="/WEB-INF/views/layout/meta-head.jsp" />
-            <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/organizer-ui.css">
+            <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/organizer-ui.css?v=20261014">
             <style>
                 [hidden] {
                     display: none !important
@@ -32,27 +32,27 @@
                         </div>
                     </div>
                     <p id="live-status" role="status" aria-live="polite" class="text-muted">Đang tải số liệu…</p>
-                    <div class="row g-4 mb-5">
-                        <div class="col-sm-6 col-lg">
+                    <div class="organizer-metrics mb-5">
+                        <div class="organizer-metric">
                             <div class="panel-box h-100 mb-0 p-4"><span class="filter-label d-block mb-1">Sự
                                     kiện</span><span class="h3 fw-bold text-dark d-block" id="metric-events">—</span>
                             </div>
                         </div>
-                        <div class="col-sm-6 col-lg">
+                        <div class="organizer-metric">
                             <div class="panel-box h-100 mb-0 p-4"><span class="filter-label d-block mb-1">Sự kiện chờ
                                     duyệt</span><span class="h3 fw-bold text-dark d-block" id="metric-pending">—</span>
                             </div>
                         </div>
-                        <div class="col-sm-6 col-lg">
+                        <div class="organizer-metric">
                             <div class="panel-box h-100 mb-0 p-4"><span class="filter-label d-block mb-1">Đơn đã thanh
                                     toán</span><span class="h3 fw-bold text-dark d-block" id="metric-orders">—</span>
                             </div>
                         </div>
-                        <div class="col-sm-6 col-lg">
+                        <div class="organizer-metric">
                             <div class="panel-box h-100 mb-0 p-4"><span class="filter-label d-block mb-1">Doanh thu lũy kế</span><span class="h3 fw-bold text-danger d-block"
                                     id="metric-revenue">—</span></div>
                         </div>
-                        <div class="col-sm-6 col-lg">
+                        <div class="organizer-metric">
                             <div class="panel-box h-100 mb-0 p-4"><span class="filter-label d-block mb-1">Dòng tiền ròng lũy kế</span><span class="h3 fw-bold text-dark d-block" id="metric-cash">—</span>
                             </div>
                         </div>

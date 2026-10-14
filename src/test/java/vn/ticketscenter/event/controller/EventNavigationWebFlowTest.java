@@ -169,7 +169,7 @@ class EventNavigationWebFlowTest {
     }
 
     @Test
-    @DisplayName("LogoutServlet hỗ trợ GET /auth/logout chuyển hướng về trang chủ")
+    @DisplayName("GET /auth/logout chuyển hướng nhưng không thay đổi phiên")
     void testLogoutServletGetRedirectsHome() throws Exception {
         sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, "dummy");
         LogoutServlet servlet = new LogoutServlet();
@@ -180,6 +180,6 @@ class EventNavigationWebFlowTest {
 
         assertEquals(302, responseStatus.get());
         assertEquals("/", responseHeaders.get("Location"));
-        assertTrue(sessionAttributes.isEmpty(), "Phiên phải bị xóa khi đăng xuất");
+        assertEquals("dummy",sessionAttributes.get(SecurityContext.SESSION_USER_ATTRIBUTE), "GET must not invalidate the session");
     }
 }

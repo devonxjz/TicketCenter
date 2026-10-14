@@ -14,12 +14,16 @@ public class LogoutServlet extends HttpServlet {
 
     @Override
     public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        SecurityContext.clearSession(req);
         resp.sendRedirect(req.getContextPath() + "/");
     }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        if (req.getSession(false) != null && !SecurityContext.validateCsrfToken(req)) {
+            HttpResponses.error(resp, HttpServletResponse.SC_FORBIDDEN, "CSRF_TOKEN_INVALID",
+                    "Yêu cầu thiếu hoặc mã CSRF không hợp lệ");
+            return;
+        }
         // Hủy phiên an toàn và có tính lũy thỏa (idempotent, gọi nhiều lần không lỗi)
         SecurityContext.clearSession(req);
         String accept = req.getHeader("Accept");

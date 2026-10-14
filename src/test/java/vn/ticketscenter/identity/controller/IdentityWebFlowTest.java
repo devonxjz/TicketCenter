@@ -328,6 +328,7 @@ public class IdentityWebFlowTest {
     void testLogoutServletSuccess() throws Exception {
         sessionAttributes.put("TC_CURRENT_USER", "dummy-user");
         sessionAttributes.put("TC_CSRF_TOKEN", "dummy-token");
+        requestHeaders.put("X-CSRF-Token", "dummy-token");
 
         LogoutServlet servlet = new LogoutServlet();
         HttpServletRequest req = createMockRequest("POST", "/api/auth/logout", true);
@@ -338,6 +339,16 @@ public class IdentityWebFlowTest {
         assertEquals(200, responseStatus.get());
         assertTrue(responseBuffer.toString().contains("\"loggedOut\":true"));
         assertTrue(sessionAttributes.isEmpty(), "Session attributes must be cleared after logout");
+    }
+
+    @Test
+    void logoutPostWithoutCsrfPreservesAnExistingSessionEvenOnTheFormRoute() throws Exception {
+        sessionAttributes.put("TC_CURRENT_USER", "dummy-user");
+        sessionAttributes.put("TC_CSRF_TOKEN", "dummy-token");
+        LogoutServlet servlet=new LogoutServlet();
+        servlet.doPost(createMockRequest("POST","/auth/logout",true),createMockResponse());
+        assertEquals(403,responseStatus.get());
+        assertEquals("dummy-user",sessionAttributes.get("TC_CURRENT_USER"));
     }
 
     @Test

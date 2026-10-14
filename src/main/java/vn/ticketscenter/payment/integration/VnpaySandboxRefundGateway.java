@@ -92,12 +92,19 @@ public final class VnpaySandboxRefundGateway implements RefundGateway {
                 .put("vnp_SecureHash", VnpaySigner.hmacSha512(secret, data));
     }
     RefundTransferResult interpret(JSONObject r, Context c) {
-        String[] values = new String[RESPONSE_FIELDS.length];
-        for (int i=0;i<values.length;i++) values[i]=r.optString(RESPONSE_FIELDS[i], "");
+        return interpret(r,c,"refund");
+    }
+    private RefundTransferResult interpret(JSONObject r, Context c, String command) {
+        var values = new java.util.ArrayList<String>();
+        for (String field:RESPONSE_FIELDS) values.add(r.optString(field,""));
+        if (command.equals("querydr")) {
+            values.add(r.optString("vnp_PromotionCode",""));
+            values.add(r.optString("vnp_PromotionAmount",""));
+        }
         String signature = VnpaySigner.hmacSha512(secret, String.join("|", values));
         if (!MessageDigest.isEqual(signature.getBytes(StandardCharsets.US_ASCII),
                 r.optString("vnp_SecureHash", "").toLowerCase(Locale.ROOT).getBytes(StandardCharsets.US_ASCII))) return unknown();
-        if (!"refund".equals(r.optString("vnp_Command")) || !merchant.equals(r.optString("vnp_TmnCode"))
+        if (!command.equals(r.optString("vnp_Command")) || !merchant.equals(r.optString("vnp_TmnCode"))
                 || !c.txnRef().equals(r.optString("vnp_TxnRef")) || !amount(c).equals(r.optString("vnp_Amount"))
                 || !type(c).equals(r.optString("vnp_TransactionType")) || !info(c).equals(r.optString("vnp_OrderInfo"))) return unknown();
         String reference = r.optString("vnp_TransactionNo", ""), code = r.optString("vnp_ResponseCode", "");
@@ -115,7 +122,22 @@ public final class VnpaySandboxRefundGateway implements RefundGateway {
     @Override public Result submit(UUID id, BigDecimal amount) { return new Result(Status.UNKNOWN, null); }
     @Override public Result query(String reference) { return new Result(Status.UNKNOWN, reference); }
     @Override public RefundTransferResult queryRefundStatus(String reference, UUID attemptId) {
-        // querydr identifies original payment, not our immutable refund attempt. Never infer refunded from CAPTURED.
-        return new RefundTransferResult(Status.UNKNOWN, reference);
+        try {
+            Context c=contexts.load(attemptId).orElse(null);
+            if(c==null || !c.attemptId().equals(attemptId)
+                    || !eligible(c,new RefundTransferRequest(c.refundId(),attemptId,c.refundAmount()))) return unknown();
+            String requestId=UUID.randomUUID().toString().replace("-",""),date=DATE.format(Instant.now()),info=info(c);
+            String data=String.join("|",requestId,"2.1.0","querydr",merchant,c.txnRef(),c.transactionDate(),date,ip,info);
+            JSONObject query=new JSONObject().put("vnp_RequestId",requestId).put("vnp_Version","2.1.0")
+                    .put("vnp_Command","querydr").put("vnp_TmnCode",merchant).put("vnp_TxnRef",c.txnRef())
+                    .put("vnp_TransactionNo",c.paymentReference()).put("vnp_TransactionDate",c.transactionDate())
+                    .put("vnp_CreateDate",date).put("vnp_IpAddr",ip).put("vnp_OrderInfo",info)
+                    .put("vnp_SecureHash",VnpaySigner.hmacSha512(secret,data));
+            // Querydr may return the original payment or a different partial refund. The signature,
+            // refund type, amount and attempt marker must all match before accepting a result.
+            return interpret(new JSONObject(transport.post(query)),c,"querydr");
+        } catch(InterruptedException interrupted) {
+            Thread.currentThread().interrupt();return unknown();
+        } catch(Exception uncertain) {return unknown();}
     }
 }

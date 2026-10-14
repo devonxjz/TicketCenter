@@ -43,6 +43,9 @@
                                             class="badge bg-secondary-subtle text-secondary px-3 py-2 rounded-pill fs-6">Đã
                                             hủy</span>
                                     </c:when>
+                                    <c:when test="${order.status == 'EXPIRED'}">
+                                        <span class="badge bg-danger-subtle text-danger px-3 py-2 fs-6">Đã hết hạn</span>
+                                    </c:when>
                                     <c:otherwise>
                                         <span
                                             class="badge bg-danger-subtle text-danger px-3 py-2 rounded-pill fs-6">${fn:escapeXml(order.status)}</span>
@@ -60,7 +63,7 @@
                                     class="fa-solid fa-location-dot me-1"></i>${fn:escapeXml(order.venueName)} -
                                 ${fn:escapeXml(order.venueAddress)}</p>
                             <p class="text-muted small mb-0"><i class="fa-regular fa-clock me-1"></i>Thời gian:
-                                ${fn:escapeXml(order.startTime)}</p>
+                                <time class="tc-local-time" datetime="${fn:escapeXml(order.startTime)}">${fn:escapeXml(order.startTime)}</time></p>
                         </div>
 
                         <!-- Chi tiết các vé trong đơn hàng -->

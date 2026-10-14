@@ -427,3 +427,20 @@ test("coupon rejection remains visible after returning to a ready checkout", asy
     assert.equal(f.elements["order-coupon-code"].value,"");
     assert.equal(f.elements["order-pay"].disabled,false);
 });
+
+test("native coupon popup focus preserves the selection while normal window focus still reconciles", async () => {
+    const f = browserFixture(); f.server.order = order(); await f.settle();
+    const select = f.elements["order-coupon-code"], options = select.children;
+    select.tagName = "SELECT"; f.document.activeElement = select;
+    const before = f.calls.length;
+    f.handlers.get("focus")();
+    assert.equal(select.disabled, false);
+    assert.equal(select.children, options);
+    await f.settle(); assert.equal(f.calls.length, before);
+    select.value = "SALE20"; select.fire("change"); await f.settle();
+    assert.equal(f.elements["order-total"].textContent, "240.000 đ");
+    f.document.activeElement = {tagName:"BODY"};
+    const after = f.calls.length; f.handlers.get("focus")(); await f.settle();
+    assert.ok(f.calls.length > after);
+    assert.equal(select.disabled, false);
+});

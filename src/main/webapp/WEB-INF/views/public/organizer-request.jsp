@@ -92,7 +92,7 @@
                                         <label for="contactEmail" class="form-label fw-semibold small">Email liên hệ
                                             <span class="text-danger">*</span></label>
                                         <input type="email" class="form-control" id="contactEmail" name="contactEmail"
-                                            value="${not empty sessionScope.TC_CURRENT_USER.email() ? sessionScope.TC_CURRENT_USER.email() : ''}"
+                                            value="<c:out value='${sessionScope.TC_CURRENT_USER.email()}'/>"
                                             ${not empty sessionScope.TC_CURRENT_USER.email() ? 'readonly' : '' }
                                             required placeholder="contact@company.vn">
                                         <div class="form-text small">Email lấy tự động từ tài khoản của bạn. Địa chỉ

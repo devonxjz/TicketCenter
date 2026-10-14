@@ -30,6 +30,48 @@ class VnpaySandboxRefundGatewayTest {
     private VnpaySandboxRefundGateway gateway(VnpaySandboxRefundGateway.Transport transport) {
         return new VnpaySandboxRefundGateway(id->Optional.of(context("SANDBOX")),"TMN12345",secret,"127.0.0.1",transport);
     }
+    private JSONObject queryResponse(JSONObject request, String type, String amount, String info) {
+        JSONObject r=response(request,"00",type,"TMN12345",amount,info).put("vnp_Command","querydr")
+                .put("vnp_PromotionCode","").put("vnp_PromotionAmount","");
+        String data=String.join("|","R123","querydr","00","OK","TMN12345","T123",amount,"NCB",
+                "20261013130000","7890",type,"00",info,"","");
+        return r.put("vnp_SecureHash",VnpaySigner.hmacSha512(secret,data));
+    }
+    @Test void recoveryQueriesProviderAndAcceptsOnlyTheExactSignedRefundAttempt() {
+        AtomicInteger calls=new AtomicInteger();
+        var g=gateway(q->{
+            calls.incrementAndGet();assertEquals("querydr",q.getString("vnp_Command"));
+            assertEquals("T123",q.getString("vnp_TxnRef"));
+            String data=String.join("|",q.getString("vnp_RequestId"),"2.1.0","querydr","TMN12345","T123",
+                    "20261013120000",q.getString("vnp_CreateDate"),"127.0.0.1",q.getString("vnp_OrderInfo"));
+            assertEquals(VnpaySigner.hmacSha512(secret,data),q.getString("vnp_SecureHash"));
+            return queryResponse(q,"02","10000","Refund "+attempt.toString().replace("-","")).toString();
+        });
+        assertEquals(RefundGateway.Status.SUCCEEDED,g.queryRefundStatus(null,attempt).status());
+        assertEquals(1,calls.get());
+    }
+    @Test void recoveryDoesNotAdoptPaymentOrAnotherRefundAndNeverResubmits() {
+        for(String[] values:new String[][]{{"01","10000","Refund "+attempt.toString().replace("-","")},
+                {"02","10000","original payment"},{"02","9999","Refund "+attempt.toString().replace("-","")}}){
+            AtomicInteger calls=new AtomicInteger();
+            var g=gateway(q->{calls.incrementAndGet();assertEquals("querydr",q.getString("vnp_Command"));
+                return queryResponse(q,values[0],values[1],values[2]).toString();});
+            assertEquals(RefundGateway.Status.UNKNOWN,g.queryRefundStatus(null,attempt).status());
+            assertEquals(1,calls.get());
+        }
+        var invalid=gateway(q->queryResponse(q,"02","10000",q.getString("vnp_OrderInfo")).put("vnp_SecureHash","invalid").toString());
+        assertEquals(RefundGateway.Status.UNKNOWN,invalid.queryRefundStatus(null,attempt).status());
+    }
+    @Test void recoveryRejectsMissingLegacyOrMismatchedAttemptBeforeProviderAccess() {
+        AtomicInteger calls=new AtomicInteger();
+        for(String env:new String[]{"PRODUCTION","DEMO"}){
+            var g=new VnpaySandboxRefundGateway(id->Optional.of(context(env)),"TMN12345",secret,"127.0.0.1",q->{calls.incrementAndGet();return "{}";});
+            assertEquals(RefundGateway.Status.UNKNOWN,g.queryRefundStatus(null,attempt).status());
+        }
+        var g=gateway(q->{calls.incrementAndGet();return "{}";});
+        assertEquals(RefundGateway.Status.UNKNOWN,g.queryRefundStatus(null,UUID.randomUUID()).status());
+        assertEquals(0,calls.get());
+    }
     @Test void signedMatchedCompletedRefundSucceeds() {
         var gateway=gateway(q->response(q,"00","02","TMN12345","10000",q.getString("vnp_OrderInfo")).toString());
         var result=gateway.executeRefund(new RefundTransferRequest(refund,attempt,new BigDecimal("100")));
