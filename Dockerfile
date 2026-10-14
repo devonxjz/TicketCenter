@@ -10,13 +10,11 @@ WORKDIR /app
 
 # 1. Tận dụng Docker layer caching: tải trước dependencies khi pom.xml chưa đổi
 COPY pom.xml .
-RUN --mount=type=cache,id=ticketcenter-maven,target=/root/.m2 \
-    mvn -B dependency:go-offline
+RUN mvn -B dependency:go-offline
 
-# 2. Sao chép mã nguồn và đóng gói WAR (dùng cache mount cho .m2 để tăng tốc tối đa)
+# 2. Sao chép mã nguồn và đóng gói WAR, dùng dependencies đã lưu trong build layer
 COPY src ./src
-RUN --mount=type=cache,id=ticketcenter-maven,target=/root/.m2 \
-    mvn -B package -DskipTests
+RUN mvn -B package -DskipTests
 
 # Stage 2: Runtime with Apache Tomcat 11
 FROM eclipse-temurin:25-jre
