@@ -37,6 +37,7 @@ function fixture() {
         if (path === "/api/auth/csrf") return server.csrf ? server.csrf(reply, error) : reply({ data: { token: "fresh-token" } });
         if (path === "/api/me/hold") return reply({ serverTime: server.time, hold: server.hold });
         if (path.startsWith("/api/checkout?")) return server.current ? server.current(reply, error) : reply({ serverTime: server.time, order: server.order });
+        if (path.startsWith("/api/checkout/coupons?")) return server.coupons ? server.coupons(reply, error) : reply({ serverTime: TIME, holdId: HOLD, coupons: [preview()] });
         if (path.includes("/coupon-eligibility?")) return server.preview ? server.preview(path, reply, error) : reply(preview(decodeURIComponent(path.split("couponCode=")[1])));
         if (options.method === "POST") {
             if (server.post) return server.post(path, options, reply, error);
@@ -55,7 +56,7 @@ function fixture() {
 test("reload finds a current order by Hold and requires explicit creation", async () => {
     const f = fixture(), client = f.create(); await client.refresh();
     assert.equal(client.state.phase, "ready"); assert.equal(client.creatable(), true);
-    assert.deepEqual(f.calls.map(call => call.path), ["/api/me", "/api/me/hold", "/api/checkout?holdId=" + HOLD]);
+    assert.deepEqual(f.calls.map(call => call.path), ["/api/me", "/api/me/hold", "/api/checkout?holdId=" + HOLD, "/api/checkout/coupons?holdId=" + HOLD]);
     f.server.order = order(); const second = f.create(); await second.refresh();
     assert.equal(second.state.order.orderId, ORDER); assert.equal(second.creatable(), false); assert.equal(second.editable(), true);
     assert.equal(f.calls.every(call => call.credentials === "same-origin" && call.cache === "no-store" && !call.method), true);
@@ -72,7 +73,7 @@ test("explicit creation stores immutable command before POST and confirms curren
     };
     await client.create();
     assert.equal(client.state.order.orderId, ORDER); assert.equal(client.state.phase, "ready");
-    assert.equal(f.calls.at(-1).path, "/api/checkout?holdId=" + HOLD); assert.equal(f.values.size, 0);
+    assert.equal(f.calls.at(-1).path, "/api/checkout/coupons?holdId=" + HOLD); assert.equal(f.values.size, 0);
 });
 
 test("apply, replacement and removal use exact codes and authoritative totals", async () => {
@@ -296,7 +297,7 @@ function browserFixture() {
         fire(name) { this.handlers.get(name)?.({ preventDefault() {} }); }
     }
     const ids = ["order-pay", "payment-message", "order-detail-link", "order-checkout", "order-message", "order-recovery", "order-retry", "order-create", "order-refresh", "order-summary",
-        "order-coupon-code", "order-preview", "order-apply", "order-remove", "order-preview-result", "order-code", "order-status",
+        "order-coupon-code", "order-coupon-help", "order-preview-result", "order-code", "order-status",
         "order-items", "order-subtotal", "order-discount", "order-total", "order-applied-coupon", "order-coupon-form", "hold-cancel", "hold-retry", "hold-refresh"];
     const elements = Object.fromEntries(ids.map(id => [id, new Element()]));
     const document = { body: { dataset: { context: "" } }, visibilityState: "visible", getElementById: id => elements[id], createElement: () => new Element(),
@@ -314,39 +315,51 @@ function browserFixture() {
         expired: () => { document.body.dataset.holdState = "expired"; observer(); } };
 }
 
+test('coupon entry works for an active hold before a separate order creation step', async () => {
+    const f=browserFixture();await f.settle();
+    assert.equal(f.elements['order-coupon-code'].disabled,false);
+    assert.equal(f.calls.some(call=>call.method==='POST'),false,'viewing checkout must remain read only');
+    f.elements['order-coupon-code'].value='SALE20';
+    f.elements['order-coupon-code'].fire('change');await f.settle();
+    const writes=f.calls.filter(call=>call.method==='POST');
+    assert.deepEqual(writes.map(call=>call.path),['/api/orders','/api/orders/'+ORDER+'/coupon']);
+    assert.equal(JSON.parse(writes[1].body).couponCode,'SALE20');
+    assert.equal(f.elements['order-total'].textContent,'240.000 đ');
+    assert.equal(f.calls.some(call=>call.path.includes('/payments')),false);
+});
+
 test("actual browser adapter renders immutable labels as text and wires create/coupon controls", async () => {
     const f = browserFixture(); await f.settle();
     assert.equal(f.elements["order-create"].hidden, false); assert.equal(f.elements["order-create"].disabled, false);
     f.elements["order-create"].fire("click"); await f.settle();
     assert.equal(f.elements["order-code"].textContent, "Đơn vé của bạn");
     assert.equal(f.elements["order-items"].children[0].textContent, "<img onerror=alert(1)> · Vé đứng · 2 vé × 150.000 đ = 300.000 đ");
-    assert.equal(f.elements["order-total"].textContent, "300.000 đ"); assert.equal(f.elements["order-apply"].disabled, false);
-    f.elements["order-coupon-code"].value = "SALE20"; f.elements["order-preview"].fire("click"); await f.settle();
-    assert.match(f.elements["order-preview-result"].textContent, /Mã SALE20 giảm dự kiến 60\.000 đ/);
-    f.elements["order-coupon-code"].value = "CHANGED"; f.elements["order-coupon-code"].fire("input");
-    assert.equal(f.elements["order-preview-result"].textContent, "");
-    f.elements["order-coupon-form"].fire("submit"); await f.settle(); assert.equal(f.elements["order-total"].textContent, "240.000 đ");
-    f.elements["order-remove"].fire("click"); await f.settle(); assert.equal(f.elements["order-total"].textContent, "300.000 đ");
+    assert.equal(f.elements["order-total"].textContent, "300.000 đ"); assert.equal(f.elements["order-coupon-code"].disabled, false);
+    assert.equal(f.elements["order-coupon-code"].children[1].value, "SALE20");
+    f.elements["order-coupon-code"].value = "SALE20"; f.elements["order-coupon-code"].fire("change"); await f.settle();
+    assert.equal(f.elements["order-total"].textContent, "240.000 đ");
+    f.elements["order-coupon-code"].value = ""; f.elements["order-coupon-code"].fire("change"); await f.settle();
+    assert.equal(f.elements["order-total"].textContent, "300.000 đ");
 });
 
 test("browser lifecycle maintains one expiry timeout and reconciles actual Hold expiry", async () => {
     const f = browserFixture(); f.server.order = order(); await f.settle();
     assert.equal(f.timers.size, 1);
-    f.handlers.get("pagehide")(); assert.equal(f.timers.size, 0); assert.equal(f.elements["order-apply"].disabled, true);
+    f.handlers.get("pagehide")(); assert.equal(f.timers.size, 0); assert.equal(f.elements["order-coupon-code"].disabled, true);
     f.handlers.get("pageshow")({ persisted: true }); await f.settle(); assert.equal(f.timers.size, 1);
     f.handlers.get("pageshow")({ persisted: true }); await f.settle(); assert.equal(f.timers.size, 1);
     f.document.visibilityState = "hidden"; f.handlers.get("document:visibilitychange")(); assert.equal(f.timers.size, 0);
     f.server.hold = null; f.server.order = { ...order(), status: "EXPIRED", holdStatus: "RELEASED", canEditCoupon: false }; f.server.time = "2026-10-11T10:12:00Z";
     f.document.visibilityState = "visible"; f.handlers.get("document:visibilitychange")(); await f.settle();
-    assert.equal(f.timers.size, 0); assert.equal(f.elements["order-status"].textContent, "Đã hết hạn. Lượt giữ không còn hoạt động."); assert.equal(f.elements["order-apply"].disabled, true);
+    assert.equal(f.timers.size, 0); assert.equal(f.elements["order-status"].textContent, "Đã hết hạn. Lượt giữ không còn hoạt động."); assert.equal(f.elements["order-coupon-code"].disabled, true);
     f.expired(); await f.settle(); assert.equal(f.elements["order-create"].hidden, true);
 });
 
 test("Hold cancellation or uncertain recovery freezes Order controls until current Hold resolves", async () => {
-    const f = browserFixture(); f.server.order = order(); await f.settle(); assert.equal(f.elements["order-apply"].disabled, false);
-    f.holdState("submitting"); assert.equal(f.elements["order-apply"].disabled, true); assert.equal(f.timers.size, 0);
-    f.holdState("uncertain"); assert.equal(f.elements["order-create"].disabled, true); assert.equal(f.elements["order-apply"].disabled, true);
-    f.holdState("active"); await f.settle(); assert.equal(f.elements["order-apply"].disabled, false); assert.equal(f.timers.size, 1);
+    const f = browserFixture(); f.server.order = order(); await f.settle(); assert.equal(f.elements["order-coupon-code"].disabled, false);
+    f.holdState("submitting"); assert.equal(f.elements["order-coupon-code"].disabled, true); assert.equal(f.timers.size, 0);
+    f.holdState("uncertain"); assert.equal(f.elements["order-create"].disabled, true); assert.equal(f.elements["order-coupon-code"].disabled, true);
+    f.holdState("active"); await f.settle(); assert.equal(f.elements["order-coupon-code"].disabled, false); assert.equal(f.timers.size, 1);
 });
 
 test("browser payment button redirects only after a valid server receipt and links to the real order page", async () => {
@@ -372,4 +385,45 @@ test("browser payment button shows free order text and completes zero order dire
     await f.settle();
     assert.deepEqual(f.redirects, []);
     assert.equal(f.elements["order-status"].textContent, "Đã thanh toán");
+});
+
+
+test("coupon list failure keeps payment available and reports the failure inline", async () => {
+    const f = browserFixture(); f.server.order = order(); f.server.coupons = (_, error) => error(500);
+    await f.settle();
+    assert.equal(f.elements["order-pay"].disabled, false);
+    assert.equal(f.elements["order-coupon-code"].disabled, true);
+    assert.match(f.elements["order-coupon-help"].textContent, /Chưa tải được/);
+});
+
+test("coupon list rejects a mismatched Hold", async () => {
+    const f = browserFixture(); f.server.order = order();
+    f.server.coupons = reply => reply({serverTime: TIME, holdId: OTHER, coupons: [preview()]});
+    await f.settle(); assert.equal(f.elements["order-coupon-code"].disabled, true);
+});
+
+
+test("coupon list rejects discounts above the cap and leaves payment available", async () => {
+    const f = browserFixture(); f.server.order = order();
+    f.server.coupons = reply => reply({serverTime: TIME, holdId: HOLD, coupons: [{...preview(),discountAmount:"120000",totalAmount:"180000"}]});
+    await f.settle(); assert.equal(f.elements["order-coupon-code"].disabled, true); assert.equal(f.elements["order-pay"].disabled, false);
+});
+
+test("an empty eligible list shows the empty state and keeps checkout usable", async () => {
+    const f = browserFixture(); f.server.order = order();
+    f.server.coupons = reply => reply({serverTime: TIME, holdId: HOLD, coupons: []});
+    await f.settle(); assert.equal(f.elements["order-coupon-code"].children.length, 1);
+    assert.match(f.elements["order-coupon-help"].textContent, /chưa có mã/); assert.equal(f.elements["order-pay"].disabled, false);
+});
+
+test("coupon rejection remains visible after returning to a ready checkout", async () => {
+    const f = browserFixture(); f.server.order = order(); await f.settle();
+    assert.equal(f.elements["order-message"].hidden, true);
+    f.server.post = (_, __, reply) => reply({error:{code:"QUOTA_EXHAUSTED",message:"Mã đã hết lượt sử dụng."}},400);
+    f.elements["order-coupon-code"].value = "SALE20";
+    f.elements["order-coupon-code"].fire("change"); await f.settle();
+    assert.equal(f.elements["order-message"].textContent,"Mã đã hết lượt sử dụng.");
+    assert.equal(f.elements["order-message"].hidden,false);
+    assert.equal(f.elements["order-coupon-code"].value,"");
+    assert.equal(f.elements["order-pay"].disabled,false);
 });

@@ -36,6 +36,21 @@ public class OrderRepository {
         }, actor.id(), actor.authVersion(), holdId);
     }
 
+    public String eligibleCoupons(OrderActor actor, UUID holdId) {
+        return call("EXEC dbo.usp_ListCheckoutCoupons ?,?,?", rows -> {
+            String body = payload(rows);
+            JSONObject result = new JSONObject(body);
+            Instant.parse(result.getString("serverTime"));
+            if (!holdId.equals(UUID.fromString(result.getString("holdId")))) throw OrderException.unavailable();
+            for (Object entry : result.getJSONArray("coupons")) {
+                JSONObject choice = (JSONObject) entry;
+                money(choice, "discountAmount"); money(choice, "totalAmount");
+                Instant.parse(choice.getString("validUntil"));
+            }
+            return body;
+        }, actor.id(), actor.authVersion(), holdId);
+    }
+
     public String eligibility(OrderActor actor, UUID orderId, String couponCode) {
         new CouponMutation.SetCoupon(orderId, couponCode);
         return call("EXEC dbo.usp_ReadOrderCouponEligibility ?,?,?,?", rows -> {

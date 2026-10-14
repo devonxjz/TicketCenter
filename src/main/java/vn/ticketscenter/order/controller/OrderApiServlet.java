@@ -10,7 +10,7 @@ import vn.ticketscenter.order.service.*;
 import java.io.IOException;
 import java.util.*;
 
-@WebServlet(urlPatterns = {"/api/orders", "/api/orders/*", "/api/checkout", "/api/me/orders"})
+@WebServlet(urlPatterns = {"/api/orders", "/api/orders/*", "/api/checkout", "/api/checkout/coupons", "/api/me/orders"})
 public final class OrderApiServlet extends HttpServlet {
     private final OrderService supplied;
     private final vn.ticketscenter.payment.service.PaymentService suppliedPayment;
@@ -53,6 +53,8 @@ public final class OrderApiServlet extends HttpServlet {
                 else throw missing();
                 OrderMutationReceipt receipt = service().mutate(actor, command);
                 response.setStatus(receipt.httpStatus()); response.getWriter().write(receipt.body());
+            } else if (request.getMethod().equals("GET") && path.equals("/api/checkout/coupons")) {
+                response.getWriter().write(service().eligibleCoupons(actor, uuid(parameter(request, "holdId"))));
             } else if (request.getMethod().equals("GET") && path.equals("/api/checkout")) {
                 response.getWriter().write(service().checkout(actor, uuid(parameter(request, "holdId"))).body());
             } else if (request.getMethod().equals("GET") && path.equals("/api/me/orders")) {
@@ -75,7 +77,7 @@ public final class OrderApiServlet extends HttpServlet {
         catch (vn.ticketscenter.payment.service.PaymentException failure) { HttpResponses.error(response, failure.status(), failure.code(), failure.getMessage()); }
         catch (OrderRequests.BodyTooLargeException failure) { HttpResponses.error(response, 413, "PAYLOAD_TOO_LARGE", "Order request body is too large."); }
         catch (IllegalArgumentException failure) { HttpResponses.error(response, 400, "INVALID_REQUEST", "Invalid Order request."); }
-        catch (Exception failure) { HttpResponses.error(response, 500, "INTERNAL_ERROR", failure.getMessage() != null ? failure.getMessage() : "Internal server error."); }
+        catch (Exception failure) { HttpResponses.error(response, 500, "INTERNAL_ERROR", "Không thể xử lý đơn hàng lúc này. Vui lòng thử lại."); }
     }
     private OrderService service() { return supplied == null ? OrderRuntime.resolve(getServletContext()) : supplied; }
     private vn.ticketscenter.payment.service.PaymentService paymentService() {
