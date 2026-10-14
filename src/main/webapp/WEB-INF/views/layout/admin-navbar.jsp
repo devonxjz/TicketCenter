@@ -35,10 +35,10 @@
 
             <c:if test="${not empty adminStatusBadge}">
                 <span class="status-pill status-success">
-                    ${adminStatusBadge}
+                    <c:out value="${adminStatusBadge}" />
                 </span>
             </c:if>
-            <span class="small text-muted d-none d-sm-inline">${not empty sessionScope.TC_CURRENT_USER.email() ? sessionScope.TC_CURRENT_USER.email() : 'admin@ticketscenter.vn'}</span>
+            <span class="small text-muted d-none d-sm-inline"><c:out value="${sessionScope.TC_CURRENT_USER.email()}" /></span>
             <a href="${pageContext.request.contextPath}/" class="btn btn-sm btn-outline-dark rounded-0 px-3">
                 Xem sàn bán vé
             </a>

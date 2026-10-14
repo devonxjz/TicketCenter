@@ -9,7 +9,7 @@
             <jsp:include page="/WEB-INF/views/layout/meta-head.jsp" />
             <meta name="csrf-token" content="${sessionScope.TC_CSRF_TOKEN}">
             <meta name="context-path" content="${pageContext.request.contextPath}">
-            <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/organizer-ui.css">
+            <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/organizer-ui.css?v=20261014">
         </head>
 
         <body class="bg-light min-h-screen tc-organizer-page">

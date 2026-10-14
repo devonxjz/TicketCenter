@@ -432,6 +432,25 @@ class PaymentServiceTest {
     }
 
     @Test
+    void returnDoesNotClaimSuccessWhenTransactionStatusFailed() {
+        var repo = new StubPaymentRepository();
+        repo.recordToReturn = new PaymentRepository.PaymentRecord(UUID.randomUUID(), ORDER_ID, ACTOR_ID,
+                "TXN-1", new BigDecimal("100000"), "VND", "PENDING", "PENDING_PAYMENT", new BigDecimal("100000"), null);
+        var params = new HashMap<String, String>();
+        params.put("vnp_Amount", "10000000");
+        params.put("vnp_ResponseCode", "00");
+        params.put("vnp_TransactionNo", "14567890");
+        params.put("vnp_TransactionStatus", "09");
+        params.put("vnp_TxnRef", "TXN-1");
+        params.put("vnp_SecureHash", VnpaySigner.hmacSha512("TESTSECRET",
+                "vnp_Amount=10000000&vnp_ResponseCode=00&vnp_TransactionNo=14567890&vnp_TransactionStatus=09&vnp_TxnRef=TXN-1"));
+        var result = new PaymentService(repo, signer, idempotency).processReturn(params);
+        assertTrue(result.validSignature());
+        assertFalse(result.success());
+        assertEquals("FAILED", repo.appliedStatus);
+    }
+
+    @Test
     void getOrderPaymentStatusReturnsCorrectDetails() {
         StubPaymentRepository repo = new StubPaymentRepository();
         UUID pid = UUID.randomUUID();

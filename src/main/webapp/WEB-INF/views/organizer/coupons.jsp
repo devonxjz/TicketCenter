@@ -6,7 +6,7 @@
         <head>
             <title>Mã giảm giá | TicketsCenter</title>
             <jsp:include page="/WEB-INF/views/layout/meta-head.jsp" />
-            <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/organizer-ui.css">
+            <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/organizer-ui.css?v=20261014">
             <style>
                 [hidden] {
                     display: none !important

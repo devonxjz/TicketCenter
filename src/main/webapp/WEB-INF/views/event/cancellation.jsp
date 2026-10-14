@@ -1,7 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <!DOCTYPE html><html lang="vi"><head><title>Hủy sự kiện | TicketsCenter</title><jsp:include page="/WEB-INF/views/layout/meta-head.jsp" />
-<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/organizer-ui.css"><style>[hidden]{display:none!important}.tc-cancel-actions{display:flex;gap:12px;flex-wrap:wrap}.tc-cancel-stat{border-top:1px solid #ddd;padding:18px 0}.tc-cancel-warning{border-left:3px solid #bf2026;padding:12px 18px;background:#fff}.tc-cancel-reason{width:100%;min-height:120px;border:1px solid #bbb;padding:12px}progress{width:100%;accent-color:#bf2026}</style></head>
+<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/organizer-ui.css?v=20261014"><style>[hidden]{display:none!important}.tc-cancel-actions{display:flex;gap:12px;flex-wrap:wrap}.tc-cancel-stat{border-top:1px solid #ddd;padding:18px 0}.tc-cancel-warning{border-left:3px solid #bf2026;padding:12px 18px;background:#fff}.tc-cancel-reason{width:100%;min-height:120px;border:1px solid #bbb;padding:12px}progress{width:100%;accent-color:#bf2026}</style></head>
 <body class="tc-organizer-page" data-context="${pageContext.request.contextPath}" data-cancellation-admin="${cancellationAdmin}">
 <jsp:include page="/WEB-INF/views/layout/header.jsp" /><div class="dashboard-layout">
 <c:choose><c:when test="${cancellationAdmin}"><jsp:include page="/WEB-INF/views/layout/admin-sidebar.jsp" /></c:when><c:otherwise><jsp:include page="/WEB-INF/views/layout/organizer-sidebar.jsp" /></c:otherwise></c:choose>

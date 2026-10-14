@@ -675,9 +675,7 @@ test('seat map enriches actual available IDs and keeps booking usable if layout 
     assert.equal(fallback.state.options.zones[1].seatRows[0].seats[0].id,SEAT);
 });
 
-test('prototype layout keeps seated and standing inventory separate and steppers enforce their shared limit', async () => {
-    const f=fixture();
-    f.server.options.zones.push({...f.server.options.zones[0],id:'90000000-0000-4000-8000-000000000001',name:'Floor B'});
+async function bookingBrowserFixture(f=fixture()) {
     class Node {
         constructor(tag='div'){this.tag=tag;this.dataset={};this.children=[];this.listeners={};this.value='';this.className='';this.classList={add:value=>{this.className+=' '+value;},remove:value=>{this.className=this.className.replace(value,'');}};}
         append(...children){this.children.push(...children);}
@@ -688,13 +686,50 @@ test('prototype layout keeps seated and standing inventory separate and steppers
         scrollIntoView(options){this.reveal=options;}
         querySelectorAll(selector){const all=this.children.flatMap(child=>[child,...child.querySelectorAll('*')]);return selector==='*'?all:all.filter(child=>selector==='input'?child.tag==='input':selector==='input[type=checkbox]'?child.type==='checkbox':selector==='input.hold-quantity'?child.tag==='input'&&child.className==='hold-quantity':selector==='button[data-quantity-step]'?child.tag==='button'&&child.dataset.quantityStep: false);}
     }
+    const redirects=[];
     const ids=new Map(),get=id=>{if(!ids.has(id))ids.set(id,new Node());return ids.get(id);},body=new Node();
     body.dataset={holdPage:'selection',publicPage:'detail',context:''};
     const root={document:{body,createElement:tag=>new Node(tag),getElementById:get},sessionStorage:f.storage,
-        crypto:{randomUUID:()=> '60000000-0000-4000-8000-000000000001'},performance:{now:()=>0},location:{search:'?eventId='+EVENT},
+        crypto:{randomUUID:()=> '60000000-0000-4000-8000-000000000001'},performance:{now:()=>0},location:{search:'?eventId='+EVENT,assign:url=>redirects.push(url)},
         fetch:f.create().fetch,setInterval:()=>1,clearInterval:()=>{},addEventListener:()=>{}};
     vm.runInNewContext(fs.readFileSync(require.resolve('../../main/webapp/assets/js/ticket-hold.js'),'utf8'),{window:root,URLSearchParams});
     for(let i=0;i<6;i++)await new Promise(resolve=>setImmediate(resolve));
+    return {...f,get,root,redirects,settle:async()=>{for(let i=0;i<10;i++)await new Promise(resolve=>setImmediate(resolve));}};
+}
+
+test('available seats can be selected directly, update quantity, and stop at the shared eight ticket limit', async () => {
+    const api=fixture();
+    api.server.options.zones[1].availableSeats=Array.from({length:9},(_,i)=>({id:'40000000-0000-4000-8000-'+String(i+1).padStart(12,'0'),label:'A'+(i+1)}));
+    const f=await bookingBrowserFixture(api),get=f.get;
+    get('zone-tabs').children[1].listeners.click();
+    const boxes=get('hold-zones').querySelectorAll('input[type=checkbox]');
+    const counter=get('hold-zones').querySelectorAll('input').find(input=>input.dataset.seatCount);
+    assert.equal(boxes[0].disabled,false,'a free seat must be clickable before setting a quantity');
+    for(let i=0;i<8;i++){boxes[i].checked=true;get('hold-zones').oninput();}
+    assert.equal(counter.value,'8');assert.equal(get('hold-submit').disabled,false);
+    assert.equal(boxes[8].disabled,true);
+    boxes[0].checked=false;get('hold-zones').oninput();
+    assert.equal(counter.value,'7');assert.equal(boxes[8].disabled,false);
+    boxes[8].checked=true;get('hold-zones').oninput();
+    assert.equal(get('selection-total').textContent,'1.600.000 đ');
+});
+
+test('pay now opens checkout for coupon review without requesting a provider payment', async () => {
+    const api=fixture();
+    api.server.create=(_,reply)=>{api.server.hold=hold();return reply(receipt('CREATED'),201);};
+    const f=await bookingBrowserFixture(api),get=f.get;
+    get('standing-zones').querySelectorAll('button[data-quantity-step]').find(button=>button.dataset.quantityStep==='1').listeners.click();
+    get('hold-form').listeners.submit({preventDefault(){},submitter:{id:'hold-pay-now'}});
+    await f.settle();
+    assert.equal(f.redirects.length,1);
+    assert.match(f.redirects[0],/^\/checkout\?prepare=1&holdId=/);
+    assert.equal(f.calls.some(call=>call.path.includes('/payments')),false);
+});
+
+test('prototype layout keeps seated and standing inventory separate and steppers enforce their shared limit', async () => {
+    const api=fixture();
+    api.server.options.zones.push({...api.server.options.zones[0],id:'90000000-0000-4000-8000-000000000001',name:'Floor B'});
+    const f=await bookingBrowserFixture(api),get=f.get;
     const tabs=get('zone-tabs').children;
     assert.equal(tabs.length,3);
     assert.equal(tabs[0].textContent,f.server.options.zones[0].name);

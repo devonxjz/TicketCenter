@@ -22,7 +22,7 @@
                 <c:when test="${not empty sessionScope.TC_CURRENT_USER}">
                     <div class="dropdown">
                         <button class="btn btn-outline-dark dropdown-toggle d-flex align-items-center gap-2 rounded-0 py-2 px-3 fw-semibold" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fa-solid fa-circle-user fs-5 text-primary"></i>
+                            <i class="fa-solid fa-circle-user fs-5 text-danger"></i>
                             <span class="d-none d-sm-inline">Tài khoản</span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow-sm rounded-0 border-secondary-subtle">
@@ -31,7 +31,7 @@
                                 <li><hr class="dropdown-divider"></li>
                             </c:if>
                             <c:if test="${!sessionScope.TC_CURRENT_USER.isAdmin() && sessionScope.TC_CURRENT_USER.isManager()}">
-                                <li><a class="dropdown-item py-2 fw-semibold text-primary" href="${pageContext.request.contextPath}/organizer/dashboard"><i class="fa-solid fa-building me-2"></i>Quản lý tổ chức</a></li>
+                                <li><a class="dropdown-item py-2 fw-semibold text-danger" href="${pageContext.request.contextPath}/organizer/dashboard"><i class="fa-solid fa-building me-2"></i>Quản lý tổ chức</a></li>
                             </c:if>
                             <c:if test="${!sessionScope.TC_CURRENT_USER.isAdmin() && sessionScope.TC_CURRENT_USER.organizationRole == 'CHECK_IN_STAFF'}">
                                 <li><a class="dropdown-item py-2 fw-semibold text-success" href="${pageContext.request.contextPath}/organizer/checkin-select"><i class="fa-solid fa-qrcode me-2"></i>Soát vé sự kiện</a></li>

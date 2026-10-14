@@ -63,6 +63,7 @@ foreach($role in @('auth','buyer','manager','check_in','admin','worker')){
 }
 $settings['app.env']='development';$settings['app.data.mode']='real';$settings['admin.seed.enabled']='false';$settings['demo.seed.enabled']='false';$settings['mail.outbox.enabled']='false'
 $settings['app.base.url']="http://127.0.0.1:$Port/ticketscenter"
+$settings['vnpay.return.url']=$settings['app.base.url']+'/api/payments/vnpay/return'
 if([string]::IsNullOrWhiteSpace($settings['app.secret.key'])){
  $settings['app.secret.key']=[Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
  if(Test-Path -LiteralPath $ConfigPath){

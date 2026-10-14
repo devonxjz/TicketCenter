@@ -75,7 +75,7 @@
                                                     <div class="d-flex align-items-center gap-3">
 
                                                         <span class="text-muted small"><i
-                                                                class="fa-regular fa-clock me-1"></i>${fn:escapeXml(o.createdAt)}</span>
+                                                                class="fa-regular fa-clock me-1"></i><time class="tc-local-time" datetime="${fn:escapeXml(o.createdAt)}">${fn:escapeXml(o.createdAt)}</time></span>
                                                     </div>
                                                     <div>
                                                         <c:choose>

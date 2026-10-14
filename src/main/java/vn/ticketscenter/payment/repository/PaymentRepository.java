@@ -324,7 +324,11 @@ public class PaymentRepository {
 
         org.json.JSONObject verifiedResultJson = new org.json.JSONObject();
         verifiedResultJson.put("status", status);
-        verifiedResultJson.put("providerReference", providerReference != null ? providerReference : "VNPAY");
+        // VNPAY returns0 for cancelled transactions. It is not a provider transaction
+        // identity and must not collide with another cancellation's unique reference.
+        boolean absentReference = providerReference == null || providerReference.isBlank()
+                || ("0".equals(providerReference) && !"CAPTURED".equals(status));
+        verifiedResultJson.put("providerReference", absentReference ? org.json.JSONObject.NULL : providerReference);
         String verifiedResult = verifiedResultJson.toString();
 
         try (Connection conn = worker.getConnection();

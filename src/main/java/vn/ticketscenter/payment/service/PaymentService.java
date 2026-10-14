@@ -210,7 +210,9 @@ public class PaymentService {
                 ? repository.findPaymentByTxnRef(txnRef)
                 : Optional.empty();
 
-        boolean success = validSignature && "00".equals(responseCode);
+        String transactionStatus = queryParams.get("vnp_TransactionStatus");
+        boolean success = validSignature && "00".equals(responseCode)
+                && ("00".equals(transactionStatus) || transactionStatus == null);
         String message = success
                 ? "Giao dịch thanh toán thành công."
                 : (validSignature ? "Giao dịch không thành công hoặc bị người dùng hủy." : "Chữ ký giao dịch không hợp lệ.");

@@ -371,36 +371,16 @@
             overlay.setAttribute("role", "status");
             overlay.style.cssText = "position:fixed;inset:0;z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;background:#fff;text-align:center";
             const spinner = element("div"); spinner.className = "spinner-border text-danger";
-            const text = element("p", "Đang chuyển đến cổng thanh toán…"); text.className = "fw-semibold mb-0";
+            const text = element("p", "Đang mở đơn vé để kiểm tra và nhập mã giảm giá…"); text.className = "fw-semibold mb-0";
             overlay.append(spinner, text);
             document.body.append(overlay);
         }
         overlay.hidden = false;
     }
 
-    // "Thanh toán ngay": tạo đơn từ lượt giữ và mở cổng thanh toán ngay tại trang này, không đi qua trang checkout.
-    // Mọi trục trặc đều rơi về /checkout?pay=now, nơi có đủ cơ chế đối chiếu và thử lại.
-    async function payDirect(holdId) {
-        payOverlay(true);
-        const call = async (path, options) => {
-            const response = await root.fetch(context + path, { credentials: "same-origin", cache: "no-store", ...options });
-            const body = await response.json();
-            if (!response.ok) throw new Error("request failed");
-            return body;
-        };
-        try {
-            const token = (await call("/api/auth/csrf")).data.token;
-            const post = (path, body) => call(path, { method: "POST", body: JSON.stringify(body), headers: {
-                "Content-Type": "application/json", "X-CSRF-Token": token, "Idempotency-Key": root.crypto.randomUUID() } });
-            const existing = (await call("/api/checkout?holdId=" + encodeURIComponent(holdId))).order;
-            const orderId = (existing || await post("/api/orders", { holdId })).orderId;
-            const receipt = await post("/api/orders/" + orderId + "/payments", {});
-            if (receipt.zeroOrder) { root.location.assign(context + "/me/tickets"); return; }
-            if (new URL(receipt.redirectUrl).protocol !== "https:") throw new Error("unsafe redirect");
-            root.location.assign(receipt.redirectUrl);
-        } catch (_) {
-            root.location.assign(context + "/checkout?pay=now");
-        }
+    // Review the order and coupon before the customer starts a payment.
+    function openCheckout(holdId) {
+        root.location.assign(context + "/checkout?prepare=1&holdId=" + encodeURIComponent(holdId));
     }
 
     function selections() {
@@ -416,6 +396,7 @@
         let wantedSeats = 0;
         const missing = [],invalid=[];
         for (const zone of seatZones) {
+            if (zone.autoQuantity) zone.counter.value = String(zone.boxes.filter(box => box.checked).length);
             const raw = Number(zone.counter.value);
             const invalidCount=!Number.isInteger(raw)||raw<0||raw>Math.min(8,zone.boxes.length);
             if(invalidCount)invalid.push(zone.name);
@@ -424,9 +405,10 @@
             for (const extra of checked.slice(wanted)) extra.checked = false;
             const picked = Math.min(checked.length, wanted);
             zone.wanted = wanted; zone.picked = picked;
+            if (!invalidCount && wanted === 0) zone.autoQuantity = true;
             zone.seats.hidden = false;
             zone.hint.hidden = false;
-            zone.hint.textContent = invalidCount ? "Nhập số ghế nguyên từ 0 đến "+Math.min(8,zone.boxes.length)+"." : wanted === 0 ? "Chọn số lượng vé để bắt đầu chọn ghế." : picked === wanted ? "Đã chọn đủ " + wanted + " ghế." : "Chọn thêm " + (wanted - picked) + " ghế (" + picked + " / " + wanted + ").";
+            zone.hint.textContent = invalidCount ? "Nhập số ghế nguyên từ 0 đến "+Math.min(8,zone.boxes.length)+"." : wanted === 0 ? "Bấm vào ghế trống để chọn, hoặc đặt số ghế trước." : picked === wanted ? "Đã chọn " + wanted + " ghế." : "Chọn thêm " + (wanted - picked) + " ghế (" + picked + " / " + wanted + ").";
             zone.hint.className = invalidCount ? "small text-danger fw-semibold mb-0" : wanted === 0 ? "small text-muted mb-0" : picked === wanted ? "small text-success mb-0" : "small text-danger fw-semibold mb-0";
             wantedSeats += wanted;
             if (picked < wanted) missing.push({ name: zone.name, left: wanted - picked });
@@ -484,7 +466,8 @@
         for(const zonesEl of [get('hold-zones'),get('standing-zones')].filter(Boolean)) {
             for (const input of zonesEl.querySelectorAll("input[type=checkbox]")) input.disabled = input.dataset.unavailable === 'true' || count >= 8 && !input.checked;
             for (const zone of seatZones) {
-                for (const box of zone.boxes) if (!box.checked && zone.picked >= zone.wanted) box.disabled = true;
+                for (const box of zone.boxes) if (zone.autoQuantity && !box.checked && plannedCount >= 8) box.disabled = true;
+                for (const box of zone.boxes) if (!zone.autoQuantity && !box.checked && zone.picked >= zone.wanted) box.disabled = true;
                 // Số ghế còn có thể thêm = 8 trừ các vé đã chọn ở khu khác.
                 zone.counter.max = String(Math.max(0, Math.min(zone.boxes.length, 8 - (plannedCount - zone.wanted))));
             }
@@ -525,6 +508,7 @@
                     const count = selections().filter(item => item.seatId === null).reduce((sum, item) => sum + item.quantity, 0) + seatZones.reduce((sum, zone) => sum + zone.wanted, 0);
                     const next = (Number(input.value) || 0) + delta;
                     if (next >= 0 && next <= Number(input.max) && (delta < 0 || count < 8)) {
+                        if (input.seatZone) input.seatZone.autoQuantity = false;
                         input.value = String(next);
                         summary();
                     }
@@ -625,7 +609,10 @@
                 }
                 panel.append(seats);
                 field.append(countLabel, hint, panel);
-                seatZones.push({ name: zone.name, counter, hint, seats: panel, boxes, wanted: 0, picked: 0 });
+                const seatZone = { name: zone.name, counter, hint, seats: panel, boxes, wanted: 0, picked: 0, autoQuantity: true };
+                counter.seatZone = seatZone;
+                counter.addEventListener('input', () => { seatZone.autoQuantity = false; });
+                seatZones.push(seatZone);
             }
             (zone.type==='STANDING'&&get('standing-zones')?get('standing-zones'):get('hold-zones')).append(field);
         }
@@ -640,7 +627,7 @@
         get("hold-message").textContent = state.message;
         get("hold-message").className = state.phase === "uncertain" ? "alert alert-warning" : "text-muted";
         get("hold-auth").hidden = !state.auth;
-        get("hold-recovery").hidden = !state.pending;
+        get("hold-recovery").hidden = state.phase !== "uncertain" || !state.pending;
         get("hold-retry").disabled = state.phase !== "uncertain";
         get("hold-refresh").disabled = ["loading", "submitting"].includes(state.phase);
         get("hold-cancel").disabled = state.phase !== "active" || client.remaining() <= 0;
@@ -662,7 +649,7 @@
         if (payNow && ["selecting", "expired", "uncertain"].includes(state.phase)) { payNow = false; payOverlay(false); }
         if (payNow && state.phase === "active" && state.hold) {
             payNow = false;
-            void payDirect(state.hold.id);
+            openCheckout(state.hold.id);
         }
         get("current-hold").hidden = !state.hold;
         if (page === "current") get("hold-heading").textContent = displayText(state.hold?.eventTitle) || "Lượt giữ vé";
@@ -698,7 +685,7 @@
     get("hold-pay-link")?.addEventListener("click", event => {
         if (client.state.phase !== "active" || !client.state.hold || client.remaining() <= 0) return;
         event.preventDefault();
-        void payDirect(client.state.hold.id);
+        openCheckout(client.state.hold.id);
     });
     get("hold-cancel").addEventListener("click", () => void client.cancel());
     get("hold-retry").addEventListener("click", () => void client.retry());

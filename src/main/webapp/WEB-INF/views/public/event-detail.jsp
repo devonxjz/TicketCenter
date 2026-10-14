@@ -12,7 +12,7 @@
   <p id="hold-message" role="status" aria-live="polite">Đang đối chiếu lượt giữ…</p>
   <div id="hold-auth" class="tc-notice mb-4" hidden><p>Đăng nhập và xác minh email để chọn vé, xem ghế còn trống và giữ vị trí.</p><a id="booking-login" href="${pageContext.request.contextPath}/auth/login" class="btn-primary-custom">Đăng nhập để chọn vé</a> <a href="${pageContext.request.contextPath}/auth/verify-email" class="btn-outline-custom">Xác minh email</a></div>
   <div id="hold-recovery" class="hold-notice" hidden><p>Kết quả yêu cầu chưa rõ. Thử lại cùng yêu cầu để đối chiếu với máy chủ.</p><button id="hold-retry" type="button" class="btn-outline-custom">Thử lại yêu cầu</button></div>
-  <section id="current-hold" class="tc-hold-confirmed mb-4" hidden><h3 class="h5 fw-bold">Lượt giữ hiện tại</h3><p id="hold-id" hidden></p><p>Thời gian còn lại <strong id="hold-countdown" role="timer" aria-label="Thời gian còn lại"></strong></p><p id="hold-deadline" class="small text-muted"></p><ul id="hold-items" class="hold-items"></ul><p>Giá vé đã giữ <strong id="hold-total"></strong></p><div class="tc-page-actions"><a id="hold-pay-link" class="btn-primary-custom" href="${pageContext.request.contextPath}/checkout?pay=now">Thanh toán ngay</a><a id="hold-view" class="btn-outline-custom" href="${pageContext.request.contextPath}/checkout">Xem đơn &amp; nhập mã giảm giá</a><button id="hold-cancel" type="button" class="btn-outline-custom">Hủy lượt giữ</button></div><p class="small text-muted mt-2 mb-0">Vé được giữ cho bạn đến hết thời gian trên. Bạn có thể thanh toán bất cứ lúc nào trước khi hết hạn.</p></section>
+  <section id="current-hold" class="tc-hold-confirmed mb-4" hidden><h3 class="h5 fw-bold">Lượt giữ hiện tại</h3><p id="hold-id" hidden></p><p>Thời gian còn lại <strong id="hold-countdown" role="timer" aria-label="Thời gian còn lại"></strong></p><p id="hold-deadline" class="small text-muted"></p><ul id="hold-items" class="hold-items"></ul><p>Giá vé đã giữ <strong id="hold-total"></strong></p><div class="tc-page-actions"><a id="hold-pay-link" class="btn-primary-custom" href="${pageContext.request.contextPath}/checkout?prepare=1">Thanh toán ngay</a><a id="hold-view" class="btn-outline-custom" href="${pageContext.request.contextPath}/checkout">Xem đơn &amp; nhập mã giảm giá</a><button id="hold-cancel" type="button" class="btn-outline-custom">Hủy lượt giữ</button></div><p class="small text-muted mt-2 mb-0">Vé được giữ cho bạn đến hết thời gian trên. Bạn có thể thanh toán bất cứ lúc nào trước khi hết hạn.</p></section>
   <form id="hold-form" hidden>
    <p id="sale-deadline" class="small text-muted"></p>
    <div class="hold-zone-navigation">
@@ -30,7 +30,7 @@
      <section id="seat-workspace" class="tc-seat-workspace" aria-labelledby="seat-map-heading" hidden>
       <div class="tc-seat-panel-heading">
        <h3 id="seat-map-heading">Chọn ghế</h3>
-       <span>Chọn số lượng, rồi chọn ghế trống</span>
+       <span>Bấm vào ghế trống để chọn vị trí</span>
       </div>
       <div class="tc-seat-stage">Sân khấu</div>
       <fieldset id="hold-zones"><legend class="visually-hidden">Khu vé và ghế còn lại</legend></fieldset>
@@ -65,4 +65,4 @@
  </section>
  <section class="mt-5"><h2 class="tc-detail-section-title">Thông tin sự kiện</h2><p id="description" class="tc-event-description"></p><h3 class="h5 fw-bold">Khu vực &amp; Tình trạng vé</h3><p id="zone-status" role="status" class="small text-muted"></p><div id="zones"></div></section>
  </article><noscript>Vui lòng bật JavaScript để tải thông tin sự kiện, chọn vị trí và giữ vé.</noscript>
-</main><jsp:include page="/WEB-INF/views/layout/footer.jsp"/><script defer src="${pageContext.request.contextPath}/assets/js/public-events.js"></script><script defer src="${pageContext.request.contextPath}/assets/js/ticket-hold.js?v=zone-tabs-4"></script></body></html>
+</main><jsp:include page="/WEB-INF/views/layout/footer.jsp"/><script defer src="${pageContext.request.contextPath}/assets/js/public-events.js"></script><script defer src="${pageContext.request.contextPath}/assets/js/ticket-hold.js?v=seat-coupon-9"></script></body></html>

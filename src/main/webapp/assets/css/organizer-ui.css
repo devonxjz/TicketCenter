@@ -5,6 +5,8 @@
 .tc-organizer-page .form-control, .tc-organizer-page .form-select,
 .tc-organizer-page .btn, .tc-organizer-page .badge { border-radius: 0; }
 .tc-organizer-page .form-label, .tc-organizer-page .filter-label { font-size: .76rem; font-weight: 700; color: #222; }
+.organizer-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 1.5rem; }
+.organizer-metrics [id^="metric-"] { font-size: 1.5rem; font-variant-numeric: tabular-nums; line-height: 1.3; }
 .tc-organizer-page .table-custom td { font-variant-numeric: tabular-nums; }
 .tc-organizer-page .table-custom th { white-space: nowrap; }
 .tc-organizer-page #status, .tc-organizer-page #live-status { font-size: .85rem; }
