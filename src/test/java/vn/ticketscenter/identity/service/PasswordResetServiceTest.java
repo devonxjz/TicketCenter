@@ -32,7 +32,8 @@ public class PasswordResetServiceTest {
 
     private OtpRepository otpRepository;
     private UserRepository userRepository;
-    private OtpCryptoHelper otpCryptoHelper;
+    private OtpHasher otpHasher;
+    private ResetTokenCodec resetTokens;
     private PasswordHasher passwordHasher;
     private FakeEmailSender emailSender;
 
@@ -40,7 +41,8 @@ public class PasswordResetServiceTest {
     void setUp() {
         otpRepository = new OtpRepository();
         userRepository = new UserRepository();
-        otpCryptoHelper = new OtpCryptoHelper("secret-key-password-reset-test-32chars");
+        otpHasher = new OtpHasher("secret-key-password-reset-test-32chars");
+        resetTokens = new ResetTokenCodec("secret-key-password-reset-test-32chars");
         passwordHasher = new PasswordHasher();
         emailSender = new FakeEmailSender();
     }
@@ -64,8 +66,8 @@ public class PasswordResetServiceTest {
                 Assumptions.assumeTrue(false, "Database is not ready");
             }
             TransactionManager tm = registry.transactionManager();
-            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpCryptoHelper, emailSender);
-            PasswordResetService resetService = new PasswordResetService(tm, userRepository, otpService, otpCryptoHelper, passwordHasher, UserSessionCache.disabled());
+            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpHasher, resetTokens, emailSender);
+            PasswordResetService resetService = new PasswordResetService(tm, userRepository, otpService, resetTokens, passwordHasher, UserSessionCache.disabled());
 
             String suffix = UUID.randomUUID().toString().substring(0, 8);
             String existingEmail = "existing." + suffix + "@ticketscenter.vn";
@@ -104,8 +106,8 @@ public class PasswordResetServiceTest {
                 Assumptions.assumeTrue(false, "Database is not ready");
             }
             TransactionManager tm = registry.transactionManager();
-            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpCryptoHelper, emailSender);
-            PasswordResetService resetService = new PasswordResetService(tm, userRepository, otpService, otpCryptoHelper, passwordHasher, UserSessionCache.disabled());
+            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpHasher, resetTokens, emailSender);
+            PasswordResetService resetService = new PasswordResetService(tm, userRepository, otpService, resetTokens, passwordHasher, UserSessionCache.disabled());
 
             String suffix = UUID.randomUUID().toString().substring(0, 8);
             String email = "resetpwd." + suffix + "@ticketscenter.vn";

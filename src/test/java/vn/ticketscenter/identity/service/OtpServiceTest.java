@@ -31,14 +31,16 @@ public class OtpServiceTest {
 
     private OtpRepository otpRepository;
     private UserRepository userRepository;
-    private OtpCryptoHelper otpCryptoHelper;
+    private OtpHasher otpHasher;
+    private ResetTokenCodec resetTokens;
     private FakeEmailSender emailSender;
 
     @BeforeEach
     void setUp() {
         otpRepository = new OtpRepository();
         userRepository = new UserRepository();
-        otpCryptoHelper = new OtpCryptoHelper("secret-key-for-test-32-chars-long-123");
+        otpHasher = new OtpHasher("secret-key-for-test-32-chars-long-123");
+        resetTokens = new ResetTokenCodec("secret-key-for-test-32-chars-long-123");
         emailSender = new FakeEmailSender();
     }
 
@@ -61,7 +63,7 @@ public class OtpServiceTest {
                 Assumptions.assumeTrue(false, "Database is not ready");
             }
             TransactionManager tm = registry.transactionManager();
-            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpCryptoHelper, emailSender);
+            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpHasher, resetTokens, emailSender);
 
             String suffix = UUID.randomUUID().toString().substring(0, 8);
             String email = "send." + suffix + "@ticketscenter.vn";
@@ -89,7 +91,7 @@ public class OtpServiceTest {
                     otpRepository.findLatestValidOtpByEmail(em, email, OtpPurpose.VERIFY_EMAIL, Instant.now()).orElse(null));
             assertNotNull(otp);
             assertFalse(otp.isConsumed());
-            assertTrue(otpCryptoHelper.verifyOtpHash(code, otp.getSecretHash()));
+            assertTrue(otpHasher.verifyOtpHash(code, otp.getSecretHash()));
 
         } finally {
             registry.close();
@@ -106,7 +108,7 @@ public class OtpServiceTest {
                 Assumptions.assumeTrue(false, "Database is not ready");
             }
             TransactionManager tm = registry.transactionManager();
-            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpCryptoHelper, emailSender);
+            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpHasher, resetTokens, emailSender);
 
             String suffix = UUID.randomUUID().toString().substring(0, 8);
             String email = "cooldown." + suffix + "@ticketscenter.vn";
@@ -141,7 +143,7 @@ public class OtpServiceTest {
                 Assumptions.assumeTrue(false, "Database is not ready");
             }
             TransactionManager tm = registry.transactionManager();
-            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpCryptoHelper, emailSender);
+            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpHasher, resetTokens, emailSender);
 
             String suffix = UUID.randomUUID().toString().substring(0, 8);
             String email = "verify." + suffix + "@ticketscenter.vn";
@@ -187,7 +189,7 @@ public class OtpServiceTest {
                 Assumptions.assumeTrue(false, "Database is not ready");
             }
             TransactionManager tm = registry.transactionManager();
-            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpCryptoHelper, emailSender);
+            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpHasher, resetTokens, emailSender);
 
             String suffix = UUID.randomUUID().toString().substring(0, 8);
             String email = "reset." + suffix + "@ticketscenter.vn";
@@ -205,8 +207,8 @@ public class OtpServiceTest {
             assertTrue(response.success());
             assertNotNull(response.resetToken());
 
-            // Token có thể parse và verify bằng OtpCryptoHelper
-            OtpCryptoHelper.ResetTokenClaims claims = otpCryptoHelper.parseAndVerifyResetToken(
+            // Token có thể parse và verify bằng ResetTokenCodec
+            ResetTokenCodec.Claims claims = resetTokens.verify(
                     response.resetToken(), createdUser.getId(), createdUser.getPasswordHash(), createdUser.getAuthVersion());
             assertEquals(createdUser.getId(), claims.userId());
 
@@ -225,7 +227,7 @@ public class OtpServiceTest {
                 Assumptions.assumeTrue(false, "Database is not ready");
             }
             TransactionManager tm = registry.transactionManager();
-            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpCryptoHelper, emailSender);
+            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpHasher, resetTokens, emailSender);
 
             String suffix = UUID.randomUUID().toString().substring(0, 8);
             String email = "wrong." + suffix + "@ticketscenter.vn";
@@ -267,7 +269,7 @@ public class OtpServiceTest {
                 Assumptions.assumeTrue(false, "Database is not ready");
             }
             TransactionManager tm = registry.transactionManager();
-            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpCryptoHelper, emailSender);
+            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpHasher, resetTokens, emailSender);
 
             String suffix = UUID.randomUUID().toString().substring(0, 8);
             String email = "isolate." + suffix + "@ticketscenter.vn";

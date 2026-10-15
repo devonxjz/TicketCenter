@@ -14,12 +14,13 @@ import vn.ticketscenter.identity.repository.UserRepository;
 import vn.ticketscenter.identity.service.LoginService;
 import vn.ticketscenter.identity.service.OrganizationMembershipService;
 import vn.ticketscenter.identity.service.OrganizationRequestService;
-import vn.ticketscenter.identity.service.OtpCryptoHelper;
+import vn.ticketscenter.identity.service.OtpHasher;
 import vn.ticketscenter.identity.service.OtpService;
 import vn.ticketscenter.identity.service.PasswordHasher;
 import vn.ticketscenter.identity.service.PasswordResetService;
 import vn.ticketscenter.identity.service.ProfileService;
 import vn.ticketscenter.identity.service.RegistrationService;
+import vn.ticketscenter.identity.service.ResetTokenCodec;
 import vn.ticketscenter.identity.service.SessionValidator;
 import vn.ticketscenter.identity.service.UserSessionCache;
 
@@ -50,7 +51,8 @@ public final class IdentityServices {
         Objects.requireNonNull(transactions, "transactions must not be null");
         UserRepository users = new UserRepository();
         PasswordHasher hasher = new PasswordHasher();
-        OtpCryptoHelper otpCrypto = new OtpCryptoHelper();
+        OtpHasher otpHasher = new OtpHasher();
+        ResetTokenCodec resetTokens = new ResetTokenCodec();
 
         UserSessionCache sessionCache = new UserSessionCache(redis);
         OrganizationMembershipRepository memberships = new OrganizationMembershipRepository();
@@ -59,9 +61,10 @@ public final class IdentityServices {
         this.loginService = new LoginService(transactions, users, memberships, hasher);
         this.sessionValidator = new SessionValidator(transactions, users, sessionCache);
         this.profileService = new ProfileService(transactions, users);
-        this.otpService = new OtpService(transactions, new OtpRepository(), users, otpCrypto, emailSender);
+        this.otpService = new OtpService(
+                transactions, new OtpRepository(), users, otpHasher, resetTokens, emailSender);
         this.passwordResetService =
-                new PasswordResetService(transactions, users, otpService, otpCrypto, hasher, sessionCache);
+                new PasswordResetService(transactions, users, otpService, resetTokens, hasher, sessionCache);
         this.organizationRequestService =
                 new OrganizationRequestService(transactions, new OrganizationRepository(), users, redis);
         this.organizationMembershipService = new OrganizationMembershipService(transactions, memberships, users);

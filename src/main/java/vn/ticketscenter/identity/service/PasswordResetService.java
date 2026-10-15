@@ -22,20 +22,20 @@ public class PasswordResetService {
     private final TransactionManager transactions;
     private final UserRepository userRepository;
     private final OtpService otpService;
-    private final OtpCryptoHelper otpCryptoHelper;
+    private final ResetTokenCodec resetTokens;
     private final PasswordHasher passwordHasher;
     private final UserSessionCache sessionCache;
 
     public PasswordResetService(TransactionManager transactions,
                                 UserRepository userRepository,
                                 OtpService otpService,
-                                OtpCryptoHelper otpCryptoHelper,
+                                ResetTokenCodec resetTokens,
                                 PasswordHasher passwordHasher,
                                 UserSessionCache sessionCache) {
         this.transactions = Objects.requireNonNull(transactions, "transactions must not be null");
         this.userRepository = Objects.requireNonNull(userRepository, "userRepository must not be null");
         this.otpService = Objects.requireNonNull(otpService, "otpService must not be null");
-        this.otpCryptoHelper = Objects.requireNonNull(otpCryptoHelper, "otpCryptoHelper must not be null");
+        this.resetTokens = Objects.requireNonNull(resetTokens, "resetTokens must not be null");
         this.passwordHasher = Objects.requireNonNull(passwordHasher, "passwordHasher must not be null");
         this.sessionCache = Objects.requireNonNull(sessionCache, "sessionCache must not be null");
     }
@@ -71,7 +71,7 @@ public class PasswordResetService {
             throw new IllegalArgumentException("Dữ liệu đặt lại mật khẩu không được để trống");
         }
 
-        UUID userId = otpCryptoHelper.extractUserIdFromToken(request.token());
+        UUID userId = resetTokens.extractUserId(request.token());
 
         return Boolean.TRUE.equals(transactions.execute(DatabasePrincipal.AUTH, em -> {
             User user = userRepository.findById(em, userId).orElse(null);
@@ -81,12 +81,7 @@ public class PasswordResetService {
             }
 
             // Xác thực chữ ký token và tính hợp lệ với trạng thái hiện tại của tài khoản
-            try {
-                otpCryptoHelper.parseAndVerifyResetToken(
-                        request.token(), user.getId(), user.getPasswordHash(), user.getAuthVersion());
-            } catch (SecurityException invalid) {
-                throw new IdentityException(IdentityError.INVALID_TOKEN, invalid.getMessage(), invalid);
-            }
+            resetTokens.verify(request.token(), user.getId(), user.getPasswordHash(), user.getAuthVersion());
 
             // Băm mật khẩu mới (12-256 ký tự đã được validate tại DTO)
             String newPasswordHash = passwordHasher.hash(request.newPassword());

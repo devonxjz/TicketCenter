@@ -18,10 +18,11 @@ import vn.ticketscenter.identity.integration.mail.FakeEmailSender;
 import vn.ticketscenter.identity.model.OtpPurpose;
 import vn.ticketscenter.identity.repository.OtpRepository;
 import vn.ticketscenter.identity.repository.UserRepository;
-import vn.ticketscenter.identity.service.OtpCryptoHelper;
+import vn.ticketscenter.identity.service.OtpHasher;
 import vn.ticketscenter.identity.service.OtpService;
 import vn.ticketscenter.identity.service.PasswordHasher;
 import vn.ticketscenter.identity.service.PasswordResetService;
+import vn.ticketscenter.identity.service.ResetTokenCodec;
 import vn.ticketscenter.identity.service.UserSessionCache;
 
 import java.io.BufferedReader;
@@ -127,7 +128,7 @@ public class AuthOtpServletsTest {
     void testOtpSendServletSuccess() throws Exception {
         OtpService mockOtpService = new OtpService(
                 new TransactionManager(Map.of()), new OtpRepository(), new UserRepository(),
-                new OtpCryptoHelper("secret"), new FakeEmailSender()) {
+                new OtpHasher("secret"), new ResetTokenCodec("secret"), new FakeEmailSender()) {
             @Override
             public boolean sendOtp(OtpSendRequestDto request) {
                 return true;
@@ -150,7 +151,7 @@ public class AuthOtpServletsTest {
     void testOtpSendServletCooldown() throws Exception {
         OtpService mockOtpService = new OtpService(
                 new TransactionManager(Map.of()), new OtpRepository(), new UserRepository(),
-                new OtpCryptoHelper("secret"), new FakeEmailSender()) {
+                new OtpHasher("secret"), new ResetTokenCodec("secret"), new FakeEmailSender()) {
             @Override
             public boolean sendOtp(OtpSendRequestDto request) {
                 throw new IdentityException(IdentityError.COOLDOWN_ACTIVE, "COOLDOWN_ACTIVE: Vui lòng đợi 45 giây");
@@ -173,7 +174,7 @@ public class AuthOtpServletsTest {
     void testOtpVerifyServletSuccess() throws Exception {
         OtpService mockOtpService = new OtpService(
                 new TransactionManager(Map.of()), new OtpRepository(), new UserRepository(),
-                new OtpCryptoHelper("secret"), new FakeEmailSender()) {
+                new OtpHasher("secret"), new ResetTokenCodec("secret"), new FakeEmailSender()) {
             @Override
             public OtpVerifyResponseDto verifyOtp(OtpVerifyRequestDto request) {
                 return OtpVerifyResponseDto.forPasswordReset("Xác minh thành công", "mock.reset.token");
@@ -196,8 +197,8 @@ public class AuthOtpServletsTest {
     void testForgotPasswordServletSuccess() throws Exception {
         PasswordResetService mockService = new PasswordResetService(
                 new TransactionManager(Map.of()), new UserRepository(),
-                new OtpService(new TransactionManager(Map.of()), new OtpRepository(), new UserRepository(), new OtpCryptoHelper("secret"), new FakeEmailSender()),
-                new OtpCryptoHelper("secret"), new PasswordHasher(), UserSessionCache.disabled()) {
+                new OtpService(new TransactionManager(Map.of()), new OtpRepository(), new UserRepository(), new OtpHasher("secret"), new ResetTokenCodec("secret"), new FakeEmailSender()),
+                new ResetTokenCodec("secret"), new PasswordHasher(), UserSessionCache.disabled()) {
             @Override
             public String forgotPassword(ForgotPasswordRequestDto request) {
                 return PasswordResetService.NEUTRAL_FORGOT_PASSWORD_MESSAGE;
@@ -220,8 +221,8 @@ public class AuthOtpServletsTest {
     void testPasswordResetServletSuccess() throws Exception {
         PasswordResetService mockService = new PasswordResetService(
                 new TransactionManager(Map.of()), new UserRepository(),
-                new OtpService(new TransactionManager(Map.of()), new OtpRepository(), new UserRepository(), new OtpCryptoHelper("secret"), new FakeEmailSender()),
-                new OtpCryptoHelper("secret"), new PasswordHasher(), UserSessionCache.disabled()) {
+                new OtpService(new TransactionManager(Map.of()), new OtpRepository(), new UserRepository(), new OtpHasher("secret"), new ResetTokenCodec("secret"), new FakeEmailSender()),
+                new ResetTokenCodec("secret"), new PasswordHasher(), UserSessionCache.disabled()) {
             @Override
             public boolean resetPassword(PasswordResetRequestDto request) {
                 return true;
