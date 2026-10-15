@@ -22,7 +22,7 @@ jobs:
         with:
           java-version: '25'
           distribution: oracle
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
       - name: Verify pinned Tomcat and execute Native guards without skips
@@ -60,7 +60,7 @@ jobs:
           java-version: '25'
           distribution: oracle
           cache: maven
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
       - name: Safe default Java tests
@@ -94,7 +94,7 @@ jobs:
           java-version: '25'
           distribution: oracle
           cache: maven
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
       - name: Mark standalone disposable Redis fixture
@@ -134,7 +134,7 @@ jobs:
           java-version: '25'
           distribution: oracle
           cache: maven
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
       - name: Initialize dedicated UUID fixture and finance migration
