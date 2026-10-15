@@ -16,6 +16,7 @@ import vn.ticketscenter.identity.dto.LoginRequestDto;
 import vn.ticketscenter.identity.error.IdentityException;
 import vn.ticketscenter.identity.model.OrganizationRole;
 import vn.ticketscenter.identity.security.LoginThrottle;
+import vn.ticketscenter.identity.security.RouteAccessPolicy;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.identity.service.LoginService;
@@ -133,7 +134,7 @@ public class LoginServlet extends HttpServlet {
         return contextPath + "/";
     }
 
-    /** Apply role checks to the decoded route, excluding query values. */
+    /** Whether {@link RouteAccessPolicy} lets the user open the decoded route, excluding query values. */
     static boolean isRoleRedirectAllowed(UserPrincipal principal, String target, String contextPath) {
         String path;
         try {
@@ -142,16 +143,10 @@ public class LoginServlet extends HttpServlet {
             return false;
         }
         String base = contextPath == null ? "" : contextPath;
-        if (path == null || !path.startsWith(base)) return false;
-        path = path.substring(base.length());
-        if (principal.isAdmin()) return true;
-        if (path.equals("/admin") || path.startsWith("/admin/")) return false;
-        if (path.equals("/organizer/request")) return true;
-        if (path.equals("/organizer") || path.startsWith("/organizer/")) {
-            boolean checkInPage = path.equals("/organizer/checkin") || path.startsWith("/organizer/checkin/");
-            return principal.isManager() || (principal.isStaff() && checkInPage);
+        if (path == null || !path.startsWith(base)) {
+            return false;
         }
-        return true;
+        return RouteAccessPolicy.canOpen(principal, path.substring(base.length()));
     }
 
     /** Only same-application paths are accepted; scheme-relative and backslash forms leave the site. */

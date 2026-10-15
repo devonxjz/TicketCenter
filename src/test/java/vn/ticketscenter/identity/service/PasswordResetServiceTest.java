@@ -10,7 +10,6 @@ import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.identity.error.IdentityError;
 import vn.ticketscenter.identity.error.IdentityException;
 import vn.ticketscenter.identity.dto.ForgotPasswordRequestDto;
-import vn.ticketscenter.identity.dto.OtpSendRequestDto;
 import vn.ticketscenter.identity.dto.OtpVerifyRequestDto;
 import vn.ticketscenter.identity.dto.OtpVerifyResponseDto;
 import vn.ticketscenter.identity.dto.PasswordResetRequestDto;
@@ -20,7 +19,6 @@ import vn.ticketscenter.identity.model.User;
 import vn.ticketscenter.identity.repository.OtpRepository;
 import vn.ticketscenter.identity.repository.UserRepository;
 
-import java.time.Instant;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

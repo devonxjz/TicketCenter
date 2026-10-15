@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import vn.ticketscenter.identity.service.SessionValidator;
 import vn.ticketscenter.identity.config.IdentityServices;
 import vn.ticketscenter.config.web.OrganizationApiRoutesFilter;
-import vn.ticketscenter.identity.security.AuthSecurityListener;
 import static org.junit.jupiter.api.Assertions.*;
 import static vn.ticketscenter.fulfillment.refund.controller.RefundRequestServletsTest.proxy;
 

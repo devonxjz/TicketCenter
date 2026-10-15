@@ -1,4 +1,4 @@
-package vn.ticketscenter.identity.security;
+package vn.ticketscenter.identity.config;
 
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletContextEvent;
@@ -6,15 +6,14 @@ import jakarta.servlet.ServletContextListener;
 import jakarta.servlet.SessionCookieConfig;
 import jakarta.servlet.annotation.WebListener;
 import vn.ticketscenter.config.ServerConfig;
-import vn.ticketscenter.identity.config.IdentityServices;
 
 import java.util.logging.Logger;
 
-/** Configures the session cookie and warms the identity services once persistence is ready. */
+/** Hardens the session cookie at start-up and warms {@link IdentityServices}. */
 @WebListener
-public final class AuthSecurityListener implements ServletContextListener {
+public final class IdentityContextListener implements ServletContextListener {
 
-    private static final Logger LOGGER = Logger.getLogger(AuthSecurityListener.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(IdentityContextListener.class.getName());
 
     @Override
     public void contextInitialized(ServletContextEvent sce) {
@@ -27,8 +26,10 @@ public final class AuthSecurityListener implements ServletContextListener {
         if (isProduction) {
             config.setSecure(true);
         }
-        LOGGER.info("AuthSecurityListener initialized: SessionCookieConfig HttpOnly=true, Secure=" + isProduction);
+        LOGGER.info("IdentityContextListener initialized: SessionCookieConfig HttpOnly=true, Secure="
+                + isProduction);
 
+        // Build the services now when persistence is already up (a no-op otherwise: the first request builds them).
         IdentityServices.from(context);
     }
 

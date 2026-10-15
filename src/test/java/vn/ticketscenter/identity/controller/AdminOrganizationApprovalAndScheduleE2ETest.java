@@ -12,7 +12,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.TransactionManager;
-import vn.ticketscenter.config.web.JsonObjectParser;
 import vn.ticketscenter.event.dto.EventDto;
 import vn.ticketscenter.event.model.Event;
 import vn.ticketscenter.event.repository.EventRepository;

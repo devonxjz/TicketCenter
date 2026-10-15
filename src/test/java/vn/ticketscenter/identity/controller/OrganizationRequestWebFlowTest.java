@@ -1,9 +1,6 @@
 package vn.ticketscenter.identity.controller;
 
 import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -15,7 +12,6 @@ import vn.ticketscenter.identity.error.IdentityError;
 import vn.ticketscenter.identity.error.IdentityException;
 import vn.ticketscenter.identity.dto.OrganizationRequestCreateDto;
 import vn.ticketscenter.identity.dto.OrganizationRequestDetailDto;
-import vn.ticketscenter.identity.dto.OrganizationRequestSummaryDto;
 import vn.ticketscenter.identity.model.OrganizationStatus;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.repository.OrganizationRepository;

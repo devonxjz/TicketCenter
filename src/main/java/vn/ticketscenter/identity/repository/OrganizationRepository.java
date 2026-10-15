@@ -66,7 +66,7 @@ public class OrganizationRepository {
         return query.getResultList();
     }
 
-    public long countByStatus(EntityManager em, vn.ticketscenter.identity.model.OrganizationStatus status) {
+    public long countByStatus(EntityManager em, OrganizationStatus status) {
         Objects.requireNonNull(em, "EntityManager must not be null.");
         String q = status != null
                 ? "SELECT COUNT(o) FROM Organization o WHERE o.status = :status"

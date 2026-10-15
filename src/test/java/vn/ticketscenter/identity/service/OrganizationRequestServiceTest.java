@@ -1,42 +1,23 @@
 package vn.ticketscenter.identity.service;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityManagerFactory;
-import jakarta.persistence.EntityTransaction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.event.model.Event;
-import vn.ticketscenter.event.model.EventCategory;
 import vn.ticketscenter.identity.dto.OrganizationRequestCreateDto;
 import vn.ticketscenter.identity.dto.OrganizationRequestDetailDto;
 import vn.ticketscenter.identity.dto.OrganizationRequestSummaryDto;
 import vn.ticketscenter.identity.error.IdentityError;
 import vn.ticketscenter.identity.error.IdentityException;
 import vn.ticketscenter.identity.model.Organization;
-import vn.ticketscenter.identity.model.OrganizationMembership;
-import vn.ticketscenter.identity.model.OrganizationRole;
 import vn.ticketscenter.identity.model.OrganizationStatus;
-import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.model.User;
 import vn.ticketscenter.identity.model.UserStatus;
-import vn.ticketscenter.identity.repository.OrganizationDecisionRepository;
-import vn.ticketscenter.identity.repository.OrganizationRepository;
-import vn.ticketscenter.identity.repository.UserRepository;
-import vn.ticketscenter.persistence.model.BaseEntity;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Proxy;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;

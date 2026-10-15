@@ -15,7 +15,6 @@ import vn.ticketscenter.identity.dto.OtpVerifyRequestDto;
 import vn.ticketscenter.identity.dto.OtpVerifyResponseDto;
 import vn.ticketscenter.identity.dto.PasswordResetRequestDto;
 import vn.ticketscenter.identity.integration.mail.FakeEmailSender;
-import vn.ticketscenter.identity.model.OtpPurpose;
 import vn.ticketscenter.identity.repository.OtpRepository;
 import vn.ticketscenter.identity.repository.UserRepository;
 import vn.ticketscenter.identity.service.OtpHasher;
