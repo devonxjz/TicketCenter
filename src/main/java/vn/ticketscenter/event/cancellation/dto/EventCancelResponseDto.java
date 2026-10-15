@@ -1,8 +1,9 @@
 package vn.ticketscenter.event.cancellation.dto;
 
+import static vn.ticketscenter.config.web.HttpResponses.jsonString;
+
 import java.time.Instant;
 import java.util.UUID;
-import static vn.ticketscenter.config.web.HttpResponses.jsonString;
 
 public record EventCancelResponseDto(UUID eventId, Instant cancelledAt, long totalOrdersToRefund) {
     public String json() {
