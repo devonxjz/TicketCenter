@@ -45,7 +45,7 @@ jobs:
       ADMIN_SEED_ENABLED: 'true'
       ADMIN_EMAIL: khanh01-admin@fixture.invalid
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-java@v4
         with:
           distribution: oracle
