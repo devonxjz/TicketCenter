@@ -5,6 +5,7 @@ import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import vn.ticketscenter.config.AppConfig;
 
+import java.net.URI;
 import java.time.Duration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -21,6 +22,7 @@ public final class RedisClientProvider implements AutoCloseable {
     private final JedisPool jedisPool;
 
     private RedisClientProvider() {
+        String redisUrl = AppConfig.get(AppConfig.Keys.REDIS_URL);
         String host = AppConfig.get(AppConfig.Keys.REDIS_HOST, "localhost");
         int port = AppConfig.getInt(AppConfig.Keys.REDIS_PORT, 6379);
         String password = AppConfig.get(AppConfig.Keys.REDIS_PASSWORD, "");
@@ -36,7 +38,9 @@ public final class RedisClientProvider implements AutoCloseable {
         poolConfig.setBlockWhenExhausted(true);
         poolConfig.setMaxWait(Duration.ofMillis(timeout));
 
-        if (password != null && !password.isBlank()) {
+        if (redisUrl != null && !redisUrl.isBlank()) {
+            this.jedisPool = new JedisPool(poolConfig, URI.create(redisUrl.trim()), timeout);
+        } else if (password != null && !password.isBlank()) {
             this.jedisPool = new JedisPool(poolConfig, host, port, timeout, password);
         } else {
             this.jedisPool = new JedisPool(poolConfig, host, port, timeout);
@@ -84,9 +88,14 @@ public final class RedisClientProvider implements AutoCloseable {
 
     @Override
     public void close() {
-        if (jedisPool != null && !jedisPool.isClosed()) {
-            jedisPool.close();
-            LOGGER.info("Đã đóng JedisPool");
+        synchronized (RedisClientProvider.class) {
+            if (jedisPool != null && !jedisPool.isClosed()) {
+                jedisPool.close();
+                LOGGER.info("Đã đóng JedisPool");
+            }
+            if (instance == this) {
+                instance = null;
+            }
         }
     }
 }

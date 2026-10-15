@@ -83,4 +83,26 @@ class ErrorPageServletTest {
         assertEquals(404, exchange.status);
         assertEquals("/WEB-INF/views/error/not-found.jsp", exchange.forwardedTo);
     }
+
+    @Test void forbiddenShowsForbiddenView() throws Exception {
+        Exchange exchange = new Exchange(403, "/ticketscenter/admin", null);
+        exchange.run("text/html");
+        assertEquals(403, exchange.status);
+        assertEquals("/WEB-INF/views/error/forbidden.jsp", exchange.forwardedTo);
+    }
+
+    @Test void upstreamFailureShowsBadGatewayView() throws Exception {
+        Exchange exchange = new Exchange(500, "/ticketscenter/forgot", new vn.ticketscenter.identity.integration.mail.EmailDeliveryException("smtp down"));
+        exchange.run("text/html");
+        assertEquals(502, exchange.status);
+        assertEquals("/WEB-INF/views/error/bad-gateway.jsp", exchange.forwardedTo);
+    }
+
+    @Test void appExceptionKeepsItsStatusAndCodeInApi() throws Exception {
+        Exchange exchange = new Exchange(500, "/ticketscenter/api/tickets/1",
+                new vn.ticketscenter.config.error.AppException(404, "TICKET_NOT_FOUND", "x"));
+        exchange.run("*/*");
+        assertEquals(404, exchange.status);
+        assertTrue(exchange.body.toString().contains("\"code\":\"TICKET_NOT_FOUND\""));
+    }
 }

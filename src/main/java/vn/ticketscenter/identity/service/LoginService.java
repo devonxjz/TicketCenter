@@ -1,6 +1,6 @@
 package vn.ticketscenter.identity.service;
 
-import vn.ticketscenter.config.AppConfig;
+import vn.ticketscenter.config.IdentityConfig;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.identity.dto.LoginRequestDto;
@@ -64,7 +64,7 @@ public class LoginService {
                 found = userRepository.findByNormalizedUserName(em, identifier).orElse(null);
             }
             if (found == null && "admin".equalsIgnoreCase(identifier)) {
-                String adminEmail = EmailNormalizer.normalize(AppConfig.get("admin.email", "admin@fixture.invalid"));
+                String adminEmail = EmailNormalizer.normalize(IdentityConfig.getAdminEmail());
                 found = userRepository.findAdminByAlias(em, adminEmail).orElse(null);
             }
             return found;

@@ -1,5 +1,7 @@
 package vn.ticketscenter.ticketing.controller;
 
+import vn.ticketscenter.config.error.AppException;
+
 import vn.ticketscenter.ticketing.dto.CreateHoldRequest;
 import vn.ticketscenter.ticketing.dto.HoldSelection;
 
@@ -18,11 +20,13 @@ public final class HoldRequestParser {
 
     public enum Failure { INVALID_BODY, BODY_TOO_LARGE }
 
-    public static final class ParseException extends RuntimeException {
+    public static final class ParseException extends AppException {
         private final Failure failure;
 
         private ParseException(Failure failure) {
-            super(failure == Failure.BODY_TOO_LARGE ? "Hold request body is too large" : "Invalid hold request body");
+            super(failure == Failure.BODY_TOO_LARGE ? 413 : 400,
+                    failure == Failure.BODY_TOO_LARGE ? "BODY_TOO_LARGE" : "INVALID_BODY",
+                    failure == Failure.BODY_TOO_LARGE ? "Hold request body is too large" : "Invalid hold request body");
             this.failure = failure;
         }
 

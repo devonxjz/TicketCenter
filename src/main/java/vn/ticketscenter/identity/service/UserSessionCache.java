@@ -1,5 +1,6 @@
 package vn.ticketscenter.identity.service;
 
+import vn.ticketscenter.config.IdentityConfig;
 import redis.clients.jedis.Jedis;
 import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.identity.model.UserStatus;
@@ -17,7 +18,7 @@ public class UserSessionCache {
 
     private static final Logger LOGGER = Logger.getLogger(UserSessionCache.class.getName());
     private static final String KEY_PREFIX = "auth:user:";
-    private static final int TTL_SECONDS = 180;
+    private static final int TTL_SECONDS = IdentityConfig.getSessionCacheTtlSeconds();
 
     /** The status name and auth version recorded for a user. */
     public record Entry(String status, int authVersion) {

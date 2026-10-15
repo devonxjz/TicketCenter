@@ -5,8 +5,6 @@ import jakarta.servlet.ServletContextListener;
 import jakarta.servlet.annotation.WebListener;
 import vn.ticketscenter.config.AppConfig;
 import vn.ticketscenter.config.ServerConfig;
-import vn.ticketscenter.config.seed.AdminSeeder;
-import vn.ticketscenter.identity.service.PasswordHasher;
 import vn.ticketscenter.config.worker.EventCancellationJob;
 import vn.ticketscenter.config.worker.OutboxEmailJob;
 import vn.ticketscenter.config.worker.OutboxWorker;
@@ -14,8 +12,6 @@ import vn.ticketscenter.config.worker.RefundJob;
 import vn.ticketscenter.event.repository.EventCancellationRepository;
 import vn.ticketscenter.payment.integration.RefundGateway;
 import vn.ticketscenter.payment.integration.SimulatedRefundGateway;
-
-import java.time.Clock;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -36,15 +32,17 @@ public final class PersistenceListener implements ServletContextListener {
         PersistenceRegistry registry = new PersistenceRegistry();
         try {
             registry.initialize();
-            new AdminSeeder(new PasswordHasher(), Clock.systemUTC()).seed(registry.transactionManager());
-            if (vn.ticketscenter.config.seed.DemoAccountSeeder.enabled(
-                    ServerConfig.getEnv(), AppConfig.getBoolean("demo.seed.enabled", false))) {
-                new vn.ticketscenter.config.seed.DemoAccountSeeder(new PasswordHasher(), Clock.systemUTC()).seed(registry.transactionManager());
-            }
         } catch (RuntimeException exception) {
             LOGGER.log(Level.SEVERE, "Database persistence initialization failed", exception);
         }
         event.getServletContext().setAttribute(REGISTRY_ATTRIBUTE, registry);
+        if (registry.hasPrincipal(DatabasePrincipal.BUYER)) {
+            try {
+                vn.ticketscenter.event.controller.EventCatalogRuntime.resolve(event.getServletContext()).warmAsync();
+            } catch (Exception ex) {
+                LOGGER.log(Level.WARNING, "Không thể khởi động warm-up Redis cho event catalog", ex);
+            }
+        }
         if (registry.hasPrincipal(DatabasePrincipal.WORKER)) {
             EventCancellationJob job = new EventCancellationJob(
                     registry.transactionManager(), new EventCancellationRepository(), 50);

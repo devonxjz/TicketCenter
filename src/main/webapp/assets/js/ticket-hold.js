@@ -359,28 +359,32 @@
     let renderedOptions = null;
     let expiryRead = null;
     let payNow = false;
+    let submittingHold = false;
     let seatZones = [];
     let client;
 
-    function payOverlay(show) {
+    function payOverlay(show, message) {
         let overlay = get("hold-pay-overlay");
         if (!show) { if (overlay) overlay.hidden = true; return; }
         if (!overlay) {
             overlay = element("div");
             overlay.id = "hold-pay-overlay";
             overlay.setAttribute("role", "status");
-            overlay.style.cssText = "position:fixed;inset:0;z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;background:#fff;text-align:center";
-            const spinner = element("div"); spinner.className = "spinner-border text-danger";
-            const text = element("p", "Đang mở đơn vé để kiểm tra và nhập mã giảm giá…"); text.className = "fw-semibold mb-0";
+            overlay.style.cssText = "position:fixed;inset:0;z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;background:rgba(255,255,255,0.92);backdrop-filter:blur(6px);text-align:center";
+            const spinner = element("div"); spinner.className = "spinner-border text-primary";
+            const text = element("p", message || "Đang giữ vé và chuyển đến trang thanh toán…"); text.id = "hold-pay-overlay-text"; text.className = "fw-semibold mb-0 text-dark";
             overlay.append(spinner, text);
             document.body.append(overlay);
+        } else {
+            const text = get("hold-pay-overlay-text");
+            if (text && message) text.textContent = message;
         }
         overlay.hidden = false;
     }
 
-    // Review the order and coupon before the customer starts a payment.
-    function openCheckout(holdId) {
-        root.location.assign(context + "/checkout?prepare=1&holdId=" + encodeURIComponent(holdId));
+    // Chuyển sang thanh toán đơn vé. Nếu autoPay=true thì tiến hành chuyển khoản payOS ngay.
+    function openCheckout(holdId, autoPay = false) {
+        root.location.assign(context + "/checkout?prepare=1&holdId=" + encodeURIComponent(holdId) + (autoPay ? "&pay=now" : ""));
     }
 
     function selections() {
@@ -646,10 +650,16 @@
             }
         }
         // "Thanh toán ngay": lượt giữ vừa được máy chủ xác nhận thì chuyển thẳng sang thanh toán.
-        if (payNow && ["selecting", "expired", "uncertain"].includes(state.phase)) { payNow = false; payOverlay(false); }
-        if (payNow && state.phase === "active" && state.hold) {
+        if (submittingHold && ["selecting", "expired", "uncertain"].includes(state.phase)) {
+            submittingHold = false;
             payNow = false;
-            openCheckout(state.hold.id);
+            payOverlay(false);
+        }
+        if (submittingHold && state.phase === "active" && state.hold) {
+            const shouldAutoPay = payNow;
+            submittingHold = false;
+            payNow = false;
+            openCheckout(state.hold.id, shouldAutoPay);
         }
         get("current-hold").hidden = !state.hold;
         if (page === "current") get("hold-heading").textContent = displayText(state.hold?.eventTitle) || "Lượt giữ vé";
@@ -678,14 +688,15 @@
         eventId: resolveEventId(root.location.search), page, changed: render });
     get("hold-form")?.addEventListener("submit", event => {
         event.preventDefault();
-        payNow = event.submitter?.id === "hold-pay-now";
-        if (payNow) payOverlay(true);
+        payNow = event.submitter?.id === "hold-pay-now" || !event.submitter;
+        submittingHold = true;
+        payOverlay(true, payNow ? "Đang giữ vé và kết nối đến trang chuyển khoản…" : "Đang giữ chỗ vé cho bạn…");
         void client.submit(selections());
     });
     get("hold-pay-link")?.addEventListener("click", event => {
         if (client.state.phase !== "active" || !client.state.hold || client.remaining() <= 0) return;
         event.preventDefault();
-        openCheckout(client.state.hold.id);
+        openCheckout(client.state.hold.id, true);
     });
     get("hold-cancel").addEventListener("click", () => void client.cancel());
     get("hold-retry").addEventListener("click", () => void client.retry());
@@ -713,6 +724,8 @@
     });
     root.addEventListener("pageshow", event => {
         if (!event.persisted) return;
+        submittingHold = false;
+        payNow = false;
         payOverlay(false);
         expiryRead = null;
         if (timer === null) timer = root.setInterval(tick, 250);

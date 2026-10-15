@@ -24,7 +24,7 @@ $removedEnvironment=@{}
 try {
  # Safe-default Maven tests only; opt-in external fixtures must not be inherited.
  foreach($item in Get-ChildItem Env:) {
-  if($item.Name -match '^(DB_|TC_|APP_|ADMIN_|REDIS_|MAIL_|PAYOS_|CLOUDINARY_|HIKARI_|REFUND_|PAYOUT_|EVENT_)' -or $item.Name -in @('JAVA_TOOL_OPTIONS','JDK_JAVA_OPTIONS','_JAVA_OPTIONS','MAVEN_ARGS','MAVEN_OPTS')) {
+  if($item.Name -match '^(DB_|TC_|APP_|ADMIN_|REDIS_|MAIL_|PAYOS_|HIKARI_|REFUND_|PAYOUT_|EVENT_)' -or $item.Name -in @('JAVA_TOOL_OPTIONS','JDK_JAVA_OPTIONS','_JAVA_OPTIONS','MAVEN_ARGS','MAVEN_OPTS')) {
    $removedEnvironment[$item.Name]=$item.Value;[Environment]::SetEnvironmentVariable($item.Name,$null,'Process')
   }
  }

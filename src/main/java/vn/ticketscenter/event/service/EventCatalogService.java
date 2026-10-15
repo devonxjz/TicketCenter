@@ -39,9 +39,24 @@ public final class EventCatalogService {
         String url=repository.event(id).orElseThrow(NotFound::new).coverImageUrl();
         if(url==null || url.isBlank()) throw new NotFound();return url;
     }
+    public void warmAsync() {
+        if (isCacheEnabled()) Thread.ofPlatform().daemon(true).name("event-catalog-warmup").start(this::warm);
+    }
+    public int warm() {
+        if (!isCacheEnabled()) return 0;
+        try {
+            categories();
+            var filter = EventFilter.parse(java.util.Map.of());
+            events(filter);
+            for (var ev : repository.events(filter).events()) {
+                event(ev.eventId());
+                zones(ev.eventId());
+            }
+            return 2 + repository.events(filter).events().size() * 2;
+        } catch (Exception ignored) { return 0; }
+    }
     private String cached(String key, int ttl, Supplier<String> load) {
-        // Shared database changes are read immediately in the live runtime.
-        if (!vn.ticketscenter.config.ServerConfig.isDemoData()) return load.get();
+        if (!isCacheEnabled()) return load.get();
         try { var hit = cache.get(key); if (hit.isPresent()) return hit.get(); }
         catch (RuntimeException ignored) { }
         String generation;
@@ -50,5 +65,18 @@ public final class EventCatalogService {
         try { cache.putIfGeneration(key, json, ttl,generation); } catch (RuntimeException ignored) { }
         return json;
     }
-    public static final class NotFound extends RuntimeException { }
+
+    private boolean isCacheEnabled() {
+        String explicit = vn.ticketscenter.config.AppConfig.get(vn.ticketscenter.config.AppConfig.Keys.REDIS_CACHE_CATALOG_ENABLED);
+        if (explicit != null && !explicit.isBlank()) {
+            return Boolean.parseBoolean(explicit.trim());
+        }
+        if (vn.ticketscenter.config.ServerConfig.isProduction()) {
+            return true;
+        }
+        return vn.ticketscenter.config.ServerConfig.isDemoData();
+    }
+    public static final class NotFound extends vn.ticketscenter.config.error.AppException {
+        public NotFound() { super(404, "NOT_FOUND", "Not found"); }
+    }
 }

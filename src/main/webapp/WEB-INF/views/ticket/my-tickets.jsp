@@ -17,14 +17,9 @@
 
 <main class="container py-5 buyer-container">
     <nav class="buyer-navigation" aria-label="Tài khoản"><a href="${pageContext.request.contextPath}/profile">Hồ sơ</a><a href="${pageContext.request.contextPath}/me/orders">Đơn hàng của tôi</a><a href="${pageContext.request.contextPath}/me/tickets" aria-current="page">Vé của tôi</a><a href="${pageContext.request.contextPath}/my-refunds">Hoàn vé</a></nav>
-    <div class="d-flex justify-content-between align-items-center buyer-heading">
-        <div>
-            <h1 class="fw-bold mb-1">Vé của tôi</h1>
-            <p class="text-muted mb-0">Quản lý các vé sự kiện bạn đã mua và xuất trình mã QR khi check-in</p>
-        </div>
-        <a href="${pageContext.request.contextPath}/" class="btn btn-outline-secondary">
-            <i class="fa-solid fa-house me-1"></i> Trang chủ
-        </a>
+    <div class="buyer-heading">
+        <h1 class="fw-bold mb-1">Vé của tôi</h1>
+        <p class="text-muted mb-0">Quản lý các vé sự kiện bạn đã mua và xuất trình mã QR khi check-in</p>
     </div>
 
     <c:choose>

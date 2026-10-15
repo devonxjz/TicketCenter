@@ -1,5 +1,6 @@
 package vn.ticketscenter.identity.service;
 
+import vn.ticketscenter.config.IdentityConfig;
 import jakarta.persistence.EntityManager;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.TransactionManager;
@@ -29,10 +30,10 @@ import java.util.logging.Logger;
 public class OtpService {
 
     private static final Logger LOGGER = Logger.getLogger(OtpService.class.getName());
-    private static final int COOLDOWN_SECONDS = 60;
-    private static final int OTP_EXPIRY_MINUTES = 5;
-    private static final int RESET_TOKEN_EXPIRY_MINUTES = 15;
-    private static final int MAX_FAILED_ATTEMPTS = 5;
+    private static final int COOLDOWN_SECONDS = IdentityConfig.getOtpCooldownSeconds();
+    private static final int OTP_EXPIRY_MINUTES = IdentityConfig.getOtpExpiryMinutes();
+    private static final int RESET_TOKEN_EXPIRY_MINUTES = IdentityConfig.getResetTokenExpiryMinutes();
+    private static final int MAX_FAILED_ATTEMPTS = IdentityConfig.getOtpMaxFailedAttempts();
 
     private final TransactionManager transactions;
     private final OtpRepository otpRepository;

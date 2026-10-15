@@ -101,4 +101,11 @@ class EventCatalogServiceTest {
         String seat = new EventDtos.Seat(id, id, "A", 1, "A1", "AVAILABLE").toJson();
         assertTrue(seat.contains("\"seatLabel\":\"A1\""));
     }
+    @Test void warmPopulatesCatalogKeysWhenCacheActive() {
+        var repository = new Repository(); var cache = new Cache(); var service = new EventCatalogService(repository, cache);
+        int warmed = service.warm();
+        assertTrue(warmed > 0);
+        assertTrue(cache.values.containsKey("tc:event:categories:v1"));
+        assertTrue(cache.values.containsKey("tc:event:detail:v1:" + id));
+    }
 }

@@ -29,8 +29,7 @@ public final class LocalImageStorage implements StorageService {
     }
 
     public static StorageService configured() {
-        String cloud = AppConfig.get(AppConfig.Keys.CLOUDINARY_CLOUD_NAME);
-        return cloud == null || cloud.isBlank() ? fromConfiguration() : CloudinaryStorageService.fromEnvironment();
+        return fromConfiguration();
     }
 
     public static boolean isLocalUrl(String url) {

@@ -1,6 +1,6 @@
 package vn.ticketscenter.storage;
 
-/** Strict non-animated RIFF/WebP framing and dimension checks; Cloudinary decodes the VP8 payload. */
+/** Strict non-animated RIFF/WebP framing and dimension checks. */
 final class WebpContentValidator {
     private WebpContentValidator() { }
     static boolean isWebp(byte[] b) { return b.length>=12 && tag(b,0).equals("RIFF") && tag(b,8).equals("WEBP"); }

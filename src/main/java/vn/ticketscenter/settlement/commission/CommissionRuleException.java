@@ -1,15 +1,12 @@
 package vn.ticketscenter.settlement.commission;
 
+import vn.ticketscenter.config.error.AppException;
+
 /** Domain failure whose code can be mapped by a future HTTP adapter. */
-public final class CommissionRuleException extends RuntimeException {
-    private final String code;
+public final class CommissionRuleException extends AppException {
 
     public CommissionRuleException(String code, String message) {
-        super(message);
-        this.code = code;
+        super(400, code, message);
     }
 
-    public String code() {
-        return code;
-    }
 }

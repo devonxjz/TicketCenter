@@ -1,11 +1,15 @@
 package vn.ticketscenter.identity.integration.mail;
 
-public class EmailDeliveryException extends RuntimeException {
+import vn.ticketscenter.config.error.AppException;
+
+import vn.ticketscenter.config.error.UpstreamException;
+
+public class EmailDeliveryException extends UpstreamException {
     public EmailDeliveryException(String message) {
-        super(message);
+        super("EMAIL_DELIVERY_FAILED", message);
     }
 
     public EmailDeliveryException(String message, Throwable cause) {
-        super(message, cause);
+        super("EMAIL_DELIVERY_FAILED", message, cause);
     }
 }

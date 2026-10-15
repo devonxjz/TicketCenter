@@ -1,5 +1,7 @@
 package vn.ticketscenter.payment.controller;
 
+import vn.ticketscenter.config.error.AppException;
+
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -65,7 +67,7 @@ public class AdminCompensationRetryServlet extends HttpServlet {
             HttpResponses.data(response, "{\"compensationId\":\"" + compensation + "\",\"paymentId\":\"" + payment
                     + "\",\"status\":\"PENDING\"}");
         } catch (Rejected rejected) {
-            HttpResponses.error(response, rejected.status, rejected.code, rejected.getMessage());
+            HttpResponses.error(response, rejected.status(), rejected.code(), rejected.getMessage());
         } catch (RuntimeException failure) {
             LOGGER.log(Level.SEVERE, "Compensation retry failed", failure);
             HttpResponses.error(response, 503, "COMPENSATION_UNAVAILABLE", "Chưa thể xử lý yêu cầu. Vui lòng thử lại.");
@@ -103,14 +105,9 @@ public class AdminCompensationRetryServlet extends HttpServlet {
         return failure;
     }
 
-    static final class Rejected extends RuntimeException {
-        final int status;
-        final String code;
-
+    static final class Rejected extends AppException {
         Rejected(int status, String code, String message) {
-            super(message);
-            this.status = status;
-            this.code = code;
+            super(status, code, message);
         }
     }
 }

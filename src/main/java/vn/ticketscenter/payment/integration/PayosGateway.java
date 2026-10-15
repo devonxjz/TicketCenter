@@ -1,5 +1,7 @@
 package vn.ticketscenter.payment.integration;
 
+import vn.ticketscenter.config.error.AppException;
+
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
@@ -24,8 +26,8 @@ public interface PayosGateway extends AutoCloseable {
     /** Signature-verified webhook data. */
     record WebhookEvent(long orderCode, long amount, String code, String reference, String paymentLinkId) { }
 
-    class InvalidWebhook extends RuntimeException {
-        public InvalidWebhook(String message, Throwable cause) { super(message, cause); }
+    class InvalidWebhook extends AppException {
+        public InvalidWebhook(String message, Throwable cause) { super(400, "INVALID_WEBHOOK", message, cause); }
     }
 
     /** payOS only accepts each orderCode once; a second create for the same code returns the existing link. */
