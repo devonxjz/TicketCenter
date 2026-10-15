@@ -41,7 +41,8 @@ public class SessionValidator {
             return cached.get().matches(expectedAuthVersion);
         }
 
-        User user = transactions.execute(DatabasePrincipal.AUTH, em -> userRepository.findById(em, actorId).orElse(null));
+        User user = transactions.execute(DatabasePrincipal.AUTH,
+                em -> userRepository.findById(em, actorId).orElse(null));
         if (user == null || user.getStatus() != UserStatus.ACTIVE || user.getAuthVersion() != expectedAuthVersion) {
             cache.evict(actorId);
             return false;

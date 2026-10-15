@@ -7,12 +7,16 @@ import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.identity.integration.mail.EmailSender;
 import vn.ticketscenter.identity.integration.mail.SmtpEmailSender;
+import vn.ticketscenter.identity.repository.OrganizationDecisionRepository;
 import vn.ticketscenter.identity.repository.OrganizationMembershipRepository;
 import vn.ticketscenter.identity.repository.OrganizationRepository;
 import vn.ticketscenter.identity.repository.OtpRepository;
 import vn.ticketscenter.identity.repository.UserRepository;
+import vn.ticketscenter.identity.service.DemoInitialEventFactory;
 import vn.ticketscenter.identity.service.LoginService;
+import vn.ticketscenter.identity.service.OrganizationApprovalService;
 import vn.ticketscenter.identity.service.OrganizationMembershipService;
+import vn.ticketscenter.identity.service.OrganizationRequestIdempotency;
 import vn.ticketscenter.identity.service.OrganizationRequestService;
 import vn.ticketscenter.identity.service.OtpHasher;
 import vn.ticketscenter.identity.service.OtpService;
@@ -45,6 +49,7 @@ public final class IdentityServices {
     private final OtpService otpService;
     private final PasswordResetService passwordResetService;
     private final OrganizationRequestService organizationRequestService;
+    private final OrganizationApprovalService organizationApprovalService;
     private final OrganizationMembershipService organizationMembershipService;
 
     public IdentityServices(TransactionManager transactions, RedisClientProvider redis, EmailSender emailSender) {
@@ -65,8 +70,12 @@ public final class IdentityServices {
                 transactions, new OtpRepository(), users, otpHasher, resetTokens, emailSender);
         this.passwordResetService =
                 new PasswordResetService(transactions, users, otpService, resetTokens, hasher, sessionCache);
-        this.organizationRequestService =
-                new OrganizationRequestService(transactions, new OrganizationRepository(), users, redis);
+        OrganizationRepository organizations = new OrganizationRepository();
+        OrganizationDecisionRepository decisions = new OrganizationDecisionRepository();
+        this.organizationRequestService = new OrganizationRequestService(
+                transactions, organizations, users, decisions, OrganizationRequestIdempotency.redis(redis));
+        this.organizationApprovalService = new OrganizationApprovalService(
+                transactions, organizations, users, decisions, new DemoInitialEventFactory());
         this.organizationMembershipService = new OrganizationMembershipService(transactions, memberships, users);
     }
 
@@ -136,6 +145,10 @@ public final class IdentityServices {
 
     public OrganizationRequestService organizationRequestService() {
         return organizationRequestService;
+    }
+
+    public OrganizationApprovalService organizationApprovalService() {
+        return organizationApprovalService;
     }
 
     public OrganizationMembershipService organizationMembershipService() {

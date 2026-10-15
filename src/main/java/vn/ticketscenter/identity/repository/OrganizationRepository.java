@@ -48,24 +48,6 @@ public class OrganizationRepository {
         return count != null && count > 0;
     }
 
-    public List<Organization> findPending(EntityManager em) {
-        Objects.requireNonNull(em, "EntityManager must not be null.");
-        return em.createQuery(
-                        "SELECT o FROM Organization o WHERE o.status = " + PENDING
-                                + " ORDER BY o.submittedAt ASC, o.createdAt ASC",
-                        Organization.class)
-                .getResultList();
-    }
-
-    public long countPending(EntityManager em) {
-        Objects.requireNonNull(em, "EntityManager must not be null.");
-        Long count = em.createQuery(
-                        "SELECT COUNT(o) FROM Organization o WHERE o.status = " + PENDING,
-                        Long.class)
-                .getSingleResult();
-        return count != null ? count : 0L;
-    }
-
     public List<Organization> findByStatus(EntityManager em, OrganizationStatus status, int offset, int limit) {
         Objects.requireNonNull(em, "EntityManager must not be null.");
         String q = status != null

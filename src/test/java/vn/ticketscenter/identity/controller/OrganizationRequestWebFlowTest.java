@@ -11,6 +11,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import vn.ticketscenter.config.persistence.TransactionManager;
+import vn.ticketscenter.identity.error.IdentityError;
+import vn.ticketscenter.identity.error.IdentityException;
 import vn.ticketscenter.identity.dto.OrganizationRequestCreateDto;
 import vn.ticketscenter.identity.dto.OrganizationRequestDetailDto;
 import vn.ticketscenter.identity.dto.OrganizationRequestSummaryDto;
@@ -229,7 +231,8 @@ public class OrganizationRequestWebFlowTest {
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
             @Override
             public OrganizationRequestDetailDto submitRequest(UUID id, OrganizationRequestCreateDto dto, String key) {
-                throw new IllegalStateException("ORGANIZATION_REQUEST_EXISTS: Bạn đang có một yêu cầu tạo tổ chức đang chờ xét duyệt");
+                throw new IdentityException(IdentityError.ORGANIZATION_REQUEST_EXISTS,
+                        "Bạn đang có một yêu cầu tạo tổ chức đang chờ xét duyệt");
             }
         };
 

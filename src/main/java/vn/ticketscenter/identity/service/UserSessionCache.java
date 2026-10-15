@@ -52,7 +52,8 @@ public class UserSessionCache {
             }
             return Optional.of(new Entry(parts[0], Integer.parseInt(parts[1])));
         } catch (Exception failure) {
-            LOGGER.log(Level.WARNING, "Không thể đọc Redis cache cho user session, fallback DB: " + failure.getMessage());
+            LOGGER.log(Level.WARNING,
+                    "Không thể đọc Redis cache cho user session, fallback DB: " + failure.getMessage());
             return Optional.empty();
         }
     }

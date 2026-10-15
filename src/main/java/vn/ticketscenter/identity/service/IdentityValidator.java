@@ -13,7 +13,9 @@ public final class IdentityValidator {
 
     /** @param normalizedEmail the result of {@link EmailNormalizer#normalize(String)} */
     public static void requireEmail(String normalizedEmail) {
-        if (normalizedEmail.isBlank() || !normalizedEmail.contains("@") || normalizedEmail.length() > MAX_EMAIL_LENGTH) {
+        boolean wellFormed = !normalizedEmail.isBlank() && normalizedEmail.contains("@")
+                && normalizedEmail.length() <= MAX_EMAIL_LENGTH;
+        if (!wellFormed) {
             throw new IllegalArgumentException("Email không đúng định dạng");
         }
     }

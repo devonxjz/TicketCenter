@@ -4,6 +4,8 @@ import org.hibernate.Session;
 import org.hibernate.jdbc.ReturningWork;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.TransactionManager;
+import vn.ticketscenter.identity.error.IdentityError;
+import vn.ticketscenter.identity.error.IdentityException;
 
 import java.math.BigDecimal;
 import java.sql.CallableStatement;
@@ -113,10 +115,10 @@ public class OrganizationDecisionRepository {
         for (SQLException error = failure; error != null; error = error.getNextException()) {
             switch (error.getErrorCode()) {
                 case 52620: return new IllegalArgumentException("USER_NOT_FOUND: Người dùng không tồn tại");
-                case 52621: return new IllegalStateException(
-                        "USER_SUSPENDED: Tài khoản của bạn hiện không thể gửi yêu cầu");
-                case 52622: return new IllegalStateException(
-                        "ORGANIZATION_REQUEST_EXISTS: Bạn đang có một yêu cầu tạo tổ chức đang chờ xét duyệt");
+                case 52621: return new IdentityException(IdentityError.USER_SUSPENDED,
+                        "Tài khoản của bạn hiện không thể gửi yêu cầu");
+                case 52622: return new IdentityException(IdentityError.ORGANIZATION_REQUEST_EXISTS,
+                        "Bạn đang có một yêu cầu tạo tổ chức đang chờ xét duyệt");
                 case 52623: return new IllegalArgumentException("Tên tổ chức và email liên hệ là bắt buộc");
                 case 52610: return new SecurityException(
                         "FORBIDDEN: Chỉ quản trị viên mới có quyền xử lý yêu cầu");

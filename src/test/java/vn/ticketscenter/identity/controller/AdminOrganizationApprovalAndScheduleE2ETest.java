@@ -31,6 +31,7 @@ import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.identity.service.LoginService;
 import vn.ticketscenter.identity.repository.OrganizationDecisionRepository;
+import vn.ticketscenter.identity.service.OrganizationApprovalService;
 import vn.ticketscenter.identity.service.OrganizationRequestService;
 import vn.ticketscenter.identity.service.PasswordHasher;
 import vn.ticketscenter.persistence.model.BaseEntity;
@@ -75,7 +76,9 @@ public class AdminOrganizationApprovalAndScheduleE2ETest {
     private OrganizationRepository organizationRepository;
     private TransactionManager transactionManager;
     private OrganizationRequestService organizationRequestService;
+    private OrganizationApprovalService organizationApprovalService;
     private OrganizationRequestServlet servlet;
+    private AdminOrganizationApprovalServlet adminServlet;
     private CsrfFilter csrfFilter;
     private LoginService loginService;
     private EventService eventService;
@@ -155,16 +158,18 @@ public class AdminOrganizationApprovalAndScheduleE2ETest {
             }
 
             @Override
-            public List<Organization> findPending(EntityManager em) {
+            public List<Organization> findByStatus(EntityManager em, OrganizationStatus status, int offset, int limit) {
                 return organizationDatabase.values().stream()
-                        .filter(o -> o.getStatus() == OrganizationStatus.PENDING_APPROVAL)
+                        .filter(o -> status == null || o.getStatus() == status)
+                        .skip(offset)
+                        .limit(limit)
                         .toList();
             }
 
             @Override
-            public long countPending(EntityManager em) {
+            public long countByStatus(EntityManager em, OrganizationStatus status) {
                 return organizationDatabase.values().stream()
-                        .filter(o -> o.getStatus() == OrganizationStatus.PENDING_APPROVAL)
+                        .filter(o -> status == null || o.getStatus() == status)
                         .count();
             }
 
@@ -181,7 +186,10 @@ public class AdminOrganizationApprovalAndScheduleE2ETest {
         transactionManager = createTransactionManager();
         organizationRequestService = new OrganizationRequestService(transactionManager, organizationRepository, userRepository,
                 inMemoryDecisions());
+        organizationApprovalService = new OrganizationApprovalService(transactionManager, organizationRepository,
+                userRepository, inMemoryDecisions());
         servlet = new OrganizationRequestServlet(organizationRequestService);
+        adminServlet = new AdminOrganizationApprovalServlet(organizationApprovalService);
         csrfFilter = new CsrfFilter();
         loginService = new LoginService(transactionManager, userRepository, passwordHasher);
 
@@ -449,10 +457,19 @@ public class AdminOrganizationApprovalAndScheduleE2ETest {
         csrfFilter.doFilter(requestProxy, responseProxy, (req, resp) -> {
             filterChainInvoked.set(true);
             try {
+                boolean admin = uri.startsWith("/api/admin/");
                 if ("POST".equalsIgnoreCase(method)) {
-                    servlet.doPost((HttpServletRequest) req, (HttpServletResponse) resp);
+                    if (admin) {
+                        adminServlet.doPost((HttpServletRequest) req, (HttpServletResponse) resp);
+                    } else {
+                        servlet.doPost((HttpServletRequest) req, (HttpServletResponse) resp);
+                    }
                 } else if ("GET".equalsIgnoreCase(method)) {
-                    servlet.doGet((HttpServletRequest) req, (HttpServletResponse) resp);
+                    if (admin) {
+                        adminServlet.doGet((HttpServletRequest) req, (HttpServletResponse) resp);
+                    } else {
+                        servlet.doGet((HttpServletRequest) req, (HttpServletResponse) resp);
+                    }
                 }
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -598,7 +615,7 @@ public class AdminOrganizationApprovalAndScheduleE2ETest {
     }
 
     private static long extractCount(String json) {
-        Pattern pattern = Pattern.compile("\"count\"\\s*:\\s*([0-9]+)");
+        Pattern pattern = Pattern.compile("\"total\"\\s*:\\s*([0-9]+)");
         Matcher matcher = pattern.matcher(json);
         if (matcher.find()) {
             return Long.parseLong(matcher.group(1));

@@ -92,7 +92,8 @@ public class OtpRepository {
         }
     }
 
-    public int invalidateExistingOtpsByEmail(EntityManager em, String emailNormalized, OtpPurpose purpose, Instant now) {
+    public int invalidateExistingOtpsByEmail(EntityManager em, String emailNormalized, OtpPurpose purpose,
+                                             Instant now) {
         Objects.requireNonNull(em, "EntityManager must not be null");
         Objects.requireNonNull(now, "Instant now must not be null");
         if (emailNormalized == null || emailNormalized.isBlank() || purpose == null) return 0;

@@ -62,6 +62,7 @@ public class LoginServlet extends HttpServlet {
 
         String identifier;
         String password;
+        
         try {
             RequestFields fields = RequestFields.read(req);
             identifier = fields.first("identifier", "email", "userName", "username");

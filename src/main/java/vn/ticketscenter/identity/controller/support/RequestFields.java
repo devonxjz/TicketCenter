@@ -33,9 +33,23 @@ public final class RequestFields {
         return new RequestFields(parseJson(request), request);
     }
 
+    /** Reads a JSON body, treating a missing or malformed body as having no fields. */
+    public static RequestFields readJsonOrEmpty(HttpServletRequest request) {
+        try {
+            return new RequestFields(parseJson(request), request);
+        } catch (IdentityException unreadable) {
+            return new RequestFields(Map.of(), request);
+        }
+    }
+
     public static boolean isJson(HttpServletRequest request) {
         String contentType = request.getContentType();
         return contentType != null && contentType.startsWith("application/json");
+    }
+
+    /** All JSON fields, or an empty map when the fields came from a form. */
+    public Map<String, String> asMap() {
+        return json != null ? json : Map.of();
     }
 
     public String get(String name) {
