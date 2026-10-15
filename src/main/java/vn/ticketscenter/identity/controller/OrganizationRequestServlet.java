@@ -1,18 +1,16 @@
 package vn.ticketscenter.identity.controller;
 
-import jakarta.servlet.ServletConfig;
 import jakarta.servlet.ServletContext;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.config.web.JsonObjectParser;
+import vn.ticketscenter.identity.config.IdentityServices;
 import vn.ticketscenter.identity.dto.OrganizationRequestCreateDto;
 import vn.ticketscenter.identity.dto.OrganizationRequestDetailDto;
 import vn.ticketscenter.identity.dto.OrganizationRequestSummaryDto;
-import vn.ticketscenter.identity.security.AuthSecurityListener;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.identity.service.OrganizationRequestService;
@@ -48,19 +46,12 @@ public class OrganizationRequestServlet extends HttpServlet {
         this.organizationRequestService = organizationRequestService;
     }
 
-    @Override
-    public void init(ServletConfig config) throws ServletException {
-        super.init(config);
-        if (this.organizationRequestService == null && config != null) {
-            this.organizationRequestService = AuthSecurityListener.resolveOrganizationRequestService(config.getServletContext());
-        }
-    }
-
     private OrganizationRequestService getService(ServletContext context) {
         if (this.organizationRequestService != null) {
             return this.organizationRequestService;
         }
-        return AuthSecurityListener.resolveOrganizationRequestService(context);
+        IdentityServices services = IdentityServices.from(context);
+        return services == null ? null : services.organizationRequestService();
     }
 
     @Override

@@ -1,22 +1,16 @@
 package vn.ticketscenter.identity.controller;
 
-import jakarta.servlet.ServletConfig;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import vn.ticketscenter.config.persistence.PersistenceListener;
-import vn.ticketscenter.config.persistence.PersistenceRegistry;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.config.web.JsonObjectParser;
+import vn.ticketscenter.identity.config.IdentityServices;
 import vn.ticketscenter.identity.dto.OtpVerifyRequestDto;
 import vn.ticketscenter.identity.dto.OtpVerifyResponseDto;
-import vn.ticketscenter.identity.integration.mail.SmtpEmailSender;
 import vn.ticketscenter.identity.model.OtpPurpose;
-import vn.ticketscenter.identity.repository.OtpRepository;
-import vn.ticketscenter.identity.repository.UserRepository;
-import vn.ticketscenter.identity.service.OtpCryptoHelper;
 import jakarta.servlet.ServletException;
 import vn.ticketscenter.identity.service.OtpService;
 
@@ -34,30 +28,10 @@ public class OtpVerifyServlet extends HttpServlet {
         this.otpService = otpService;
     }
 
-    @Override
-    public void init(ServletConfig config) {
-        resolveOtpService(config.getServletContext());
-    }
-
-    private synchronized OtpService getOtpService(ServletContext context) {
+    private OtpService otpService(ServletContext context) {
         if (otpService != null) return otpService;
-        resolveOtpService(context);
-        return otpService;
-    }
-
-    private void resolveOtpService(ServletContext context) {
-        if (otpService == null && context != null) {
-            Object regObj = context.getAttribute(PersistenceListener.REGISTRY_ATTRIBUTE);
-            if (regObj instanceof PersistenceRegistry registry && registry.isReady()) {
-                this.otpService = new OtpService(
-                        registry.transactionManager(),
-                        new OtpRepository(),
-                        new UserRepository(),
-                        new OtpCryptoHelper(),
-                        new SmtpEmailSender()
-                );
-            }
-        }
+        IdentityServices services = IdentityServices.from(context);
+        return services == null ? null : services.otpService();
     }
 
     @Override
@@ -68,7 +42,7 @@ public class OtpVerifyServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        OtpService service = getOtpService(req.getServletContext());
+        OtpService service = otpService(req.getServletContext());
         if (service == null) {
             HttpResponses.error(resp, HttpServletResponse.SC_SERVICE_UNAVAILABLE,
                     "DATABASE_UNAVAILABLE", "Hệ thống cơ sở dữ liệu chưa sẵn sàng");

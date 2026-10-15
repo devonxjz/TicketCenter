@@ -16,7 +16,6 @@ import vn.ticketscenter.identity.model.UserStatus;
 import vn.ticketscenter.identity.repository.UserRepository;
 import vn.ticketscenter.identity.security.UserPrincipal;
 
-import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.logging.Level;

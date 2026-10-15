@@ -1,24 +1,15 @@
 package vn.ticketscenter.identity.controller;
 
-import jakarta.servlet.ServletConfig;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import vn.ticketscenter.config.persistence.PersistenceListener;
-import vn.ticketscenter.config.persistence.PersistenceRegistry;
-import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.config.web.JsonObjectParser;
+import vn.ticketscenter.identity.config.IdentityServices;
 import vn.ticketscenter.identity.dto.ForgotPasswordRequestDto;
-import vn.ticketscenter.identity.integration.mail.SmtpEmailSender;
-import vn.ticketscenter.identity.repository.OtpRepository;
-import vn.ticketscenter.identity.repository.UserRepository;
-import vn.ticketscenter.identity.service.OtpCryptoHelper;
-import vn.ticketscenter.identity.service.OtpService;
-import vn.ticketscenter.identity.service.PasswordHasher;
 import vn.ticketscenter.identity.service.PasswordResetService;
 
 import java.io.IOException;
@@ -35,41 +26,10 @@ public class ForgotPasswordServlet extends HttpServlet {
         this.passwordResetService = passwordResetService;
     }
 
-    @Override
-    public void init(ServletConfig config) {
-        resolveService(config.getServletContext());
-    }
-
-    private synchronized PasswordResetService getPasswordResetService(ServletContext context) {
+    private PasswordResetService passwordResetService(ServletContext context) {
         if (passwordResetService != null) return passwordResetService;
-        resolveService(context);
-        return passwordResetService;
-    }
-
-    private void resolveService(ServletContext context) {
-        if (passwordResetService == null && context != null) {
-            Object regObj = context.getAttribute(PersistenceListener.REGISTRY_ATTRIBUTE);
-            if (regObj instanceof PersistenceRegistry registry && registry.isReady()) {
-                OtpCryptoHelper cryptoHelper = new OtpCryptoHelper();
-                OtpRepository otpRepository = new OtpRepository();
-                UserRepository userRepository = new UserRepository();
-                OtpService otpService = new OtpService(
-                        registry.transactionManager(),
-                        otpRepository,
-                        userRepository,
-                        cryptoHelper,
-                        new SmtpEmailSender()
-                );
-                this.passwordResetService = new PasswordResetService(
-                        registry.transactionManager(),
-                        userRepository,
-                        otpService,
-                        cryptoHelper,
-                        new PasswordHasher(),
-                        RedisClientProvider.getInstance()
-                );
-            }
-        }
+        IdentityServices services = IdentityServices.from(context);
+        return services == null ? null : services.passwordResetService();
     }
 
     @Override
@@ -80,7 +40,7 @@ public class ForgotPasswordServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        PasswordResetService service = getPasswordResetService(req.getServletContext());
+        PasswordResetService service = passwordResetService(req.getServletContext());
         if (service == null) {
             HttpResponses.error(resp, HttpServletResponse.SC_SERVICE_UNAVAILABLE,
                     "DATABASE_UNAVAILABLE", "Hệ thống cơ sở dữ liệu chưa sẵn sàng");

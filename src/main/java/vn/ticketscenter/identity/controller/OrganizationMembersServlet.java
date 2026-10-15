@@ -1,6 +1,5 @@
 package vn.ticketscenter.identity.controller;
 
-import jakarta.servlet.ServletConfig;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -8,11 +7,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.config.web.JsonObjectParser;
+import vn.ticketscenter.identity.config.IdentityServices;
 import vn.ticketscenter.identity.dto.AddMemberRequestDto;
 import vn.ticketscenter.identity.dto.ChangeMemberRoleRequestDto;
 import vn.ticketscenter.identity.dto.OrganizationMemberDto;
 import vn.ticketscenter.identity.model.OrganizationRole;
-import vn.ticketscenter.identity.security.AuthSecurityListener;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.identity.service.OrganizationMembershipService;
@@ -40,15 +39,12 @@ public class OrganizationMembersServlet extends HttpServlet {
         this.membershipService = membershipService;
     }
 
-    @Override
-    public void init(ServletConfig config) {
-        if (this.membershipService == null && config != null) {
-            this.membershipService = AuthSecurityListener.resolveOrganizationMembershipService(config.getServletContext());
-        }
-    }
-
     private OrganizationMembershipService getService(ServletContext context) {
-        return this.membershipService != null ? this.membershipService : AuthSecurityListener.resolveOrganizationMembershipService(context);
+        if (this.membershipService != null) {
+            return this.membershipService;
+        }
+        IdentityServices services = IdentityServices.from(context);
+        return services == null ? null : services.organizationMembershipService();
     }
 
     @Override

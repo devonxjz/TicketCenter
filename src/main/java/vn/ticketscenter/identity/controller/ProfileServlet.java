@@ -6,8 +6,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.config.web.JsonObjectParser;
+import vn.ticketscenter.identity.config.IdentityServices;
 import vn.ticketscenter.identity.dto.ProfileDto;
-import vn.ticketscenter.identity.security.AuthSecurityListener;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.identity.service.AuthService;
@@ -43,7 +43,11 @@ public class ProfileServlet extends HttpServlet {
             HttpResponses.error(response, 401, "UNAUTHENTICATED", "Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn");
             return;
         }
-        AuthService service = injected != null ? injected : AuthSecurityListener.resolveAuthService(request.getServletContext());
+        AuthService service = injected;
+        if (service == null) {
+            IdentityServices services = IdentityServices.from(request.getServletContext());
+            service = services == null ? null : services.authService();
+        }
         if (service == null) {
             HttpResponses.error(response, 503, "DATABASE_UNAVAILABLE", "Hệ thống cơ sở dữ liệu chưa sẵn sàng");
             return;

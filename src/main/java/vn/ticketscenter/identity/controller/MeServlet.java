@@ -1,14 +1,13 @@
 package vn.ticketscenter.identity.controller;
 
-import jakarta.servlet.ServletConfig;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import vn.ticketscenter.config.web.HttpResponses;
+import vn.ticketscenter.identity.config.IdentityServices;
 import vn.ticketscenter.identity.dto.CurrentUserDto;
-import vn.ticketscenter.identity.security.AuthSecurityListener;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.identity.service.AuthService;
@@ -27,16 +26,10 @@ public class MeServlet extends HttpServlet {
         this.authService = authService;
     }
 
-    @Override
-    public void init(ServletConfig config) {
-        if (this.authService == null && config != null) {
-            this.authService = AuthSecurityListener.resolveAuthService(config.getServletContext());
-        }
-    }
-
-    private AuthService getAuthService(ServletContext context) {
+    private AuthService authService(ServletContext context) {
         if (authService != null) return authService;
-        return AuthSecurityListener.resolveAuthService(context);
+        IdentityServices services = IdentityServices.from(context);
+        return services == null ? null : services.authService();
     }
 
     @Override
@@ -48,7 +41,7 @@ public class MeServlet extends HttpServlet {
             return;
         }
 
-        AuthService service = getAuthService(req.getServletContext());
+        AuthService service = authService(req.getServletContext());
         if (service == null) {
             HttpResponses.error(resp, HttpServletResponse.SC_SERVICE_UNAVAILABLE,
                     "DATABASE_UNAVAILABLE", "Hệ thống cơ sở dữ liệu chưa sẵn sàng");
