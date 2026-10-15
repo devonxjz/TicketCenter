@@ -7,6 +7,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import vn.ticketscenter.config.persistence.TransactionManager;
+import vn.ticketscenter.identity.error.IdentityError;
+import vn.ticketscenter.identity.error.IdentityException;
 import vn.ticketscenter.identity.dto.OrganizationRequestCreateDto;
 import vn.ticketscenter.identity.dto.OrganizationRequestDetailDto;
 import vn.ticketscenter.identity.dto.OrganizationRequestSummaryDto;
@@ -234,7 +236,8 @@ public class OrganizationRequestServletTest {
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
             @Override
             public OrganizationRequestDetailDto submitRequest(UUID id, OrganizationRequestCreateDto dto, String key) {
-                throw new IllegalStateException("ORGANIZATION_REQUEST_EXISTS: Bạn đang có một yêu cầu tạo tổ chức đang chờ xét duyệt");
+                throw new IdentityException(IdentityError.ORGANIZATION_REQUEST_EXISTS,
+                        "Bạn đang có một yêu cầu tạo tổ chức đang chờ xét duyệt");
             }
         };
 
@@ -259,7 +262,8 @@ public class OrganizationRequestServletTest {
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
             @Override
             public OrganizationRequestDetailDto submitRequest(UUID id, OrganizationRequestCreateDto dto, String key) {
-                throw new IllegalStateException("IDEMPOTENCY_CONFLICT: Idempotency-Key đã được sử dụng với nội dung khác");
+                throw new IdentityException(IdentityError.IDEMPOTENCY_CONFLICT,
+                        "Idempotency-Key đã được sử dụng với nội dung khác");
             }
         };
 
@@ -285,7 +289,8 @@ public class OrganizationRequestServletTest {
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
             @Override
             public OrganizationRequestDetailDto submitRequest(UUID id, OrganizationRequestCreateDto dto, String key) {
-                throw new IllegalStateException("USER_SUSPENDED: Tài khoản của bạn hiện không thể gửi yêu cầu");
+                throw new IdentityException(IdentityError.USER_SUSPENDED,
+                        "Tài khoản của bạn hiện không thể gửi yêu cầu");
             }
         };
 
@@ -430,282 +435,4 @@ public class OrganizationRequestServletTest {
         assertTrue(responseBuffer.toString().contains("INVALID_ORGANIZATION_ID"));
     }
 
-    @Test
-    @DisplayName("GET admin organization requests returns 401 when unauthenticated")
-    void testGetAdminRequestsUnauthenticated() throws IOException {
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(createDummyService());
-        HttpServletRequest req = createMockRequest("GET", "/api/admin/organization-requests", false, null);
-        HttpServletResponse resp = createMockResponse();
-
-        servlet.doGet(req, resp);
-
-        assertEquals(401, responseStatus.get());
-        assertTrue(responseBuffer.toString().contains("UNAUTHENTICATED"));
-    }
-
-    @Test
-    @DisplayName("GET admin organization requests returns 403 when non admin")
-    void testGetAdminRequestsForbiddenForCustomer() throws IOException {
-        UUID actorId = UUID.randomUUID();
-        sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, new UserPrincipal(actorId, PlatformRole.CUSTOMER, 1));
-
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(createDummyService());
-        HttpServletRequest req = createMockRequest("GET", "/api/admin/organization-requests", true, null);
-        HttpServletResponse resp = createMockResponse();
-
-        servlet.doGet(req, resp);
-
-        assertEquals(403, responseStatus.get());
-        assertTrue(responseBuffer.toString().contains("FORBIDDEN"));
-    }
-
-    @Test
-    @DisplayName("GET admin organization requests returns 200 with list and count for admin")
-    void testGetAdminRequestsSuccess() throws IOException {
-        UUID adminId = UUID.randomUUID();
-        sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, new UserPrincipal(adminId, PlatformRole.ADMIN, 1));
-
-        UUID orgId = UUID.randomUUID();
-        OrganizationRequestSummaryDto summary = new OrganizationRequestSummaryDto(
-                orgId, "Admin View Org", "adminview@test.vn",
-                OrganizationStatus.PENDING_APPROVAL, Instant.now(), null
-        );
-
-        OrganizationRequestService mockService = new OrganizationRequestService(
-                new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
-            @Override
-            public List<OrganizationRequestSummaryDto> getPendingRequestsForAdmin(UUID id) {
-                assertEquals(adminId, id);
-                return List.of(summary);
-            }
-
-            @Override
-            public long countPendingRequestsForAdmin(UUID id) {
-                assertEquals(adminId, id);
-                return 1L;
-            }
-        };
-
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(mockService);
-        HttpServletRequest req = createMockRequest("GET", "/api/admin/organization-requests", true, null);
-        HttpServletResponse resp = createMockResponse();
-
-        servlet.doGet(req, resp);
-
-        assertEquals(200, responseStatus.get());
-        String body = responseBuffer.toString();
-        assertTrue(body.contains("\"count\":1"));
-        assertTrue(body.contains("Admin View Org"));
-    }
-
-    @Test
-    @DisplayName("GET admin pending organization requests returns 200 for admin")
-    void testGetAdminPendingRequestsSuccess() throws IOException {
-        UUID adminId = UUID.randomUUID();
-        sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, new UserPrincipal(adminId, PlatformRole.ADMIN, 1));
-
-        OrganizationRequestService mockService = new OrganizationRequestService(
-                new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
-            @Override
-            public List<OrganizationRequestSummaryDto> getPendingRequestsForAdmin(UUID id) {
-                return List.of();
-            }
-
-            @Override
-            public long countPendingRequestsForAdmin(UUID id) {
-                return 0L;
-            }
-        };
-
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(mockService);
-        HttpServletRequest req = createMockRequest("GET", "/api/admin/organization-requests/pending", true, null);
-        HttpServletResponse resp = createMockResponse();
-
-        servlet.doGet(req, resp);
-
-        assertEquals(200, responseStatus.get());
-        String body = responseBuffer.toString();
-        assertTrue(body.contains("\"count\":0"));
-        assertTrue(body.contains("\"items\":[]"));
-    }
-
-    @Test
-    @DisplayName("POST admin approve returns 401 when unauthenticated")
-    void testPostApproveUnauthenticated() throws IOException {
-        UUID orgId = UUID.randomUUID();
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(createDummyService());
-        HttpServletRequest req = createMockRequest("POST", "/api/admin/organization-requests/" + orgId + "/approve", false, null);
-        HttpServletResponse resp = createMockResponse();
-
-        servlet.doPost(req, resp);
-
-        assertEquals(401, responseStatus.get());
-        assertTrue(responseBuffer.toString().contains("UNAUTHENTICATED"));
-    }
-
-    @Test
-    @DisplayName("POST admin approve returns 403 when non admin")
-    void testPostApproveForbiddenForNonAdmin() throws IOException {
-        UUID actorId = UUID.randomUUID();
-        UUID orgId = UUID.randomUUID();
-        sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, new UserPrincipal(actorId, PlatformRole.CUSTOMER, 1));
-
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(createDummyService());
-        HttpServletRequest req = createMockRequest("POST", "/api/admin/organization-requests/" + orgId + "/approve", true, null);
-        HttpServletResponse resp = createMockResponse();
-
-        servlet.doPost(req, resp);
-
-        assertEquals(403, responseStatus.get());
-        assertTrue(responseBuffer.toString().contains("FORBIDDEN"));
-    }
-
-    @Test
-    @DisplayName("POST admin approve returns 400 for invalid UUID")
-    void testPostApproveInvalidUuid() throws IOException {
-        UUID adminId = UUID.randomUUID();
-        sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, new UserPrincipal(adminId, PlatformRole.ADMIN, 1));
-
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(createDummyService());
-        HttpServletRequest req = createMockRequest("POST", "/api/admin/organization-requests/invalid-uuid/approve", true, null);
-        HttpServletResponse resp = createMockResponse();
-
-        servlet.doPost(req, resp);
-
-        assertEquals(400, responseStatus.get());
-        assertTrue(responseBuffer.toString().contains("INVALID_ORGANIZATION_ID"));
-    }
-
-    @Test
-    @DisplayName("POST admin approve returns 200 with detail when admin approves successfully")
-    void testPostApproveSuccess() throws IOException {
-        UUID adminId = UUID.randomUUID();
-        UUID orgId = UUID.randomUUID();
-        sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, new UserPrincipal(adminId, PlatformRole.ADMIN, 1));
-
-        OrganizationRequestDetailDto detail = new OrganizationRequestDetailDto(
-                orgId, "Approved Org", "approved@test.vn", "0901234567",
-                "Description", OrganizationStatus.APPROVED, adminId, Instant.now(), null
-        );
-
-        OrganizationRequestService mockService = new OrganizationRequestService(
-                new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
-            @Override
-            public OrganizationRequestDetailDto approveRequest(UUID aid, UUID oid) {
-                assertEquals(adminId, aid);
-                assertEquals(orgId, oid);
-                return detail;
-            }
-        };
-
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(mockService);
-        HttpServletRequest req = createMockRequest("POST", "/api/admin/organization-requests/" + orgId + "/approve", true, null);
-        HttpServletResponse resp = createMockResponse();
-
-        servlet.doPost(req, resp);
-
-        assertEquals(200, responseStatus.get());
-        String body = responseBuffer.toString();
-        assertTrue(body.contains("Approved Org"));
-        assertTrue(body.contains("APPROVED"));
-    }
-
-    @Test
-    @DisplayName("POST admin approve returns 404 when request not found")
-    void testPostApproveNotFound() throws IOException {
-        UUID adminId = UUID.randomUUID();
-        UUID orgId = UUID.randomUUID();
-        sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, new UserPrincipal(adminId, PlatformRole.ADMIN, 1));
-
-        OrganizationRequestService mockService = new OrganizationRequestService(
-                new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
-            @Override
-            public OrganizationRequestDetailDto approveRequest(UUID aid, UUID oid) {
-                throw new NoSuchElementException("ORGANIZATION_NOT_FOUND");
-            }
-        };
-
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(mockService);
-        HttpServletRequest req = createMockRequest("POST", "/api/admin/organization-requests/" + orgId + "/approve", true, null);
-        HttpServletResponse resp = createMockResponse();
-
-        servlet.doPost(req, resp);
-
-        assertEquals(404, responseStatus.get());
-        assertTrue(responseBuffer.toString().contains("ORGANIZATION_NOT_FOUND"));
-    }
-
-    @Test
-    @DisplayName("POST admin approve returns 400 when organization is in invalid state")
-    void testPostApproveInvalidState() throws IOException {
-        UUID adminId = UUID.randomUUID();
-        UUID orgId = UUID.randomUUID();
-        sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, new UserPrincipal(adminId, PlatformRole.ADMIN, 1));
-
-        OrganizationRequestService mockService = new OrganizationRequestService(
-                new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
-            @Override
-            public OrganizationRequestDetailDto approveRequest(UUID aid, UUID oid) {
-                throw new IllegalStateException("Yêu cầu không ở trạng thái PENDING_APPROVAL");
-            }
-        };
-
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(mockService);
-        HttpServletRequest req = createMockRequest("POST", "/api/admin/organization-requests/" + orgId + "/approve", true, null);
-        HttpServletResponse resp = createMockResponse();
-
-        servlet.doPost(req, resp);
-
-        assertEquals(400, responseStatus.get());
-        assertTrue(responseBuffer.toString().contains("INVALID_STATE"));
-    }
-
-    @Test
-    @DisplayName("GET admin organization request detail returns 200 for admin")
-    void testGetAdminDetailSuccess() throws IOException {
-        UUID adminId = UUID.randomUUID();
-        UUID orgId = UUID.randomUUID();
-        sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, new UserPrincipal(adminId, PlatformRole.ADMIN, 1));
-
-        OrganizationRequestDetailDto detail = new OrganizationRequestDetailDto(
-                orgId, "Admin Detail Org", "detail@test.vn", "0901234567",
-                "Description", OrganizationStatus.PENDING_APPROVAL, adminId, Instant.now(), null
-        );
-
-        OrganizationRequestService mockService = new OrganizationRequestService(
-                new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
-            @Override
-            public OrganizationRequestDetailDto getRequestDetail(UUID id, boolean admin, UUID targetOrgId) {
-                assertTrue(admin);
-                assertEquals(orgId, targetOrgId);
-                return detail;
-            }
-        };
-
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(mockService);
-        HttpServletRequest req = createMockRequest("GET", "/api/admin/organization-requests/" + orgId, true, null);
-        HttpServletResponse resp = createMockResponse();
-
-        servlet.doGet(req, resp);
-
-        assertEquals(200, responseStatus.get());
-        assertTrue(responseBuffer.toString().contains("Admin Detail Org"));
-    }
-
-    @Test
-    @DisplayName("GET admin organization request detail returns 403 for non admin")
-    void testGetAdminDetailForbiddenForNonAdmin() throws IOException {
-        UUID customerId = UUID.randomUUID();
-        UUID orgId = UUID.randomUUID();
-        sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, new UserPrincipal(customerId, PlatformRole.CUSTOMER, 1));
-
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(createDummyService());
-        HttpServletRequest req = createMockRequest("GET", "/api/admin/organization-requests/" + orgId, true, null);
-        HttpServletResponse resp = createMockResponse();
-
-        servlet.doGet(req, resp);
-
-        assertEquals(403, responseStatus.get());
-        assertTrue(responseBuffer.toString().contains("FORBIDDEN"));
-    }
 }

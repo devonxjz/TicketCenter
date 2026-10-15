@@ -34,7 +34,7 @@ Cập nhật [REDIS-REGISTRY.md](../references/REDIS-REGISTRY.md) cùng producer
 # Chọn JDK 25 trong phiên terminal hiện tại nếu Java mặc định khác phiên bản.
 $env:JAVA_HOME = 'C:\Users\Le Vuong\.jdks\openjdk-25'
 $env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
-mvn -B '-Dtest=OpenApiContractTest,SwaggerUiAvailabilityTest,FeaturePackageStructureTest,AuthOtpServletsTest,IdentityWebFlowTest,UserPrincipalTest,SecurityContextTest,OtpCryptoHelperTest,AuthServiceTest#testRegisterInvalidEmail+testRegisterPasswordTooShort+testLoginNullOrBlankInputs+testCurrentUserDtoSanitization,EmailSenderTest#shouldValidateEmailMessageFields+fakeEmailSenderShouldRecordMessages+fakeEmailSenderShouldThrowWhenFailureSimulated' test
+mvn -B '-Dtest=OpenApiContractTest,SwaggerUiAvailabilityTest,FeaturePackageStructureTest,AuthOtpServletsTest,IdentityWebFlowTest,UserPrincipalTest,SecurityContextTest,OtpHasherTest,ResetTokenCodecTest,AuthFlowTest#testRegisterInvalidEmail+testRegisterPasswordTooShort+testLoginNullOrBlankInputs,EmailSenderTest#shouldValidateEmailMessageFields+fakeEmailSenderShouldRecordMessages+fakeEmailSenderShouldThrowWhenFailureSimulated' test
 node --test src/test/js/swagger-initializer.test.cjs
 mvn -B -DskipTests package
 ./src/test/scripts/swagger-smoke.ps1 -TomcatHome 'E:/apache-tomcat-11.0.25/apache-tomcat-11.0.25'

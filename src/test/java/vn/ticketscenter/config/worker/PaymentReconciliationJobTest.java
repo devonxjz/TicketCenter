@@ -1,8 +1,8 @@
 package vn.ticketscenter.config.worker;
 
 import org.junit.jupiter.api.Test;
-import vn.ticketscenter.payment.integration.VnpayQueryClient;
-import vn.ticketscenter.payment.integration.VnpayQueryClient.Outcome;
+import vn.ticketscenter.payment.integration.PayosGateway;
+import vn.ticketscenter.payment.integration.PayosGateway.Outcome;
 import vn.ticketscenter.payment.repository.PaymentRepository.ReconcileCandidate;
 
 import java.math.BigDecimal;
@@ -18,7 +18,7 @@ class PaymentReconciliationJobTest {
 
     private final List<String> applied = new ArrayList<>();
 
-    private int run(List<ReconcileCandidate> batch, Map<ReconcileCandidate, VnpayQueryClient.Result> results, Set<ReconcileCandidate> applyFails) {
+    private int run(List<ReconcileCandidate> batch, Map<ReconcileCandidate, PayosGateway.Result> results, Set<ReconcileCandidate> applyFails) {
         return new PaymentReconciliationJob(limit -> batch,
                 cand -> { var r = results.get(cand); if (r == null) throw new IllegalStateException("net"); return r; },
                 (cand, status, ref) -> { if (applyFails.contains(cand)) throw new IllegalStateException("db"); applied.add(status + ":" + ref); },
@@ -27,18 +27,18 @@ class PaymentReconciliationJobTest {
 
     @Test void appliesCapturedAndFailed() {
         var a = c(); var b = c();
-        int n = run(List.of(a, b), Map.of(a, new VnpayQueryClient.Result(Outcome.CAPTURED, "1"), b, new VnpayQueryClient.Result(Outcome.FAILED, "2")), Set.of());
+        int n = run(List.of(a, b), Map.of(a, new PayosGateway.Result(Outcome.CAPTURED, "1"), b, new PayosGateway.Result(Outcome.FAILED, "2")), Set.of());
         assertEquals(2, n);
         assertEquals(List.of("CAPTURED:1", "FAILED:2"), applied);
     }
     @Test void unknownIsLeftForRetry() {
         var a = c();
-        assertEquals(0, run(List.of(a), Map.of(a, VnpayQueryClient.Result.unknown()), Set.of()));
+        assertEquals(0, run(List.of(a), Map.of(a, PayosGateway.Result.unknown()), Set.of()));
         assertEquals(List.of(), applied);
     }
     @Test void oneFailingPaymentDoesNotBlockBatch() {
         var broken = c(); var failsApply = c(); var ok = c();
-        int n = run(List.of(broken, failsApply, ok), Map.of(failsApply, new VnpayQueryClient.Result(Outcome.CAPTURED, "x"), ok, new VnpayQueryClient.Result(Outcome.CAPTURED, "ok")), Set.of(failsApply));
+        int n = run(List.of(broken, failsApply, ok), Map.of(failsApply, new PayosGateway.Result(Outcome.CAPTURED, "x"), ok, new PayosGateway.Result(Outcome.CAPTURED, "ok")), Set.of(failsApply));
         assertEquals(1, n);
         assertEquals(List.of("CAPTURED:ok"), applied);
     }
@@ -51,7 +51,7 @@ class PaymentReconciliationJobTest {
         queue.add(real);
         List<ReconcileCandidate> asked = new ArrayList<>();
         var job = new PaymentReconciliationJob(limit -> queue,
-                cand -> { asked.add(cand); return cand == real ? new VnpayQueryClient.Result(Outcome.CAPTURED, "ok") : VnpayQueryClient.Result.unknown(); },
+                cand -> { asked.add(cand); return cand == real ? new PayosGateway.Result(Outcome.CAPTURED, "ok") : PayosGateway.Result.unknown(); },
                 (cand, status, ref) -> applied.add(status + ":" + ref), id -> () -> { }, 3, () -> now[0]);
 
         assertEquals(0, job.runOnce());

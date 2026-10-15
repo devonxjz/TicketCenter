@@ -1,108 +1,92 @@
 package vn.ticketscenter.payment.service;
 
 import vn.ticketscenter.payment.cache.RedisPaymentIdempotency;
-import vn.ticketscenter.payment.dto.InitiatePaymentRequest;
-import vn.ticketscenter.payment.dto.PaymentActor;
 import vn.ticketscenter.payment.dto.PaymentInitiationResult;
+import vn.ticketscenter.payment.dto.PaymentReturnResult;
+import vn.ticketscenter.payment.dto.PaymentStatusResult;
+import vn.ticketscenter.payment.dto.PayosWebhookResult;
+import vn.ticketscenter.payment.integration.PayosGateway;
+import vn.ticketscenter.payment.integration.PayosGateway.Outcome;
+import vn.ticketscenter.payment.integration.PayosOrderCodes;
 import vn.ticketscenter.payment.repository.PaymentRepository;
+import vn.ticketscenter.payment.repository.PaymentRepository.PaymentIntent;
+import vn.ticketscenter.payment.repository.PaymentRepository.PaymentRecord;
 
+import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
+/**
+ * payOS payment flow:
+ * <ol>
+ *   <li>{@link #initiate}: the buyer starts paying an order (Idempotency-Key required) and gets the payOS checkout URL;</li>
+ *   <li>{@link #processWebhook}: payOS reports a successful transfer (signed with the checksum key);</li>
+ *   <li>{@link #processReturn}: the buyer comes back from payOS; the status is asked again from payOS.</li>
+ * </ol>
+ * Payment truth is written only by {@code usp_ApplyPaymentResult}; no transaction is held while payOS is called.
+ */
 public class PaymentService {
-    private final PaymentRepository repository;
-    private final VnpaySigner signer;
-    private final RedisPaymentIdempotency idempotency;
+    private static final Logger LOGGER = Logger.getLogger(PaymentService.class.getName());
+    private static final Duration KEY_CLAIM_TTL = Duration.ofMinutes(10);
+    private static final Duration ZERO_ORDER_REPLAY_TTL = Duration.ofMinutes(10);
 
+    private static final String SUCCESS = "Giao dịch thanh toán thành công.";
+    private static final String CONFIRMING = "Giao dịch thanh toán thành công. Hệ thống đang xác nhận, vé sẽ xuất hiện sau ít phút.";
+    private static final String FAILED = "Giao dịch không thành công hoặc bị người dùng hủy.";
+    private static final String PENDING = "Giao dịch chưa hoàn tất. Hệ thống sẽ tự đối soát với payOS.";
+
+    private final PaymentRepository repository;
+    private final PayosGateway payos;
+    private final RedisPaymentIdempotency idempotency;
+    private final Clock clock;
+
+    /** For test doubles that override every public method. */
     protected PaymentService() {
         this.repository = null;
-        this.signer = null;
+        this.payos = null;
         this.idempotency = null;
+        this.clock = Clock.systemUTC();
     }
 
-    public PaymentService(
-            PaymentRepository repository,
-            VnpaySigner signer,
-            RedisPaymentIdempotency idempotency
-    ) {
+    public PaymentService(PaymentRepository repository, PayosGateway payos, RedisPaymentIdempotency idempotency, Clock clock) {
         this.repository = Objects.requireNonNull(repository, "repository is required");
-        this.signer = Objects.requireNonNull(signer, "signer is required");
+        this.payos = Objects.requireNonNull(payos, "payos is required");
         this.idempotency = Objects.requireNonNull(idempotency, "idempotency is required");
+        this.clock = Objects.requireNonNull(clock, "clock is required");
     }
 
-    public PaymentInitiationResult initiate(
-            PaymentActor actor,
-            UUID orderId,
-            UUID idempotencyKey,
-            Optional<String> bankCode,
-            String clientIp
-    ) {
-        Objects.requireNonNull(actor, "actor is required");
+    // ---------------------------------------------------------------- 1. Start paying an order
+
+    public PaymentInitiationResult initiate(UUID actorId, UUID orderId, UUID idempotencyKey) {
+        Objects.requireNonNull(actorId, "actorId is required");
         Objects.requireNonNull(orderId, "orderId is required");
         Objects.requireNonNull(idempotencyKey, "idempotencyKey is required");
 
-        InitiatePaymentRequest request = new InitiatePaymentRequest(bankCode);
-        String fingerprint = request.fingerprint(actor.id(), orderId);
-
-        RedisPaymentIdempotency.Result check;
-        try {
-            check = idempotency.checkOrClaim(actor.id(), idempotencyKey, fingerprint, Duration.ofMinutes(10));
-        } catch (redis.clients.jedis.exceptions.JedisException redisDown) {
-            throw PaymentException.unavailable();
-        }
-        if (check instanceof RedisPaymentIdempotency.Replay replay) {
-            return PaymentInitiationResult.fromReplay(replay.cachedBody());
-        }
-        if (check instanceof RedisPaymentIdempotency.Conflict) {
-            throw PaymentException.idempotencyConflict();
-        }
-        if (check instanceof RedisPaymentIdempotency.InProgress) {
-            throw new PaymentException(409, "PAYMENT_IN_PROGRESS", "Payment initiation is in progress, please retry shortly.");
+        // The key may only ever be used for this buyer + this order ('|' is the cache's own separator).
+        String fingerprint = actorId + ":" + orderId;
+        RedisPaymentIdempotency.Claim claim;
+        switch (claimKey(actorId, idempotencyKey, fingerprint)) {
+            case RedisPaymentIdempotency.Replay replay -> {
+                return PaymentInitiationResult.replay(replay.cachedBody());
+            }
+            case RedisPaymentIdempotency.Conflict conflict -> throw PaymentException.idempotencyConflict();
+            case RedisPaymentIdempotency.InProgress inProgress -> throw new PaymentException(
+                    409, "PAYMENT_IN_PROGRESS", "Payment initiation is in progress, please retry shortly.");
+            case RedisPaymentIdempotency.Acquired acquired -> claim = acquired.claim();
         }
 
-        RedisPaymentIdempotency.Acquired acquired = (RedisPaymentIdempotency.Acquired) check;
-        RedisPaymentIdempotency.Claim claim = acquired.claim();
-
-        try (AutoCloseable lock = idempotency.acquireOrderLock(orderId)) {
-            if (lock == null) {
+        try (AutoCloseable orderLock = idempotency.acquireOrderLock(orderId)) {
+            if (orderLock == null) {
                 claim.cancel();
                 throw new PaymentException(409, "CONCURRENT_REQUEST", "Another request is modifying this order, please retry.");
             }
-
-            try {
-                PaymentRepository.PaymentIntent intent = repository.beginOrderPayment(orderId, actor.id(), actor.authVersion());
-                String orderInfo = "Thanh toan don hang " + intent.orderCode();
-                Optional<String> originalDate = signer.isSandbox()
-                        ? repository.findVnpaySandboxTransactionDate(intent.paymentId(), actor.id(), signer.merchantCode()) : Optional.empty();
-                String redirectUrl = originalDate.isPresent()
-                        ? signer.buildPaymentUrl(intent.txnRef(), intent.amount(), orderInfo, clientIp, bankCode,
-                            java.time.LocalDateTime.parse(originalDate.get(), java.time.format.DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
-                                    .atZone(java.time.ZoneId.of("Asia/Ho_Chi_Minh")).toInstant())
-                        : signer.buildPaymentUrl(intent.txnRef(), intent.amount(), orderInfo, clientIp, bankCode);
-                registerSandboxProvenance(intent.paymentId(), actor.id(), redirectUrl);
-
-                PaymentInitiationResult result = PaymentInitiationResult.redirect(
-                        intent.paymentId(),
-                        intent.txnRef(),
-                        intent.amount(),
-                        intent.currency(),
-                        redirectUrl,
-                        false
-                );
-
-                claim.complete(result.body(), intent.holdRemaining());
-                return result;
-            } catch (PaymentRepository.ZeroOrderDetectedException zero) {
-                repository.completeZeroOrder(orderId, actor.id(), actor.authVersion());
-                PaymentInitiationResult result = PaymentInitiationResult.zero(orderId, false);
-                claim.complete(result.body(), Duration.ofMinutes(10));
-                return result;
-            } catch (RuntimeException failure) {
-                claim.cancel();
-                throw failure;
-            }
+            return startPayment(actorId, orderId, claim);
         } catch (PaymentException failure) {
             throw failure;
         } catch (Exception lockFailure) {
@@ -111,75 +95,130 @@ public class PaymentService {
         }
     }
 
-    private void registerSandboxProvenance(UUID paymentId, UUID actorId, String redirectUrl) {
-        java.net.URI uri = java.net.URI.create(redirectUrl);
-        if (!"https".equalsIgnoreCase(uri.getScheme()) || !"sandbox.vnpayment.vn".equalsIgnoreCase(uri.getHost())) return;
-        java.util.Map<String,String> fields = new java.util.HashMap<>();
-        for (String pair : uri.getRawQuery().split("&")) {
-            String[] parts=pair.split("=",2);
-            if (parts.length==2) fields.put(java.net.URLDecoder.decode(parts[0], java.nio.charset.StandardCharsets.UTF_8),
-                    java.net.URLDecoder.decode(parts[1], java.nio.charset.StandardCharsets.UTF_8));
+    // ---------------------------------------------------------------- 2. payOS webhook
+
+    public PayosWebhookResult processWebhook(String body) {
+        PayosGateway.WebhookEvent event;
+        try {
+            event = payos.verifyWebhook(body);
+        } catch (PayosGateway.InvalidWebhook invalid) {
+            return PayosWebhookResult.invalidSignature();
         }
-        if (!signer.verifySignature(fields, fields.get("vnp_SecureHash"))) throw PaymentException.unavailable();
-        repository.registerVnpaySandboxPayment(paymentId,actorId,fields.get("vnp_TmnCode"),fields.get("vnp_CreateDate"));
+        if (!"00".equals(event.code())) return PayosWebhookResult.ignored();
+
+        Optional<PaymentRecord> found = findByOrderCode(event.orderCode());
+        if (found.isEmpty()) return PayosWebhookResult.orderNotFound();
+        PaymentRecord payment = found.get();
+
+        if (idempotency.getCachedWebhook(payment.txnRef(), event.paymentLinkId()) != null) {
+            return PayosWebhookResult.alreadyConfirmed();
+        }
+        if (payment.amount().compareTo(BigDecimal.valueOf(event.amount())) != 0) {
+            return PayosWebhookResult.invalidAmount();
+        }
+
+        PayosWebhookResult result;
+        if ("CAPTURED".equals(payment.paymentStatus())) {
+            result = PayosWebhookResult.alreadyConfirmed();
+        } else {
+            apply(payment, new PayosGateway.Result(Outcome.CAPTURED, event.paymentLinkId()));
+            result = PayosWebhookResult.confirmed();
+        }
+        idempotency.cacheWebhook(payment.txnRef(), event.paymentLinkId(), result.toJson());
+        return result;
     }
 
-    public vn.ticketscenter.payment.dto.VnpayIpnResult processIpn(java.util.Map<String, String> queryParams) {
-        if (queryParams == null || queryParams.isEmpty()) {
-            return vn.ticketscenter.payment.dto.VnpayIpnResult.invalidChecksum();
-        }
-        String secureHash = queryParams.get("vnp_SecureHash");
-        if (secureHash == null || !signer.verifySignature(queryParams, secureHash)) {
-            return vn.ticketscenter.payment.dto.VnpayIpnResult.invalidChecksum();
-        }
+    // ---------------------------------------------------------------- 3. Buyer back from payOS
 
-        String txnRef = queryParams.get("vnp_TxnRef");
-        if (txnRef == null || txnRef.isBlank()) {
-            return vn.ticketscenter.payment.dto.VnpayIpnResult.orderNotFound();
-        }
+    /**
+     * Handles both returnUrl and cancelUrl. Their query string is not signed, so only {@code orderCode} is read
+     * and the real status is asked from payOS. Settling here issues tickets even when the webhook cannot reach
+     * this server (localhost); if it fails, the webhook or the reconciliation job settles later.
+     */
+    public PaymentReturnResult processReturn(Map<String, String> params) {
+        Optional<Long> orderCode = parseOrderCode(params == null ? null : params.get("orderCode"));
+        if (orderCode.isEmpty()) return PaymentReturnResult.invalid("Tham số giao dịch không hợp lệ.");
 
-        String providerTxnNo = queryParams.get("vnp_TransactionNo");
-        String responseCode = queryParams.get("vnp_ResponseCode");
-        String transactionStatus = queryParams.get("vnp_TransactionStatus");
-        String amountStr = queryParams.get("vnp_Amount");
+        Optional<PaymentRecord> found = findByOrderCode(orderCode.get());
+        if (found.isEmpty()) return PaymentReturnResult.invalid("Không tìm thấy giao dịch.");
+        PaymentRecord payment = found.get();
 
-        String cached = idempotency.getCachedIpn(txnRef, providerTxnNo);
-        if (cached != null) {
-            return vn.ticketscenter.payment.dto.VnpayIpnResult.orderAlreadyConfirmed();
-        }
+        if ("CAPTURED".equals(payment.paymentStatus())) return returned(payment, true, Outcome.CAPTURED, SUCCESS);
 
-        Optional<PaymentRepository.PaymentRecord> maybePayment = repository.findPaymentByTxnRef(txnRef);
-        if (maybePayment.isEmpty()) {
-            return vn.ticketscenter.payment.dto.VnpayIpnResult.orderNotFound();
-        }
-        PaymentRepository.PaymentRecord payment = maybePayment.get();
-
-        if (amountStr != null) {
-            try {
-                java.math.BigDecimal receivedCents = new java.math.BigDecimal(amountStr.trim());
-                java.math.BigDecimal expectedCents = payment.amount().multiply(java.math.BigDecimal.valueOf(100));
-                if (receivedCents.compareTo(expectedCents) != 0) {
-                    return vn.ticketscenter.payment.dto.VnpayIpnResult.invalidAmount();
-                }
-            } catch (NumberFormatException failure) {
-                return vn.ticketscenter.payment.dto.VnpayIpnResult.invalidAmount();
+        PayosGateway.Result verified = payos.query(payment.txnRef(), payment.amount(), false);
+        return switch (verified.outcome()) {
+            case CAPTURED -> returned(payment, true, Outcome.CAPTURED, applyQuietly(payment, verified) ? SUCCESS : CONFIRMING);
+            case FAILED -> {
+                applyQuietly(payment, verified);
+                yield returned(payment, true, Outcome.FAILED, FAILED);
             }
+            case UNKNOWN -> returned(payment, false, Outcome.UNKNOWN, PENDING);
+        };
+    }
+
+    // ---------------------------------------------------------------- 4. Payment status
+
+    public PaymentStatusResult getOrderPaymentStatus(UUID actorId, UUID orderId) {
+        Objects.requireNonNull(actorId, "actorId is required");
+        Objects.requireNonNull(orderId, "orderId is required");
+        return repository.getOrderPaymentStatus(orderId, actorId).orElseThrow(PaymentException::orderNotFound);
+    }
+
+    // ---------------------------------------------------------------- Helpers: initiate
+
+    private RedisPaymentIdempotency.Result claimKey(UUID actorId, UUID key, String fingerprint) {
+        try {
+            return idempotency.checkOrClaim(actorId, key, fingerprint, KEY_CLAIM_TTL);
+        } catch (redis.clients.jedis.exceptions.JedisException redisDown) {
+            throw PaymentException.unavailable();
         }
+    }
 
-        if ("CAPTURED".equals(payment.paymentStatus())) {
-            vn.ticketscenter.payment.dto.VnpayIpnResult confirmed = vn.ticketscenter.payment.dto.VnpayIpnResult.orderAlreadyConfirmed();
-            idempotency.cacheIpn(txnRef, providerTxnNo, confirmed.toJson());
-            return confirmed;
-        }
-
-        try (AutoCloseable lock = idempotency.acquireOrderLock(payment.orderId())) {
-            boolean isSuccess = "00".equals(responseCode) && ("00".equals(transactionStatus) || transactionStatus == null);
-            String targetStatus = isSuccess ? "CAPTURED" : "FAILED";
-            repository.applyPaymentResult(payment.orderId(), payment.paymentId(), targetStatus, providerTxnNo);
-
-            vn.ticketscenter.payment.dto.VnpayIpnResult result = vn.ticketscenter.payment.dto.VnpayIpnResult.success();
-            idempotency.cacheIpn(txnRef, providerTxnNo, result.toJson());
+    /** Runs under the order lock: open (or reuse) the DB payment, then its payOS link; cache the answer. */
+    private PaymentInitiationResult startPayment(UUID actorId, UUID orderId, RedisPaymentIdempotency.Claim claim) {
+        try {
+            PaymentIntent intent = repository.beginOrderPayment(orderId, actorId);
+            String checkoutUrl = createCheckoutLink(intent);
+            PaymentInitiationResult result = PaymentInitiationResult.redirect(intent.paymentId(), intent.txnRef(), intent.amount(), checkoutUrl);
+            claim.complete(result.body(), intent.holdRemaining());
             return result;
+        } catch (PaymentRepository.ZeroOrderDetectedException zeroOrder) {
+            repository.completeZeroOrder(orderId, actorId);
+            PaymentInitiationResult result = PaymentInitiationResult.zero(orderId);
+            claim.complete(result.body(), ZERO_ORDER_REPLAY_TTL);
+            return result;
+        } catch (RuntimeException failure) {
+            claim.cancel();
+            throw failure;
+        }
+    }
+
+    /** The payOS link expires together with the seat hold, so nobody pays for seats already released. */
+    private String createCheckoutLink(PaymentIntent intent) {
+        try {
+            long orderCode = PayosOrderCodes.fromTxnRef(intent.txnRef());
+            return payos.createLink(orderCode, intent.amount().longValueExact(), "TC" + orderCode,
+                    clock.instant().plus(intent.holdRemaining())).checkoutUrl();
+        } catch (RuntimeException payosFailure) {
+            LOGGER.log(Level.WARNING, "payOS link could not be created for payment " + intent.paymentId(), payosFailure);
+            throw PaymentException.unavailable();
+        }
+    }
+
+    // ---------------------------------------------------------------- Helpers: settle
+
+    private Optional<PaymentRecord> findByOrderCode(long orderCode) {
+        try {
+            return repository.findPaymentByTxnRefPrefix(PayosOrderCodes.txnRefPrefix(orderCode));
+        } catch (IllegalArgumentException notOurOrderCode) {
+            return Optional.empty();
+        }
+    }
+
+    /** The procedure locks its rows itself; the Redis order lock only keeps concurrent writers apart. */
+    private void apply(PaymentRecord payment, PayosGateway.Result result) {
+        try (AutoCloseable orderLock = idempotency.acquireOrderLock(payment.orderId())) {
+            repository.applyPaymentResult(payment.orderId(), payment.paymentId(), result.outcome().name(), result.providerReference());
         } catch (PaymentException failure) {
             throw failure;
         } catch (Exception failure) {
@@ -187,74 +226,23 @@ public class PaymentService {
         }
     }
 
-    public vn.ticketscenter.payment.dto.VnpayReturnResult processReturn(java.util.Map<String, String> queryParams) {
-        if (queryParams == null || queryParams.isEmpty()) {
-            return new vn.ticketscenter.payment.dto.VnpayReturnResult(
-                    false, false, "", "", Optional.empty(), java.math.BigDecimal.ZERO, "Tham số giao dịch không hợp lệ."
-            );
+    private boolean applyQuietly(PaymentRecord payment, PayosGateway.Result result) {
+        try {
+            apply(payment, result);
+            return true;
+        } catch (RuntimeException failure) {
+            LOGGER.log(Level.WARNING, "Payment " + payment.paymentId() + " will be settled by webhook/reconciliation", failure);
+            return false;
         }
-        String secureHash = queryParams.get("vnp_SecureHash");
-        boolean validSignature = secureHash != null && signer.verifySignature(queryParams, secureHash);
-
-        String txnRef = queryParams.get("vnp_TxnRef");
-        String responseCode = queryParams.get("vnp_ResponseCode");
-        String amountStr = queryParams.get("vnp_Amount");
-        java.math.BigDecimal amount = java.math.BigDecimal.ZERO;
-        if (amountStr != null) {
-            try {
-                amount = new java.math.BigDecimal(amountStr.trim()).divide(java.math.BigDecimal.valueOf(100));
-            } catch (NumberFormatException ignored) { }
-        }
-
-        Optional<PaymentRepository.PaymentRecord> maybePayment = (validSignature && txnRef != null && !txnRef.isBlank())
-                ? repository.findPaymentByTxnRef(txnRef)
-                : Optional.empty();
-
-        String transactionStatus = queryParams.get("vnp_TransactionStatus");
-        boolean success = validSignature && "00".equals(responseCode)
-                && ("00".equals(transactionStatus) || transactionStatus == null);
-        String message = success
-                ? "Giao dịch thanh toán thành công."
-                : (validSignature ? "Giao dịch không thành công hoặc bị người dùng hủy." : "Chữ ký giao dịch không hợp lệ.");
-
-        // Return URL mang cùng chữ ký HMAC như IPN nên được ghi nhận qua đúng đường IPN (idempotent).
-        // Nhờ vậy vé được phát hành ngay cả khi IPN không tới được máy chủ (localhost, mạng nội bộ);
-        // nếu bước này lỗi thì IPN hoặc job đối soát vẫn hoàn tất sau.
-        if (validSignature && maybePayment.isPresent()) {
-            boolean applied = false;
-            try {
-                String rspCode = processIpn(queryParams).rspCode();
-                applied = "00".equals(rspCode) || "02".equals(rspCode);
-            } catch (RuntimeException failure) {
-                applied = false;
-            }
-            if (success && !applied) {
-                message = "Giao dịch thanh toán thành công. Hệ thống đang xác nhận, vé sẽ xuất hiện sau ít phút.";
-            }
-        }
-
-        return new vn.ticketscenter.payment.dto.VnpayReturnResult(
-                validSignature,
-                success,
-                responseCode,
-                txnRef,
-                maybePayment.map(PaymentRepository.PaymentRecord::orderId),
-                amount,
-                message
-        );
     }
 
-    public vn.ticketscenter.payment.dto.PaymentStatusResult getOrderPaymentStatus(UUID actorId, UUID orderId) {
-        Objects.requireNonNull(actorId, "actorId is required");
-        Objects.requireNonNull(orderId, "orderId is required");
-        return repository.getOrderPaymentStatus(orderId, actorId)
-                .orElseThrow(PaymentException::orderNotFound);
+    private static Optional<Long> parseOrderCode(String raw) {
+        if (raw == null || !raw.trim().matches("[0-9]{1,16}")) return Optional.empty();
+        return Optional.of(Long.parseLong(raw.trim()));
     }
 
-    public vn.ticketscenter.payment.dto.PaymentStatusResult getOrderPaymentStatus(PaymentActor actor, UUID orderId) {
-        Objects.requireNonNull(actor, "actor is required");
-        Objects.requireNonNull(orderId, "orderId is required");
-        return repository.getOrderPaymentStatus(orderId, actor.id(), actor.authVersion())
-                .orElseThrow(PaymentException::orderNotFound);
+    private static PaymentReturnResult returned(PaymentRecord payment, boolean verified, Outcome outcome, String message) {
+        return new PaymentReturnResult(verified, outcome == Outcome.CAPTURED, outcome.name(),
+                payment.txnRef(), Optional.of(payment.orderId()), payment.amount(), message);
     }
 }

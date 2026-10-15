@@ -4,6 +4,7 @@ import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.*;
 import java.io.IOException;
+import vn.ticketscenter.identity.config.IdentityServices;
 import vn.ticketscenter.identity.security.*;
 
 /** Shared dispatch only: report and event logic remain with their original owners. */
@@ -21,7 +22,7 @@ public final class OrganizationApiRoutesFilter implements Filter {
         // Named forwarding can run before annotation-ordered REQUEST filters.
         var principal=SecurityContext.getCurrentUser(http).orElse(null);
         if(principal==null){HttpResponses.error(out,401,"UNAUTHENTICATED","Bạn cần đăng nhập.");return;}
-        var auth=AuthSecurityListener.resolveAuthService(http.getServletContext());
+        var auth=IdentityServices.sessionValidator(http.getServletContext());
         if(auth==null){HttpResponses.error(out,503,"AUTH_UNAVAILABLE","Hệ thống xác thực chưa sẵn sàng.");return;}
         if(!auth.isSessionValid(principal.actorId(),principal.authVersion())){
             SecurityContext.clearSession(http);HttpResponses.error(out,401,"SESSION_EXPIRED","Phiên đăng nhập đã hết hạn.");return;

@@ -7,8 +7,9 @@ import org.junit.jupiter.api.Test;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.PersistenceRegistry;
 import vn.ticketscenter.config.persistence.TransactionManager;
+import vn.ticketscenter.identity.error.IdentityError;
+import vn.ticketscenter.identity.error.IdentityException;
 import vn.ticketscenter.identity.dto.ForgotPasswordRequestDto;
-import vn.ticketscenter.identity.dto.OtpSendRequestDto;
 import vn.ticketscenter.identity.dto.OtpVerifyRequestDto;
 import vn.ticketscenter.identity.dto.OtpVerifyResponseDto;
 import vn.ticketscenter.identity.dto.PasswordResetRequestDto;
@@ -18,7 +19,6 @@ import vn.ticketscenter.identity.model.User;
 import vn.ticketscenter.identity.repository.OtpRepository;
 import vn.ticketscenter.identity.repository.UserRepository;
 
-import java.time.Instant;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -30,7 +30,8 @@ public class PasswordResetServiceTest {
 
     private OtpRepository otpRepository;
     private UserRepository userRepository;
-    private OtpCryptoHelper otpCryptoHelper;
+    private OtpHasher otpHasher;
+    private ResetTokenCodec resetTokens;
     private PasswordHasher passwordHasher;
     private FakeEmailSender emailSender;
 
@@ -38,7 +39,8 @@ public class PasswordResetServiceTest {
     void setUp() {
         otpRepository = new OtpRepository();
         userRepository = new UserRepository();
-        otpCryptoHelper = new OtpCryptoHelper("secret-key-password-reset-test-32chars");
+        otpHasher = new OtpHasher("secret-key-password-reset-test-32chars");
+        resetTokens = new ResetTokenCodec("secret-key-password-reset-test-32chars");
         passwordHasher = new PasswordHasher();
         emailSender = new FakeEmailSender();
     }
@@ -62,8 +64,8 @@ public class PasswordResetServiceTest {
                 Assumptions.assumeTrue(false, "Database is not ready");
             }
             TransactionManager tm = registry.transactionManager();
-            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpCryptoHelper, emailSender);
-            PasswordResetService resetService = new PasswordResetService(tm, userRepository, otpService, otpCryptoHelper, passwordHasher, null);
+            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpHasher, resetTokens, emailSender);
+            PasswordResetService resetService = new PasswordResetService(tm, userRepository, otpService, resetTokens, passwordHasher, UserSessionCache.disabled());
 
             String suffix = UUID.randomUUID().toString().substring(0, 8);
             String existingEmail = "existing." + suffix + "@ticketscenter.vn";
@@ -102,8 +104,8 @@ public class PasswordResetServiceTest {
                 Assumptions.assumeTrue(false, "Database is not ready");
             }
             TransactionManager tm = registry.transactionManager();
-            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpCryptoHelper, emailSender);
-            PasswordResetService resetService = new PasswordResetService(tm, userRepository, otpService, otpCryptoHelper, passwordHasher, null);
+            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpHasher, resetTokens, emailSender);
+            PasswordResetService resetService = new PasswordResetService(tm, userRepository, otpService, resetTokens, passwordHasher, UserSessionCache.disabled());
 
             String suffix = UUID.randomUUID().toString().substring(0, 8);
             String email = "resetpwd." + suffix + "@ticketscenter.vn";
@@ -138,8 +140,9 @@ public class PasswordResetServiceTest {
             assertEquals(1, updatedUser.getAuthVersion());
 
             // 4. Thử tái sử dụng resetToken cũ -> Bị từ chối ngay lập tức do authVersion và passwordHash đã đổi
-            assertThrows(SecurityException.class, () ->
+            IdentityException stale = assertThrows(IdentityException.class, () ->
                     resetService.resetPassword(new PasswordResetRequestDto(resetToken, "AnotherPassword123!")));
+            assertEquals(IdentityError.INVALID_TOKEN, stale.error());
 
         } finally {
             registry.close();

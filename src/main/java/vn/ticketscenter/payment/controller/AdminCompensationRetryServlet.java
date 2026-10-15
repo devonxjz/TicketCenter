@@ -21,16 +21,12 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * UI-21: an admin re-opens a payment compensation whose attempt failed. {@code usp_RetryPaymentCompensation}
- * decides eligibility and creates the new PENDING attempt; the refund worker executes it.
- */
+
 @WebServlet(name = "AdminCompensationRetryServlet", urlPatterns = "/api/admin/payments/*")
 public class AdminCompensationRetryServlet extends HttpServlet {
     private static final Logger LOGGER = Logger.getLogger(AdminCompensationRetryServlet.class.getName());
     private static final Pattern ROUTE = Pattern.compile("^/api/admin/payments/([0-9a-fA-F-]{36})/compensation/retry$");
 
-    /** Result of the retry: the new compensation id. */
     private final BiFunction<UserPrincipal, UUID, UUID> injected;
 
     public AdminCompensationRetryServlet() { this(null); }
@@ -92,7 +88,6 @@ public class AdminCompensationRetryServlet extends HttpServlet {
         }
     }
 
-    /** Maps the THROW numbers of {@code usp_RetryPaymentCompensation}. */
     static RuntimeException translate(RuntimeException failure) {
         for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
             if (!(cause instanceof SQLException sql)) continue;

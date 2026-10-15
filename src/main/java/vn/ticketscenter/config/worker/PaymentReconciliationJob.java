@@ -1,6 +1,6 @@
 package vn.ticketscenter.config.worker;
 
-import vn.ticketscenter.payment.integration.VnpayQueryClient;
+import vn.ticketscenter.payment.integration.PayosGateway;
 import vn.ticketscenter.payment.repository.PaymentRepository.ReconcileCandidate;
 
 import java.util.List;
@@ -8,14 +8,14 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Settles payments stuck in PENDING/UNKNOWN by asking VNPAY for the truth. The gateway call happens
+ * Settles payments stuck in PENDING/UNKNOWN by asking payOS for the truth. The gateway call happens
  * outside any database transaction; one failing payment never blocks the rest of the batch.
  */
 public final class PaymentReconciliationJob {
     private static final Logger LOGGER = Logger.getLogger(PaymentReconciliationJob.class.getName());
 
     public interface Source { List<ReconcileCandidate> findBatch(int limit); }
-    public interface Gateway { VnpayQueryClient.Result query(ReconcileCandidate candidate); }
+    public interface Gateway { PayosGateway.Result query(ReconcileCandidate candidate); }
     public interface Applier { void apply(ReconcileCandidate candidate, String status, String providerReference); }
     public interface OrderLocks { AutoCloseable acquire(java.util.UUID orderId) throws Exception; }
 
@@ -63,8 +63,8 @@ public final class PaymentReconciliationJob {
             if (retry != null && nanoClock.getAsLong() - retry.notBeforeNanos() < 0) continue;
             attempted++;
             try {
-                VnpayQueryClient.Result result = gateway.query(candidate);
-                if (result == null || result.outcome() == VnpayQueryClient.Outcome.UNKNOWN) {
+                PayosGateway.Result result = gateway.query(candidate);
+                if (result == null || result.outcome() == PayosGateway.Outcome.UNKNOWN) {
                     defer(candidate, retry);
                     continue;
                 }

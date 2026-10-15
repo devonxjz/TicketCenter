@@ -12,7 +12,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.TransactionManager;
-import vn.ticketscenter.config.web.JsonObjectParser;
 import vn.ticketscenter.event.dto.EventDto;
 import vn.ticketscenter.event.model.Event;
 import vn.ticketscenter.event.repository.EventRepository;
@@ -29,8 +28,9 @@ import vn.ticketscenter.identity.repository.UserRepository;
 import vn.ticketscenter.identity.security.CsrfFilter;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
-import vn.ticketscenter.identity.service.AuthService;
+import vn.ticketscenter.identity.service.LoginService;
 import vn.ticketscenter.identity.repository.OrganizationDecisionRepository;
+import vn.ticketscenter.identity.service.OrganizationApprovalService;
 import vn.ticketscenter.identity.service.OrganizationRequestService;
 import vn.ticketscenter.identity.service.PasswordHasher;
 import vn.ticketscenter.persistence.model.BaseEntity;
@@ -75,9 +75,11 @@ public class AdminOrganizationApprovalAndScheduleE2ETest {
     private OrganizationRepository organizationRepository;
     private TransactionManager transactionManager;
     private OrganizationRequestService organizationRequestService;
+    private OrganizationApprovalService organizationApprovalService;
     private OrganizationRequestServlet servlet;
+    private AdminOrganizationApprovalServlet adminServlet;
     private CsrfFilter csrfFilter;
-    private AuthService authService;
+    private LoginService loginService;
     private EventService eventService;
 
     private User musicianUser;
@@ -155,16 +157,18 @@ public class AdminOrganizationApprovalAndScheduleE2ETest {
             }
 
             @Override
-            public List<Organization> findPending(EntityManager em) {
+            public List<Organization> findByStatus(EntityManager em, OrganizationStatus status, int offset, int limit) {
                 return organizationDatabase.values().stream()
-                        .filter(o -> o.getStatus() == OrganizationStatus.PENDING_APPROVAL)
+                        .filter(o -> status == null || o.getStatus() == status)
+                        .skip(offset)
+                        .limit(limit)
                         .toList();
             }
 
             @Override
-            public long countPending(EntityManager em) {
+            public long countByStatus(EntityManager em, OrganizationStatus status) {
                 return organizationDatabase.values().stream()
-                        .filter(o -> o.getStatus() == OrganizationStatus.PENDING_APPROVAL)
+                        .filter(o -> status == null || o.getStatus() == status)
                         .count();
             }
 
@@ -181,9 +185,12 @@ public class AdminOrganizationApprovalAndScheduleE2ETest {
         transactionManager = createTransactionManager();
         organizationRequestService = new OrganizationRequestService(transactionManager, organizationRepository, userRepository,
                 inMemoryDecisions());
+        organizationApprovalService = new OrganizationApprovalService(transactionManager, organizationRepository,
+                userRepository, inMemoryDecisions());
         servlet = new OrganizationRequestServlet(organizationRequestService);
+        adminServlet = new AdminOrganizationApprovalServlet(organizationApprovalService);
         csrfFilter = new CsrfFilter();
-        authService = new AuthService(transactionManager, userRepository, passwordHasher);
+        loginService = new LoginService(transactionManager, userRepository, passwordHasher);
 
         EventRepository eventRepository = new EventRepository((DataSource) Proxy.newProxyInstance(
                 getClass().getClassLoader(),
@@ -346,7 +353,7 @@ public class AdminOrganizationApprovalAndScheduleE2ETest {
         assertNotNull(membership, "Requester membership must exist in database.");
         assertEquals(OrganizationRole.MANAGER, membership.getRole(), "Requester role must be MANAGER.");
 
-        UserPrincipal elevatedPrincipal = authService.login(new LoginRequestDto("musician@ticketscenter.vn", DEFAULT_PASSWORD));
+        UserPrincipal elevatedPrincipal = loginService.login(new LoginRequestDto("musician@ticketscenter.vn", DEFAULT_PASSWORD));
         assertNotNull(elevatedPrincipal);
         assertEquals(musicianUser.getId(), elevatedPrincipal.actorId());
         assertEquals("musician@ticketscenter.vn", elevatedPrincipal.email());
@@ -449,10 +456,19 @@ public class AdminOrganizationApprovalAndScheduleE2ETest {
         csrfFilter.doFilter(requestProxy, responseProxy, (req, resp) -> {
             filterChainInvoked.set(true);
             try {
+                boolean admin = uri.startsWith("/api/admin/");
                 if ("POST".equalsIgnoreCase(method)) {
-                    servlet.doPost((HttpServletRequest) req, (HttpServletResponse) resp);
+                    if (admin) {
+                        adminServlet.doPost((HttpServletRequest) req, (HttpServletResponse) resp);
+                    } else {
+                        servlet.doPost((HttpServletRequest) req, (HttpServletResponse) resp);
+                    }
                 } else if ("GET".equalsIgnoreCase(method)) {
-                    servlet.doGet((HttpServletRequest) req, (HttpServletResponse) resp);
+                    if (admin) {
+                        adminServlet.doGet((HttpServletRequest) req, (HttpServletResponse) resp);
+                    } else {
+                        servlet.doGet((HttpServletRequest) req, (HttpServletResponse) resp);
+                    }
                 }
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -598,7 +614,7 @@ public class AdminOrganizationApprovalAndScheduleE2ETest {
     }
 
     private static long extractCount(String json) {
-        Pattern pattern = Pattern.compile("\"count\"\\s*:\\s*([0-9]+)");
+        Pattern pattern = Pattern.compile("\"total\"\\s*:\\s*([0-9]+)");
         Matcher matcher = pattern.matcher(json);
         if (matcher.find()) {
             return Long.parseLong(matcher.group(1));

@@ -65,7 +65,7 @@
 
                                 <div class="detail-row">
                                     <span class="detail-label">Cổng thanh toán</span>
-                                    <span class="detail-value">VNPAY</span>
+                                    <span class="detail-value">payOS</span>
                                 </div>
 
                                 <div class="detail-row">

@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Test;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.PersistenceRegistry;
 import vn.ticketscenter.config.persistence.TransactionManager;
+import vn.ticketscenter.identity.error.IdentityError;
+import vn.ticketscenter.identity.error.IdentityException;
 import vn.ticketscenter.identity.dto.OtpSendRequestDto;
 import vn.ticketscenter.identity.dto.OtpVerifyRequestDto;
 import vn.ticketscenter.identity.dto.OtpVerifyResponseDto;
@@ -29,14 +31,16 @@ public class OtpServiceTest {
 
     private OtpRepository otpRepository;
     private UserRepository userRepository;
-    private OtpCryptoHelper otpCryptoHelper;
+    private OtpHasher otpHasher;
+    private ResetTokenCodec resetTokens;
     private FakeEmailSender emailSender;
 
     @BeforeEach
     void setUp() {
         otpRepository = new OtpRepository();
         userRepository = new UserRepository();
-        otpCryptoHelper = new OtpCryptoHelper("secret-key-for-test-32-chars-long-123");
+        otpHasher = new OtpHasher("secret-key-for-test-32-chars-long-123");
+        resetTokens = new ResetTokenCodec("secret-key-for-test-32-chars-long-123");
         emailSender = new FakeEmailSender();
     }
 
@@ -59,7 +63,7 @@ public class OtpServiceTest {
                 Assumptions.assumeTrue(false, "Database is not ready");
             }
             TransactionManager tm = registry.transactionManager();
-            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpCryptoHelper, emailSender);
+            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpHasher, resetTokens, emailSender);
 
             String suffix = UUID.randomUUID().toString().substring(0, 8);
             String email = "send." + suffix + "@ticketscenter.vn";
@@ -87,7 +91,7 @@ public class OtpServiceTest {
                     otpRepository.findLatestValidOtpByEmail(em, email, OtpPurpose.VERIFY_EMAIL, Instant.now()).orElse(null));
             assertNotNull(otp);
             assertFalse(otp.isConsumed());
-            assertTrue(otpCryptoHelper.verifyOtpHash(code, otp.getSecretHash()));
+            assertTrue(otpHasher.verifyOtpHash(code, otp.getSecretHash()));
 
         } finally {
             registry.close();
@@ -104,7 +108,7 @@ public class OtpServiceTest {
                 Assumptions.assumeTrue(false, "Database is not ready");
             }
             TransactionManager tm = registry.transactionManager();
-            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpCryptoHelper, emailSender);
+            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpHasher, resetTokens, emailSender);
 
             String suffix = UUID.randomUUID().toString().substring(0, 8);
             String email = "cooldown." + suffix + "@ticketscenter.vn";
@@ -118,9 +122,10 @@ public class OtpServiceTest {
             // Lần 1: Thành công
             assertTrue(otpService.sendOtp(new OtpSendRequestDto(email, OtpPurpose.VERIFY_EMAIL)));
 
-            // Lần 2 ngay lập tức (<60s): Phải ném IllegalStateException("COOLDOWN_ACTIVE")
-            IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
+            // Lần 2 ngay lập tức (<60s): Phải ném IdentityException(COOLDOWN_ACTIVE)
+            IdentityException ex = assertThrows(IdentityException.class, () ->
                     otpService.sendOtp(new OtpSendRequestDto(email, OtpPurpose.VERIFY_EMAIL)));
+            assertEquals(IdentityError.COOLDOWN_ACTIVE, ex.error());
             assertTrue(ex.getMessage().contains("COOLDOWN_ACTIVE"));
 
         } finally {
@@ -138,7 +143,7 @@ public class OtpServiceTest {
                 Assumptions.assumeTrue(false, "Database is not ready");
             }
             TransactionManager tm = registry.transactionManager();
-            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpCryptoHelper, emailSender);
+            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpHasher, resetTokens, emailSender);
 
             String suffix = UUID.randomUUID().toString().substring(0, 8);
             String email = "verify." + suffix + "@ticketscenter.vn";
@@ -165,8 +170,9 @@ public class OtpServiceTest {
             assertTrue(updatedUser.isEmailVerified());
 
             // Thử xác minh lại cùng OTP -> Phải bị từ chối vì đã consumed
-            assertThrows(IllegalStateException.class, () ->
+            IdentityException reused = assertThrows(IdentityException.class, () ->
                     otpService.verifyOtp(new OtpVerifyRequestDto(email, OtpPurpose.VERIFY_EMAIL, code)));
+            assertEquals(IdentityError.OTP_ALREADY_USED, reused.error());
 
         } finally {
             registry.close();
@@ -183,7 +189,7 @@ public class OtpServiceTest {
                 Assumptions.assumeTrue(false, "Database is not ready");
             }
             TransactionManager tm = registry.transactionManager();
-            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpCryptoHelper, emailSender);
+            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpHasher, resetTokens, emailSender);
 
             String suffix = UUID.randomUUID().toString().substring(0, 8);
             String email = "reset." + suffix + "@ticketscenter.vn";
@@ -201,8 +207,8 @@ public class OtpServiceTest {
             assertTrue(response.success());
             assertNotNull(response.resetToken());
 
-            // Token có thể parse và verify bằng OtpCryptoHelper
-            OtpCryptoHelper.ResetTokenClaims claims = otpCryptoHelper.parseAndVerifyResetToken(
+            // Token có thể parse và verify bằng ResetTokenCodec
+            ResetTokenCodec.Claims claims = resetTokens.verify(
                     response.resetToken(), createdUser.getId(), createdUser.getPasswordHash(), createdUser.getAuthVersion());
             assertEquals(createdUser.getId(), claims.userId());
 
@@ -221,7 +227,7 @@ public class OtpServiceTest {
                 Assumptions.assumeTrue(false, "Database is not ready");
             }
             TransactionManager tm = registry.transactionManager();
-            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpCryptoHelper, emailSender);
+            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpHasher, resetTokens, emailSender);
 
             String suffix = UUID.randomUUID().toString().substring(0, 8);
             String email = "wrong." + suffix + "@ticketscenter.vn";
@@ -234,16 +240,18 @@ public class OtpServiceTest {
 
             otpService.sendOtp(new OtpSendRequestDto(email, OtpPurpose.VERIFY_EMAIL));
 
-            // Thử sai 4 lần -> Ném IllegalArgumentException thông báo mã không chính xác
+            // Thử sai 4 lần -> Ném IdentityException(OTP_INVALID) thông báo mã không chính xác
             for (int i = 1; i <= 4; i++) {
-                IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                IdentityException ex = assertThrows(IdentityException.class, () ->
                         otpService.verifyOtp(new OtpVerifyRequestDto(email, OtpPurpose.VERIFY_EMAIL, "000000")));
+                assertEquals(IdentityError.OTP_INVALID, ex.error());
                 assertTrue(ex.getMessage().contains("OTP_INVALID"));
             }
 
             // Thử sai lần thứ 5 -> Khóa và ném OTP_MAX_ATTEMPTS_EXCEEDED
-            IllegalStateException lockEx = assertThrows(IllegalStateException.class, () ->
+            IdentityException lockEx = assertThrows(IdentityException.class, () ->
                     otpService.verifyOtp(new OtpVerifyRequestDto(email, OtpPurpose.VERIFY_EMAIL, "000000")));
+            assertEquals(IdentityError.OTP_MAX_ATTEMPTS_EXCEEDED, lockEx.error());
             assertTrue(lockEx.getMessage().contains("OTP_MAX_ATTEMPTS_EXCEEDED"));
 
         } finally {
@@ -261,7 +269,7 @@ public class OtpServiceTest {
                 Assumptions.assumeTrue(false, "Database is not ready");
             }
             TransactionManager tm = registry.transactionManager();
-            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpCryptoHelper, emailSender);
+            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpHasher, resetTokens, emailSender);
 
             String suffix = UUID.randomUUID().toString().substring(0, 8);
             String email = "isolate." + suffix + "@ticketscenter.vn";
@@ -277,7 +285,7 @@ public class OtpServiceTest {
             String code = extractOtpFromEmail(emailSender.getSentMessages().get(0).bodyText());
 
             // Cố tình verify với purpose RESET_PASSWORD -> Bị từ chối
-            assertThrows(IllegalStateException.class, () ->
+            assertThrows(IdentityException.class, () ->
                     otpService.verifyOtp(new OtpVerifyRequestDto(email, OtpPurpose.RESET_PASSWORD, code)));
 
         } finally {

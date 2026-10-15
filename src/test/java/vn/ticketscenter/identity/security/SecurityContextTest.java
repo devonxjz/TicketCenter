@@ -2,9 +2,7 @@ package vn.ticketscenter.identity.security;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import vn.ticketscenter.identity.model.PlatformRole;
 
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 

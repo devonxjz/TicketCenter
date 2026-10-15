@@ -1,5 +1,6 @@
 package vn.ticketscenter.identity.dto;
 
+import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.identity.model.Organization;
 import vn.ticketscenter.identity.model.OrganizationStatus;
 
@@ -29,7 +30,8 @@ public record OrganizationRequestDetailDto(
             Instant submittedAt,
             String rejectionReason
     ) {
-        this(organizationId, name, contactEmail, contactPhone, description, status, requesterId, submittedAt, rejectionReason, null);
+        this(organizationId, name, contactEmail, contactPhone, description, status, requesterId, submittedAt,
+                rejectionReason, null);
     }
 
     public static OrganizationRequestDetailDto from(Organization organization) {
@@ -99,31 +101,34 @@ public record OrganizationRequestDetailDto(
 
     public String toJson() {
         StringBuilder sb = new StringBuilder("{");
-        sb.append("\"organizationId\":").append(organizationId != null ? vn.ticketscenter.config.web.HttpResponses.jsonString(organizationId.toString()) : "null")
-          .append(",\"name\":").append(name != null ? vn.ticketscenter.config.web.HttpResponses.jsonString(name) : "null")
-          .append(",\"contactEmail\":").append(contactEmail != null ? vn.ticketscenter.config.web.HttpResponses.jsonString(contactEmail) : "null")
-          .append(",\"contactPhone\":").append(contactPhone != null ? vn.ticketscenter.config.web.HttpResponses.jsonString(contactPhone) : "null")
-          .append(",\"description\":").append(description != null ? vn.ticketscenter.config.web.HttpResponses.jsonString(description) : "null")
-          .append(",\"status\":").append(status != null ? vn.ticketscenter.config.web.HttpResponses.jsonString(status.name()) : "null")
-          .append(",\"requesterId\":").append(requesterId != null ? vn.ticketscenter.config.web.HttpResponses.jsonString(requesterId.toString()) : "null")
-          .append(",\"submittedAt\":").append(submittedAt != null ? vn.ticketscenter.config.web.HttpResponses.jsonString(submittedAt.toString()) : "null")
-          .append(",\"rejectionReason\":").append(rejectionReason != null ? vn.ticketscenter.config.web.HttpResponses.jsonString(rejectionReason) : "null");
+        sb.append("\"organizationId\":").append(json(organizationId))
+          .append(",\"name\":").append(json(name))
+          .append(",\"contactEmail\":").append(json(contactEmail))
+          .append(",\"contactPhone\":").append(json(contactPhone))
+          .append(",\"description\":").append(json(description))
+          .append(",\"status\":").append(json(status))
+          .append(",\"requesterId\":").append(json(requesterId))
+          .append(",\"submittedAt\":").append(json(submittedAt))
+          .append(",\"rejectionReason\":").append(json(rejectionReason));
         if (commissionRuleId != null) {
-            sb.append(",\"commissionRuleId\":").append(vn.ticketscenter.config.web.HttpResponses.jsonString(commissionRuleId.toString()));
+            sb.append(",\"commissionRuleId\":").append(json(commissionRuleId));
         }
-        String eTitle = eventTitle();
-        String eDate = eventDate();
-        String eStart = eventStartTime();
-        String eEnd = eventEndTime();
-        String eVenue = eventVenue();
-        String cleanDesc = cleanDescription();
-        if (eTitle != null) sb.append(",\"eventTitle\":").append(vn.ticketscenter.config.web.HttpResponses.jsonString(eTitle));
-        if (eDate != null) sb.append(",\"eventDate\":").append(vn.ticketscenter.config.web.HttpResponses.jsonString(eDate));
-        if (eStart != null) sb.append(",\"eventStartTime\":").append(vn.ticketscenter.config.web.HttpResponses.jsonString(eStart));
-        if (eEnd != null) sb.append(",\"eventEndTime\":").append(vn.ticketscenter.config.web.HttpResponses.jsonString(eEnd));
-        if (eVenue != null) sb.append(",\"eventVenue\":").append(vn.ticketscenter.config.web.HttpResponses.jsonString(eVenue));
-        if (cleanDesc != null) sb.append(",\"cleanDescription\":").append(vn.ticketscenter.config.web.HttpResponses.jsonString(cleanDesc));
-        sb.append("}");
-        return sb.toString();
+        appendIfPresent(sb, "eventTitle", eventTitle());
+        appendIfPresent(sb, "eventDate", eventDate());
+        appendIfPresent(sb, "eventStartTime", eventStartTime());
+        appendIfPresent(sb, "eventEndTime", eventEndTime());
+        appendIfPresent(sb, "eventVenue", eventVenue());
+        appendIfPresent(sb, "cleanDescription", cleanDescription());
+        return sb.append("}").toString();
+    }
+
+    private static void appendIfPresent(StringBuilder sb, String field, String value) {
+        if (value != null) {
+            sb.append(",\"").append(field).append("\":").append(HttpResponses.jsonString(value));
+        }
+    }
+
+    private static String json(Object value) {
+        return HttpResponses.jsonString(value == null ? null : value.toString());
     }
 }

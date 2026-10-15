@@ -42,11 +42,8 @@ public final class OrderApiServlet extends HttpServlet {
                     command = new OrderCommand.ChangeCoupon(key, OrderRequests.coupon(uuid(path.split("/")[3]), request.getInputStream()));
                 else if (path.matches("/api/orders/[^/]+/payments")) {
                     UUID orderId = uuid(path.split("/")[3]);
-                    var paymentReq = vn.ticketscenter.payment.dto.PaymentRequests.parse(request.getInputStream());
-                    String clientIp = clientIp(request);
-                    var paymentActor = new vn.ticketscenter.payment.dto.PaymentActor(principal.actorId(), principal.authVersion());
-                    var result = paymentService().initiate(paymentActor, orderId, key, paymentReq.bankCode(), clientIp);
-                    response.setStatus(result.httpStatus());
+                    var result = paymentService().initiate(principal.actorId(), orderId, key);
+                    response.setStatus(HttpServletResponse.SC_OK);
                     response.getWriter().write(result.body());
                     return;
                 }
@@ -65,9 +62,7 @@ public final class OrderApiServlet extends HttpServlet {
             } else if (request.getMethod().equals("GET") && path.matches("/api/orders/[^/]+/coupon-eligibility")) {
                 response.getWriter().write(service().eligibility(actor, uuid(path.split("/")[3]), parameter(request, "couponCode")));
             } else if (request.getMethod().equals("GET") && path.matches("/api/orders/[^/]+/payment-status")) {
-                var paymentStatus = paymentService().getOrderPaymentStatus(
-                        new vn.ticketscenter.payment.dto.PaymentActor(actor.id(), actor.authVersion()),
-                        uuid(path.split("/")[3]));
+                var paymentStatus = paymentService().getOrderPaymentStatus(actor.id(), uuid(path.split("/")[3]));
                 response.getWriter().write(paymentStatus.toJson());
             } else if (request.getMethod().equals("GET") && path.matches("/api/orders/[^/]+")) {
                 UUID orderId = uuid(path.split("/")[3]);
@@ -82,14 +77,6 @@ public final class OrderApiServlet extends HttpServlet {
     private OrderService service() { return supplied == null ? OrderRuntime.resolve(getServletContext()) : supplied; }
     private vn.ticketscenter.payment.service.PaymentService paymentService() {
         return suppliedPayment == null ? vn.ticketscenter.payment.service.PaymentRuntime.resolve(getServletContext()) : suppliedPayment;
-    }
-    private static String clientIp(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isBlank()) {
-            return xForwardedFor.split(",", 2)[0].trim();
-        }
-        String remoteAddr = request.getRemoteAddr();
-        return (remoteAddr != null && !remoteAddr.isBlank()) ? remoteAddr : "127.0.0.1";
     }
     private static String parameter(HttpServletRequest request, String name) {
         if (!request.getParameterMap().keySet().equals(Set.of(name)) || request.getParameterValues(name).length != 1) throw invalid();

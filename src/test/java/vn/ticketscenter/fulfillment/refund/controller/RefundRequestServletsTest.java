@@ -7,6 +7,7 @@ import java.lang.reflect.*;
 import java.time.*;
 import java.util.*;
 import org.junit.jupiter.api.Test;
+import vn.ticketscenter.identity.config.IdentityServices;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.fulfillment.refund.dto.*;
 import vn.ticketscenter.fulfillment.refund.repository.RefundRequestStore;
@@ -26,7 +27,7 @@ class RefundRequestServletsTest {
     final ServletContext context=proxy(ServletContext.class,(name,args)->switch(name){case "getAttribute"->contextAttributes.get(args[0]);case "setAttribute"->{contextAttributes.put((String)args[0],args[1]);yield null;}case "getNamedDispatcher"->dispatcher("named:"+args[0]);default->null;});
     RefundRequestServletsTest(){
         body="{\"orderId\":\""+order+"\",\"ticketIds\":[\""+ticket+"\"],\"reason\":\"Không thể tham dự sự kiện.\"}";
-        contextAttributes.put(AuthSecurityListener.AUTH_SERVICE_ATTRIBUTE,new AuthService(new TransactionManager(Map.of()),new UserRepository(),new PasswordHasher()){@Override public boolean isSessionValid(UUID id,int version){return sessionValid;}});
+        contextAttributes.put(IdentityServices.SESSION_VALIDATOR_ATTRIBUTE,new SessionValidator(new TransactionManager(Map.of()),new UserRepository()){@Override public boolean isSessionValid(UUID id,int version){return sessionValid;}});
         contextAttributes.put(RefundRuntime.SERVICE_ATTRIBUTE,new RefundRequestService(new NoStore(),RefundRequestCache.NONE,Clock.systemUTC()){
             @Override public RefundSummaryDto create(UserPrincipal a,CreateRefundRequestDto r,UUID k){creates++;assertEquals(actor,a);assertEquals(order,r.orderId());assertEquals(List.of(ticket),r.ticketIds());assertEquals(key,k);return new RefundSummaryDto(UUID.randomUUID(),order,"123456","REQUESTED",1,Instant.EPOCH,"Sự kiện","Không thể tham dự",null);}
         });

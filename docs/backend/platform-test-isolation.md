@@ -2,7 +2,7 @@
 
 Default `mvn -B test` uses the existing JUnit 5 auto-discovered `ExternalTestCondition` on the test classpath. No Maven dependency/profile or production code changes are required. `junit-platform.properties` enables service discovery; do not disable extension autodetection. Conditions execute before `@BeforeAll` and test bodies. New external suites must use `@Tag("db")` or `@Tag("smtp")` at class level whenever setup can perform IO. Methods with isolated external work can carry the tag individually. Every class ending in `IT` also requires DB opt-in.
 
-The registry covers existing untagged DB suites (DemoAccountSeeder, OtpRepository, OtpService, PasswordResetService), the mixed AuthService/JpaConnection external methods, real SMTP in EmailSender, and combined DB/SMTP PasswordResetIT. Pure methods remain enabled. Default run skips external cases with an explicit reason, rather than attempting a connection and treating connection failure as an assumption.
+The registry covers existing untagged DB suites (DemoAccountSeeder, OtpRepository, OtpService, PasswordResetService), the mixed AuthFlowTest/JpaConnection external methods, real SMTP in EmailSender, and combined DB/SMTP PasswordResetIT. Pure methods remain enabled. Default run skips external cases with an explicit reason, rather than attempting a connection and treating connection failure as an assumption.
 
 ## Safe local run
 

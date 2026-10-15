@@ -7,6 +7,7 @@ import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.PersistenceRegistry;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.identity.model.Organization;
+import vn.ticketscenter.identity.model.OrganizationStatus;
 import vn.ticketscenter.identity.model.User;
 
 import java.util.List;
@@ -27,8 +28,6 @@ public class OrganizationRepositoryTest {
         assertThrows(NullPointerException.class, () -> repository.findById(null, UUID.randomUUID()));
         assertThrows(NullPointerException.class, () -> repository.findByRequesterId(null, UUID.randomUUID()));
         assertThrows(NullPointerException.class, () -> repository.hasPendingRequest(null, UUID.randomUUID()));
-        assertThrows(NullPointerException.class, () -> repository.findPending(null));
-        assertThrows(NullPointerException.class, () -> repository.countPending(null));
         assertThrows(NullPointerException.class, () -> repository.findByStatus(null, null, 0, 10));
         assertThrows(NullPointerException.class, () -> repository.countByStatus(null, null));
         assertThrows(NullPointerException.class, () -> repository.save(null, null));
@@ -81,11 +80,11 @@ public class OrganizationRepositoryTest {
                 boolean hasPending = repository.hasPendingRequest(em, requester.getId());
                 assertTrue(hasPending);
 
-                List<Organization> pendingList = repository.findPending(em);
+                List<Organization> pendingList = repository.findByStatus(em, OrganizationStatus.PENDING_APPROVAL, 0, 100);
                 assertFalse(pendingList.isEmpty());
                 assertTrue(pendingList.stream().anyMatch(o -> o.getId().equals(saved.getId())));
 
-                long count = repository.countPending(em);
+                long count = repository.countByStatus(em, OrganizationStatus.PENDING_APPROVAL);
                 assertTrue(count > 0);
 
                 return null;

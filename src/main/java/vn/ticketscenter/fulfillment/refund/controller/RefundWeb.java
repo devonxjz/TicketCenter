@@ -6,6 +6,7 @@ import java.util.*;
 import vn.ticketscenter.config.web.*;
 import vn.ticketscenter.fulfillment.refund.dto.CreateRefundRequestDto;
 import vn.ticketscenter.fulfillment.refund.service.RefundException;
+import vn.ticketscenter.identity.config.IdentityServices;
 import vn.ticketscenter.identity.security.*;
 
 final class RefundWeb {
@@ -13,7 +14,7 @@ final class RefundWeb {
     private RefundWeb(){}
     static UserPrincipal actor(HttpServletRequest request){
         var actor=SecurityContext.getCurrentUser(request).orElseThrow(()->new RefundException(401,"UNAUTHENTICATED","Bạn cần đăng nhập."));
-        var auth=AuthSecurityListener.resolveAuthService(request.getServletContext());
+        var auth=IdentityServices.sessionValidator(request.getServletContext());
         if(auth==null)throw new RefundException(503,"AUTH_UNAVAILABLE","Hệ thống xác thực chưa sẵn sàng.");
         if(!auth.isSessionValid(actor.actorId(),actor.authVersion())){SecurityContext.clearSession(request);throw new RefundException(401,"SESSION_EXPIRED","Phiên đăng nhập đã hết hạn.");}
         return actor;

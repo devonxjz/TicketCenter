@@ -13,9 +13,10 @@ import vn.ticketscenter.identity.model.OtpPurpose;
 import vn.ticketscenter.identity.model.User;
 import vn.ticketscenter.identity.repository.OtpRepository;
 import vn.ticketscenter.identity.repository.UserRepository;
-import vn.ticketscenter.identity.service.OtpCryptoHelper;
+import vn.ticketscenter.identity.service.OtpHasher;
 import vn.ticketscenter.identity.service.OtpService;
 import vn.ticketscenter.identity.service.PasswordHasher;
+import vn.ticketscenter.identity.service.ResetTokenCodec;
 
 import java.time.Instant;
 
@@ -35,10 +36,11 @@ public class PasswordResetIT {
             TransactionManager tm = registry.transactionManager();
             UserRepository userRepository = new UserRepository();
             OtpRepository otpRepository = new OtpRepository();
-            OtpCryptoHelper otpCryptoHelper = new OtpCryptoHelper();
+            OtpHasher otpHasher = new OtpHasher();
+            ResetTokenCodec resetTokens = new ResetTokenCodec();
             SmtpEmailSender smtpEmailSender = new SmtpEmailSender();
 
-            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpCryptoHelper, smtpEmailSender);
+            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpHasher, resetTokens, smtpEmailSender);
 
             String targetEmail = "recipient@fixture.invalid";
 
