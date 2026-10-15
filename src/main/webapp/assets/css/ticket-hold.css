@@ -1,0 +1,145 @@
+.hold-page { max-width: 1040px; }
+.hold-panel, .hold-zone, .hold-summary, .hold-notice { padding: 1.5rem; margin: 1.5rem 0; border: 1px solid #d7d7d7; background: #fff; }
+.hold-notice { border-left: 4px solid #b42318; }
+.hold-zone legend { float: none; width: auto; font-size: 1.15rem; font-weight: 700; }
+.hold-seats { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: 1rem; }
+.hold-seat { min-width: 4rem; padding: .6rem; border: 1px solid #555; cursor: pointer; display: flex; align-items: center; gap: .5rem; }
+.hold-seat:has(input:checked) { background: #fff0f0; border-color: #b42318; }
+.hold-seat input { width: 1.1rem; height: 1.1rem; accent-color: #b42318; }
+.hold-items { padding-left: 1.3rem; }
+.hold-items li { margin: .65rem 0; overflow-wrap: anywhere; }
+.hold-id { overflow-wrap: anywhere; color: #555; }
+#hold-countdown { font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.hold-summary { position: sticky; bottom: 0; box-shadow: 0 -3px 12px #0000000d; }
+.hold-page :focus-visible { outline: 3px solid #1565c0; outline-offset: 3px; }
+.hold-page button { min-height: 44px; }
+.hold-quantity { width: 7rem; padding: .5rem; margin-left: .75rem; }
+.hold-seat-map{overflow-x:auto;padding:12px 0}.hold-seat-row{display:flex;gap:8px;align-items:center;margin-bottom:10px;min-width:max-content}.hold-row-label{width:72px;font-size:.85rem;font-weight:600}.hold-seat-row .hold-seat{position:relative;display:grid;place-items:center;min-width:44px;height:44px;padding:6px;border-color:#a5a5a5;font-size:.8rem}.hold-seat-row input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;margin:0}.hold-seat-row .hold-seat:has(input:checked){background:#d71920;color:#fff;border-color:#d71920}.hold-seat-row .hold-seat:has(input:focus-visible){outline:3px solid #1565c0;outline-offset:3px}.hold-seat-row .seat-held{background:#fff1cc;border-color:#b48724;color:#765511}.hold-seat-row .seat-sold,.hold-seat-row .seat-unavailable{background:#e7e7e7;color:#777;border-color:#d5d5d5}.hold-seat-row input:disabled{cursor:not-allowed}.hold-seat-legend{font-size:.85rem;color:#555}
+@media (max-width: 575px) { .hold-panel, .hold-zone, .hold-summary, .hold-notice { padding: 1rem; } .hold-summary button { width: 100%; } .hold-panel .btn { margin-top: .5rem; } }
+
+/* Event booking follows the shared flat, white / red / black theme. */
+.tc-booking-columns {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr);
+    gap: 2rem;
+    align-items: start;
+}
+.tc-zone-content, .tc-booking-sidebar { min-width: 0; }
+.tc-booking-sidebar { position: sticky; top: 6rem; }
+.tc-booking-sidebar .tc-booking-summary { position: static; padding: 1.5rem; }
+
+.hold-zone-navigation { margin-bottom: 1.5rem; }
+.hold-zone-navigation-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: .75rem;
+}
+.hold-zone-navigation-heading h3 { margin: 0; font-size: .9rem; font-weight: 600; }
+.hold-zone-navigation-heading p { margin: 0; font-size: .8rem; color: var(--gray-text); }
+.hold-zone-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: .5rem;
+    overflow-x: auto;
+    padding: .25rem .2rem .75rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--gray-light) var(--gray-bg);
+    overscroll-behavior-x: contain;
+}
+.hold-zone-tab {
+    flex: none;
+    min-height: 2.75rem;
+    border: 1px solid var(--black);
+    border-radius: 0;
+    padding: .625rem 1.125rem;
+    background: var(--black);
+    color: var(--white);
+    font: 600 .85rem / 1.4 var(--font-main);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color .16s, box-shadow .16s;
+}
+.hold-zone-tab[aria-selected=true] { box-shadow: inset 0 -3px var(--primary); }
+.hold-zone-tab:hover { background: var(--dark); }
+.hold-zone-tab:active { transform: translateY(1px); }
+#hold-form :focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+
+.tc-standing-options, .tc-seat-workspace #hold-zones { border: 0; padding: 0; margin: 0; min-width: 0; }
+.tc-booking-columns .hold-zone { margin: 0; background: var(--white); }
+.tc-booking-columns .hold-standing-tier, .tc-seat-workspace {
+    border: 1px solid var(--gray-border);
+    padding: 1.5rem;
+    min-width: 0;
+    background: var(--white);
+}
+/* Keep the zone title inside its panel rather than cutting through the border. */
+.tc-booking-columns .hold-zone legend { float: left; width: 100%; margin: 0 0 .5rem; padding: 0; font-size: 1rem; font-weight: 600; color: var(--black); }
+.hold-stock, .hold-seat-stock { clear: both; font-size: .85rem; color: var(--gray-text); margin: 0 0 1.25rem; }
+.hold-standing-controls { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; border-top: 1px solid var(--gray-border); padding-top: 1.25rem; }
+.hold-standing-price { font-size: 1.125rem; color: var(--primary); font-variant-numeric: tabular-nums; }
+.hold-quantity-label { display: grid; gap: .5rem; margin: 0; font-size: .8rem; color: var(--gray-text); }
+.hold-stepper { display: flex; border: 1px solid var(--gray-border); align-items: stretch; }
+.hold-stepper button { width: 2.75rem; min-height: 2.75rem; padding: 0; border: 0; border-radius: 0; background: var(--gray-bg); color: var(--black); font: 500 1.25rem var(--font-main); cursor: pointer; }
+.hold-stepper button:hover:enabled { background: var(--gray-subtle); }
+.hold-stepper button:disabled { color: var(--gray-light); cursor: not-allowed; }
+.hold-stepper .hold-quantity { width: 3rem; margin: 0; padding: .5rem 0; border: 0; border-radius: 0; background: var(--white); text-align: center; font: 600 .95rem var(--font-main); font-variant-numeric: tabular-nums; appearance: textfield; -moz-appearance: textfield; }
+.hold-quantity::-webkit-inner-spin-button, .hold-quantity::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+.tc-seat-panel-heading { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid var(--gray-border); }
+.tc-seat-panel-heading h3 { margin: 0; font-size: 1rem; font-weight: 600; }
+.tc-seat-panel-heading > span { font-size: .8rem; color: var(--gray-text); text-align: right; }
+.tc-seat-stage { background: var(--black); color: var(--white); text-align: center; padding: .75rem; font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 1.5rem; }
+.tc-seat-workspace .hold-seated-tier { border: 0; padding: 0 0 1.25rem; }
+.hold-seat-count-label { display: inline-flex; align-items: center; gap: .75rem; margin-bottom: 1rem; font-size: .85rem; }
+.tc-seat-workspace .hold-seat-map { padding: 1.25rem 0 .5rem; overscroll-behavior-x: contain; }
+.tc-seat-workspace .hold-seat-row { justify-content: center; gap: .5rem; margin-bottom: .5rem; }
+.tc-seat-workspace .hold-row-label { width: 3.5rem; font-size: .8rem; font-weight: 500; color: var(--gray-text); flex: none; }
+.tc-booking-columns .hold-seat-row .hold-seat { width: 2.75rem; min-width: 2.75rem; height: 2.75rem; min-height: 2.75rem; padding: 0; border-color: var(--gray-border); background: var(--white); color: var(--black); font-size: .8rem; font-weight: 600; flex: none; transition: background-color .16s, border-color .16s; }
+.tc-booking-columns .hold-seat-row .hold-seat span { padding: 0; }
+.tc-booking-columns .hold-seat-row .hold-seat input { inset: 0; width: 100%; height: 100%; opacity: 0; margin: 0; }
+.tc-booking-columns .hold-seat-row .hold-seat:hover:has(input:enabled:not(:checked)) { border-color: var(--black); background: var(--gray-bg); }
+.tc-booking-columns .hold-seat-row .hold-seat:has(input:checked) { background: var(--black); border-color: var(--black); color: var(--white); }
+.tc-booking-columns .is-premium .hold-seat-row .seat-available { border-color: var(--primary); color: var(--primary); }
+.tc-booking-columns .is-premium .hold-seat-row .hold-seat:has(input:checked) { background: var(--primary); border-color: var(--primary); color: var(--white); }
+.tc-booking-columns .hold-seat-row .seat-sold, .tc-booking-columns .hold-seat-row .seat-unavailable { background: var(--gray-subtle); border-color: var(--gray-border); color: var(--gray-light); text-decoration: line-through; }
+.tc-booking-columns .hold-seat-row .seat-held { background: #fff4d6; border-color: #dfca8b; color: #856717; }
+.tc-booking-columns .hold-seat-row .hold-seat:has(input:disabled) { opacity: 1; }
+.tc-seat-key { display: flex; flex-wrap: wrap; justify-content: center; gap: .75rem 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--gray-border); font-size: .8rem; color: var(--gray-text); }
+.tc-seat-key > span { display: flex; gap: .5rem; align-items: center; }
+.tc-seat-key i { width: .875rem; height: .875rem; border: 1px solid var(--gray-border); background: var(--white); display: inline-block; }
+.tc-seat-key .key-selected { background: var(--black); border-color: var(--black); }
+.tc-seat-key .key-vip { border-color: var(--primary); }
+.tc-seat-key .key-held { background: #fff4d6; border-color: #dfca8b; }
+.tc-seat-key .key-sold { background: var(--gray-subtle); border-color: var(--gray-border); }
+.tc-seat-mobile-help { display: none; margin: .75rem 0 0; font-size: .8rem; color: var(--gray-text); text-align: center; }
+
+.tc-booking-summary #selection-items { padding: 0; list-style: none; margin: 0 0 1rem; }
+.tc-booking-summary #selection-items li { display: flex; gap: .75rem; justify-content: space-between; border-bottom: 1px solid var(--gray-border); padding: .75rem 0; margin: 0; font-size: .85rem; }
+.tc-booking-summary #selection-items strong { white-space: nowrap; font-size: inherit; color: var(--black); }
+.tc-booking-summary #selection-count { font-size: .85rem; color: var(--gray-text); }
+.tc-booking-summary .hold-summary > p:has(#selection-total) { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--gray-border); padding-top: 1rem; }
+.tc-booking-summary #selection-total { font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.tc-booking-summary button { min-height: 3rem; }
+.tc-booking-summary button:disabled { opacity: .45; cursor: not-allowed; }
+.tc-standing-options[hidden], #seat-workspace[hidden], .tc-booking-columns .hold-zone[hidden] { display: none !important; }
+
+@media (max-width: 991px) {
+    .tc-booking-columns { grid-template-columns: 1fr; }
+    .tc-booking-sidebar { position: static; }
+}
+@media (max-width: 575px) {
+    .tc-seat-workspace, .tc-booking-columns .hold-standing-tier, .tc-booking-sidebar .tc-booking-summary { padding: 1.125rem; }
+    .tc-booking-columns { gap: 1.25rem; }
+    .hold-zone-navigation-heading, .tc-seat-panel-heading { align-items: flex-start; flex-direction: column; gap: .375rem; }
+    .hold-zone-tab { padding-inline: 1rem; }
+    .tc-seat-panel-heading > span { text-align: left; }
+    .tc-seat-mobile-help { display: block; }
+    .tc-seat-key { justify-content: flex-start; }
+    .hold-standing-controls { flex-wrap: wrap; }
+    .tc-seat-workspace .hold-seat-row { justify-content: flex-start; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .hold-zone-tab, .tc-booking-columns .hold-seat-row .hold-seat { transition: none; }
+}

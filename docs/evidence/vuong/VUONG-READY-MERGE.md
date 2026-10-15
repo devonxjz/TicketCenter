@@ -1,0 +1,11 @@
+# Completed finance tasks — scoped merge into dev
+
+Human authorization: merge completed VUONG tasks into dev, with passing verification. Completed scope is #29 commission administration, #30 settlement recalculation/blockers and #31 confirmation/idempotent payout. Base dev71e02ad; extracted from reviewed and verified integration c09c3a3. PR42 keeps the remaining whole-platform/Excel acceptance scope.
+
+Only the commission and settlement JSPs and financial mutation/read APIs are activated. Report, dashboard and audit servlet controllers/pages are excluded. Eight OpenAPI readside operations remain planned. Swagger/OpenAPI support documents the delivered finance APIs; it does not establish completion of #28. Shared read-model/cache/CSV helpers remain for financial invalidation and unchanged SQL/Redis/JDBC regression coverage, with no public readside routes. Locked models/pom/owner migration contents are unchanged.
+
+Local selected revision checks: package succeeds;338 discovered Java tests,285 executed,53 guarded external skips, zero failures/errors; Node20/20; canonical JDBC19/19 and team-schema JDBC9/9 (zero skips, including 10,000-order CSV regression under a 128 MiB heap); financial HTTP/JSP8/8 and Swagger boundary HTTP10/10. The default suite deliberately does not open DB/SMTP; explicit DB tests use marked isolated loopback databases. No shared database, SMTP or actual bank provider is used. Simulated payout transfers are explicit fixture-only tests; production defaults fail closed.
+
+Expanded CI before merge must execute canonical19 and team9 with zero skips, five SQL suites/six real races, marked actual Redis, default regression, build and isolated HTTP. Verify exact feature SHA before merge and exact dev SHA afterward. Merge uses a GitHub merge commit preserving task history, not direct pushes or rewritten shared refs. No publish/deploy is authorized. CI/merge results and commit IDs are recorded in the PR body; earlier CI results alone are not proof of the extracted scope.
+
+User previously authorized proceeding without waiting for peer review and now explicitly authorized this merge. Do not fabricate a GitHub approval or modify branch protection. Native Excel and full owner/JPA/E2E acceptance remain separate for #28/#32/#33. No automatic issue closure is requested by this scoped merge.

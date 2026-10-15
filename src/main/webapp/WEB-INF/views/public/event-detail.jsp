@@ -1,0 +1,68 @@
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<!DOCTYPE html><html lang="vi"><head><title>Chi tiết sự kiện | TicketsCenter</title><jsp:include page="/WEB-INF/views/layout/meta-head.jsp"/><link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/public-events.css"><link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/ticket-hold.css?v=zone-tabs-4"></head>
+<body data-public-page="detail" data-hold-page="selection" data-context="${pageContext.request.contextPath}"><jsp:include page="/WEB-INF/views/layout/header.jsp"/>
+<main id="main-content" class="container tc-detail">
+ <nav id="event-breadcrumb" aria-label="breadcrumb" class="mb-4" hidden><ol class="breadcrumb small"><li class="breadcrumb-item"><a href="${pageContext.request.contextPath}/" class="text-muted">Trang chủ</a></li><li class="breadcrumb-item"><a id="breadcrumb-category" class="text-muted"></a></li><li id="breadcrumb-event" class="breadcrumb-item active" aria-current="page"></li></ol></nav>
+ <p id="status" role="status" aria-live="polite">Đang tải sự kiện…</p><button id="event-retry" type="button" class="btn-outline-custom" hidden>Thử tải lại</button>
+ <article id="event" hidden><section class="tc-detail-hero"><div class="tc-event-poster"><span class="tc-image-empty">Chưa có ảnh sự kiện</span><img id="cover" hidden alt=""><span id="event-category" class="event-category-badge"></span></div><div><span id="sale-state" class="tc-event-status"></span><h1 id="title" class="tc-detail-title"></h1>
+  <dl class="tc-detail-meta"><div><dt>Thời gian</dt><dd id="time"></dd></div><div><dt>Địa điểm</dt><dd id="venue"></dd></div><div><dt>Ban tổ chức</dt><dd id="organizer"></dd></div><div><dt>Thời gian bán vé</dt><dd id="sale"></dd></div><div><dt>Quy định đặt chỗ</dt><dd>Tối đa 8 vé / lượt · Giữ vé 10 phút khi máy chủ xác nhận</dd></div></dl>
+  <div class="tc-detail-price"><div><span class="tc-eyebrow">Giá vé từ</span><strong id="event-price"></strong></div><a id="event-hold-link" class="btn-primary-custom">Chọn vé &amp; Vị trí</a></div>
+ </div></section>
+ <section id="bookingSection" class="tc-booking-section" aria-labelledby="hold-heading"><h2 id="hold-heading" class="tc-detail-section-title">Chọn vé &amp; Sơ đồ vị trí</h2><p class="small text-muted">Giá và chỗ trống được đối chiếu với máy chủ. Thời hạn 10 phút bắt đầu sau khi giữ vé thành công.</p>
+  <p id="hold-message" role="status" aria-live="polite">Đang đối chiếu lượt giữ…</p>
+  <div id="hold-auth" class="tc-notice mb-4" hidden><p>Đăng nhập và xác minh email để chọn vé, xem ghế còn trống và giữ vị trí.</p><a id="booking-login" href="${pageContext.request.contextPath}/auth/login" class="btn-primary-custom">Đăng nhập để chọn vé</a> <a href="${pageContext.request.contextPath}/auth/verify-email" class="btn-outline-custom">Xác minh email</a></div>
+  <div id="hold-recovery" class="hold-notice" hidden><p>Kết quả yêu cầu chưa rõ. Thử lại cùng yêu cầu để đối chiếu với máy chủ.</p><button id="hold-retry" type="button" class="btn-outline-custom">Thử lại yêu cầu</button></div>
+   <section id="current-hold" class="tc-hold-confirmed mb-4" hidden><h3 class="h5 fw-bold">Lượt giữ hiện tại</h3><p id="hold-id" hidden></p><p>Thời gian còn lại <strong id="hold-countdown" role="timer" aria-label="Thời gian còn lại"></strong></p><p id="hold-deadline" class="small text-muted"></p><ul id="hold-items" class="hold-items"></ul><p>Giá vé đã giữ <strong id="hold-total"></strong></p><div class="tc-page-actions"><a id="hold-pay-link" class="btn-primary-custom" href="${pageContext.request.contextPath}/checkout?prepare=1&amp;pay=now">Thanh toán ngay</a><a id="hold-view" class="btn-outline-custom" href="${pageContext.request.contextPath}/checkout">Xem đơn vé &amp; ưu đãi</a><button id="hold-cancel" type="button" class="btn-outline-custom">Hủy lượt giữ</button></div><p class="small text-muted mt-2 mb-0">Vé được giữ cho bạn đến hết thời gian trên. Bạn có thể thanh toán bất cứ lúc nào trước khi hết hạn.</p></section>
+  <form id="hold-form" hidden>
+   <p id="sale-deadline" class="small text-muted"></p>
+   <div class="hold-zone-navigation">
+    <div class="hold-zone-navigation-heading">
+     <h3 id="zone-tabs-heading">Chọn khu vé</h3>
+     <p id="zone-tabs-help">Cuộn ngang để xem tất cả khu vé.</p>
+    </div>
+    <div id="zone-tabs" class="hold-zone-tabs" role="tablist" aria-labelledby="zone-tabs-heading" aria-describedby="zone-tabs-help"></div>
+   </div>
+   <div class="tc-booking-columns">
+    <div class="tc-zone-content">
+     <fieldset id="standing-zones" class="tc-standing-options" hidden>
+      <legend class="visually-hidden">Chọn số lượng vé đứng</legend>
+     </fieldset>
+     <section id="seat-workspace" class="tc-seat-workspace" aria-labelledby="seat-map-heading" hidden>
+      <div class="tc-seat-panel-heading">
+       <h3 id="seat-map-heading">Chọn ghế</h3>
+       <span>Bấm vào ghế trống để chọn vị trí</span>
+      </div>
+      <div class="tc-seat-stage">Sân khấu</div>
+      <fieldset id="hold-zones"><legend class="visually-hidden">Khu vé và ghế còn lại</legend></fieldset>
+      <div class="tc-seat-key" aria-label="Chú thích trạng thái ghế">
+       <span><i class="key-available" aria-hidden="true"></i>Ghế trống</span>
+       <span><i class="key-selected" aria-hidden="true"></i>Đang chọn</span>
+       <span><i class="key-vip" aria-hidden="true"></i>Khu VIP</span>
+       <span><i class="key-held" aria-hidden="true"></i>Đang giữ</span>
+       <span><i class="key-sold" aria-hidden="true"></i>Đã bán</span>
+      </div>
+      <p class="tc-seat-mobile-help">Vuốt ngang để xem đủ hàng ghế.</p>
+     </section>
+    </div>
+    <div class="tc-booking-sidebar">
+     <aside class="tc-booking-summary" aria-label="Tóm tắt lựa chọn">
+      <h3 class="h5 fw-bold mb-3">Vé đã chọn</h3>
+      <ul id="selection-items" class="hold-items small" aria-live="polite"></ul>
+      <div class="hold-summary">
+       <p id="selection-count" aria-live="polite">Đã chọn 0 / 8 vé</p>
+       <p>Tạm tính <strong id="selection-total">0 đ</strong></p>
+       <p class="small text-muted">Tối đa 8 vé mỗi lượt. Vé được giữ trong 10 phút sau khi xác nhận.</p>
+       <div class="d-grid gap-2">
+        <button id="hold-pay-now" type="submit" class="btn-primary-custom w-100 py-3 fw-bold fs-6" disabled>Thanh toán ngay</button>
+        <button id="hold-submit" type="submit" class="btn-outline-custom w-100 py-2 fw-semibold" disabled>Giữ vé (thanh toán sau)</button>
+       </div>
+      </div>
+     </aside>
+    </div>
+   </div>
+  </form>
+  <button id="hold-refresh" type="button" class="btn-outline-custom mt-3">Cập nhật tình trạng vé</button>
+ </section>
+ <section class="mt-5"><h2 class="tc-detail-section-title">Thông tin sự kiện</h2><p id="description" class="tc-event-description"></p><h3 class="h5 fw-bold">Khu vực &amp; Tình trạng vé</h3><p id="zone-status" role="status" class="small text-muted"></p><div id="zones"></div></section>
+ </article><noscript>Vui lòng bật JavaScript để tải thông tin sự kiện, chọn vị trí và giữ vé.</noscript>
+</main><jsp:include page="/WEB-INF/views/layout/footer.jsp"/><script defer src="${pageContext.request.contextPath}/assets/js/public-events.js"></script><script defer src="${pageContext.request.contextPath}/assets/js/ticket-hold.js?v=seat-coupon-9"></script></body></html>

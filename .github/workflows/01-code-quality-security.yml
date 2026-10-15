@@ -1,0 +1,126 @@
+name: "01 - Code Quality & Security Scan"
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  lint-and-code-quality:
+    name: Lint & Code Quality Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'oracle'
+          cache: 'maven'
+
+      - name: Compile & Check Compiler Warnings
+        run: |
+          echo "=== Kiểm tra chuẩn biên dịch Java 25 & Code Formatting ==="
+          mvn -B clean compile test-compile -DskipTests
+
+      - name: Enforce Architecture & Naming Invariants
+        id: architecture
+        run: |
+          echo "=== Chạy kiểm tra quy chuẩn kiến trúc Package-by-Feature ==="
+          mvn -B test -Dtest=FeaturePackageStructureTest
+
+      - name: Generate Code Quality Summary
+        if: always()
+        run: |
+          echo "### 🔍 Code Quality & Lint Report" >> $GITHUB_STEP_SUMMARY
+          echo "- **Java Version:** JDK 25 (Oracle Distribution)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Architecture Test Step:** ${{ steps.architecture.outcome }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Scope:** package structure only; servlet mapping and business acceptance are separate gates." >> $GITHUB_STEP_SUMMARY
+
+  secret-scan:
+    name: Secret & Credential Leak Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reject tracked private configuration and credentials including YAML
+        run: |
+          python3 - <<'PY'
+          import pathlib, re, subprocess, sys
+
+          tracked = subprocess.check_output(['git', 'ls-files', '-z']).decode('utf-8').split('\0')
+          key = re.compile(r'-----BEGIN (?:(?:RSA|DSA|EC|OPENSSH|ENCRYPTED) )?PRIVATE KEY-----')
+          email = re.compile(r'[A-Za-z0-9._%+-]+@([A-Za-z0-9.-]+\.[A-Za-z]{2,})')
+          findings = set()
+          for name in filter(None, tracked):
+              path = pathlib.Path(name)
+              if ('.local' in path.parts
+                  or name == 'src/main/resources/application.properties'
+                  or (path.name.startswith('.env') and not path.name.endswith('.example'))):
+                  findings.add(name)
+              if not path.is_file():
+                  continue
+              content = path.read_bytes()
+              if b'\0' in content:
+                  continue
+              text = content.decode('utf-8', errors='replace')
+              if key.search(text):
+                  findings.add(name)
+              if path.suffix.lower() in ('.yml', '.yaml'):
+                  # Real service settings belong in Secrets/environment; CI uses disposable fixtures.
+                  if re.search(r'[A-Za-z0-9-]+\.database\.windows\.net', text, re.IGNORECASE):
+                      findings.add(name)
+                  for domain in email.findall(text):
+                      domain = domain.lower()
+                      if not (domain.endswith(('.invalid', '.test', '.example'))
+                              or domain in ('example.com', 'example.net', 'example.org')
+                              or domain.endswith(('.example.com', '.example.net', '.example.org'))):
+                          findings.add(name)
+          if findings:
+              # Never print matching lines: they may contain an actual account or secret.
+              for name in sorted(findings):
+                  print('::error file=' + name + '::Private configuration or credentials detected; use external configuration or reserved test data.')
+              sys.exit(1)
+          print('Tracked configuration check passed, including all YAML files; no credential contents were logged.')
+          PY
+
+      - name: Run Gitleaks Secret Scanner
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+  sast-scan:
+    name: Static Application Security Testing (SAST)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep SAST Scan
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/security-audit
+            p/owasp-top-ten
+            p/secrets
+        continue-on-error: true
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+
+      - name: Security Scan Summary
+        if: always()
+        run: |
+          echo "### Security and SAST execution" >> $GITHUB_STEP_SUMMARY
+          echo "- Review each scan step outcome and findings; warning-only scans do not establish clean acceptance." >> $GITHUB_STEP_SUMMARY

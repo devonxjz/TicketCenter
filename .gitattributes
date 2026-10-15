@@ -1,0 +1,9 @@
+# Preserve reviewed upstream bytes and SHA-256 hashes across Windows/Linux checkouts.
+src/main/webapp/swagger/vendor/swagger-ui-bundle.js -text
+src/main/webapp/swagger/vendor/swagger-ui.css -text
+src/main/webapp/swagger/vendor/LICENSE -text
+database/migrations/030_khanh02_signed_checkin.sql text eol=lf
+src/main/webapp/assets/checkin/vendor/html5-qrcode.min.js -text
+src/main/webapp/assets/checkin/vendor/LICENSE -text
+# Migration 029 is recorded by SHA-256 in Azure; keep identical bytes on Windows and Linux.
+database/migrations/029_khanh03_refund_request.sql text eol=lf

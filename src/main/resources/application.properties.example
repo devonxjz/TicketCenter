@@ -1,0 +1,115 @@
+# ===================================================================
+# TicketsCenter — application.properties.example
+# File mẫu cấu hình hệ thống TicketsCenter (Không chứa mật khẩu thật)
+# Copy thành src/main/resources/application.properties. File thật được Git bỏ qua và không đóng gói vào WAR.
+# ./tools/run-web.ps1 đọc trực tiếp file này; không cần azure.properties.
+# ===================================================================
+
+# 1. Cơ sở dữ liệu Microsoft SQL Server (Azure SQL / Local)
+db.host=ticketscenter.database.windows.net
+db.port=1433
+db.name=TicketsCenter
+db.user=
+db.password=
+db.encrypt=true
+db.trustServerCertificate=false
+db.loginTimeout=30
+
+# URL kết nối JDBC trực tiếp
+db.url=
+
+# Tương thích với các biến TC_SQL_*
+TC_SQL_HOST=ticketscenter.database.windows.net
+TC_SQL_PORT=1433
+TC_SQL_DEV_DB=TicketsCenter
+TC_SQL_TEST_DB=TicketsCenter_Test
+TC_SQL_BENCH_DB=TicketsCenter_Bench
+TC_SQL_LOGIN=
+TC_SQL_PASSWORD=
+TC_SQL_MIGRATION_LOGIN=
+TC_SQL_MIGRATION_PASSWORD=
+TC_SQL_ENCRYPT=true
+TC_SQL_TRUST_SERVER_CERT=false
+TC_SQL_CONNECT_TIMEOUT_SEC=30
+
+# Runtime principals. Provision users with database/security scripts.
+db.buyer.user=
+db.buyer.password=
+db.manager.user=
+db.manager.password=
+db.check_in.user=
+db.check_in.password=
+db.admin.user=
+db.admin.password=
+db.auth.user=
+db.auth.password=
+db.worker.user=
+db.worker.password=
+
+# 2. Cấu hình Ứng dụng Web
+app.base.url=http://localhost:8080/ticketscenter
+app.env=development
+app.data.mode=real
+app.secret.key=
+# Persistent local image files for event images. Keep this directory across restarts.
+# app.base.url must contain the deployment context used by the image-serving route.
+event.image.directory=.local/event-images
+
+# All machine-specific paths belong to this same private configuration file.
+# Use forward slashes for Windows paths, including paths containing spaces.
+runtime.java.home=
+runtime.tomcat.home=
+runtime.port=18082
+
+# Chính sách server-side dùng khi admin duyệt tổ chức; không nhận từ applicant.
+# organization.initialCommissionPolicy={"ratePercent":5,"fixedFee":0,"effectiveFrom":"2026-01-01","effectiveTo":"2027-01-01"}
+
+
+# 3. Cấu hình Cổng Thanh Toán payOS (lấy key tại https://my.payos.vn → Kênh thanh toán)
+# Có thể đặt bằng biến môi trường PAYOS_CLIENT_ID / PAYOS_API_KEY / PAYOS_CHECKSUM_KEY.
+payos.client.id=
+payos.api.key=
+payos.checksum.key=
+
+payos.payout.client.id=
+payos.payout.api.key=
+payos.payout.checksum.key=
+
+# 4. Cấu hình Dịch vụ Gửi Email (SMTP)
+mail.smtp.host=smtp.gmail.com
+mail.smtp.port=587
+mail.smtp.user=
+mail.smtp.password=
+# Simulated refund provider (payOS has no refund API); never expose these controls through buyer requests.
+refund.worker.enabled=false
+refund.simulated.state.directory=data/refund-gateway
+refund.simulated.outcome=SUCCEEDED
+refund.simulated.timeoutAfterSideEffect=false
+payout.simulated.state.directory=data/payout-gateway
+payout.simulated.outcome=SUCCEEDED
+payout.simulated.timeoutAfterSideEffect=false
+
+# 5. Cấu hình Redis (Idempotency Key & Caching)
+redis.host=localhost
+redis.port=6379
+redis.password=
+redis.timeout=2000
+# redis.url=redis://default:password@host:6379
+# redis.cache.catalog.enabled=true
+
+# 7. Cấu hình Connection Pool (HikariCP)
+hikari.maximum-pool-size=20
+hikari.minimum-idle=10
+hikari.idle-timeout=600000
+hikari.connection-timeout=30000
+hikari.max-lifetime=1800000
+hikari.pool-budget=60
+
+# Identity: OTP, password reset, login throttle, session cache (defaults shown)
+identity.otp.expiry.minutes=5
+identity.otp.cooldown.seconds=60
+identity.otp.max.failed.attempts=5
+identity.reset.token.expiry.minutes=15
+identity.login.max.failures=5
+identity.login.throttle.window.minutes=15
+identity.session.cache.ttl.seconds=180

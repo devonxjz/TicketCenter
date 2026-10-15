@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_6_1.xsd"
+         version="6.1" metadata-complete="false">
+    <!-- Annotation-declared filters have no defined order. The security chain is declared here so it
+         always runs, in this order, before the annotation-only routing filters that handle or forward
+         requests themselves. Names equal the class names, so these mappings replace the annotation ones. -->
+    <filter>
+        <filter-name>vn.ticketscenter.config.web.SecurityHeadersFilter</filter-name>
+        <filter-class>vn.ticketscenter.config.web.SecurityHeadersFilter</filter-class>
+    </filter>
+    <filter>
+        <filter-name>vn.ticketscenter.identity.security.DatabaseActorFilter</filter-name>
+        <filter-class>vn.ticketscenter.identity.security.DatabaseActorFilter</filter-class>
+    </filter>
+    <filter>
+        <filter-name>vn.ticketscenter.config.web.RequestValidationFilter</filter-name>
+        <filter-class>vn.ticketscenter.config.web.RequestValidationFilter</filter-class>
+    </filter>
+    <filter>
+        <filter-name>vn.ticketscenter.identity.security.SessionValidationFilter</filter-name>
+        <filter-class>vn.ticketscenter.identity.security.SessionValidationFilter</filter-class>
+    </filter>
+    <filter>
+        <filter-name>vn.ticketscenter.identity.security.CsrfFilter</filter-name>
+        <filter-class>vn.ticketscenter.identity.security.CsrfFilter</filter-class>
+    </filter>
+    <filter>
+        <filter-name>vn.ticketscenter.identity.security.RoleAuthorizationFilter</filter-name>
+        <filter-class>vn.ticketscenter.identity.security.RoleAuthorizationFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>vn.ticketscenter.config.web.SecurityHeadersFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>vn.ticketscenter.identity.security.DatabaseActorFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>vn.ticketscenter.config.web.RequestValidationFilter</filter-name>
+        <url-pattern>/api/*</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>vn.ticketscenter.identity.security.SessionValidationFilter</filter-name>
+        <url-pattern>/api/*</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>vn.ticketscenter.identity.security.CsrfFilter</filter-name>
+        <url-pattern>/api/*</url-pattern>
+    </filter-mapping>
+    <filter-mapping>
+        <filter-name>vn.ticketscenter.identity.security.RoleAuthorizationFilter</filter-name>
+        <url-pattern>/admin/*</url-pattern>
+        <url-pattern>/organizer/*</url-pattern>
+    </filter-mapping>
+
+    <!-- Resolve the existing Organization wildcard collision through descriptor precedence.
+         EventApiServlet keeps /api/organizations/*; the reports subresource is forwarded by
+         OrganizationApiRoutesFilter. Both module implementations and other annotations remain intact. -->
+    <servlet>
+        <servlet-name>FinanceReportServlet</servlet-name>
+        <servlet-class>vn.ticketscenter.report.controller.ReportServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>FinanceReportServlet</servlet-name>
+        <url-pattern>/api/admin/reports</url-pattern>
+        <url-pattern>/api/reports/export</url-pattern>
+        <url-pattern>/api/reports/options</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>OrganizationMembersServlet</servlet-name>
+        <servlet-class>vn.ticketscenter.identity.controller.OrganizationMembersServlet</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>MyMembershipsServlet</servlet-name>
+        <servlet-class>vn.ticketscenter.identity.controller.MyMembershipsServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>MyMembershipsServlet</servlet-name>
+        <url-pattern>/api/me/memberships</url-pattern>
+    </servlet-mapping>
+
+    <!-- Servlet chỉ được gọi qua getNamedDispatcher (không có URL riêng). Phải khai báo ở đây vì
+         @WebServlet với urlPatterns rỗng bị container bỏ qua, khiến route filter trả 503. -->
+    <servlet>
+        <servlet-name>OrderRefundableTicketsServlet</servlet-name>
+        <servlet-class>vn.ticketscenter.fulfillment.refund.controller.OrderRefundableTicketsServlet</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>CheckInWindowServlet</servlet-name>
+        <servlet-class>vn.ticketscenter.fulfillment.checkin.controller.CheckInWindowServlet</servlet-class>
+    </servlet>
+
+    <!-- Mọi lỗi (sendError hoặc exception chưa bắt) đi qua ErrorPageServlet: trang HTML nhận giao diện
+         lỗi của hệ thống, request API vẫn nhận envelope JSON. Không khai báo mã cụ thể để phủ hết 4xx/5xx. -->
+    <error-page>
+        <location>/error-handler</location>
+    </error-page>
+</web-app>

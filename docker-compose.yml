@@ -1,0 +1,56 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ticketscenter-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # Set SQL credentials in the ignored .env file or process environment, never in this YAML.
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_CACHE_CATALOG_ENABLED=${REDIS_CACHE_CATALOG_ENABLED:-true}
+      - TC_SQL_HOST=${TC_SQL_HOST:-host.docker.internal}
+      - TC_SQL_PORT=${TC_SQL_PORT:-1433}
+      - TC_SQL_DEV_DB=${TC_SQL_DEV_DB:-TicketsCenter_Dev}
+      - TC_SQL_LOGIN=${TC_SQL_LOGIN:-sa}
+      - TC_SQL_PASSWORD=${TC_SQL_PASSWORD:-}
+      - TC_SQL_ENCRYPT=${TC_SQL_ENCRYPT:-false}
+      - TC_SQL_TRUST_SERVER_CERT=${TC_SQL_TRUST_SERVER_CERT:-true}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: ticketscenter-redis
+    restart: unless-stopped
+    # Published on loopback only; set REDIS_PASSWORD in the ignored .env file to require authentication.
+    ports:
+      - "127.0.0.1:6379:6379"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    volumes:
+      - redis_data:/data
+    # noeviction: idempotency keys and leases share this instance with caches and must never be evicted;
+    # a full instance rejects cache writes instead, and the application falls back to SQL Server.
+    command:
+      - sh
+      - -c
+      - >-
+        exec redis-server --save 60 1 --appendonly yes --maxmemory 512mb --maxmemory-policy noeviction
+        $${REDIS_PASSWORD:+--requirepass "$$REDIS_PASSWORD"}
+    healthcheck:
+      test: ["CMD-SHELL", "if [ -n \"$$REDIS_PASSWORD\" ]; then export REDISCLI_AUTH=\"$$REDIS_PASSWORD\"; fi; redis-cli ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  redis_data:
+    driver: local

@@ -1,0 +1,36 @@
+name: "06 - Explicit Protected Rollout Simulation"
+on:
+  workflow_call:
+    inputs:
+      deployment_strategy:
+        type: string
+        default: blue-green
+  workflow_dispatch:
+    inputs:
+      deployment_strategy:
+        type: choice
+        options: [blue-green, canary]
+        default: blue-green
+permissions:
+  contents: read
+jobs:
+  production-simulation:
+    if: github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Validate and describe requested simulation
+        id: simulation
+        env:
+          STRATEGY: ${{ inputs.deployment_strategy }}
+        run: |
+          set -euo pipefail
+          case "$STRATEGY" in
+            blue-green|canary) echo "Requested rollout strategy: $STRATEGY (simulation only)." ;;
+            *) echo 'Unsupported rollout strategy.' >&2; exit 1 ;;
+          esac
+          echo 'No application service started, deployment executed, release created or payment sent.'
+      - name: Report actual simulation step outcome
+        if: always()
+        run: |
+          echo 'Protected rollout simulation step: ${{ steps.simulation.outcome }}. This does not establish deployment, DB or E2E acceptance.' >> "$GITHUB_STEP_SUMMARY"

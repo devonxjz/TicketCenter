@@ -1,0 +1,11 @@
+# Report period and zero-state clarification
+
+The reported screenshot was reproduced through the manager API with 2026-09-13 through 2026-10-14 UTC. It returns one paid order, zero gross revenue and three historical event rows. The same scope over complete history returns nine paid orders and 5,640,000 VND: two organization events contribute 2,820,000 VND each; the archived presentation event contributes zero. The revenue arithmetic is consistent; the previous default recent-date window obscured earlier transactions.
+
+Reports now default to complete history, with explicit all-time, 7/30/90 recent UTC-day and custom-period choices. Recent periods count the stated number of UTC calendar days, including today, rather than an extra day. The displayed period applies to all four report metrics, pagination, event/organization scope and CSV. Complete-history transport bounds are 1970-01-01 through 9999-12-31 23:59:59 UTC; these technical bounds are hidden behind the readable all-time label, while custom date inputs remain available.
+
+Absent settlement statements render an explicit empty state, not a collection of zero monetary cards. Real zero-revenue periods retain their actual database amounts and explain that no ticket revenue was generated within the selected scope. Financial functions, ledger records, settlement snapshots and authorization rules are unchanged. Archived financial history remains reportable.
+
+Verification: 198 JavaScript tests, 185 passed, 13 environment-dependent tests skipped, zero failures; focused report tests cover presets, stale-response rejection, CSV date equality and missing-statement display. The full local package build succeeded; JSP compilation completed with zero errors. Live manager/admin report pages include the new period control. On verification, manager report and CSV both total 5,640,000 VND; admin report and CSV both total 610,561,200 VND across 48 event rows. These are database ledger figures, not independent confirmation of external bank receipts. All four metrics were read successfully for both roles; the manager has no settlement statement yet.
+
+The browser tool's local URL restriction still prevents visual screenshot verification. API, served-page and client tests provide the evidence above. The app remains available at http://127.0.0.1:18082/ticketscenter/finance/reports.
