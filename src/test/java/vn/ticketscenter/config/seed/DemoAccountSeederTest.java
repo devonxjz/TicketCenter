@@ -15,8 +15,8 @@ import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.model.User;
 import vn.ticketscenter.identity.repository.UserRepository;
 import vn.ticketscenter.identity.security.UserPrincipal;
-import vn.ticketscenter.identity.service.AccountService;
-import vn.ticketscenter.identity.service.AuthService;
+import vn.ticketscenter.identity.service.EmailNormalizer;
+import vn.ticketscenter.identity.service.LoginService;
 import vn.ticketscenter.identity.service.PasswordHasher;
 
 import java.time.Clock;
@@ -30,7 +30,7 @@ class DemoAccountSeederTest {
     private static PersistenceRegistry registry;
     private static TransactionManager transactions;
     private static PasswordHasher passwordHasher;
-    private static AuthService authService;
+    private static LoginService loginService;
     private static String previousDataMode;
 
     @BeforeAll
@@ -41,7 +41,7 @@ class DemoAccountSeederTest {
         registry.initialize();
         transactions = registry.transactionManager();
         passwordHasher = new PasswordHasher();
-        authService = new AuthService(transactions, new UserRepository(), passwordHasher);
+        loginService = new LoginService(transactions, new UserRepository(), passwordHasher);
 
         // Chạy seed dữ liệu
         new AdminSeeder(passwordHasher, Clock.systemUTC()).seed(transactions);
@@ -60,7 +60,7 @@ class DemoAccountSeederTest {
     @Test
     @DisplayName("Admin: Đăng nhập thành công với admin@fixture.invalid và mật khẩu mật khẩu fixture từ cấu hình")
     void testAdminAccountLogin() {
-        UserPrincipal principal = authService.login(new LoginRequestDto(vn.ticketscenter.config.AppConfig.get("admin.email", "admin@fixture.invalid"), vn.ticketscenter.config.AppConfig.get("admin.password")));
+        UserPrincipal principal = loginService.login(new LoginRequestDto(vn.ticketscenter.config.AppConfig.get("admin.email", "admin@fixture.invalid"), vn.ticketscenter.config.AppConfig.get("admin.password")));
         assertNotNull(principal);
         assertEquals(PlatformRole.ADMIN, principal.platformRole());
         assertTrue(principal.isAdmin());
@@ -69,7 +69,7 @@ class DemoAccountSeederTest {
     @Test
     @DisplayName("Admin: Đăng nhập thành công với tên đăng nhập 'admin' và mật khẩu mật khẩu fixture từ cấu hình")
     void testAdminAccountLoginWithUsername() {
-        UserPrincipal principal = authService.login(new LoginRequestDto("admin", vn.ticketscenter.config.AppConfig.get("admin.password")));
+        UserPrincipal principal = loginService.login(new LoginRequestDto("admin", vn.ticketscenter.config.AppConfig.get("admin.password")));
         assertNotNull(principal);
         assertEquals(PlatformRole.ADMIN, principal.platformRole());
         assertTrue(principal.isAdmin());
@@ -78,7 +78,7 @@ class DemoAccountSeederTest {
     @Test
     @DisplayName("Manager: Đăng nhập thành công với abcc@manager.com và mật khẩu 123")
     void testManagerAccountLogin() {
-        UserPrincipal principal = authService.login(new LoginRequestDto("abcc@manager.com", "123"));
+        UserPrincipal principal = loginService.login(new LoginRequestDto("abcc@manager.com", "123"));
         assertNotNull(principal);
         assertEquals(PlatformRole.CUSTOMER, principal.platformRole());
         assertEquals(OrganizationRole.MANAGER, principal.organizationRole());
@@ -86,7 +86,7 @@ class DemoAccountSeederTest {
 
         // Kiểm tra quyền MANAGER trong tổ chức
         transactions.execute(DatabasePrincipal.AUTH, em -> {
-            String normalizedEmail = AccountService.normalizeEmail("abcc@manager.com");
+            String normalizedEmail = EmailNormalizer.normalize("abcc@manager.com");
             User user = em.createQuery("SELECT u FROM User u WHERE LOWER(u.email) = :e", User.class)
                     .setParameter("e", normalizedEmail)
                     .getSingleResult();
@@ -105,7 +105,7 @@ class DemoAccountSeederTest {
     @Test
     @DisplayName("Manager: Đăng nhập thành công với tên đăng nhập 'abcc_manager' và mật khẩu 123")
     void testManagerAccountLoginWithUsername() {
-        UserPrincipal principal = authService.login(new LoginRequestDto("abcc_manager", "123"));
+        UserPrincipal principal = loginService.login(new LoginRequestDto("abcc_manager", "123"));
         assertNotNull(principal);
         assertEquals(PlatformRole.CUSTOMER, principal.platformRole());
         assertEquals(OrganizationRole.MANAGER, principal.organizationRole());
@@ -115,7 +115,7 @@ class DemoAccountSeederTest {
     @Test
     @DisplayName("Staff: Đăng nhập thành công với abcc@staff.com và mật khẩu 123")
     void testStaffAccountLogin() {
-        UserPrincipal principal = authService.login(new LoginRequestDto("abcc@staff.com", "123"));
+        UserPrincipal principal = loginService.login(new LoginRequestDto("abcc@staff.com", "123"));
         assertNotNull(principal);
         assertEquals(PlatformRole.CUSTOMER, principal.platformRole());
         assertEquals(OrganizationRole.CHECK_IN_STAFF, principal.organizationRole());
@@ -123,7 +123,7 @@ class DemoAccountSeederTest {
 
         // Kiểm tra quyền CHECK_IN_STAFF trong tổ chức
         transactions.execute(DatabasePrincipal.AUTH, em -> {
-            String normalizedEmail = AccountService.normalizeEmail("abcc@staff.com");
+            String normalizedEmail = EmailNormalizer.normalize("abcc@staff.com");
             User user = em.createQuery("SELECT u FROM User u WHERE LOWER(u.email) = :e", User.class)
                     .setParameter("e", normalizedEmail)
                     .getSingleResult();
@@ -142,7 +142,7 @@ class DemoAccountSeederTest {
     @Test
     @DisplayName("Staff: Đăng nhập thành công với tên đăng nhập 'abcc_staff' và mật khẩu 123")
     void testStaffAccountLoginWithUsername() {
-        UserPrincipal principal = authService.login(new LoginRequestDto("abcc_staff", "123"));
+        UserPrincipal principal = loginService.login(new LoginRequestDto("abcc_staff", "123"));
         assertNotNull(principal);
         assertEquals(PlatformRole.CUSTOMER, principal.platformRole());
         assertEquals(OrganizationRole.CHECK_IN_STAFF, principal.organizationRole());
@@ -152,7 +152,7 @@ class DemoAccountSeederTest {
     @Test
     @DisplayName("Buyer: Đăng nhập thành công với buyer@ticketscenter.vn và mật khẩu 123")
     void testBuyerAccountLogin() {
-        UserPrincipal principal = authService.login(new LoginRequestDto("buyer@ticketscenter.vn", "123"));
+        UserPrincipal principal = loginService.login(new LoginRequestDto("buyer@ticketscenter.vn", "123"));
         assertNotNull(principal);
         assertEquals(PlatformRole.CUSTOMER, principal.platformRole());
         assertNull(principal.organizationRole());
@@ -162,7 +162,7 @@ class DemoAccountSeederTest {
     @Test
     @DisplayName("Buyer: Đăng nhập thành công với tên đăng nhập 'buyer1' và mật khẩu 123")
     void testBuyerAccountLoginWithUsername() {
-        UserPrincipal principal = authService.login(new LoginRequestDto("buyer1", "123"));
+        UserPrincipal principal = loginService.login(new LoginRequestDto("buyer1", "123"));
         assertNotNull(principal);
         assertEquals(PlatformRole.CUSTOMER, principal.platformRole());
         assertNull(principal.organizationRole());

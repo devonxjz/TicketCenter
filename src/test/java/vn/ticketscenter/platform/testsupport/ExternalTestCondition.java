@@ -24,7 +24,7 @@ public final class ExternalTestCondition implements ExecutionCondition {
         boolean db = context.getTags().contains("db") || DB_CLASSES.contains(className)
                 || className.endsWith("IT")
                 || (className.equals(IDENTITY + "repository.OrganizationRepositoryTest") && method.equals("testRepositoryIntegration"))
-                || (className.equals(IDENTITY + "service.AuthServiceTest") && method.equals("testFullAuthFlowWithDatabase"))
+                || (className.equals(IDENTITY + "service.AuthFlowTest") && method.equals("testFullAuthFlowWithDatabase"))
                 || (className.equals("vn.ticketscenter.config.persistence.JpaConnectionTest")
                     && Set.of("testDatabaseConnectivity", "testPersistenceRegistry").contains(method));
         boolean smtp = context.getTags().contains("smtp")

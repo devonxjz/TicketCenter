@@ -2,9 +2,13 @@ package vn.ticketscenter.identity.repository;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
+import vn.ticketscenter.identity.dto.ProfileDto;
+import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.model.User;
 import vn.ticketscenter.identity.model.UserStatus;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
@@ -108,7 +112,7 @@ public class UserRepository {
                 .executeUpdate();
     }
 
-    public int updateEmailVerifiedAt(EntityManager entityManager, UUID userId, java.time.Instant verifiedAt) {
+    public int updateEmailVerifiedAt(EntityManager entityManager, UUID userId, Instant verifiedAt) {
         Objects.requireNonNull(entityManager, "entityManager must not be null");
         Objects.requireNonNull(userId, "userId must not be null");
         return entityManager.createQuery(
@@ -116,5 +120,47 @@ public class UserRepository {
                 .setParameter("verifiedAt", verifiedAt)
                 .setParameter("id", userId)
                 .executeUpdate();
+    }
+
+    /**
+     * The account the {@code admin} alias stands for: the one registered under {@code preferredEmail}, else
+     * any ADMIN account, preferring an email that contains "admin".
+     */
+    public Optional<User> findAdminByAlias(EntityManager entityManager, String preferredEmail) {
+        Objects.requireNonNull(entityManager, "entityManager must not be null");
+        Optional<User> preferred = findByNormalizedEmail(entityManager, preferredEmail);
+        if (preferred.isPresent()) {
+            return preferred;
+        }
+        return entityManager.createQuery(
+                        "SELECT u FROM User u WHERE u.platformRole = :role "
+                                + "ORDER BY CASE WHEN LOWER(u.email) LIKE '%admin%' THEN 0 ELSE 1 END", User.class)
+                .setParameter("role", PlatformRole.ADMIN)
+                .setMaxResults(1)
+                .getResultList().stream().findFirst();
+    }
+
+    /**
+     * Updates the user's own profile through {@code usp_UpdateMyProfile}.
+     *
+     * @return the stored profile, or empty when the procedure returns no row
+     */
+    public Optional<ProfileDto> updateProfile(EntityManager entityManager, UUID actorId, String fullName,
+                                              String phone) {
+        Objects.requireNonNull(entityManager, "entityManager must not be null");
+        Objects.requireNonNull(actorId, "actorId must not be null");
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = entityManager.createNativeQuery(
+                        "EXEC dbo.usp_UpdateMyProfile @actor_id=:actor,@full_name=:name,@phone=:phone")
+                .setParameter("actor", actorId)
+                .setParameter("name", fullName)
+                .setParameter("phone", phone == null ? "" : phone)
+                .getResultList();
+        if (rows.isEmpty()) {
+            return Optional.empty();
+        }
+        Object[] row = rows.get(0);
+        return Optional.of(new ProfileDto(UUID.fromString(row[0].toString()),
+                (String) row[1], (String) row[2], (String) row[3], (String) row[4]));
     }
 }

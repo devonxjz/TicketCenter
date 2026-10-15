@@ -22,6 +22,7 @@ import vn.ticketscenter.identity.service.OtpCryptoHelper;
 import vn.ticketscenter.identity.service.OtpService;
 import vn.ticketscenter.identity.service.PasswordHasher;
 import vn.ticketscenter.identity.service.PasswordResetService;
+import vn.ticketscenter.identity.service.UserSessionCache;
 
 import java.io.BufferedReader;
 import java.io.PrintWriter;
@@ -196,7 +197,7 @@ public class AuthOtpServletsTest {
         PasswordResetService mockService = new PasswordResetService(
                 new TransactionManager(Map.of()), new UserRepository(),
                 new OtpService(new TransactionManager(Map.of()), new OtpRepository(), new UserRepository(), new OtpCryptoHelper("secret"), new FakeEmailSender()),
-                new OtpCryptoHelper("secret"), new PasswordHasher(), null) {
+                new OtpCryptoHelper("secret"), new PasswordHasher(), UserSessionCache.disabled()) {
             @Override
             public String forgotPassword(ForgotPasswordRequestDto request) {
                 return PasswordResetService.NEUTRAL_FORGOT_PASSWORD_MESSAGE;
@@ -220,7 +221,7 @@ public class AuthOtpServletsTest {
         PasswordResetService mockService = new PasswordResetService(
                 new TransactionManager(Map.of()), new UserRepository(),
                 new OtpService(new TransactionManager(Map.of()), new OtpRepository(), new UserRepository(), new OtpCryptoHelper("secret"), new FakeEmailSender()),
-                new OtpCryptoHelper("secret"), new PasswordHasher(), null) {
+                new OtpCryptoHelper("secret"), new PasswordHasher(), UserSessionCache.disabled()) {
             @Override
             public boolean resetPassword(PasswordResetRequestDto request) {
                 return true;

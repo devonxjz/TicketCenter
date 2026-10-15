@@ -25,7 +25,7 @@ class ExternalTestIsolationTest {
                 "vn.ticketscenter.identity.repository.OrganizationMembershipRepositoryTest",
                 "vn.ticketscenter.identity.service.OtpServiceTest",
                 "vn.ticketscenter.identity.service.PasswordResetServiceTest",
-                "vn.ticketscenter.identity.service.AuthServiceTest",
+                "vn.ticketscenter.identity.service.AuthFlowTest",
                 "vn.ticketscenter.config.persistence.JpaConnectionTest",
                 "vn.ticketscenter.identity.integration.mail.EmailSenderTest")) {
             var type=Class.forName(name,false,getClass().getClassLoader());

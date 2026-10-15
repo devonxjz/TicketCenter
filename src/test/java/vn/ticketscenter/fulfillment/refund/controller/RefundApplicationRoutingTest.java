@@ -8,6 +8,8 @@ import java.util.*;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.junit.jupiter.api.Test;
+import vn.ticketscenter.identity.service.SessionValidator;
+import vn.ticketscenter.identity.config.IdentityServices;
 import vn.ticketscenter.config.web.OrganizationApiRoutesFilter;
 import vn.ticketscenter.identity.security.AuthSecurityListener;
 import static org.junit.jupiter.api.Assertions.*;
@@ -65,7 +67,7 @@ class RefundApplicationRoutingTest {
         var f=new RefundRequestServletsTest();f.method="GET";f.path="/api/organizations/"+f.order+"/reports";var filter=new OrganizationApiRoutesFilter();
         filter.doFilter(f.request(),f.response(),(r,s)->fail());assertEquals(401,f.status);
         f.login();f.sessionValid=false;filter.doFilter(f.request(),f.response(),(r,s)->fail());assertEquals(401,f.status);
-        f.login();f.sessionValid=true;f.contextAttributes.remove(AuthSecurityListener.AUTH_SERVICE_ATTRIBUTE);filter.doFilter(f.request(),f.response(),(r,s)->fail());assertEquals(503,f.status);
+        f.login();f.sessionValid=true;f.contextAttributes.remove(IdentityServices.SESSION_VALIDATOR_ATTRIBUTE);filter.doFilter(f.request(),f.response(),(r,s)->fail());assertEquals(503,f.status);
     }
     @Test void reportSubresourceRejectsMutationsWithoutTouchingBusinessLogic()throws Exception{
         var f=new RefundRequestServletsTest();f.path="/api/organizations/"+f.order+"/reports";

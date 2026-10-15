@@ -15,8 +15,8 @@ import vn.ticketscenter.identity.dto.OtpSendRequestDto;
 import vn.ticketscenter.identity.dto.RegisterRequestDto;
 import vn.ticketscenter.identity.model.OtpPurpose;
 import vn.ticketscenter.identity.security.SecurityContext;
-import vn.ticketscenter.identity.service.AuthService;
 import vn.ticketscenter.identity.service.OtpService;
+import vn.ticketscenter.identity.service.RegistrationService;
 
 import java.io.IOException;
 import java.util.logging.Level;
@@ -27,27 +27,27 @@ public class RegisterServlet extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(RegisterServlet.class.getName());
 
-    private AuthService authService;
+    private RegistrationService registrationService;
     private OtpService otpService;
 
     public RegisterServlet() {
     }
 
-    public RegisterServlet(AuthService authService) {
-        this.authService = authService;
+    public RegisterServlet(RegistrationService registrationService) {
+        this.registrationService = registrationService;
     }
 
-    public RegisterServlet(AuthService authService, OtpService otpService) {
-        this.authService = authService;
+    public RegisterServlet(RegistrationService registrationService, OtpService otpService) {
+        this.registrationService = registrationService;
         this.otpService = otpService;
     }
 
-    private AuthService authService(ServletContext context) {
-        if (authService != null) {
-            return authService;
+    private RegistrationService registrationService(ServletContext context) {
+        if (registrationService != null) {
+            return registrationService;
         }
         IdentityServices services = IdentityServices.from(context);
-        return services == null ? null : services.authService();
+        return services == null ? null : services.registrationService();
     }
 
     private OtpService otpService(ServletContext context) {
@@ -80,7 +80,7 @@ public class RegisterServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        AuthService service = authService(req.getServletContext());
+        RegistrationService service = registrationService(req.getServletContext());
         if (service == null) {
             IdentityErrorWriter.databaseUnavailable(resp);
             return;

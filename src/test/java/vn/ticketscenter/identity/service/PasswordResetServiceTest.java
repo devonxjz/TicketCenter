@@ -65,7 +65,7 @@ public class PasswordResetServiceTest {
             }
             TransactionManager tm = registry.transactionManager();
             OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpCryptoHelper, emailSender);
-            PasswordResetService resetService = new PasswordResetService(tm, userRepository, otpService, otpCryptoHelper, passwordHasher, null);
+            PasswordResetService resetService = new PasswordResetService(tm, userRepository, otpService, otpCryptoHelper, passwordHasher, UserSessionCache.disabled());
 
             String suffix = UUID.randomUUID().toString().substring(0, 8);
             String existingEmail = "existing." + suffix + "@ticketscenter.vn";
@@ -105,7 +105,7 @@ public class PasswordResetServiceTest {
             }
             TransactionManager tm = registry.transactionManager();
             OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpCryptoHelper, emailSender);
-            PasswordResetService resetService = new PasswordResetService(tm, userRepository, otpService, otpCryptoHelper, passwordHasher, null);
+            PasswordResetService resetService = new PasswordResetService(tm, userRepository, otpService, otpCryptoHelper, passwordHasher, UserSessionCache.disabled());
 
             String suffix = UUID.randomUUID().toString().substring(0, 8);
             String email = "resetpwd." + suffix + "@ticketscenter.vn";

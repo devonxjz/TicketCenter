@@ -5,8 +5,8 @@ import vn.ticketscenter.config.ServerConfig;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.identity.model.User;
-import vn.ticketscenter.identity.dao.UserDAO;
-import vn.ticketscenter.identity.service.AccountService;
+import vn.ticketscenter.identity.repository.UserRepository;
+import vn.ticketscenter.identity.service.EmailNormalizer;
 import vn.ticketscenter.identity.service.PasswordHasher;
 
 import java.time.Clock;
@@ -28,10 +28,10 @@ public final class AdminSeeder {
         if (!AppConfig.getBoolean("admin.seed.enabled", false)) return;
         if (password == null || password.isBlank()) throw new IllegalStateException("Admin seed password is required");
         String email = AppConfig.get("admin.email", "admin@fixture.invalid");
-        String normalizedEmail = AccountService.normalizeEmail(email);
+        String normalizedEmail = EmailNormalizer.normalize(email);
         transactions.execute(DatabasePrincipal.AUTH, entityManager -> {
-            UserDAO users = new UserDAO(entityManager);
-            User existing = users.findByNormalizedEmail(normalizedEmail).orElse(null);
+            UserRepository users = new UserRepository();
+            User existing = users.findByNormalizedEmail(entityManager, normalizedEmail).orElse(null);
             if (existing != null) {
                 if (!existing.hasPlatformRole("ADMIN")) {
                     throw new IllegalStateException("Admin seed email already belongs to a non-admin account");
@@ -46,7 +46,7 @@ public final class AdminSeeder {
                         existing.changeUserName("admin");
                     }
                 }
-                users.save(existing);
+                users.save(entityManager, existing);
                 return null;
             }
             String adminUserName = "admin";
@@ -57,7 +57,7 @@ public final class AdminSeeder {
             User admin = new User(email, adminUserName, passwords.hash(password), "Administrator", clock.instant());
             admin.verifyEmail(clock.instant());
             admin.grantPlatformRole("ADMIN");
-            users.save(admin);
+            users.save(entityManager, admin);
             return null;
         });
     }

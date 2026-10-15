@@ -11,7 +11,7 @@ import vn.ticketscenter.identity.controller.support.IdentityErrorWriter;
 import vn.ticketscenter.identity.dto.CurrentUserDto;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
-import vn.ticketscenter.identity.service.AuthService;
+import vn.ticketscenter.identity.service.ProfileService;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -19,18 +19,18 @@ import java.util.Optional;
 @WebServlet(name = "MeServlet", urlPatterns = "/api/me")
 public class MeServlet extends HttpServlet {
 
-    private AuthService authService;
+    private ProfileService profileService;
 
     public MeServlet() {}
 
-    public MeServlet(AuthService authService) {
-        this.authService = authService;
+    public MeServlet(ProfileService profileService) {
+        this.profileService = profileService;
     }
 
-    private AuthService authService(ServletContext context) {
-        if (authService != null) return authService;
+    private ProfileService profileService(ServletContext context) {
+        if (profileService != null) return profileService;
         IdentityServices services = IdentityServices.from(context);
-        return services == null ? null : services.authService();
+        return services == null ? null : services.profileService();
     }
 
     @Override
@@ -42,7 +42,7 @@ public class MeServlet extends HttpServlet {
             return;
         }
 
-        AuthService service = authService(req.getServletContext());
+        ProfileService service = profileService(req.getServletContext());
         if (service == null) {
             IdentityErrorWriter.databaseUnavailable(resp);
             return;

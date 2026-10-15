@@ -29,7 +29,7 @@ import vn.ticketscenter.identity.repository.UserRepository;
 import vn.ticketscenter.identity.security.CsrfFilter;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
-import vn.ticketscenter.identity.service.AuthService;
+import vn.ticketscenter.identity.service.LoginService;
 import vn.ticketscenter.identity.repository.OrganizationDecisionRepository;
 import vn.ticketscenter.identity.service.OrganizationRequestService;
 import vn.ticketscenter.identity.service.PasswordHasher;
@@ -77,7 +77,7 @@ public class AdminOrganizationApprovalAndScheduleE2ETest {
     private OrganizationRequestService organizationRequestService;
     private OrganizationRequestServlet servlet;
     private CsrfFilter csrfFilter;
-    private AuthService authService;
+    private LoginService loginService;
     private EventService eventService;
 
     private User musicianUser;
@@ -183,7 +183,7 @@ public class AdminOrganizationApprovalAndScheduleE2ETest {
                 inMemoryDecisions());
         servlet = new OrganizationRequestServlet(organizationRequestService);
         csrfFilter = new CsrfFilter();
-        authService = new AuthService(transactionManager, userRepository, passwordHasher);
+        loginService = new LoginService(transactionManager, userRepository, passwordHasher);
 
         EventRepository eventRepository = new EventRepository((DataSource) Proxy.newProxyInstance(
                 getClass().getClassLoader(),
@@ -346,7 +346,7 @@ public class AdminOrganizationApprovalAndScheduleE2ETest {
         assertNotNull(membership, "Requester membership must exist in database.");
         assertEquals(OrganizationRole.MANAGER, membership.getRole(), "Requester role must be MANAGER.");
 
-        UserPrincipal elevatedPrincipal = authService.login(new LoginRequestDto("musician@ticketscenter.vn", DEFAULT_PASSWORD));
+        UserPrincipal elevatedPrincipal = loginService.login(new LoginRequestDto("musician@ticketscenter.vn", DEFAULT_PASSWORD));
         assertNotNull(elevatedPrincipal);
         assertEquals(musicianUser.getId(), elevatedPrincipal.actorId());
         assertEquals("musician@ticketscenter.vn", elevatedPrincipal.email());

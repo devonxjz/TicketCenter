@@ -1,11 +1,17 @@
 package vn.ticketscenter.identity.security;
 
-import jakarta.servlet.*;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import vn.ticketscenter.config.web.HttpResponses;
-import vn.ticketscenter.identity.service.AuthService;
+import vn.ticketscenter.identity.config.IdentityServices;
+import vn.ticketscenter.identity.service.SessionValidator;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -17,24 +23,17 @@ import java.util.Optional;
 @WebFilter(urlPatterns = "/api/*")
 public final class SessionValidationFilter implements Filter {
 
-    private AuthService authService;
+    private SessionValidator sessionValidator;
 
-    public SessionValidationFilter() {}
-
-    public SessionValidationFilter(AuthService authService) {
-        this.authService = authService;
+    public SessionValidationFilter() {
     }
 
-    @Override
-    public void init(FilterConfig filterConfig) {
-        if (this.authService == null && filterConfig != null) {
-            this.authService = AuthSecurityListener.resolveAuthService(filterConfig.getServletContext());
-        }
+    public SessionValidationFilter(SessionValidator sessionValidator) {
+        this.sessionValidator = sessionValidator;
     }
 
-    private AuthService getAuthService(ServletContext context) {
-        if (authService != null) return authService;
-        return AuthSecurityListener.resolveAuthService(context);
+    private SessionValidator sessionValidator(ServletContext context) {
+        return sessionValidator != null ? sessionValidator : IdentityServices.sessionValidator(context);
     }
 
     @Override
@@ -47,9 +46,9 @@ public final class SessionValidationFilter implements Filter {
 
         if (principalOpt.isPresent()) {
             UserPrincipal principal = principalOpt.get();
-            AuthService service = getAuthService(request.getServletContext());
+            SessionValidator validator = sessionValidator(request.getServletContext());
 
-            if (service != null && !service.isSessionValid(principal.actorId(), principal.authVersion())) {
+            if (validator != null && !validator.isSessionValid(principal.actorId(), principal.authVersion())) {
                 SecurityContext.clearSession(httpRequest);
                 HttpResponses.error(httpResponse, HttpServletResponse.SC_UNAUTHORIZED,
                         "SESSION_EXPIRED", "Phiên làm việc đã hết hạn hoặc tài khoản đã bị khóa");

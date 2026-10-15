@@ -12,7 +12,7 @@ import vn.ticketscenter.identity.dto.ProfileDto;
 import vn.ticketscenter.identity.error.IdentityException;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
-import vn.ticketscenter.identity.service.AuthService;
+import vn.ticketscenter.identity.service.ProfileService;
 
 import java.io.IOException;
 import java.util.logging.Level;
@@ -22,14 +22,14 @@ import java.util.logging.Logger;
 @WebServlet(name = "ProfileServlet", urlPatterns = "/api/me/profile")
 public class ProfileServlet extends HttpServlet {
     private static final Logger LOGGER = Logger.getLogger(ProfileServlet.class.getName());
-    private final AuthService injected;
+    private final ProfileService injected;
 
     public ProfileServlet() {
         this(null);
     }
 
-    public ProfileServlet(AuthService authService) {
-        this.injected = authService;
+    public ProfileServlet(ProfileService profileService) {
+        this.injected = profileService;
     }
 
     @Override
@@ -50,10 +50,10 @@ public class ProfileServlet extends HttpServlet {
                     "Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn");
             return;
         }
-        AuthService service = injected;
+        ProfileService service = injected;
         if (service == null) {
             IdentityServices services = IdentityServices.from(request.getServletContext());
-            service = services == null ? null : services.authService();
+            service = services == null ? null : services.profileService();
         }
         if (service == null) {
             IdentityErrorWriter.databaseUnavailable(response);

@@ -4,8 +4,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.fulfillment.checkin.CheckInException;
+import vn.ticketscenter.identity.config.IdentityServices;
 import vn.ticketscenter.identity.security.SecurityContext;
-import vn.ticketscenter.identity.security.AuthSecurityListener;
 import java.io.IOException;
 import java.util.UUID;
 
@@ -15,7 +15,7 @@ final class CheckInWeb {
         var principal = SecurityContext.getCurrentUser(request).orElseThrow(() ->
                 new CheckInException(401, "UNAUTHENTICATED", "Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn."));
         // Named forwarding may precede the shared REQUEST filter; HTML pages also need session validation.
-        var auth = AuthSecurityListener.resolveAuthService(request.getServletContext());
+        var auth = IdentityServices.sessionValidator(request.getServletContext());
         if (auth == null) throw new CheckInException(503, "AUTH_UNAVAILABLE", "Hệ thống xác thực chưa sẵn sàng.");
         if (!auth.isSessionValid(principal.actorId(), principal.authVersion())) {
             SecurityContext.clearSession(request);

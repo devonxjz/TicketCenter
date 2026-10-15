@@ -18,7 +18,7 @@ import vn.ticketscenter.identity.model.OrganizationRole;
 import vn.ticketscenter.identity.security.LoginThrottle;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
-import vn.ticketscenter.identity.service.AuthService;
+import vn.ticketscenter.identity.service.LoginService;
 
 import java.io.IOException;
 import java.net.URI;
@@ -28,21 +28,21 @@ public class LoginServlet extends HttpServlet {
 
     private final LoginThrottle throttle = new LoginThrottle();
 
-    private AuthService authService;
+    private LoginService loginService;
 
     public LoginServlet() {
     }
 
-    public LoginServlet(AuthService authService) {
-        this.authService = authService;
+    public LoginServlet(LoginService loginService) {
+        this.loginService = loginService;
     }
 
-    private AuthService authService(ServletContext context) {
-        if (authService != null) {
-            return authService;
+    private LoginService loginService(ServletContext context) {
+        if (loginService != null) {
+            return loginService;
         }
         IdentityServices services = IdentityServices.from(context);
-        return services == null ? null : services.authService();
+        return services == null ? null : services.loginService();
     }
 
     @Override
@@ -54,7 +54,7 @@ public class LoginServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        AuthService service = authService(req.getServletContext());
+        LoginService service = loginService(req.getServletContext());
         if (service == null) {
             IdentityErrorWriter.databaseUnavailable(resp);
             return;

@@ -1,9 +1,7 @@
 package vn.ticketscenter.identity.service;
 
-import redis.clients.jedis.Jedis;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.TransactionManager;
-import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.identity.dto.ForgotPasswordRequestDto;
 import vn.ticketscenter.identity.dto.OtpSendRequestDto;
 import vn.ticketscenter.identity.dto.PasswordResetRequestDto;
@@ -15,12 +13,9 @@ import vn.ticketscenter.identity.repository.UserRepository;
 
 import java.util.Objects;
 import java.util.UUID;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class PasswordResetService {
 
-    private static final Logger LOGGER = Logger.getLogger(PasswordResetService.class.getName());
     public static final String NEUTRAL_FORGOT_PASSWORD_MESSAGE =
             "Nếu địa chỉ email tồn tại trong hệ thống, hướng dẫn đặt lại mật khẩu đã được gửi qua email.";
 
@@ -29,20 +24,20 @@ public class PasswordResetService {
     private final OtpService otpService;
     private final OtpCryptoHelper otpCryptoHelper;
     private final PasswordHasher passwordHasher;
-    private final RedisClientProvider redisProvider;
+    private final UserSessionCache sessionCache;
 
     public PasswordResetService(TransactionManager transactions,
                                 UserRepository userRepository,
                                 OtpService otpService,
                                 OtpCryptoHelper otpCryptoHelper,
                                 PasswordHasher passwordHasher,
-                                RedisClientProvider redisProvider) {
+                                UserSessionCache sessionCache) {
         this.transactions = Objects.requireNonNull(transactions, "transactions must not be null");
         this.userRepository = Objects.requireNonNull(userRepository, "userRepository must not be null");
         this.otpService = Objects.requireNonNull(otpService, "otpService must not be null");
         this.otpCryptoHelper = Objects.requireNonNull(otpCryptoHelper, "otpCryptoHelper must not be null");
         this.passwordHasher = Objects.requireNonNull(passwordHasher, "passwordHasher must not be null");
-        this.redisProvider = redisProvider;
+        this.sessionCache = Objects.requireNonNull(sessionCache, "sessionCache must not be null");
     }
 
     /**
@@ -99,14 +94,8 @@ public class PasswordResetService {
             // Cập nhật password mới và tăng authVersion trong DB
             userRepository.updatePasswordHashAndAuthVersion(em, user.getId(), newPasswordHash);
 
-            // Vô hiệu hóa cache Redis của user nếu có
-            if (redisProvider != null) {
-                try (Jedis jedis = redisProvider.getResource()) {
-                    jedis.del("auth:user:" + user.getId());
-                } catch (Exception ex) {
-                    LOGGER.log(Level.WARNING, "Không thể xóa cache user khi đặt lại mật khẩu: " + ex.getMessage());
-                }
-            }
+            // Vô hiệu hóa cache Redis của user
+            sessionCache.evict(user.getId());
 
             return true;
         }));

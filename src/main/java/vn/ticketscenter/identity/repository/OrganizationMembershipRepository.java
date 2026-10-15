@@ -4,6 +4,7 @@ import jakarta.persistence.EntityManager;
 import vn.ticketscenter.identity.dto.MembershipSummaryDto;
 import vn.ticketscenter.identity.dto.OrganizationMemberDto;
 import vn.ticketscenter.identity.model.OrganizationMembership;
+import vn.ticketscenter.identity.model.OrganizationRole;
 
 import java.util.List;
 import java.util.Objects;
@@ -89,5 +90,21 @@ public class OrganizationMembershipRepository {
         } else {
             return em.merge(membership);
         }
+    }
+
+    /** The user's strongest active role: MANAGER before any other, empty when the user has no membership. */
+    public Optional<OrganizationRole> findPrimaryRole(EntityManager em, UUID userId) {
+        Objects.requireNonNull(em, "EntityManager must not be null.");
+        if (userId == null) {
+            return Optional.empty();
+        }
+        return em.createQuery(
+                        "SELECT m.role FROM OrganizationMembership m WHERE m.user.id = :uid AND m.active = true "
+                                + "ORDER BY CASE WHEN m.role = :mgr THEN 1 ELSE 2 END",
+                        OrganizationRole.class)
+                .setParameter("uid", userId)
+                .setParameter("mgr", OrganizationRole.MANAGER)
+                .setMaxResults(1)
+                .getResultList().stream().findFirst();
     }
 }

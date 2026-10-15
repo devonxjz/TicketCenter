@@ -21,7 +21,10 @@ import vn.ticketscenter.identity.security.CsrfFilter;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.SessionValidationFilter;
 import vn.ticketscenter.identity.security.UserPrincipal;
-import vn.ticketscenter.identity.service.AuthService;
+import vn.ticketscenter.identity.service.LoginService;
+import vn.ticketscenter.identity.service.ProfileService;
+import vn.ticketscenter.identity.service.RegistrationService;
+import vn.ticketscenter.identity.service.SessionValidator;
 import vn.ticketscenter.identity.service.PasswordHasher;
 
 import java.io.BufferedReader;
@@ -263,15 +266,15 @@ public class IdentityWebFlowTest {
         UserPrincipal principal = new UserPrincipal(actorId, PlatformRole.CUSTOMER, 0);
         sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, principal);
 
-        AuthService mockAuthService = new AuthService(
-                new TransactionManager(Map.of()), new UserRepository(), new PasswordHasher()) {
+        SessionValidator mockService = new SessionValidator(
+                new TransactionManager(Map.of()), new UserRepository()) {
             @Override
             public boolean isSessionValid(UUID id, int version) {
                 return false; // Phiên hết hạn / authVersion cũ
             }
         };
 
-        SessionValidationFilter filter = new SessionValidationFilter(mockAuthService);
+        SessionValidationFilter filter = new SessionValidationFilter(mockService);
         HttpServletRequest req = createMockRequest("GET", "/api/me", true);
         HttpServletResponse resp = createMockResponse();
 
@@ -303,15 +306,15 @@ public class IdentityWebFlowTest {
         UserPrincipal principal = new UserPrincipal(actorId, PlatformRole.CUSTOMER, 1);
         sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, principal);
 
-        AuthService mockAuthService = new AuthService(
-                new TransactionManager(Map.of()), new UserRepository(), new PasswordHasher()) {
+        ProfileService mockService = new ProfileService(
+                new TransactionManager(Map.of()), new UserRepository()) {
             @Override
             public CurrentUserDto getCurrentUser(UUID id) {
                 return new CurrentUserDto(actorId, "user@test.vn", "testuser", "Nguyen Van A", PlatformRole.CUSTOMER, false);
             }
         };
 
-        MeServlet servlet = new MeServlet(mockAuthService);
+        MeServlet servlet = new MeServlet(mockService);
         HttpServletRequest req = createMockRequest("GET", "/api/me", true);
         HttpServletResponse resp = createMockResponse();
 
@@ -385,7 +388,7 @@ public class IdentityWebFlowTest {
         UUID actorId = UUID.randomUUID();
         UserPrincipal principal = new UserPrincipal(actorId, PlatformRole.CUSTOMER, 0);
 
-        AuthService mockAuthService = new AuthService(
+        LoginService mockService = new LoginService(
                 new TransactionManager(Map.of()), new UserRepository(), new PasswordHasher()) {
             @Override
             public UserPrincipal login(LoginRequestDto request) {
@@ -393,7 +396,7 @@ public class IdentityWebFlowTest {
             }
         };
 
-        LoginServlet servlet = new LoginServlet(mockAuthService);
+        LoginServlet servlet = new LoginServlet(mockService);
         requestParams.put("identifier", "user@test.vn");
         requestParams.put("password", "SecurePassword123!");
 
@@ -416,7 +419,7 @@ public class IdentityWebFlowTest {
         UUID actorId = UUID.randomUUID();
         UserPrincipal admin = new UserPrincipal(actorId, PlatformRole.ADMIN, 0);
 
-        AuthService mockAuthService = new AuthService(
+        LoginService mockService = new LoginService(
                 new TransactionManager(Map.of()), new UserRepository(), new PasswordHasher()) {
             @Override
             public UserPrincipal login(LoginRequestDto request) {
@@ -424,7 +427,7 @@ public class IdentityWebFlowTest {
             }
         };
 
-        LoginServlet servlet = new LoginServlet(mockAuthService);
+        LoginServlet servlet = new LoginServlet(mockService);
         requestParams.put("identifier", "admin@test.vn");
         requestParams.put("password", "Pass12345678!");
 
@@ -444,7 +447,7 @@ public class IdentityWebFlowTest {
         UUID actorId = UUID.randomUUID();
         UserPrincipal staff = new UserPrincipal(actorId, PlatformRole.CUSTOMER, 0, vn.ticketscenter.identity.model.OrganizationRole.CHECK_IN_STAFF);
 
-        AuthService mockAuthService = new AuthService(
+        LoginService mockService = new LoginService(
                 new TransactionManager(Map.of()), new UserRepository(), new PasswordHasher()) {
             @Override
             public UserPrincipal login(LoginRequestDto request) {
@@ -452,7 +455,7 @@ public class IdentityWebFlowTest {
             }
         };
 
-        LoginServlet servlet = new LoginServlet(mockAuthService);
+        LoginServlet servlet = new LoginServlet(mockService);
         requestParams.put("identifier", "staff@test.vn");
         requestParams.put("password", "Pass12345678!");
 
@@ -472,7 +475,7 @@ public class IdentityWebFlowTest {
         UUID actorId = UUID.randomUUID();
         UserPrincipal manager = new UserPrincipal(actorId, PlatformRole.CUSTOMER, 0, vn.ticketscenter.identity.model.OrganizationRole.MANAGER);
 
-        AuthService mockAuthService = new AuthService(
+        LoginService mockService = new LoginService(
                 new TransactionManager(Map.of()), new UserRepository(), new PasswordHasher()) {
             @Override
             public UserPrincipal login(LoginRequestDto request) {
@@ -480,7 +483,7 @@ public class IdentityWebFlowTest {
             }
         };
 
-        LoginServlet servlet = new LoginServlet(mockAuthService);
+        LoginServlet servlet = new LoginServlet(mockService);
         requestParams.put("identifier", "manager@test.vn");
         requestParams.put("password", "Pass12345678!");
 
@@ -497,7 +500,7 @@ public class IdentityWebFlowTest {
     @Test
     @DisplayName("LoginServlet trả về 401 ACCOUNT_DISABLED khi tài khoản bị khóa")
     void testLoginServletAccountDisabled() throws Exception {
-        AuthService mockAuthService = new AuthService(
+        LoginService mockService = new LoginService(
                 new TransactionManager(Map.of()), new UserRepository(), new PasswordHasher()) {
             @Override
             public UserPrincipal login(LoginRequestDto request) {
@@ -505,7 +508,7 @@ public class IdentityWebFlowTest {
             }
         };
 
-        LoginServlet servlet = new LoginServlet(mockAuthService);
+        LoginServlet servlet = new LoginServlet(mockService);
         requestParams.put("identifier", "disabled@test.vn");
         requestParams.put("password", "SecurePassword123!");
 
@@ -521,7 +524,7 @@ public class IdentityWebFlowTest {
     @Test
     @DisplayName("RegisterServlet trả về 200 registered: true khi thông tin hợp lệ")
     void testRegisterServletSuccess() throws Exception {
-        AuthService mockAuthService = new AuthService(
+        RegistrationService mockService = new RegistrationService(
                 new TransactionManager(Map.of()), new UserRepository(), new PasswordHasher()) {
             @Override
             public boolean register(vn.ticketscenter.identity.dto.RegisterRequestDto request) {
@@ -529,7 +532,7 @@ public class IdentityWebFlowTest {
             }
         };
 
-        RegisterServlet servlet = new RegisterServlet(mockAuthService);
+        RegisterServlet servlet = new RegisterServlet(mockService);
         requestParams.put("userName", "newuser");
         requestParams.put("fullName", "Nguyen Van New");
         requestParams.put("email", "newuser@test.vn");
@@ -547,7 +550,7 @@ public class IdentityWebFlowTest {
     @Test
     @DisplayName("RegisterServlet trả về 400 VALIDATION_FAILED khi dữ liệu không hợp lệ")
     void testRegisterServletValidationFailed() throws Exception {
-        AuthService mockAuthService = new AuthService(
+        RegistrationService mockService = new RegistrationService(
                 new TransactionManager(Map.of()), new UserRepository(), new PasswordHasher()) {
             @Override
             public boolean register(vn.ticketscenter.identity.dto.RegisterRequestDto request) {
@@ -555,7 +558,7 @@ public class IdentityWebFlowTest {
             }
         };
 
-        RegisterServlet servlet = new RegisterServlet(mockAuthService);
+        RegisterServlet servlet = new RegisterServlet(mockService);
         requestParams.put("userName", "newuser");
         requestParams.put("fullName", "Nguyen Van New");
         requestParams.put("email", "newuser@test.vn");

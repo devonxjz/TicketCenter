@@ -3,6 +3,7 @@ package vn.ticketscenter.fulfillment.checkin.controller;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import org.junit.jupiter.api.Test;
+import vn.ticketscenter.identity.config.IdentityServices;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.fulfillment.checkin.CheckInException;
 import vn.ticketscenter.fulfillment.checkin.cache.CheckInEventCache;
@@ -45,7 +46,7 @@ class CheckInServletsTest {
         }
     };
     CheckInServletsTest(){
-        contextAttributes.put(AuthSecurityListener.AUTH_SERVICE_ATTRIBUTE,new AuthService(new TransactionManager(Map.of()),new UserRepository(),new PasswordHasher()) {
+        contextAttributes.put(IdentityServices.SESSION_VALIDATOR_ATTRIBUTE,new SessionValidator(new TransactionManager(Map.of()),new UserRepository()) {
             @Override public boolean isSessionValid(UUID actor,int version){return sessionValid;}
         });
     }

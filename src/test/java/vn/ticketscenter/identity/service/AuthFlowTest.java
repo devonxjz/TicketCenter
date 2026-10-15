@@ -22,7 +22,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 @org.junit.jupiter.api.extension.ExtendWith(vn.ticketscenter.platform.testsupport.ExternalTestCondition.class)
-public class AuthServiceTest {
+public class AuthFlowTest {
 
     private final PasswordHasher passwordHasher = new PasswordHasher();
     private final UserRepository userRepository = new UserRepository();
@@ -30,7 +30,8 @@ public class AuthServiceTest {
     @Test
     @DisplayName("Đăng ký từ chối email không hợp lệ hoặc để trống")
     void testRegisterInvalidEmail() {
-        AuthService service = new AuthService(new TransactionManager(java.util.Map.of()), userRepository, passwordHasher);
+        RegistrationService service =
+                new RegistrationService(new TransactionManager(java.util.Map.of()), userRepository, passwordHasher);
 
         assertThrows(IllegalArgumentException.class, () ->
                 service.register(new RegisterRequestDto("validuser", "Full Name", "invalid-email", "StrongPass123!")));
@@ -42,7 +43,8 @@ public class AuthServiceTest {
     @Test
     @DisplayName("Đăng ký từ chối mật khẩu dưới 12 ký tự")
     void testRegisterPasswordTooShort() {
-        AuthService service = new AuthService(new TransactionManager(java.util.Map.of()), userRepository, passwordHasher);
+        RegistrationService service =
+                new RegistrationService(new TransactionManager(java.util.Map.of()), userRepository, passwordHasher);
 
         assertThrows(IllegalArgumentException.class, () ->
                 service.register(new RegisterRequestDto("validuser", "Full Name", "user@test.vn", "Short123!")));
@@ -51,7 +53,8 @@ public class AuthServiceTest {
     @Test
     @DisplayName("Đăng nhập từ chối thông tin rỗng")
     void testLoginNullOrBlankInputs() {
-        AuthService service = new AuthService(new TransactionManager(java.util.Map.of()), userRepository, passwordHasher);
+        LoginService service =
+                new LoginService(new TransactionManager(java.util.Map.of()), userRepository, passwordHasher);
 
         IdentityException blankIdentifier = assertThrows(IdentityException.class, () ->
                 service.login(new LoginRequestDto("", "password")));
@@ -130,7 +133,10 @@ public class AuthServiceTest {
 
         try {
             TransactionManager tm = registry.transactionManager();
-            AuthService service = new AuthService(tm, userRepository, passwordHasher);
+            RegistrationService registration = new RegistrationService(tm, userRepository, passwordHasher);
+            LoginService login = new LoginService(tm, userRepository, passwordHasher);
+            SessionValidator sessions = new SessionValidator(tm, userRepository);
+            ProfileService profiles = new ProfileService(tm, userRepository);
 
             String suffix = UUID.randomUUID().toString().substring(0, 8);
             String email = "test." + suffix + "@ticketscenter.vn";
@@ -138,29 +144,29 @@ public class AuthServiceTest {
             String password = "SecurePassword123!";
 
             // 1. Đăng ký thành công
-            boolean registered = service.register(new RegisterRequestDto(userName, "Nguyen Van Test", email, password));
+            boolean registered = registration.register(new RegisterRequestDto(userName, "Nguyen Van Test", email, password));
             assertTrue(registered, "Registration should succeed");
 
             // 2. Đăng ký lại cùng email hoặc userName phải bị từ chối 409 (IdentityException)
             assertThrows(IdentityException.class, () ->
-                    service.register(new RegisterRequestDto("diff" + suffix, "Nguyen Van Test", email, password)));
+                    registration.register(new RegisterRequestDto("diff" + suffix, "Nguyen Van Test", email, password)));
 
             assertThrows(IdentityException.class, () ->
-                    service.register(new RegisterRequestDto(userName, "Nguyen Van Test", "diff." + suffix + "@tc.vn", password)));
+                    registration.register(new RegisterRequestDto(userName, "Nguyen Van Test", "diff." + suffix + "@tc.vn", password)));
 
             // 3. Đăng nhập sai mật khẩu -> từ chối
             assertThrows(IdentityException.class, () ->
-                    service.login(new LoginRequestDto(email, "WrongPassword123!")));
+                    login.login(new LoginRequestDto(email, "WrongPassword123!")));
 
             // 4. Đăng nhập đúng -> trả về UserPrincipal
-            UserPrincipal principal = service.login(new LoginRequestDto(email, password));
+            UserPrincipal principal = login.login(new LoginRequestDto(email, password));
             assertNotNull(principal);
             assertEquals(0, principal.authVersion());
             assertEquals(PlatformRole.CUSTOMER, principal.platformRole());
 
             // 5. Kiểm tra phiên hợp lệ và lấy thông tin user
-            assertTrue(service.isSessionValid(principal.actorId(), principal.authVersion()));
-            CurrentUserDto currentUser = service.getCurrentUser(principal.actorId());
+            assertTrue(sessions.isSessionValid(principal.actorId(), principal.authVersion()));
+            CurrentUserDto currentUser = profiles.getCurrentUser(principal.actorId());
             assertNotNull(currentUser);
             assertEquals(email, currentUser.email());
             assertEquals(userName, currentUser.userName());
@@ -168,26 +174,26 @@ public class AuthServiceTest {
             assertFalse(currentUser.admin());
 
             // 6. Kiểm tra thu hồi toàn bộ phiên qua revokeAllSessions
-            service.revokeAllSessions(principal.actorId());
+            sessions.revokeAllSessions(principal.actorId());
 
             // Session mang authVersion cũ (0) lập tức bị từ chối
-            assertFalse(service.isSessionValid(principal.actorId(), 0),
+            assertFalse(sessions.isSessionValid(principal.actorId(), 0),
                     "Session with stale authVersion must be invalidated");
 
             // Session với authVersion mới (1) hợp lệ
-            assertTrue(service.isSessionValid(principal.actorId(), 1));
+            assertTrue(sessions.isSessionValid(principal.actorId(), 1));
 
             // 7. Giả lập khóa tài khoản (DISABLED)
             tm.execute(DatabasePrincipal.AUTH, em ->
                     userRepository.updateStatus(em, principal.actorId(), UserStatus.DISABLED));
 
             // Session bị từ chối khi tài khoản disabled
-            assertFalse(service.isSessionValid(principal.actorId(), 1),
+            assertFalse(sessions.isSessionValid(principal.actorId(), 1),
                     "Disabled user session must be rejected");
 
             // Đăng nhập lại bị chặn ACCOUNT_DISABLED
             IdentityException disabled = assertThrows(IdentityException.class, () ->
-                    service.login(new LoginRequestDto(email, password)));
+                    login.login(new LoginRequestDto(email, password)));
             assertEquals(IdentityError.ACCOUNT_DISABLED, disabled.error());
 
         } finally {

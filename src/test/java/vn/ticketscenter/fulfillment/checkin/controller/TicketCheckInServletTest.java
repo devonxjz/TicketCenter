@@ -2,6 +2,7 @@ package vn.ticketscenter.fulfillment.checkin.controller;
 import org.junit.jupiter.api.Test;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
+import vn.ticketscenter.identity.config.IdentityServices;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.identity.security.*;
 import vn.ticketscenter.identity.service.*;
@@ -28,7 +29,7 @@ class TicketCheckInServletTest {
         @Override public List<RecentCheckInLogDto> recent(UUID a,UUID e,int limit){calls++;return List.of();}
     };
     TicketCheckInServletTest(){
-        contextAttrs.put(AuthSecurityListener.AUTH_SERVICE_ATTRIBUTE,new AuthService(new TransactionManager(Map.of()),new UserRepository(),new PasswordHasher()){@Override public boolean isSessionValid(UUID a,int v){return sessionValid;}});
+        contextAttrs.put(IdentityServices.SESSION_VALIDATOR_ATTRIBUTE,new SessionValidator(new TransactionManager(Map.of()),new UserRepository()){@Override public boolean isSessionValid(UUID a,int v){return sessionValid;}});
         attrs.put(SecurityContext.REQUEST_USER_ATTRIBUTE,new UserPrincipal(actor,PlatformRole.CUSTOMER,0));
         sessionAttrs.put(SecurityContext.CSRF_TOKEN_ATTRIBUTE,"fixture-token");headers.put("X-CSRF-Token","fixture-token");headers.put("Idempotency-Key",UUID.randomUUID().toString());body="{\"eventId\":\""+event+"\",\"ticketCode\":\"CODE\"}";
     }

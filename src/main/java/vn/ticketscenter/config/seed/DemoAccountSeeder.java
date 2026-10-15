@@ -1,15 +1,17 @@
 package vn.ticketscenter.config.seed;
 
 import jakarta.persistence.EntityManager;
+import vn.ticketscenter.config.AppConfig;
+import vn.ticketscenter.config.ServerConfig;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.TransactionManager;
-import vn.ticketscenter.identity.dao.UserDAO;
 import vn.ticketscenter.identity.model.Organization;
 import vn.ticketscenter.identity.model.OrganizationMembership;
 import vn.ticketscenter.identity.model.OrganizationRole;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.model.User;
-import vn.ticketscenter.identity.service.AccountService;
+import vn.ticketscenter.identity.repository.UserRepository;
+import vn.ticketscenter.identity.service.EmailNormalizer;
 import vn.ticketscenter.identity.service.PasswordHasher;
 
 import java.time.Clock;
@@ -33,18 +35,18 @@ public final class DemoAccountSeeder {
     }
 
     public void seed(TransactionManager transactions) {
-        if (!vn.ticketscenter.config.ServerConfig.isDemoData()) return;
+        if (!ServerConfig.isDemoData()) return;
         transactions.execute(DatabasePrincipal.AUTH, entityManager -> {
-            UserDAO userDAO = new UserDAO(entityManager);
+            UserRepository users = new UserRepository();
 
             // 1. Manager: abcc@manager.com (mật khẩu: 123)
-            User manager = seedUser(entityManager, userDAO, "abcc@manager.com", "abcc_manager", "Manager Demo", "123", PlatformRole.CUSTOMER);
+            User manager = seedUser(entityManager, users, "abcc@manager.com", "abcc_manager", "Manager Demo", "123", PlatformRole.CUSTOMER);
 
             // 2. Staff: abcc@staff.com (mật khẩu: 123)
-            User staff = seedUser(entityManager, userDAO, "abcc@staff.com", "abcc_staff", "Staff Demo", "123", PlatformRole.CUSTOMER);
+            User staff = seedUser(entityManager, users, "abcc@staff.com", "abcc_staff", "Staff Demo", "123", PlatformRole.CUSTOMER);
 
             // 3. Buyer: buyer@ticketscenter.vn (mật khẩu: 123)
-            seedUser(entityManager, userDAO, "buyer@ticketscenter.vn", "buyer1", "Khách Hàng Mẫu", "123", PlatformRole.CUSTOMER);
+            seedUser(entityManager, users, "buyer@ticketscenter.vn", "buyer1", "Khách Hàng Mẫu", "123", PlatformRole.CUSTOMER);
 
             // 4. Tổ chức mẫu: Vé Hay Event Center (APPROVED)
             Organization org = entityManager.createQuery(
@@ -65,14 +67,14 @@ public final class DemoAccountSeeder {
             ensureMembership(entityManager, staff, org, OrganizationRole.CHECK_IN_STAFF);
 
             // 6. Đảm bảo tài khoản admin@fixture.invalid có tên đăng nhập là 'admin'
-            User admin = userDAO.findByNormalizedEmail(AccountService.normalizeEmail(vn.ticketscenter.config.AppConfig.get("admin.email", "admin@fixture.invalid"))).orElse(null);
+            User admin = users.findByNormalizedEmail(entityManager, EmailNormalizer.normalize(AppConfig.get("admin.email", "admin@fixture.invalid"))).orElse(null);
             if (admin != null && !"admin".equalsIgnoreCase(admin.getUserName())) {
                 Long count = entityManager.createQuery("SELECT COUNT(u) FROM User u WHERE LOWER(u.userName) = 'admin' AND u.id != :id", Long.class)
                         .setParameter("id", admin.getId())
                         .getSingleResult();
                 if (count == null || count == 0) {
                     admin.changeUserName("admin");
-                    userDAO.save(admin);
+                    users.save(entityManager, admin);
                 }
             }
 
@@ -81,9 +83,9 @@ public final class DemoAccountSeeder {
         });
     }
 
-    private User seedUser(EntityManager em, UserDAO userDAO, String email, String defaultUserName, String fullName, String password, PlatformRole platformRole) {
-        String normalizedEmail = AccountService.normalizeEmail(email);
-        User user = userDAO.findByNormalizedEmail(normalizedEmail).orElse(null);
+    private User seedUser(EntityManager em, UserRepository users, String email, String defaultUserName, String fullName, String password, PlatformRole platformRole) {
+        String normalizedEmail = EmailNormalizer.normalize(email);
+        User user = users.findByNormalizedEmail(em, normalizedEmail).orElse(null);
 
         if (user == null) {
             String userName = defaultUserName;
@@ -97,7 +99,7 @@ public final class DemoAccountSeeder {
             user = new User(email, userName, passwords.hash(password), fullName, clock.instant());
             user.verifyEmail(clock.instant());
             user.grantPlatformRole(platformRole.name());
-            userDAO.save(user);
+            users.save(em, user);
         } else {
             user.changePassword(passwords.hash(password));
             user.verifyEmail(clock.instant());
@@ -111,7 +113,7 @@ public final class DemoAccountSeeder {
                     user.changeUserName(defaultUserName);
                 }
             }
-            userDAO.save(user);
+            users.save(em, user);
         }
         return user;
     }

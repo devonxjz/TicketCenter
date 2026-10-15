@@ -60,10 +60,8 @@ public class OtpService {
         }
 
         String email = request.email();
-        String normalizedEmail = AccountService.normalizeEmail(email);
-        if (normalizedEmail.isBlank() || !normalizedEmail.contains("@") || normalizedEmail.length() > 320) {
-            throw new IllegalArgumentException("Email không đúng định dạng");
-        }
+        String normalizedEmail = EmailNormalizer.normalize(email);
+        IdentityValidator.requireEmail(normalizedEmail);
 
         Instant now = Instant.now();
 
@@ -160,7 +158,7 @@ public class OtpService {
         }
 
         String rawCode = request.code().trim();
-        String normalizedEmail = AccountService.normalizeEmail(request.email());
+        String normalizedEmail = EmailNormalizer.normalize(request.email());
         Instant now = Instant.now();
 
         // 1. Kiểm tra trạng thái hiện tại của User và OTP
