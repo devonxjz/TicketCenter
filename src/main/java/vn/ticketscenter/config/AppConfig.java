@@ -67,12 +67,13 @@ public final class AppConfig {
         public static final String PAYOUT_SIMULATED_OUTCOME = "payout.simulated.outcome";
         public static final String PAYOUT_TIMEOUT_AFTER_SIDE_EFFECT = "payout.simulated.timeoutAfterSideEffect";
 
-        // 3. Cổng Thanh Toán VNPAY Sandbox
-        public static final String VNPAY_TMN_CODE = "vnpay.tmn.code";
-        public static final String VNPAY_HASH_SECRET = "vnpay.hash.secret";
-        public static final String VNPAY_PAY_URL = "vnpay.pay.url";
-        public static final String VNPAY_RETURN_URL = "vnpay.return.url";
-        public static final String VNPAY_API_URL = "vnpay.api.url";
+        // 3. Cổng Thanh Toán payOS (biến môi trường tương ứng: PAYOS_CLIENT_ID, PAYOS_API_KEY, ...)
+        public static final String PAYOS_CLIENT_ID = "payos.client.id";
+        public static final String PAYOS_API_KEY = "payos.api.key";
+        public static final String PAYOS_CHECKSUM_KEY = "payos.checksum.key";
+        public static final String PAYOS_RETURN_URL = "payos.return.url";
+        public static final String PAYOS_CANCEL_URL = "payos.cancel.url";
+        public static final String PAYOS_LOG_LEVEL = "payos.log.level";
 
         // 4. Dịch vụ Gửi Email (SMTP)
         public static final String MAIL_HOST = "mail.smtp.host";

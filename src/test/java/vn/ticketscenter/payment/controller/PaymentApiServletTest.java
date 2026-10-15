@@ -12,7 +12,6 @@ import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.order.controller.OrderApiServlet;
-import vn.ticketscenter.payment.dto.PaymentActor;
 import vn.ticketscenter.payment.dto.PaymentInitiationResult;
 import vn.ticketscenter.payment.service.PaymentException;
 import vn.ticketscenter.payment.service.PaymentService;
@@ -44,23 +43,19 @@ class PaymentApiServletTest {
     private static class StubPaymentService extends PaymentService {
         PaymentInitiationResult resultToReturn;
         PaymentException exceptionToThrow;
-        PaymentActor capturedActor;
+        UUID capturedActorId;
         UUID capturedOrderId;
         UUID capturedKey;
-        Optional<String> capturedBankCode;
-        String capturedIp;
 
         public StubPaymentService() {
             super();
         }
 
         @Override
-        public PaymentInitiationResult initiate(PaymentActor actor, UUID orderId, UUID key, Optional<String> bankCode, String clientIp) {
-            this.capturedActor = actor;
+        public PaymentInitiationResult initiate(UUID actorId, UUID orderId, UUID key) {
+            this.capturedActorId = actorId;
             this.capturedOrderId = orderId;
             this.capturedKey = key;
-            this.capturedBankCode = bankCode;
-            this.capturedIp = clientIp;
             if (exceptionToThrow != null) {
                 throw exceptionToThrow;
             }
@@ -78,12 +73,6 @@ class PaymentApiServletTest {
                 return statusToReturn;
             }
             throw PaymentException.orderNotFound();
-        }
-
-        @Override
-        public vn.ticketscenter.payment.dto.PaymentStatusResult getOrderPaymentStatus(
-                vn.ticketscenter.payment.dto.PaymentActor actor, UUID orderId) {
-            return getOrderPaymentStatus(actor.id(), orderId);
         }
     }
 
@@ -164,18 +153,6 @@ class PaymentApiServletTest {
     }
 
     @Test
-    void payloadTooLargeReturns413() throws Exception {
-        String largeBody = "{\"bankCode\":\"NCB\",\"padding\":\"" + "a".repeat(17000) + "\"}";
-        HttpServletRequest req = mockRequest("POST", "/api/orders/" + ORDER_ID + "/payments", largeBody);
-        HttpServletResponse res = mockResponse();
-
-        invokeServlet(req, res);
-
-        assertEquals(413, responseStatus.get());
-        assertTrue(responseOutput.toString().contains("PAYLOAD_TOO_LARGE"));
-    }
-
-    @Test
     void invalidOrderIdReturns400() throws Exception {
         HttpServletRequest req = mockRequest("POST", "/api/orders/invalid-uuid/payments", "{}");
         HttpServletResponse res = mockResponse();
@@ -193,35 +170,30 @@ class PaymentApiServletTest {
                 pid,
                 "TXN-123",
                 new BigDecimal("500000"),
-                "VND",
-                "https://pay.vnpay.vn/payment/url?token=xyz",
-                false
+                "https://pay.payos.vn/web/0123456789abcdef"
         );
 
-        requestHeaders.put("X-Forwarded-For", List.of("203.113.152.1, 10.0.0.1"));
-        HttpServletRequest req = mockRequest("POST", "/api/orders/" + ORDER_ID + "/payments", "{\"bankCode\":\"NCB\"}");
+        HttpServletRequest req = mockRequest("POST", "/api/orders/" + ORDER_ID + "/payments", "{}");
         HttpServletResponse res = mockResponse();
 
         invokeServlet(req, res);
 
         assertEquals(200, responseStatus.get());
         JSONObject json = new JSONObject(responseOutput.toString());
-        assertEquals("https://pay.vnpay.vn/payment/url?token=xyz", json.getString("redirectUrl"));
+        assertEquals("https://pay.payos.vn/web/0123456789abcdef", json.getString("redirectUrl"));
         assertEquals("TXN-123", json.getString("txnRef"));
         assertEquals(pid.toString(), json.getString("paymentId"));
         assertFalse(json.getBoolean("zeroOrder"));
 
         // Xác nhận truyền đúng tham số vào service
-        assertEquals(ACTOR_ID, paymentService.capturedActor.id());
+        assertEquals(ACTOR_ID, paymentService.capturedActorId);
         assertEquals(ORDER_ID, paymentService.capturedOrderId);
         assertEquals(IDEMPOTENCY_KEY, paymentService.capturedKey);
-        assertEquals(Optional.of("NCB"), paymentService.capturedBankCode);
-        assertEquals("203.113.152.1", paymentService.capturedIp);
     }
 
     @Test
     void zeroOrderReturns200WithZeroOrderReceipt() throws Exception {
-        paymentService.resultToReturn = PaymentInitiationResult.zero(ORDER_ID, false);
+        paymentService.resultToReturn = PaymentInitiationResult.zero(ORDER_ID);
 
         HttpServletRequest req = mockRequest("POST", "/api/orders/" + ORDER_ID + "/payments", "{}");
         HttpServletResponse res = mockResponse();
@@ -239,7 +211,7 @@ class PaymentApiServletTest {
     void idempotencyConflictExceptionReturns409() throws Exception {
         paymentService.exceptionToThrow = PaymentException.idempotencyConflict();
 
-        HttpServletRequest req = mockRequest("POST", "/api/orders/" + ORDER_ID + "/payments", "{\"bankCode\":\"NCB\"}");
+        HttpServletRequest req = mockRequest("POST", "/api/orders/" + ORDER_ID + "/payments", "{}");
         HttpServletResponse res = mockResponse();
 
         invokeServlet(req, res);

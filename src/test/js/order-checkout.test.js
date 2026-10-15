@@ -257,10 +257,10 @@ test("payment persists one command and retries uncertain network results with th
         assert.equal(options.headers["Idempotency-Key"], pending.key);
         assert.equal(options.headers["X-CSRF-Token"], "fresh-token");
         return reply({paymentId: ITEM, txnRef: "PAY-01", amount: "300000", currency: "VND", zeroOrder: false,
-            redirectUrl: "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?vnp_TxnRef=PAY-01"});
+            redirectUrl: "https://pay.payos.vn/web/0123456789abcdef"});
     };
     await client.retry();
-    assert.equal(client.state.paymentRedirect, "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?vnp_TxnRef=PAY-01");
+    assert.equal(client.state.paymentRedirect, "https://pay.payos.vn/web/0123456789abcdef");
     assert.equal(f.values.size, 0);
 });
 
@@ -366,9 +366,9 @@ test("browser payment button redirects only after a valid server receipt and lin
     const f = browserFixture(); f.server.order = order(); await f.settle();
     assert.equal(f.elements["order-pay"].disabled,false);
     assert.equal(f.elements["order-detail-link"].href,"/orders/" + ORDER);
-    f.server.post = (_, __, reply) => reply({paymentId:ITEM,txnRef:"PAY-01",amount:"300000",currency:"VND",zeroOrder:false,redirectUrl:"https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"});
+    f.server.post = (_, __, reply) => reply({paymentId:ITEM,txnRef:"PAY-01",amount:"300000",currency:"VND",zeroOrder:false,redirectUrl:"https://pay.payos.vn/web/0123456789abcdef"});
     f.elements["order-pay"].fire("click"); await f.settle();
-    assert.deepEqual(f.redirects,["https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"]);
+    assert.deepEqual(f.redirects,["https://pay.payos.vn/web/0123456789abcdef"]);
     assert.equal(f.elements["order-pay"].disabled,true);
 });
 

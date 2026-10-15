@@ -12,8 +12,8 @@ import vn.ticketscenter.config.worker.OutboxEmailJob;
 import vn.ticketscenter.config.worker.OutboxWorker;
 import vn.ticketscenter.config.worker.RefundJob;
 import vn.ticketscenter.event.repository.EventCancellationRepository;
-import vn.ticketscenter.payment.integration.VnpaySandboxRefundGateway;
-import vn.ticketscenter.payment.integration.VnpayRefundContextRepository;
+import vn.ticketscenter.payment.integration.RefundGateway;
+import vn.ticketscenter.payment.integration.SimulatedRefundGateway;
 
 import java.time.Clock;
 import java.util.concurrent.Executors;
@@ -51,18 +51,15 @@ public final class PersistenceListener implements ServletContextListener {
             cancellationWorker = Executors.newSingleThreadScheduledExecutor(
                     Thread.ofPlatform().name("event-cancellation-worker").daemon(true).factory());
             cancellationWorker.scheduleWithFixedDelay(() -> runCancellation(job), 0, 5, TimeUnit.SECONDS);
-            if (!ServerConfig.isDemoData() && AppConfig.getBoolean("refund.sandbox.enabled", false)) {
+            // payOS has no refund API: refunds go through the simulated gateway (receipts stored on disk).
+            if (AppConfig.getBoolean("refund.worker.enabled", false)) {
                 try {
-                    RefundJob refundJob = new RefundJob(registry.transactionManager(),
-                            new VnpaySandboxRefundGateway(new VnpayRefundContextRepository(registry.transactionManager()),
-                                    AppConfig.get(AppConfig.Keys.VNPAY_TMN_CODE), AppConfig.get(AppConfig.Keys.VNPAY_HASH_SECRET),
-                                    AppConfig.get("refund.sandbox.server.ip", "127.0.0.1")), 50,
-                            AppConfig.get(AppConfig.Keys.VNPAY_TMN_CODE));
+                    RefundJob refundJob = new RefundJob(registry.transactionManager(), simulatedRefundGateway(), 50);
                     refundWorker = Executors.newSingleThreadScheduledExecutor(
                             Thread.ofPlatform().name("refund-worker").daemon(true).factory());
                     refundWorker.scheduleWithFixedDelay(() -> runRefund(refundJob), 0, 5, TimeUnit.SECONDS);
                 } catch (RuntimeException unavailable) {
-                    LOGGER.warning("Sandbox refund worker configuration is invalid; refunds require reconciliation");
+                    LOGGER.warning("Simulated refund worker configuration is invalid; refunds require reconciliation");
                 }
             }
             if (ServerConfig.isDemoData() && !"false".equalsIgnoreCase(String.valueOf(AppConfig.get("outbox.worker.enabled")).trim())) {
@@ -90,6 +87,13 @@ public final class PersistenceListener implements ServletContextListener {
             vn.ticketscenter.config.redis.RedisClientProvider.getInstance().close();
         } catch (Exception ignored) {
         }
+    }
+
+    private static RefundGateway simulatedRefundGateway() {
+        return new SimulatedRefundGateway(
+                java.nio.file.Path.of(AppConfig.get(AppConfig.Keys.REFUND_STATE_DIRECTORY, "data/refund-gateway")),
+                RefundGateway.Status.valueOf(AppConfig.get(AppConfig.Keys.REFUND_SIMULATED_OUTCOME, "SUCCEEDED")),
+                AppConfig.getBoolean(AppConfig.Keys.REFUND_TIMEOUT_AFTER_SIDE_EFFECT, false));
     }
 
     private static void runCancellation(EventCancellationJob job) {

@@ -27,7 +27,7 @@
 <p id="order-preview-result" role="status" aria-live="polite" class="small"></p><p id="order-applied-coupon" class="small"></p>
 <div id="order-summary" hidden><p id="order-code" class="hold-id small" hidden></p><p id="order-status" class="small text-muted"></p><ul id="order-items" class="hold-items" hidden></ul>
 <dl class="checkout-total"><dt class="fw-normal text-muted">Tiền vé</dt><dd id="order-subtotal"></dd><dt class="fw-normal text-muted">Giảm giá</dt><dd id="order-discount"></dd><dt class="fw-bold">Tổng thanh toán</dt><dd id="order-total" class="h4"></dd></dl>
-<div class="border-top pt-3"><h3 class="h6 fw-bold">Phương thức thanh toán</h3><p class="small text-muted">VNPAY · Đơn miễn phí được hoàn tất trực tiếp.</p><button id="order-pay" type="button" class="btn btn-primary w-100" disabled>Tiếp tục thanh toán</button><p id="payment-message" role="status" aria-live="polite" class="small mt-2"></p><a id="order-detail-link" class="small text-decoration-underline" hidden>Xem chi tiết đơn hàng</a></div>
+<div class="border-top pt-3"><h3 class="h6 fw-bold">Phương thức thanh toán</h3><p class="small text-muted">payOS (chuyển khoản QR) · Đơn miễn phí được hoàn tất trực tiếp.</p><button id="order-pay" type="button" class="btn btn-primary w-100" disabled>Tiếp tục thanh toán</button><p id="payment-message" role="status" aria-live="polite" class="small mt-2"></p><a id="order-detail-link" class="small text-decoration-underline" hidden>Xem chi tiết đơn hàng</a></div>
 </div>
 <button id="order-refresh" type="button" class="btn btn-outline-dark mt-3">Cập nhật đơn hàng</button>
 </section></div>

@@ -1,7 +1,6 @@
 package vn.ticketscenter.payment.cache;
 
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.params.SetParams;
 
 import java.time.Duration;
@@ -41,10 +40,6 @@ public final class RedisPaymentIdempotency {
         this.connections = Objects.requireNonNull(connections, "connections supplier is required");
         this.memoryStore = null;
         this.memoryLocks = null;
-    }
-
-    public RedisPaymentIdempotency(JedisPool pool) {
-        this(Objects.requireNonNull(pool)::getResource);
     }
 
     private RedisPaymentIdempotency() {
@@ -125,7 +120,7 @@ public final class RedisPaymentIdempotency {
         Objects.requireNonNull(idempotencyKey, "idempotencyKey is required");
         Objects.requireNonNull(requestHash, "requestHash is required");
 
-        String redisKey = "tc:idem:vnpay:init:" + actorId + ":" + idempotencyKey;
+        String redisKey = "tc:idem:payos:init:" + actorId + ":" + idempotencyKey;
         String pendingMarker = "PENDING|" + requestHash + "|" + UUID.randomUUID();
         long ttlMs = Math.max(1000, (ttl != null ? ttl : DEFAULT_RETENTION).toMillis());
 
@@ -248,11 +243,11 @@ public final class RedisPaymentIdempotency {
         }
     }
 
-    public static final Duration IPN_RETENTION = Duration.ofDays(7);
+    public static final Duration WEBHOOK_RETENTION = Duration.ofDays(7);
 
-    public String getCachedIpn(String txnRef, String providerTxnNo) {
+    public String getCachedWebhook(String txnRef, String providerReference) {
         if (txnRef == null || txnRef.isBlank()) return null;
-        String key = ipnKey(txnRef, providerTxnNo);
+        String key = webhookKey(txnRef, providerReference);
         if (connections == null) {
             long now = System.currentTimeMillis();
             MemoryRecord rec = memoryStore.get(key);
@@ -266,23 +261,23 @@ public final class RedisPaymentIdempotency {
         }
     }
 
-    public void cacheIpn(String txnRef, String providerTxnNo, String responseJson) {
+    public void cacheWebhook(String txnRef, String providerReference, String responseJson) {
         if (txnRef == null || txnRef.isBlank() || responseJson == null) return;
-        String key = ipnKey(txnRef, providerTxnNo);
+        String key = webhookKey(txnRef, providerReference);
         if (connections == null) {
             long now = System.currentTimeMillis();
-            memoryStore.put(key, new MemoryRecord(responseJson, now + IPN_RETENTION.toMillis()));
+            memoryStore.put(key, new MemoryRecord(responseJson, now + WEBHOOK_RETENTION.toMillis()));
             return;
         }
         try (Jedis client = connections.get()) {
-            client.set(key, responseJson, SetParams.setParams().ex(IPN_RETENTION.toSeconds()));
+            client.set(key, responseJson, SetParams.setParams().ex(WEBHOOK_RETENTION.toSeconds()));
         }
     }
 
-    private static String ipnKey(String txnRef, String providerTxnNo) {
-        if (providerTxnNo != null && !providerTxnNo.isBlank()) {
-            return "tc:idem:vnpay:ipn:" + txnRef + ":" + providerTxnNo;
+    private static String webhookKey(String txnRef, String providerReference) {
+        if (providerReference != null && !providerReference.isBlank()) {
+            return "tc:idem:payos:webhook:" + txnRef + ":" + providerReference;
         }
-        return "tc:idem:vnpay:ipn:" + txnRef;
+        return "tc:idem:payos:webhook:" + txnRef;
     }
 }

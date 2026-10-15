@@ -15,7 +15,7 @@ Owner tích hợp: Vương. Nguồn: [#28](https://github.com/devonxjz/TicketCen
 
 | Key | Owner | Giá trị / scope | TTL giây | Invalidate / trạng thái |
 |---|---|---|---:|---|
-| `auth:user:<userId>` | Thái | `status:authVersion` của User | 180 | `AuthService.evictUserCache`, revoke sessions, password reset; **hiện có** |
+| `auth:user:<userId>` | Thái | `status:authVersion` của User | 180 | `UserSessionCache.evict` (qua `SessionValidator.revokeAllSessions`, đặt lại mật khẩu); **hiện có** |
 | `tc:user:auth-version:<userId>` | Thái | Theo bảng #28 | 86400 | **Cần phối hợp:** không có producer; không đổi key/TTL của auth đã merge trong PR VUONG-01 |
 | `tc:event:list:v1:<filterHash>` | Đông | Public Event list; hash của filter/page/order đã chuẩn hóa | 30 | **Hiện có:** EventCatalogService; Event writes invalidate generation sau commit. Hook Hold/payment/refund/cancel liên miền còn phải nghiệm thu |
 | `tc:event:detail:v1:<eventId>` | Đông | Public Event projection | 120 | **Hiện có:** EventCatalogService; Event writes invalidate sau commit |
@@ -46,8 +46,8 @@ Owner tích hợp: Vương. Nguồn: [#28](https://github.com/devonxjz/TicketCen
 | `tc:idem:refund-decision:<adminId>:<key>` | Khánh | 86400 | **Hiện có:** RedisAdminRefundCache sau commit; payload kết quả đã lọc, SQL giữ quyết định/replay; Redis lỗi không đảo commit |
 | `tc:idem:hold:<actorId>:<key>` | Liêm | 600 | #14, dự kiến |
 | `tc:idem:order:<actorId>:<key>` | Liêm | 600 | #15, dự kiến |
-| `tc:idem:vnpay:init:<actorId>:<key>` | Liêm | 600 | #16, dự kiến |
-| `tc:idem:vnpay:ipn:<txnRef>:<providerTxnNo>` | Liêm | 604800 | #17 có providerTxnNo, khác bảng rút gọn #28; cần owner xác nhận canonical identity/replay |
+| `tc:idem:payos:init:<actorId>:<key>` | Liêm | 600 | #16, dự kiến |
+| `tc:idem:payos:webhook:<txnRef>:<paymentLinkId>` | Liêm | 604800 | #17 có providerTxnNo, khác bảng rút gọn #28; cần owner xác nhận canonical identity/replay |
 | `tc:idem:checkin:<actorId>:<key>` | Khánh | 3600 | #22, dự kiến |
 | `tc:idem:refund-request:<actorId>:<key>` | Khánh | 86400 | #23, dự kiến |
 | `tc:idem:refund-decision:<adminId>:<key>` | Khánh | 86400 | #24, dự kiến |

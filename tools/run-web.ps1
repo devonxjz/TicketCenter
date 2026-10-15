@@ -35,7 +35,7 @@ if(-not(Test-Path -LiteralPath $networkTemp)){
 $networkArg='-DargLine=-Djdk.net.unixdomain.tmpdir='+$networkTemp.Replace('\','/')
 $previousJava=$env:JAVA_HOME;$previousPath=$env:PATH;$removed=@{}
 try{
- foreach($item in Get-ChildItem Env:){if($item.Name -match '^(DB_|TC_|APP_|ADMIN_|REDIS_|MAIL_|VNPAY_|CLOUDINARY_|HIKARI_|REFUND_|PAYOUT_|EVENT_)' -or $item.Name -in @('JAVA_TOOL_OPTIONS','JDK_JAVA_OPTIONS','_JAVA_OPTIONS','MAVEN_ARGS','MAVEN_OPTS')){$removed[$item.Name]=$item.Value;[Environment]::SetEnvironmentVariable($item.Name,$null,'Process')}}
+ foreach($item in Get-ChildItem Env:){if($item.Name -match '^(DB_|TC_|APP_|ADMIN_|REDIS_|MAIL_|PAYOS_|CLOUDINARY_|HIKARI_|REFUND_|PAYOUT_|EVENT_)' -or $item.Name -in @('JAVA_TOOL_OPTIONS','JDK_JAVA_OPTIONS','_JAVA_OPTIONS','MAVEN_ARGS','MAVEN_OPTS')){$removed[$item.Name]=$item.Value;[Environment]::SetEnvironmentVariable($item.Name,$null,'Process')}}
  $env:JAVA_HOME=$JavaHome;$env:PATH=(Join-Path $JavaHome 'bin')+';'+$previousPath
  Push-Location $repo
  try{& mvn -B clean package '-Dtc.tests.db=false' '-Dtc.tests.smtp=false' '-Dtc.tests.redis=false' '-DskipTests=false' '-Dmaven.test.skip=false' $networkArg;if($LASTEXITCODE -ne 0){throw 'Build or tests failed'}}finally{Pop-Location}
@@ -63,7 +63,8 @@ foreach($role in @('auth','buyer','manager','check_in','admin','worker')){
 }
 $settings['app.env']='development';$settings['app.data.mode']='real';$settings['admin.seed.enabled']='false';$settings['demo.seed.enabled']='false';$settings['mail.outbox.enabled']='false'
 $settings['app.base.url']="http://127.0.0.1:$Port/ticketscenter"
-$settings['vnpay.return.url']=$settings['app.base.url']+'/api/payments/vnpay/return'
+$settings['payos.return.url']=$settings['app.base.url']+'/api/payments/payos/return'
+$settings['payos.cancel.url']=$settings['app.base.url']+'/api/payments/payos/cancel'
 if([string]::IsNullOrWhiteSpace($settings['app.secret.key'])){
  $settings['app.secret.key']=[Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
  if(Test-Path -LiteralPath $ConfigPath){
@@ -81,7 +82,7 @@ $lines=foreach($entry in $settings.GetEnumerator()){$entry.Key+'='+([string]$ent
 $runtimeConfig=Join-Path $run 'conf/application.properties'
 [IO.File]::WriteAllLines($runtimeConfig,$lines,[Text.UTF8Encoding]::new($false))
 $info=[Diagnostics.ProcessStartInfo]::new();$info.FileName=$java;$info.WorkingDirectory=$run;$info.UseShellExecute=$false;$info.CreateNoWindow=$true;$info.RedirectStandardOutput=$true;$info.RedirectStandardError=$true
-foreach($key in @($info.Environment.Keys)){if($key -match '^(DB_|TC_|APP_|ADMIN_|REDIS_|MAIL_|VNPAY_|CLOUDINARY_|HIKARI_|REFUND_|PAYOUT_|EVENT_)' -or $key -in @('JAVA_TOOL_OPTIONS','JDK_JAVA_OPTIONS','_JAVA_OPTIONS','CLASSPATH')){$info.Environment.Remove($key)|Out-Null}}
+foreach($key in @($info.Environment.Keys)){if($key -match '^(DB_|TC_|APP_|ADMIN_|REDIS_|MAIL_|PAYOS_|CLOUDINARY_|HIKARI_|REFUND_|PAYOUT_|EVENT_)' -or $key -in @('JAVA_TOOL_OPTIONS','JDK_JAVA_OPTIONS','_JAVA_OPTIONS','CLASSPATH')){$info.Environment.Remove($key)|Out-Null}}
 $info.Environment['TC_CONFIG_FILE']=$runtimeConfig
 foreach($arg in @("-Dcatalina.home=$tomcat","-Dcatalina.base=$run","-Djava.io.tmpdir=$run/temp","-Djdk.net.unixdomain.tmpdir=$networkTemp",'-Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager',"-Djava.util.logging.config.file=$run/conf/logging.properties",'-classpath',"$tomcat/bin/bootstrap.jar;$tomcat/bin/tomcat-juli.jar",'org.apache.catalina.startup.Bootstrap','start')){$info.ArgumentList.Add($arg)}
 $process=[Diagnostics.Process]::new();$process.StartInfo=$info

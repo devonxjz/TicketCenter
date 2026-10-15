@@ -38,8 +38,8 @@ public final class CsrfFilter implements Filter {
         if (MUTATING_METHODS.contains(method)) {
             String path = httpRequest.getRequestURI().substring(httpRequest.getContextPath().length());
 
-            // Cho phép ngoại lệ đối với IPN Webhook từ cổng thanh toán có chữ ký riêng
-            if (path.equals("/api/payments/vnpay/ipn")) {
+            // Webhook payOS gọi server-to-server và được xác thực bằng chữ ký checksum riêng
+            if (path.equals(vn.ticketscenter.config.PayosConfig.WEBHOOK_PATH)) {
                 chain.doFilter(request, response);
                 return;
             }

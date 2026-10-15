@@ -114,9 +114,10 @@ class OpenApiContractTest {
     @Test
     void publicContractsAndReadinessMatchTheirBoundaries() throws Exception {
         JSONObject paths = specification().getJSONObject("paths");
-        for (String path : Set.of("/api/events", "/api/events/{eventId}", "/api/events/{eventId}/zones", "/api/zones/{zoneId}/seats", "/api/payments/vnpay/ipn")) {
+        for (String path : Set.of("/api/events", "/api/events/{eventId}", "/api/events/{eventId}/zones", "/api/zones/{zoneId}/seats", "/api/payments/payos/return", "/api/payments/payos/cancel")) {
             assertTrue(paths.getJSONObject(path).getJSONObject("get").getJSONArray("security").isEmpty(), path);
         }
+        assertTrue(paths.getJSONObject("/api/payments/payos/webhook").getJSONObject("post").getJSONArray("security").isEmpty());
         JSONObject ready = paths.getJSONObject("/health/ready").getJSONObject("get").getJSONObject("responses");
         JSONObject ok = ready.getJSONObject("200").getJSONObject("content").getJSONObject("application/json");
         assertEquals("UP", ok.getJSONObject("example").getJSONObject("data").getString("status"));

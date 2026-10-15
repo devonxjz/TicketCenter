@@ -222,15 +222,15 @@ public class IdentityWebFlowTest {
     }
 
     @Test
-    @DisplayName("CsrfFilter bỏ qua kiểm tra CSRF đối với webhook IPN thanh toán VNPAY")
-    void testCsrfFilterBypassesVnPayIpn() throws Exception {
+    @DisplayName("CsrfFilter bỏ qua kiểm tra CSRF đối với webhook thanh toán payOS")
+    void testCsrfFilterBypassesPayosWebhook() throws Exception {
         CsrfFilter filter = new CsrfFilter();
-        HttpServletRequest req = createMockRequest("POST", "/api/payments/vnpay/ipn", false);
+        HttpServletRequest req = createMockRequest("POST", "/api/payments/payos/webhook", false);
         HttpServletResponse resp = createMockResponse();
 
         filter.doFilter(req, resp, createMockChain());
 
-        assertTrue(chainExecuted.get(), "FilterChain must proceed for VNPAY IPN webhook");
+        assertTrue(chainExecuted.get(), "FilterChain must proceed for payOS webhook");
     }
 
     @Test

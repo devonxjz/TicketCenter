@@ -8,13 +8,14 @@ import jakarta.servlet.ServletContextListener;
 import jakarta.servlet.annotation.WebListener;
 import vn.ticketscenter.config.AppConfig;
 import vn.ticketscenter.config.DatabaseConfig;
+import vn.ticketscenter.config.PayosConfig;
 import vn.ticketscenter.config.persistence.ConnectionBudgets;
 import vn.ticketscenter.config.redis.RedisClientProvider;
-import vn.ticketscenter.payment.cache.RedisPaymentIdempotency;
-import vn.ticketscenter.payment.repository.PaymentRepository;
-
 import vn.ticketscenter.config.worker.PaymentReconciliationJob;
-import vn.ticketscenter.payment.integration.VnpayQueryClient;
+import vn.ticketscenter.payment.cache.RedisPaymentIdempotency;
+import vn.ticketscenter.payment.integration.PayosClient;
+import vn.ticketscenter.payment.integration.PayosGateway;
+import vn.ticketscenter.payment.repository.PaymentRepository;
 
 import java.time.Clock;
 import java.util.concurrent.Executors;
@@ -23,141 +24,147 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Wires the payment feature (servlet replacement for Spring's beans): DB pools → repository, payOS client and
+ * Redis idempotency → {@link PaymentService}. Built on first use, shared by requests and the reconciliation job,
+ * closed with the web application.
+ */
 @WebListener
 public final class PaymentRuntime implements ServletContextListener {
-    public static final String SERVICE_ATTRIBUTE = PaymentService.class.getName();
-    private static final String POOL_ATTRIBUTE = PaymentRuntime.class.getName() + ".pool";
-    private static final String WORKER_POOL_ATTRIBUTE = PaymentRuntime.class.getName() + ".workerPool";
     private static final Logger LOGGER = Logger.getLogger(PaymentRuntime.class.getName());
-    private static final String RECONCILE_POOL_ATTRIBUTE = PaymentRuntime.class.getName() + ".reconcilePool";
-    private static final String RECONCILE_EXECUTOR_ATTRIBUTE = PaymentRuntime.class.getName() + ".reconcileExecutor";
-    private static final String CLOSED_ATTRIBUTE = PaymentRuntime.class.getName() + ".closed";
+    private static final String COMPONENTS = PaymentRuntime.class.getName() + ".components";
+    private static final String CLOSED = PaymentRuntime.class.getName() + ".closed";
+
+    private ScheduledExecutorService reconciliation;
+    /** Only touched by the reconciliation thread; keeps its retry back-off between runs. */
+    private PaymentReconciliationJob reconciliationJob;
 
     public static PaymentService resolve(ServletContext context) {
-        synchronized (context) {
-            if (Boolean.TRUE.equals(context.getAttribute(CLOSED_ATTRIBUTE))) {
-                throw PaymentException.unavailable();
-            }
-            if (context.getAttribute(SERVICE_ATTRIBUTE) instanceof PaymentService service) {
-                return service;
-            }
-            HikariDataSource pool = null;
-            HikariDataSource workerPool = null;
-            try {
-                pool = createPool("buyer");
-                workerPool = createPool("worker");
-
-                String tmnCode = AppConfig.get(AppConfig.Keys.VNPAY_TMN_CODE);
-                String hashSecret = AppConfig.get(AppConfig.Keys.VNPAY_HASH_SECRET);
-                String payUrl = AppConfig.get(AppConfig.Keys.VNPAY_PAY_URL);
-                String returnUrl = AppConfig.get(AppConfig.Keys.VNPAY_RETURN_URL);
-                if (tmnCode == null || hashSecret == null || payUrl == null || returnUrl == null) {
-                    throw PaymentException.unavailable();
-                }
-
-                VnpaySigner signer = new VnpaySigner(tmnCode, hashSecret, payUrl, returnUrl, Clock.systemUTC());
-                RedisPaymentIdempotency idempotency = resolveIdempotency();
-                PaymentRepository repository = new PaymentRepository(ConnectionBudgets.wrap(pool),ConnectionBudgets.wrap(workerPool));
-
-                PaymentService service = new PaymentService(repository, signer, idempotency);
-                context.setAttribute(POOL_ATTRIBUTE, pool);
-                context.setAttribute(WORKER_POOL_ATTRIBUTE, workerPool);
-                context.setAttribute(SERVICE_ATTRIBUTE, service);
-                return service;
-            } catch (RuntimeException failure) {
-                if (pool != null) pool.close();
-                if (workerPool != null) workerPool.close();
-                throw PaymentException.unavailable();
-            }
-        }
-    }
-
-    private static RedisPaymentIdempotency resolveIdempotency() {
-        if (AppConfig.getBoolean("finance.redis.enabled", true)) {
-            try {
-                var redis = RedisClientProvider.getInstance();
-                if (redis.isAvailable()) {
-                    return new RedisPaymentIdempotency(redis::getResource);
-                }
-            } catch (Exception ignored) {
-            }
-        }
-        LOGGER.info("Redis is unavailable or disabled; falling back to in-memory payment idempotency");
-        return RedisPaymentIdempotency.inMemory();
-    }
-
-    private static HikariDataSource createPool(String principal) {
-        String user=AppConfig.get("db."+principal+".user"),password=AppConfig.get("db."+principal+".password");
-        if(user==null||user.isBlank()||password==null||password.isBlank())throw PaymentException.unavailable();
-        HikariConfig config=new HikariConfig();
-        config.setPoolName("payment-"+principal);config.setJdbcUrl(DatabaseConfig.getJdbcUrl());
-        config.setUsername(user);config.setPassword(password);config.setMaximumPoolSize(1);
-        config.setMinimumIdle(0);config.setInitializationFailTimeout(-1);config.setConnectionTimeout(10_000);config.setAutoCommit(true);
-        return new HikariDataSource(config);
+        return components(context).service();
     }
 
     @Override
     public void contextInitialized(ServletContextEvent event) {
-        event.getServletContext().setAttribute(CLOSED_ATTRIBUTE, false);
-        startReconciliation(event.getServletContext());
-    }
-
-    /** Off unless payment.reconciliation.enabled=true (default: on only when VNPAY query config exists). */
-    private static void startReconciliation(ServletContext context) {
-        String tmnCode = AppConfig.get(AppConfig.Keys.VNPAY_TMN_CODE);
-        String hashSecret = AppConfig.get(AppConfig.Keys.VNPAY_HASH_SECRET);
-        String apiUrl = AppConfig.get(AppConfig.Keys.VNPAY_API_URL);
-        boolean configured = tmnCode != null && hashSecret != null && apiUrl != null
-                && !tmnCode.isBlank() && !hashSecret.isBlank() && !apiUrl.isBlank();
-        String flag = AppConfig.get("payment.reconciliation.enabled");
-        boolean enabled = flag == null || flag.isBlank() ? configured : Boolean.parseBoolean(flag.trim());
-        if (!enabled || !configured) {
+        ServletContext context = event.getServletContext();
+        context.setAttribute(CLOSED, false);
+        if (!reconciliationEnabled()) {
             LOGGER.info("Payment reconciliation disabled");
             return;
         }
-        HikariDataSource pool = null;
-        try {
-            pool = createPool("worker");
-            RedisPaymentIdempotency idempotency = resolveIdempotency();
-            var javaPool = ConnectionBudgets.wrap(pool);
-            PaymentRepository repository = new PaymentRepository(javaPool, javaPool);
-            VnpayQueryClient client = VnpayQueryClient.create(apiUrl, tmnCode, hashSecret);
-            PaymentReconciliationJob job = new PaymentReconciliationJob(
-                    repository::findPaymentsToReconcile,
-                    c -> client.query(c.txnRef(), c.amount(), c.createdAt()),
-                    (c, status, ref) -> repository.applyPaymentResult(c.orderId(), c.paymentId(), status, ref),
-                    idempotency::acquireOrderLock,
-                    20);
-            ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(
-                    Thread.ofPlatform().name("payment-reconciliation").daemon(true).factory());
-            executor.scheduleWithFixedDelay(() -> {
-                try {
-                    job.runOnce();
-                } catch (RuntimeException failure) {
-                    LOGGER.log(Level.WARNING, "Payment reconciliation batch failed; it will be retried", failure);
-                }
-            }, 30, 60, TimeUnit.SECONDS);
-            context.setAttribute(RECONCILE_POOL_ATTRIBUTE, pool);
-            context.setAttribute(RECONCILE_EXECUTOR_ATTRIBUTE, executor);
-        } catch (RuntimeException failure) {
-            if (pool != null) pool.close();
-            LOGGER.log(Level.WARNING, "Payment reconciliation could not start", failure);
-        }
+        reconciliation = Executors.newSingleThreadScheduledExecutor(
+                Thread.ofPlatform().name("payment-reconciliation").daemon(true).factory());
+        reconciliation.scheduleWithFixedDelay(() -> reconcile(context), 30, 60, TimeUnit.SECONDS);
     }
 
     @Override
     public void contextDestroyed(ServletContextEvent event) {
-        synchronized (event.getServletContext()) {
-            event.getServletContext().setAttribute(CLOSED_ATTRIBUTE, true);
-            if (event.getServletContext().getAttribute(RECONCILE_EXECUTOR_ATTRIBUTE) instanceof ScheduledExecutorService executor) executor.shutdownNow();
-            if (event.getServletContext().getAttribute(RECONCILE_POOL_ATTRIBUTE) instanceof HikariDataSource pool) pool.close();
-            if (event.getServletContext().getAttribute(POOL_ATTRIBUTE) instanceof HikariDataSource pool) {
-                pool.close();
+        if (reconciliation != null) reconciliation.shutdownNow();
+        ServletContext context = event.getServletContext();
+        synchronized (context) {
+            context.setAttribute(CLOSED, true);
+            if (context.getAttribute(COMPONENTS) instanceof Components components) components.close();
+            context.removeAttribute(COMPONENTS);
+        }
+    }
+
+    /** Off when payment.reconciliation.enabled=false; on by default whenever payOS credentials exist. */
+    private static boolean reconciliationEnabled() {
+        return PayosConfig.isConfigured() && AppConfig.getBoolean("payment.reconciliation.enabled", true);
+    }
+
+    private void reconcile(ServletContext context) {
+        try {
+            if (reconciliationJob == null) reconciliationJob = components(context).reconciliationJob();
+            reconciliationJob.runOnce();
+        } catch (RuntimeException failure) {
+            LOGGER.log(Level.WARNING, "Payment reconciliation batch failed; it will be retried", failure);
+        }
+    }
+
+    private static Components components(ServletContext context) {
+        synchronized (context) {
+            if (Boolean.TRUE.equals(context.getAttribute(CLOSED))) throw PaymentException.unavailable();
+            if (context.getAttribute(COMPONENTS) instanceof Components existing) return existing;
+            Components created = Components.create();
+            context.setAttribute(COMPONENTS, created);
+            return created;
+        }
+    }
+
+    /** Everything the payment feature needs, created together and closed together. */
+    private record Components(PaymentService service, PaymentRepository repository, PayosGateway payos,
+                              RedisPaymentIdempotency idempotency, HikariDataSource buyerPool, HikariDataSource workerPool) {
+
+        static Components create() {
+            if (!PayosConfig.isConfigured()) {
+                LOGGER.warning("payOS is not configured (payos.client.id / payos.api.key / payos.checksum.key)");
+                throw PaymentException.unavailable();
             }
-            if(event.getServletContext().getAttribute(WORKER_POOL_ATTRIBUTE) instanceof HikariDataSource pool)pool.close();
-            event.getServletContext().removeAttribute(SERVICE_ATTRIBUTE);
-            event.getServletContext().removeAttribute(POOL_ATTRIBUTE);
-            event.getServletContext().removeAttribute(WORKER_POOL_ATTRIBUTE);
+            PayosGateway payos = null;
+            HikariDataSource buyerPool = null;
+            HikariDataSource workerPool = null;
+            try {
+                payos = new PayosClient(PayosConfig.fromEnvironment());
+                RedisPaymentIdempotency idempotency = newIdempotency();
+                buyerPool = newPool("buyer");
+                workerPool = newPool("worker");
+                PaymentRepository repository = new PaymentRepository(ConnectionBudgets.wrap(buyerPool), ConnectionBudgets.wrap(workerPool));
+                PaymentService service = new PaymentService(repository, payos, idempotency, Clock.systemUTC());
+                return new Components(service, repository, payos, idempotency, buyerPool, workerPool);
+            } catch (RuntimeException failure) {
+                if (payos != null) payos.close();
+                if (buyerPool != null) buyerPool.close();
+                if (workerPool != null) workerPool.close();
+                LOGGER.log(Level.WARNING, "Payment feature could not start", failure);
+                throw PaymentException.unavailable();
+            }
+        }
+
+        /** Settles PENDING/UNKNOWN payments by asking payOS; links never seen after the window are failures. */
+        PaymentReconciliationJob reconciliationJob() {
+            Clock clock = Clock.systemUTC();
+            return new PaymentReconciliationJob(
+                    repository::findPaymentsToReconcile,
+                    c -> payos.query(c.txnRef(), c.amount(), clock.instant().isAfter(c.createdAt().plus(PayosGateway.PAYMENT_WINDOW))),
+                    (c, status, reference) -> repository.applyPaymentResult(c.orderId(), c.paymentId(), status, reference),
+                    idempotency::acquireOrderLock,
+                    20);
+        }
+
+        void close() {
+            payos.close();
+            buyerPool.close();
+            workerPool.close();
+        }
+
+        private static RedisPaymentIdempotency newIdempotency() {
+            if (AppConfig.getBoolean("finance.redis.enabled", true)) {
+                try {
+                    var redis = RedisClientProvider.getInstance();
+                    if (redis.isAvailable()) return new RedisPaymentIdempotency(redis::getResource);
+                } catch (RuntimeException unavailable) {
+                    // fall through to the in-memory store
+                }
+            }
+            LOGGER.info("Redis is unavailable or disabled; falling back to in-memory payment idempotency");
+            return RedisPaymentIdempotency.inMemory();
+        }
+
+        private static HikariDataSource newPool(String principal) {
+            String user = AppConfig.get("db." + principal + ".user");
+            String password = AppConfig.get("db." + principal + ".password");
+            if (user == null || password == null) throw new IllegalStateException("db." + principal + ".user/password are required");
+            HikariConfig config = new HikariConfig();
+            config.setPoolName("payment-" + principal);
+            config.setJdbcUrl(DatabaseConfig.getJdbcUrl());
+            config.setUsername(user);
+            config.setPassword(password);
+            config.setMaximumPoolSize(1);
+            config.setMinimumIdle(0);
+            config.setInitializationFailTimeout(-1);
+            config.setConnectionTimeout(10_000);
+            config.setAutoCommit(true);
+            return new HikariDataSource(config);
         }
     }
 }

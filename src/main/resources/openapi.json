@@ -37,10 +37,6 @@
       "description": "Retry vận hành; kết quả provider không nhận từ browser"
     },
     {
-      "name": "VNPAY Payment Gateway",
-      "description": "Tạo URL thanh toán Sandbox, truy vấn giao dịch (QueryDR) và hoàn tiền (Refund)"
-    },
-    {
       "name": "Ticketing & Payments"
     },
     {
@@ -2175,203 +2171,6 @@
         },
         "description": "EventCatalogServlet / EventCatalogService. Public SQL projections hide unpublished events; Redis miss/outage falls back to SQL. Inventory and authority are rechecked by mutations.",
         "security": []
-      }
-    },
-    "/vnpayajax": {
-      "post": {
-        "tags": [
-          "VNPAY Payment Gateway"
-        ],
-        "summary": "Legacy · Tạo URL thanh toán VNPAY Sandbox",
-        "description": "Tạo giao dịch thanh toán và trả về URL chuyển hướng sang cổng thanh toán VNPAY Sandbox.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "amount"
-                ],
-                "properties": {
-                  "amount": {
-                    "type": "integer",
-                    "description": "Số tiền cần thanh toán (VNĐ)",
-                    "example": 50000
-                  },
-                  "bankCode": {
-                    "type": "string",
-                    "description": "Mã ngân hàng (bỏ trống nếu muốn người dùng chọn tại cổng VNPAY)",
-                    "example": "NCB",
-                    "enum": [
-                      "NCB",
-                      "VNPAYQR",
-                      "VISA",
-                      "MASTERCARD"
-                    ]
-                  },
-                  "language": {
-                    "type": "string",
-                    "description": "Ngôn ngữ giao diện cổng thanh toán",
-                    "example": "vn",
-                    "enum": [
-                      "vn",
-                      "en"
-                    ]
-                  },
-                  "returnUrl": {
-                    "type": "string",
-                    "description": "URL nhận kết quả sau khi người dùng thanh toán trên cổng VNPAY",
-                    "example": "http://localhost:8081/vnpay/vnpay_return.jsp"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Khởi tạo thành công, trả về URL thanh toán VNPAY Sandbox",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "string",
-                      "writeOnly": true
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "success"
-                    },
-                    "data": {
-                      "type": "string",
-                      "example": "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?..."
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "operationId": "postVnpayajax",
-        "x-implementation-status": "legacy",
-        "x-contract-status": "owner-review-required",
-        "x-owner": "liem"
-      }
-    },
-    "/vnpayquery": {
-      "post": {
-        "tags": [
-          "VNPAY Payment Gateway"
-        ],
-        "summary": "Legacy · Truy vấn kết quả giao dịch VNPAY (QueryDR)",
-        "description": "Kiểm tra kết quả giao dịch thanh toán đã gửi lên VNPAY Sandbox.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "order_id",
-                  "trans_date"
-                ],
-                "properties": {
-                  "order_id": {
-                    "type": "string",
-                    "description": "Mã tham chiếu giao dịch (vnp_TxnRef nhận được lúc tạo đơn)",
-                    "example": "40265227"
-                  },
-                  "trans_date": {
-                    "type": "string",
-                    "description": "Thời gian tạo giao dịch định dạng yyyyMMddHHmmss (vnp_CreateDate)",
-                    "example": "20261001101620"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Kết quả truy vấn giao dịch từ server VNPAY"
-          }
-        },
-        "operationId": "postVnpayquery",
-        "x-implementation-status": "legacy",
-        "x-contract-status": "owner-review-required",
-        "x-owner": "liem"
-      }
-    },
-    "/vnpayrefund": {
-      "post": {
-        "tags": [
-          "VNPAY Payment Gateway"
-        ],
-        "summary": "Legacy · Hoàn tiền giao dịch VNPAY (Refund)",
-        "description": "Gửi yêu cầu hoàn tiền toàn phần hoặc một phần giao dịch tới cổng VNPAY.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "order_id",
-                  "amount",
-                  "trans_date"
-                ],
-                "properties": {
-                  "order_id": {
-                    "type": "string",
-                    "description": "Mã đơn hàng (vnp_TxnRef)",
-                    "example": "40265227"
-                  },
-                  "amount": {
-                    "type": "integer",
-                    "description": "Số tiền hoàn (VNĐ)",
-                    "example": 50000
-                  },
-                  "trantype": {
-                    "type": "string",
-                    "description": "Loại hoàn tiền: 02 (Toàn phần), 03 (Một phần)",
-                    "example": "02",
-                    "enum": [
-                      "02",
-                      "03"
-                    ]
-                  },
-                  "trans_date": {
-                    "type": "string",
-                    "description": "Thời gian tạo giao dịch ban đầu (yyyyMMddHHmmss)",
-                    "example": "20261001101620"
-                  },
-                  "transactionNo": {
-                    "type": "string",
-                    "description": "Mã giao dịch tại hệ thống VNPAY (vnp_TransactionNo nếu có)",
-                    "example": ""
-                  },
-                  "user": {
-                    "type": "string",
-                    "description": "Tên người thực hiện hoàn",
-                    "example": "TicketsCenter"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Kết quả xử lý hoàn tiền từ server VNPAY"
-          }
-        },
-        "operationId": "postVnpayrefund",
-        "x-implementation-status": "legacy",
-        "x-contract-status": "owner-review-required",
-        "x-owner": "khanh"
       }
     },
     "/api/admin/overview": {
@@ -5439,19 +5238,99 @@
         ]
       }
     },
-    "/api/payments/vnpay/ipn": {
-      "get": {
+    "/api/payments/payos/webhook": {
+      "post": {
         "tags": [
           "Ticketing & Payments"
         ],
-        "summary": "Chờ triển khai · VNPAY IPN, replay và reconciliation — GET /api/payments/vnpay/ipn",
-        "description": "Contract dự kiến từ issue #17. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.\nPublic callback không dùng session cookie. Owner phải kiểm chữ ký VNPAY, đối chiếu giao dịch/tiền/tính lặp và trả mã giao thức VNPAY; không dùng envelope JSON chung.",
-        "responses": {
-          "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+        "summary": "Đã triển khai · payOS webhook — POST /api/payments/payos/webhook",
+        "description": "Callback server-to-server của payOS (đăng ký URL này trong my.payos.vn hoặc qua confirm-webhook). Không dùng session/CSRF; dữ liệu được xác thực bằng chữ ký HMAC-SHA256 với checksum key. Chỉ `data.code = \"00\"` mới ghi nhận CAPTURED qua usp_ApplyPaymentResult; webhook lặp lại được trả lời từ cache Redis `tc:idem:payos:webhook:*`. Order code không tồn tại vẫn trả 200 (payOS gửi orderCode 123 khi xác nhận URL).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "code",
+                  "desc",
+                  "success",
+                  "data",
+                  "signature"
+                ],
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "example": "00"
+                  },
+                  "desc": {
+                    "type": "string",
+                    "example": "success"
+                  },
+                  "success": {
+                    "type": "boolean"
+                  },
+                  "data": {
+                    "type": "object",
+                    "properties": {
+                      "orderCode": {
+                        "type": "integer",
+                        "format": "int64"
+                      },
+                      "amount": {
+                        "type": "integer",
+                        "format": "int64"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "reference": {
+                        "type": "string"
+                      },
+                      "paymentLinkId": {
+                        "type": "string"
+                      },
+                      "code": {
+                        "type": "string"
+                      },
+                      "desc": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "signature": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
           }
         },
-        "operationId": "getApiPaymentsVnpayIpn",
+        "responses": {
+          "200": {
+            "description": "Đã nhận (error=0 thành công/đã xác nhận; error=1 không tìm thấy đơn; error=4 sai số tiền).",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": 0,
+                  "message": "Webhook delivered"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Chữ ký không hợp lệ.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": 97,
+                  "message": "Invalid signature"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postApiPaymentsPayosWebhook",
         "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "liem",
@@ -5462,19 +5341,65 @@
         "security": []
       }
     },
-    "/api/payments/vnpay/return": {
+    "/api/payments/payos/return": {
       "get": {
         "tags": [
           "Ticketing & Payments"
         ],
-        "summary": "Chờ triển khai · VNPAY IPN, replay và reconciliation — GET /api/payments/vnpay/return",
-        "description": "Contract dự kiến từ issue #17. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "summary": "Đã triển khai · payOS return URL — GET /api/payments/payos/return",
+        "description": "payOS chuyển người mua về đây kèm `code, id, cancel, status, orderCode`. Query string không có chữ ký nên chỉ đọc `orderCode`; trạng thái thật được hỏi lại payOS (GET /v2/payment-requests/{orderCode}) rồi ghi qua usp_ApplyPaymentResult. Trả JSP kết quả, hoặc JSON khi `Accept: application/json`.",
+        "parameters": [
+          {
+            "name": "orderCode",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PAID",
+                "PENDING",
+                "PROCESSING",
+                "CANCELLED"
+              ]
+            }
+          },
+          {
+            "name": "cancel",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+            "description": "Kết quả thanh toán đã đối chiếu với payOS.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "verified": true,
+                  "success": true,
+                  "status": "CAPTURED",
+                  "txnRef": "PAY-0123456789ABCDEF0123456789ABCDEF",
+                  "orderId": "22222222-2222-2222-2222-222222222222",
+                  "amount": "350000",
+                  "message": "Giao dịch thanh toán thành công."
+                }
+              }
+            }
           }
         },
-        "operationId": "getApiPaymentsVnpayReturn",
+        "operationId": "getApiPaymentsPayosReturn",
         "x-implementation-status": "implemented",
         "x-contract-status": "owner-review-required",
         "x-owner": "liem",
@@ -5482,11 +5407,76 @@
           "description": "Issue giao việc và contract dự kiến",
           "url": "https://github.com/devonxjz/TicketCenter/issues/17"
         },
-        "security": [
+        "security": []
+      }
+    },
+    "/api/payments/payos/cancel": {
+      "get": {
+        "tags": [
+          "Ticketing & Payments"
+        ],
+        "summary": "Đã triển khai · payOS cancel URL — GET /api/payments/payos/cancel",
+        "description": "payOS chuyển người mua về đây kèm `code, id, cancel, status, orderCode`. Query string không có chữ ký nên chỉ đọc `orderCode`; trạng thái thật được hỏi lại payOS (GET /v2/payment-requests/{orderCode}) rồi ghi qua usp_ApplyPaymentResult. Trả JSP kết quả, hoặc JSON khi `Accept: application/json`.",
+        "parameters": [
           {
-            "cookieAuth": []
+            "name": "orderCode",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PAID",
+                "PENDING",
+                "PROCESSING",
+                "CANCELLED"
+              ]
+            }
+          },
+          {
+            "name": "cancel",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "description": "Kết quả thanh toán đã đối chiếu với payOS.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "verified": true,
+                  "success": true,
+                  "status": "CAPTURED",
+                  "txnRef": "PAY-0123456789ABCDEF0123456789ABCDEF",
+                  "orderId": "22222222-2222-2222-2222-222222222222",
+                  "amount": "350000",
+                  "message": "Giao dịch thanh toán thành công."
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getApiPaymentsPayosCancel",
+        "x-implementation-status": "implemented",
+        "x-contract-status": "owner-review-required",
+        "x-owner": "liem",
+        "externalDocs": {
+          "description": "Issue giao việc và contract dự kiến",
+          "url": "https://github.com/devonxjz/TicketCenter/issues/17"
+        },
+        "security": []
       }
     },
     "/api/orders/{orderId}/payment-status": {
@@ -5494,7 +5484,7 @@
         "tags": [
           "Ticketing & Payments"
         ],
-        "summary": "Chờ triển khai · VNPAY IPN, replay và reconciliation — GET /api/orders/{orderId}/payment-status",
+        "summary": "Đã triển khai · Trạng thái thanh toán đơn — GET /api/orders/{orderId}/payment-status",
         "description": "Contract dự kiến từ issue #17. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
         "responses": {
           "200": {
@@ -5532,11 +5522,30 @@
         "tags": [
           "Ticketing & Payments"
         ],
-        "summary": "Chờ triển khai · VNPAY payment initiation và idempotency — POST /api/orders/{orderId}/payments",
-        "description": "Contract dự kiến từ issue #16. Phần request/response chi tiết cần owner đối chiếu với implementation trước khi bật thử API.\n\nChưa có servlet cho thao tác này trong baseline. Cần xác nhận với owner; không coi ví dụ là kết quả backend đã nghiệm thu.",
+        "summary": "Đã triển khai · payOS payment initiation và idempotency — POST /api/orders/{orderId}/payments",
+        "description": "Bắt buộc header `Idempotency-Key` (UUID); body bỏ qua (gửi `{}`). Mở/tái dùng payment qua usp_BeginOrderPayment rồi tạo payment link payOS (orderCode = 13 hex đầu của txnRef, hết hạn cùng seat hold). Cùng key + cùng payload trả lại đúng kết quả cũ (`replayed=true`); cùng key khác payload → 409 IDEMPOTENCY_CONFLICT. Đơn 0 VNĐ được hoàn tất trực tiếp, không gọi payOS.",
         "responses": {
           "200": {
-            "description": "Kết quả dự kiến; chưa được nghiệm thu trên backend."
+            "description": "Checkout URL payOS hoặc kết quả đơn 0 VNĐ.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "paymentId": "44444444-4444-4444-4444-444444444444",
+                  "txnRef": "PAY-0123456789ABCDEF0123456789ABCDEF",
+                  "amount": "350000",
+                  "currency": "VND",
+                  "redirectUrl": "https://pay.payos.vn/web/0123456789abcdef",
+                  "replayed": false,
+                  "zeroOrder": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "IDEMPOTENCY_CONFLICT, PAYMENT_IN_PROGRESS hoặc CONCURRENT_REQUEST."
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE (payOS/DB/Redis không sẵn sàng)."
           }
         },
         "operationId": "postApiOrdersOrderIdPayments",

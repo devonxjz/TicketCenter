@@ -73,19 +73,23 @@ demo.seed.enabled=false
 admin.email=admin@fixture.invalid
 admin.password=
 
-# 3. Cấu hình Cổng Thanh Toán VNPAY Sandbox
-vnpay.tmn.code=<sandbox_code>
-vnpay.hash.secret=<your_vnpay_hash_secret>
-vnpay.pay.url=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
-vnpay.return.url=http://localhost:8080/ticketscenter/api/payments/vnpay/return
-vnpay.api.url=https://sandbox.vnpayment.vn/merchant_webapi/api/transaction
+# 3. Cấu hình Cổng Thanh Toán payOS (lấy key tại https://my.payos.vn → Kênh thanh toán)
+# Có thể đặt bằng biến môi trường PAYOS_CLIENT_ID / PAYOS_API_KEY / PAYOS_CHECKSUM_KEY.
+payos.client.id=
+payos.api.key=
+payos.checksum.key=
+
+payos.payout.client.id=
+payos.payout.api.key=
+payos.payout.checksum.key=
 
 # 4. Cấu hình Dịch vụ Gửi Email (SMTP)
 mail.smtp.host=smtp.gmail.com
 mail.smtp.port=587
 mail.smtp.user=
 mail.smtp.password=
-# Simulated refund provider; never expose these controls through buyer requests.
+# Simulated refund provider (payOS has no refund API); never expose these controls through buyer requests.
+refund.worker.enabled=false
 refund.simulated.state.directory=data/refund-gateway
 refund.simulated.outcome=SUCCEEDED
 refund.simulated.timeoutAfterSideEffect=false

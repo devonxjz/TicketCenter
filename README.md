@@ -2,7 +2,7 @@
 
 # 🎫 TicketsCenter
 
-**Nền tảng bán vé sự kiện trực tuyến: khám phá sự kiện, giữ chỗ, thanh toán VNPAY, vé điện tử QR, soát vé, hoàn tiền và quyết toán cho ban tổ chức.**
+**Nền tảng bán vé sự kiện trực tuyến: khám phá sự kiện, giữ chỗ, thanh toán payOS, vé điện tử QR, soát vé, hoàn tiền và quyết toán cho ban tổ chức.**
 
 ![Java](https://img.shields.io/badge/Java-25-E11D48?style=for-the-badge&logo=openjdk&logoColor=white)
 ![Jakarta EE](https://img.shields.io/badge/Servlet_6.1-JSP_%2B_JSTL-111827?style=for-the-badge&logo=jakartaee&logoColor=white)
@@ -10,7 +10,7 @@
 ![Hibernate](https://img.shields.io/badge/Hibernate-6.6-59666C?style=for-the-badge&logo=hibernate&logoColor=white)
 ![SQL Server](https://img.shields.io/badge/SQL_Server-Azure_SQL-CC2927?style=for-the-badge&logo=microsoftsqlserver&logoColor=white)
 ![Redis](https://img.shields.io/badge/Redis-Jedis_5-DC382D?style=for-the-badge&logo=redis&logoColor=white)
-![VNPAY](https://img.shields.io/badge/VNPAY-Sandbox-005BAA?style=for-the-badge)
+![payOS](https://img.shields.io/badge/payOS-Payment_Link-00A86B?style=for-the-badge)
 
 <img src="docs/images/readme/home.webp" alt="Trang khám phá sự kiện của TicketsCenter" width="100%">
 
@@ -34,7 +34,7 @@ và nhật ký chỉ được ghi thêm. Java chỉ điều phối HTTP, phiên 
 | 🧑‍🤝‍🧑 **4 vai trò** | Người mua · Quản lý tổ chức · Nhân viên soát vé · Quản trị nền tảng |
 | 🖥️ **24 màn hình** | UI-01 → UI-24 theo [SPEC](docs/references/SPEC.md) §9 |
 | 🗄️ **60 migration** | Hơn 100 procedure, ~70 view, hơn 20 hàm, 35 trigger, 6 role `tc_*` |
-| 💳 **Thanh toán** | VNPAY Sandbox (IPN + đối soát); hoàn tiền và chi trả được mô phỏng |
+| 💳 **Thanh toán** | payOS (payment link + webhook + đối soát); hoàn tiền và chi trả được mô phỏng |
 
 ---
 
@@ -229,7 +229,7 @@ flowchart LR
     SV --> R[Repositories<br/>JPA / Hibernate]
     R -->|StoredProcedureQuery| SP[(SQL Server / Azure SQL<br/>Procedures · Views · UDF · Triggers)]
     SV <--> RD[(Redis<br/>cache · idempotency)]
-    SV -->|redirect + IPN| VN[[VNPAY Sandbox]]
+    SV -->|redirect + webhook| VN[[payOS]]
     W[Background workers<br/>hold expiry · đối soát · refund · outbox email] --> SP
 ```
 
@@ -250,15 +250,16 @@ sequenceDiagram
     actor U as Người mua
     participant App as TicketsCenter
     participant DB as SQL Server
-    participant VN as VNPAY Sandbox
+    participant VN as payOS
     U->>App: Chọn khu/ghế (≤ 8 vé)
     App->>DB: usp_CreateTicketHold (khóa chỗ, giữ 10 phút)
     U->>App: Checkout (+ mã giảm giá)
     App->>DB: usp_CreateOrderFromHold · usp_ApplyOrderCoupon
-    App->>DB: usp_BeginOrderPayment
-    App-->>U: Redirect sang VNPAY
-    U->>VN: Thanh toán
-    VN-->>App: IPN (đã xác minh chữ ký) / job đối soát
+    App->>DB: usp_BeginOrderPayment (Idempotency-Key)
+    App->>VN: Tạo payment link (orderCode, hết hạn cùng hold)
+    App-->>U: Redirect sang checkoutUrl payOS
+    U->>VN: Quét QR / chuyển khoản
+    VN-->>App: Webhook (đã xác minh chữ ký) · return URL (hỏi lại payOS) · job đối soát
     App->>DB: usp_ApplyPaymentResult → phát hành vé + QR
     App-->>U: Kết quả thanh toán · Vé của tôi
 ```
@@ -278,7 +279,7 @@ sequenceDiagram
 Nguyên tắc chính:
 
 - Procedure dùng `SET NOCOUNT ON`, `XACT_ABORT ON` và `THROW` từ khối `CATCH`.
-- Không giữ transaction trong lúc gọi VNPAY, email hay dịch vụ lưu trữ. Các tác vụ đó đi qua **outbox có lease**.
+- Không giữ transaction trong lúc gọi payOS, email hay dịch vụ lưu trữ. Các tác vụ đó đi qua **outbox có lease**.
 - Khóa idempotency dùng ID nghiệp vụ: `holdId`, `orderId`, `txnRef`, `refundId + attemptId`, `payoutId`.
 - Thứ tự khóa được mô tả trong [cross-domain runtime contract](docs/backend/2026-10-12-cross-domain-runtime-contract.md).
 - Migration nằm ở `database/migrations/`. Không sửa file đã áp dụng. DB mới áp dụng theo [`APPLY_ORDER.md`](database/migrations/APPLY_ORDER.md); xem thêm [database runbook](docs/backend/database-runbook.md).
@@ -314,7 +315,7 @@ trong terminal).
 
 ```bash
 cp src/main/resources/application.properties.example src/main/resources/application.properties
-# Điền db.*, redis.*, vnpay.* … (file này bị git bỏ qua và không được đóng gói vào WAR)
+# Điền db.*, redis.*, payos.* … (file này bị git bỏ qua và không được đóng gói vào WAR)
 ```
 
 ```powershell
