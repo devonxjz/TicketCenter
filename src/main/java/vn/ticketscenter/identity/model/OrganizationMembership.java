@@ -20,7 +20,8 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "tc_organization_memberships", schema = "dbo",
-        uniqueConstraints = @UniqueConstraint(name = "uq_membership_user_org", columnNames = {"user_id", "organization_id"}))
+        uniqueConstraints = @UniqueConstraint(
+                name = "uq_membership_user_org", columnNames = {"user_id", "organization_id"}))
 public class OrganizationMembership {
 
     @Id

@@ -13,6 +13,9 @@ import java.util.UUID;
 
 public class OtpRepository {
 
+    private static final String USABLE =
+            "AND o.consumedAt IS NULL AND o.invalidatedAt IS NULL AND o.expiresAt > :now AND o.failedAttempts < 5 ";
+
     public void save(EntityManager em, Otp otp) {
         Objects.requireNonNull(em, "EntityManager must not be null");
         Objects.requireNonNull(otp, "Otp must not be null");
@@ -36,26 +39,9 @@ public class OtpRepository {
         }
         try {
             Otp otp = em.createQuery(
-                            "SELECT o FROM Otp o WHERE LOWER(o.emailNormalized) = :email AND o.purpose = :purpose ORDER BY o.createdAt DESC", Otp.class)
+                            "SELECT o FROM Otp o WHERE LOWER(o.emailNormalized) = :email "
+                                    + "AND o.purpose = :purpose ORDER BY o.createdAt DESC", Otp.class)
                     .setParameter("email", emailNormalized.trim().toLowerCase(Locale.ROOT))
-                    .setParameter("purpose", purpose)
-                    .setMaxResults(1)
-                    .getSingleResult();
-            return Optional.of(otp);
-        } catch (NoResultException e) {
-            return Optional.empty();
-        }
-    }
-
-    public Optional<Otp> findLatestOtp(EntityManager em, UUID userId, OtpPurpose purpose) {
-        Objects.requireNonNull(em, "EntityManager must not be null");
-        if (userId == null || purpose == null) {
-            return Optional.empty();
-        }
-        try {
-            Otp otp = em.createQuery(
-                            "SELECT o FROM Otp o WHERE o.user.id = :userId AND o.purpose = :purpose ORDER BY o.createdAt DESC", Otp.class)
-                    .setParameter("userId", userId)
                     .setParameter("purpose", purpose)
                     .setMaxResults(1)
                     .getSingleResult();
@@ -73,8 +59,7 @@ public class OtpRepository {
         try {
             Otp otp = em.createQuery(
                             "SELECT o FROM Otp o WHERE o.user.id = :userId AND o.purpose = :purpose " +
-                            "AND o.consumedAt IS NULL AND o.invalidatedAt IS NULL AND o.expiresAt > :now AND o.failedAttempts < 5 " +
-                            "ORDER BY o.createdAt DESC", Otp.class)
+                            USABLE + "ORDER BY o.createdAt DESC", Otp.class)
                     .setParameter("userId", userId)
                     .setParameter("purpose", purpose)
                     .setParameter("now", now)
@@ -86,7 +71,8 @@ public class OtpRepository {
         }
     }
 
-    public Optional<Otp> findLatestValidOtpByEmail(EntityManager em, String emailNormalized, OtpPurpose purpose, Instant now) {
+    public Optional<Otp> findLatestValidOtpByEmail(EntityManager em, String emailNormalized,
+                                                    OtpPurpose purpose, Instant now) {
         Objects.requireNonNull(em, "EntityManager must not be null");
         if (emailNormalized == null || emailNormalized.isBlank() || purpose == null || now == null) {
             return Optional.empty();
@@ -94,8 +80,7 @@ public class OtpRepository {
         try {
             Otp otp = em.createQuery(
                             "SELECT o FROM Otp o WHERE LOWER(o.emailNormalized) = :email AND o.purpose = :purpose " +
-                            "AND o.consumedAt IS NULL AND o.invalidatedAt IS NULL AND o.expiresAt > :now AND o.failedAttempts < 5 " +
-                            "ORDER BY o.createdAt DESC", Otp.class)
+                            USABLE + "ORDER BY o.createdAt DESC", Otp.class)
                     .setParameter("email", emailNormalized.trim().toLowerCase(Locale.ROOT))
                     .setParameter("purpose", purpose)
                     .setParameter("now", now)
@@ -107,26 +92,14 @@ public class OtpRepository {
         }
     }
 
-    public int invalidateExistingOtps(EntityManager em, UUID userId, OtpPurpose purpose, Instant now) {
-        Objects.requireNonNull(em, "EntityManager must not be null");
-        Objects.requireNonNull(now, "Instant now must not be null");
-        if (userId == null || purpose == null) return 0;
-        return em.createQuery(
-                        "UPDATE Otp o SET o.invalidatedAt = :now " +
-                        "WHERE o.user.id = :userId AND o.purpose = :purpose AND o.consumedAt IS NULL AND o.invalidatedAt IS NULL")
-                .setParameter("now", now)
-                .setParameter("userId", userId)
-                .setParameter("purpose", purpose)
-                .executeUpdate();
-    }
-
     public int invalidateExistingOtpsByEmail(EntityManager em, String emailNormalized, OtpPurpose purpose, Instant now) {
         Objects.requireNonNull(em, "EntityManager must not be null");
         Objects.requireNonNull(now, "Instant now must not be null");
         if (emailNormalized == null || emailNormalized.isBlank() || purpose == null) return 0;
         return em.createQuery(
                         "UPDATE Otp o SET o.invalidatedAt = :now " +
-                        "WHERE LOWER(o.emailNormalized) = :email AND o.purpose = :purpose AND o.consumedAt IS NULL AND o.invalidatedAt IS NULL")
+                        "WHERE LOWER(o.emailNormalized) = :email AND o.purpose = :purpose "
+                                + "AND o.consumedAt IS NULL AND o.invalidatedAt IS NULL")
                 .setParameter("now", now)
                 .setParameter("email", emailNormalized.trim().toLowerCase(Locale.ROOT))
                 .setParameter("purpose", purpose)
@@ -135,7 +108,8 @@ public class OtpRepository {
 
     /**
      * Tiêu thụ OTP một cách nguyên tử (atomic conditional update).
-     * Trả về true nếu và chỉ nếu cập nhật thành công (chống race condition 2 request verify đồng thời).
+     * Trả về true nếu và chỉ nếu cập nhật thành công
+     * (chống race condition 2 request verify đồng thời).
      */
     public boolean consumeOtpAtomically(EntityManager em, UUID otpId, Instant now) {
         Objects.requireNonNull(em, "EntityManager must not be null");
@@ -143,7 +117,8 @@ public class OtpRepository {
         Objects.requireNonNull(now, "Instant now must not be null");
         int updated = em.createQuery(
                         "UPDATE Otp o SET o.consumedAt = :now " +
-                        "WHERE o.id = :otpId AND o.consumedAt IS NULL AND o.invalidatedAt IS NULL AND o.expiresAt > :now AND o.failedAttempts < 5")
+                        "WHERE o.id = :otpId AND o.consumedAt IS NULL AND o.invalidatedAt IS NULL "
+                                + "AND o.expiresAt > :now AND o.failedAttempts < 5")
                 .setParameter("now", now)
                 .setParameter("otpId", otpId)
                 .executeUpdate();

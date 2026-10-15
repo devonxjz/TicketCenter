@@ -18,7 +18,8 @@ public class OrganizationMembershipRepository {
             return Optional.empty();
         }
         List<OrganizationMembership> list = em.createQuery(
-                        "SELECT m FROM OrganizationMembership m WHERE m.organization.id = :orgId AND m.user.id = :userId",
+                        "SELECT m FROM OrganizationMembership m "
+                                + "WHERE m.organization.id = :orgId AND m.user.id = :userId",
                         OrganizationMembership.class)
                 .setParameter("orgId", orgId)
                 .setParameter("userId", userId)
@@ -40,8 +41,10 @@ public class OrganizationMembershipRepository {
             return List.of();
         }
         return em.createQuery(
-                        "SELECT new vn.ticketscenter.identity.dto.OrganizationMemberDto(m.id, u.id, u.userName, u.fullName, u.email, m.role, m.active, m.joinedAt) " +
-                                "FROM OrganizationMembership m JOIN m.user u WHERE m.organization.id = :orgId ORDER BY m.joinedAt ASC",
+                        "SELECT new vn.ticketscenter.identity.dto.OrganizationMemberDto("
+                                + "m.id, u.id, u.userName, u.fullName, u.email, m.role, m.active, m.joinedAt) "
+                                + "FROM OrganizationMembership m JOIN m.user u "
+                                + "WHERE m.organization.id = :orgId ORDER BY m.joinedAt ASC",
                         OrganizationMemberDto.class)
                 .setParameter("orgId", orgId)
                 .getResultList();
@@ -53,8 +56,10 @@ public class OrganizationMembershipRepository {
             return List.of();
         }
         return em.createQuery(
-                        "SELECT new vn.ticketscenter.identity.dto.MembershipSummaryDto(o.id, o.name, m.role, m.active) " +
-                                "FROM OrganizationMembership m JOIN m.organization o WHERE m.user.id = :userId ORDER BY o.name ASC",
+                        "SELECT new vn.ticketscenter.identity.dto.MembershipSummaryDto("
+                                + "o.id, o.name, m.role, m.active) "
+                                + "FROM OrganizationMembership m JOIN m.organization o "
+                                + "WHERE m.user.id = :userId ORDER BY o.name ASC",
                         MembershipSummaryDto.class)
                 .setParameter("userId", userId)
                 .getResultList();
@@ -66,7 +71,9 @@ public class OrganizationMembershipRepository {
             return 0L;
         }
         Long count = em.createQuery(
-                        "SELECT COUNT(m) FROM OrganizationMembership m WHERE m.organization.id = :orgId AND m.role = vn.ticketscenter.identity.model.OrganizationRole.MANAGER AND m.active = true",
+                        "SELECT COUNT(m) FROM OrganizationMembership m WHERE m.organization.id = :orgId "
+                                + "AND m.role = vn.ticketscenter.identity.model.OrganizationRole.MANAGER "
+                                + "AND m.active = true",
                         Long.class)
                 .setParameter("orgId", orgId)
                 .getSingleResult();

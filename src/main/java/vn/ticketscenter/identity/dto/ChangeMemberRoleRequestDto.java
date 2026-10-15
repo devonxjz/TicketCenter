@@ -7,7 +7,8 @@ public record ChangeMemberRoleRequestDto(
 ) {
     public void validate() {
         if (role == null) {
-            throw new IllegalArgumentException("Vai trò không hợp lệ: chỉ chấp nhận MANAGER hoặc CHECK_IN_STAFF");
+            throw new IllegalArgumentException(
+                    "Vai trò không hợp lệ: chỉ chấp nhận MANAGER hoặc CHECK_IN_STAFF");
         }
     }
 }

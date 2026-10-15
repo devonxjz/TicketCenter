@@ -28,7 +28,8 @@ public record OrganizationRequestSummaryDto(
             Instant submittedAt,
             String rejectionReason
     ) {
-        this(organizationId, name, contactEmail, status, submittedAt, rejectionReason, contactEmail, null, null, null, null);
+        this(organizationId, name, contactEmail, status, submittedAt, rejectionReason, contactEmail,
+                null, null, null, null);
     }
 
     public OrganizationRequestSummaryDto(
@@ -40,14 +41,17 @@ public record OrganizationRequestSummaryDto(
             String rejectionReason,
             String requesterEmail
     ) {
-        this(organizationId, name, contactEmail, status, submittedAt, rejectionReason, requesterEmail, null, null, null, null);
+        this(organizationId, name, contactEmail, status, submittedAt, rejectionReason, requesterEmail,
+                null, null, null, null);
     }
 
     public static OrganizationRequestSummaryDto from(Organization organization) {
         if (organization == null) {
             return null;
         }
-        String reqEmail = organization.getRequester() != null ? organization.getRequester().getEmail() : organization.getContactEmail();
+        String reqEmail = organization.getRequester() != null
+                ? organization.getRequester().getEmail()
+                : organization.getContactEmail();
         UUID reqId = organization.getRequester() != null ? organization.getRequester().getId() : null;
         String reqName = organization.getRequester() != null ? organization.getRequester().getFullName() : null;
         return new OrganizationRequestSummaryDto(
@@ -71,31 +75,37 @@ public record OrganizationRequestSummaryDto(
 
     public String toJson() {
         StringBuilder sb = new StringBuilder("{");
-        sb.append("\"organizationId\":").append(organizationId != null ? HttpResponses.jsonString(organizationId.toString()) : "null")
-          .append(",\"name\":").append(name != null ? HttpResponses.jsonString(name) : "null")
-          .append(",\"contactEmail\":").append(contactEmail != null ? HttpResponses.jsonString(contactEmail) : "null")
-          .append(",\"contactPhone\":").append(contactPhone != null ? HttpResponses.jsonString(contactPhone) : "null")
-          .append(",\"requesterEmail\":").append(requesterEmail != null ? HttpResponses.jsonString(requesterEmail) : "null");
+        sb.append("\"organizationId\":").append(json(organizationId))
+          .append(",\"name\":").append(json(name))
+          .append(",\"contactEmail\":").append(json(contactEmail))
+          .append(",\"contactPhone\":").append(json(contactPhone))
+          .append(",\"requesterEmail\":").append(json(requesterEmail));
         if (requesterId != null || requesterName != null || requesterEmail != null) {
             sb.append(",\"requester\":{")
-              .append("\"userId\":").append(requesterId != null ? HttpResponses.jsonString(requesterId.toString()) : "null")
-              .append(",\"fullName\":").append(requesterName != null ? HttpResponses.jsonString(requesterName) : "null")
-              .append(",\"email\":").append(requesterEmail != null ? HttpResponses.jsonString(requesterEmail) : "null")
+              .append("\"userId\":").append(json(requesterId))
+              .append(",\"fullName\":").append(json(requesterName))
+              .append(",\"email\":").append(json(requesterEmail))
               .append("}");
         }
-        sb.append(",\"status\":").append(status != null ? HttpResponses.jsonString(status.name()) : "null")
-          .append(",\"submittedAt\":").append(submittedAt != null ? HttpResponses.jsonString(submittedAt.toString()) : "null")
-          .append(",\"rejectionReason\":").append(rejectionReason != null ? HttpResponses.jsonString(rejectionReason) : "null");
+        sb.append(",\"status\":").append(json(status))
+          .append(",\"submittedAt\":").append(json(submittedAt))
+          .append(",\"rejectionReason\":").append(json(rejectionReason));
         if (description != null) {
             sb.append(",\"description\":").append(HttpResponses.jsonString(description));
         }
-        String eTitle = eventTitle();
-        String eDate = eventDate();
-        String eVenue = eventVenue();
-        if (eTitle != null) sb.append(",\"eventTitle\":").append(HttpResponses.jsonString(eTitle));
-        if (eDate != null) sb.append(",\"eventDate\":").append(HttpResponses.jsonString(eDate));
-        if (eVenue != null) sb.append(",\"eventVenue\":").append(HttpResponses.jsonString(eVenue));
-        sb.append("}");
-        return sb.toString();
+        appendIfPresent(sb, "eventTitle", eventTitle());
+        appendIfPresent(sb, "eventDate", eventDate());
+        appendIfPresent(sb, "eventVenue", eventVenue());
+        return sb.append("}").toString();
+    }
+
+    private static void appendIfPresent(StringBuilder sb, String field, String value) {
+        if (value != null) {
+            sb.append(",\"").append(field).append("\":").append(HttpResponses.jsonString(value));
+        }
+    }
+
+    private static String json(Object value) {
+        return HttpResponses.jsonString(value == null ? null : value.toString());
     }
 }

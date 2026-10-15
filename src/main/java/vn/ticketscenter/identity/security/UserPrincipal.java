@@ -43,7 +43,9 @@ public record UserPrincipal(
     }
 
     public boolean isStaff() {
-        return isAdmin() || organizationRole == OrganizationRole.CHECK_IN_STAFF || organizationRole == OrganizationRole.MANAGER;
+        return isAdmin()
+                || organizationRole == OrganizationRole.CHECK_IN_STAFF
+                || organizationRole == OrganizationRole.MANAGER;
     }
 
     public boolean isCustomerOnly() {

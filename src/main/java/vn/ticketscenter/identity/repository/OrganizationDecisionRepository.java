@@ -1,6 +1,7 @@
 package vn.ticketscenter.identity.repository;
 
 import org.hibernate.Session;
+import org.hibernate.jdbc.ReturningWork;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.TransactionManager;
 
@@ -25,12 +26,13 @@ public class OrganizationDecisionRepository {
 
     public record InitialEvent(String title, String venue, Instant startTime, Instant endTime) { }
 
-    public record CommissionPolicy(BigDecimal ratePercent, Long fixedFee, Instant effectiveFrom, Instant effectiveTo) { }
+    public record CommissionPolicy(BigDecimal ratePercent, Long fixedFee,
+                                   Instant effectiveFrom, Instant effectiveTo) { }
 
     /** Creates the PENDING_APPROVAL organization for a requester and returns its id. */
     public UUID submit(TransactionManager transactions, UUID requesterId, String name, String contactEmail,
                        String contactPhone, String description) {
-        return transactions.execute(DatabasePrincipal.BUYER, em -> em.unwrap(Session.class).doReturningWork(connection -> {
+        return inSession(transactions, DatabasePrincipal.BUYER, connection -> {
             try (CallableStatement call = connection.prepareCall("{call dbo.usp_OrganizationSubmit(?,?,?,?,?)}")) {
                 call.setString(1, requesterId.toString());
                 call.setNString(2, name);
@@ -44,12 +46,12 @@ public class OrganizationDecisionRepository {
             } catch (SQLException failure) {
                 throw translate(failure);
             }
-        }));
+        });
     }
 
     public Approval approve(TransactionManager transactions, UUID organizationId, UUID adminId,
                             CommissionPolicy policy, InitialEvent event) {
-        return transactions.execute(DatabasePrincipal.ADMIN, em -> em.unwrap(Session.class).doReturningWork(connection -> {
+        return inSession(transactions, DatabasePrincipal.ADMIN, connection -> {
             try (CallableStatement call = connection.prepareCall(
                     "{call dbo.sp_organization_approve(?,?,?,?,?,?,?,?,?,?)}")) {
                 call.setString(1, organizationId.toString());
@@ -84,11 +86,11 @@ public class OrganizationDecisionRepository {
             } catch (SQLException failure) {
                 throw translate(failure);
             }
-        }));
+        });
     }
 
     public void reject(TransactionManager transactions, UUID organizationId, UUID adminId, String reason) {
-        transactions.execute(DatabasePrincipal.ADMIN, em -> em.unwrap(Session.class).doReturningWork(connection -> {
+        inSession(transactions, DatabasePrincipal.ADMIN, connection -> {
             try (CallableStatement call = connection.prepareCall("{call dbo.sp_organization_reject(?,?,?)}")) {
                 call.setString(1, organizationId.toString());
                 call.setString(2, adminId.toString());
@@ -98,7 +100,12 @@ public class OrganizationDecisionRepository {
             } catch (SQLException failure) {
                 throw translate(failure);
             }
-        }));
+        });
+    }
+
+    private static <T> T inSession(TransactionManager transactions, DatabasePrincipal principal,
+                                   ReturningWork<T> work) {
+        return transactions.execute(principal, em -> em.unwrap(Session.class).doReturningWork(work));
     }
 
     /** Maps the procedures' THROW numbers onto the exceptions the service has always raised. */
@@ -106,12 +113,17 @@ public class OrganizationDecisionRepository {
         for (SQLException error = failure; error != null; error = error.getNextException()) {
             switch (error.getErrorCode()) {
                 case 52620: return new IllegalArgumentException("USER_NOT_FOUND: Người dùng không tồn tại");
-                case 52621: return new IllegalStateException("USER_SUSPENDED: Tài khoản của bạn hiện không thể gửi yêu cầu");
-                case 52622: return new IllegalStateException("ORGANIZATION_REQUEST_EXISTS: Bạn đang có một yêu cầu tạo tổ chức đang chờ xét duyệt");
+                case 52621: return new IllegalStateException(
+                        "USER_SUSPENDED: Tài khoản của bạn hiện không thể gửi yêu cầu");
+                case 52622: return new IllegalStateException(
+                        "ORGANIZATION_REQUEST_EXISTS: Bạn đang có một yêu cầu tạo tổ chức đang chờ xét duyệt");
                 case 52623: return new IllegalArgumentException("Tên tổ chức và email liên hệ là bắt buộc");
-                case 52610: return new SecurityException("FORBIDDEN: Chỉ quản trị viên mới có quyền xử lý yêu cầu");
-                case 52611: return new NoSuchElementException("ORGANIZATION_NOT_FOUND: Không tìm thấy hồ sơ yêu cầu");
-                case 52612: return new IllegalStateException("CONFLICT: Yêu cầu không ở trạng thái PENDING_APPROVAL");
+                case 52610: return new SecurityException(
+                        "FORBIDDEN: Chỉ quản trị viên mới có quyền xử lý yêu cầu");
+                case 52611: return new NoSuchElementException(
+                        "ORGANIZATION_NOT_FOUND: Không tìm thấy hồ sơ yêu cầu");
+                case 52612: return new IllegalStateException(
+                        "CONFLICT: Yêu cầu không ở trạng thái PENDING_APPROVAL");
                 case 52613: return new IllegalArgumentException("Chính sách hoa hồng ban đầu không hợp lệ");
                 case 52614: return new IllegalArgumentException("Lý do từ chối phải từ 10 đến 500 ký tự");
                 case 52615: return new IllegalArgumentException("Thông tin sự kiện khởi tạo không hợp lệ");

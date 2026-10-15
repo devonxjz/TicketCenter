@@ -2,6 +2,7 @@ package vn.ticketscenter.identity.repository;
 
 import jakarta.persistence.EntityManager;
 import vn.ticketscenter.identity.model.Organization;
+import vn.ticketscenter.identity.model.OrganizationStatus;
 
 import java.util.List;
 import java.util.Objects;
@@ -9,6 +10,9 @@ import java.util.Optional;
 import java.util.UUID;
 
 public class OrganizationRepository {
+
+    /** JPQL enum literal; kept as a constant so queries stay within the line limit. */
+    private static final String PENDING = "vn.ticketscenter.identity.model.OrganizationStatus.PENDING_APPROVAL";
 
     public Optional<Organization> findById(EntityManager em, UUID id) {
         Objects.requireNonNull(em, "EntityManager must not be null.");
@@ -36,7 +40,8 @@ public class OrganizationRepository {
             return false;
         }
         Long count = em.createQuery(
-                        "SELECT COUNT(o) FROM Organization o WHERE o.requester.id = :requesterId AND o.status = vn.ticketscenter.identity.model.OrganizationStatus.PENDING_APPROVAL",
+                        "SELECT COUNT(o) FROM Organization o WHERE o.requester.id = :requesterId AND o.status = "
+                                + PENDING,
                         Long.class)
                 .setParameter("requesterId", requesterId)
                 .getSingleResult();
@@ -46,7 +51,8 @@ public class OrganizationRepository {
     public List<Organization> findPending(EntityManager em) {
         Objects.requireNonNull(em, "EntityManager must not be null.");
         return em.createQuery(
-                        "SELECT o FROM Organization o WHERE o.status = vn.ticketscenter.identity.model.OrganizationStatus.PENDING_APPROVAL ORDER BY o.submittedAt ASC, o.createdAt ASC",
+                        "SELECT o FROM Organization o WHERE o.status = " + PENDING
+                                + " ORDER BY o.submittedAt ASC, o.createdAt ASC",
                         Organization.class)
                 .getResultList();
     }
@@ -54,13 +60,13 @@ public class OrganizationRepository {
     public long countPending(EntityManager em) {
         Objects.requireNonNull(em, "EntityManager must not be null.");
         Long count = em.createQuery(
-                        "SELECT COUNT(o) FROM Organization o WHERE o.status = vn.ticketscenter.identity.model.OrganizationStatus.PENDING_APPROVAL",
+                        "SELECT COUNT(o) FROM Organization o WHERE o.status = " + PENDING,
                         Long.class)
                 .getSingleResult();
         return count != null ? count : 0L;
     }
 
-    public List<Organization> findByStatus(EntityManager em, vn.ticketscenter.identity.model.OrganizationStatus status, int offset, int limit) {
+    public List<Organization> findByStatus(EntityManager em, OrganizationStatus status, int offset, int limit) {
         Objects.requireNonNull(em, "EntityManager must not be null.");
         String q = status != null
                 ? "SELECT o FROM Organization o WHERE o.status = :status ORDER BY o.submittedAt DESC, o.createdAt DESC"

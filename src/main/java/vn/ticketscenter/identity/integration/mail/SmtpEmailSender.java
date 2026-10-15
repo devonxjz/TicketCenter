@@ -38,7 +38,8 @@ public class SmtpEmailSender implements EmailSender {
         String password = MailConfig.getPassword();
 
         if (user == null || user.isBlank() || password == null || password.isBlank()) {
-            LOGGER.log(Level.WARNING, "Cấu hình SMTP chưa đầy đủ, không thể gửi mail tới {0}", message.recipient());
+            LOGGER.log(Level.WARNING,
+                    "Cấu hình SMTP chưa đầy đủ, không thể gửi mail tới {0}", message.recipient());
             throw new EmailDeliveryException("SMTP credentials are not configured");
         }
 
@@ -54,13 +55,14 @@ public class SmtpEmailSender implements EmailSender {
         }
     }
 
-    private void sendViaStartTls(String host, int port, String user, String password, EmailMessage message) throws IOException {
+    private void sendViaStartTls(String host, int port, String user, String password,
+                                 EmailMessage message) throws IOException {
         try (Socket socket = new Socket()) {
             socket.connect(new InetSocketAddress(host, port), SOCKET_TIMEOUT_MS);
             socket.setSoTimeout(SOCKET_TIMEOUT_MS);
 
-            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
-            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
+            BufferedReader reader = reader(socket);
+            BufferedWriter writer = writer(socket);
 
             expectReply(reader, "220");
             sendCommand(writer, "EHLO " + host);
@@ -74,8 +76,8 @@ public class SmtpEmailSender implements EmailSender {
                 sslSocket.setSoTimeout(SOCKET_TIMEOUT_MS);
                 sslSocket.startHandshake();
 
-                BufferedReader sslReader = new BufferedReader(new InputStreamReader(sslSocket.getInputStream(), StandardCharsets.UTF_8));
-                BufferedWriter sslWriter = new BufferedWriter(new OutputStreamWriter(sslSocket.getOutputStream(), StandardCharsets.UTF_8));
+                BufferedReader sslReader = reader(sslSocket);
+                BufferedWriter sslWriter = writer(sslSocket);
 
                 sendCommand(sslWriter, "EHLO " + host);
                 readUntilReady(sslReader);
@@ -85,15 +87,16 @@ public class SmtpEmailSender implements EmailSender {
         }
     }
 
-    private void sendViaSsl(String host, int port, String user, String password, EmailMessage message) throws IOException {
+    private void sendViaSsl(String host, int port, String user, String password,
+                            EmailMessage message) throws IOException {
         SSLSocketFactory sslFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
         try (SSLSocket socket = (SSLSocket) sslFactory.createSocket()) {
             socket.connect(new InetSocketAddress(host, port), SOCKET_TIMEOUT_MS);
             socket.setSoTimeout(SOCKET_TIMEOUT_MS);
             socket.startHandshake();
 
-            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
-            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
+            BufferedReader reader = reader(socket);
+            BufferedWriter writer = writer(socket);
 
             expectReply(reader, "220");
             sendCommand(writer, "EHLO " + host);
@@ -101,6 +104,14 @@ public class SmtpEmailSender implements EmailSender {
 
             authenticateAndSend(reader, writer, user, password, message);
         }
+    }
+
+    private static BufferedReader reader(Socket socket) throws IOException {
+        return new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
+    }
+
+    private static BufferedWriter writer(Socket socket) throws IOException {
+        return new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
     }
 
     private void authenticateAndSend(BufferedReader reader, BufferedWriter writer,
@@ -147,7 +158,8 @@ public class SmtpEmailSender implements EmailSender {
         mime.append("Subject: =?UTF-8?B?")
                 .append(Base64.getEncoder().encodeToString(message.subject().getBytes(StandardCharsets.UTF_8)))
                 .append("?=\r\n");
-        mime.append("Date: ").append(DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.now(ZoneOffset.UTC))).append("\r\n");
+        String date = DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.now(ZoneOffset.UTC));
+        mime.append("Date: ").append(date).append("\r\n");
         mime.append("Message-ID: <").append(UUID.randomUUID()).append('@').append(domain).append(">\r\n");
         mime.append("MIME-Version: 1.0\r\n");
 

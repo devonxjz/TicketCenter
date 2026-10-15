@@ -19,7 +19,9 @@ public final class LoginThrottle {
     private final Duration window;
     private final Clock clock;
 
-    public LoginThrottle() { this(5, Duration.ofMinutes(15), Clock.systemUTC()); }
+    public LoginThrottle() {
+        this(5, Duration.ofMinutes(15), Clock.systemUTC());
+    }
 
     public LoginThrottle(int maxFailures, Duration window, Clock clock) {
         this.maxFailures = maxFailures;
@@ -32,16 +34,28 @@ public final class LoginThrottle {
         Entry entry = entries.get(key(identifier, client));
         if (entry == null) return 0;
         Instant unlock = entry.windowStart().plus(window);
-        if (!clock.instant().isBefore(unlock)) { entries.remove(key(identifier, client), entry); return 0; }
-        return entry.failures() < maxFailures ? 0 : Math.max(1, Duration.between(clock.instant(), unlock).toSeconds());
+        if (!clock.instant().isBefore(unlock)) {
+            entries.remove(key(identifier, client), entry);
+            return 0;
+        }
+        if (entry.failures() < maxFailures) {
+            return 0;
+        }
+        return Math.max(1, Duration.between(clock.instant(), unlock).toSeconds());
     }
 
     public void recordFailure(String identifier, String client) {
         Instant now = clock.instant();
-        if (entries.size() >= MAX_TRACKED) entries.values().removeIf(entry -> !now.isBefore(entry.windowStart().plus(window)));
-        if (entries.size() >= MAX_TRACKED) return;
+        if (entries.size() >= MAX_TRACKED) {
+            entries.values().removeIf(entry -> !now.isBefore(entry.windowStart().plus(window)));
+        }
+        if (entries.size() >= MAX_TRACKED) {
+            return;
+        }
         entries.merge(key(identifier, client), new Entry(1, now), (old, fresh) ->
-                now.isBefore(old.windowStart().plus(window)) ? new Entry(old.failures() + 1, old.windowStart()) : fresh);
+                now.isBefore(old.windowStart().plus(window))
+                        ? new Entry(old.failures() + 1, old.windowStart())
+                        : fresh);
     }
 
     public void recordSuccess(String identifier, String client) {
@@ -49,6 +63,7 @@ public final class LoginThrottle {
     }
 
     private static String key(String identifier, String client) {
-        return (identifier == null ? "" : identifier.trim().toLowerCase(Locale.ROOT)) + '|' + (client == null ? "" : client);
+        String account = identifier == null ? "" : identifier.trim().toLowerCase(Locale.ROOT);
+        return account + '|' + (client == null ? "" : client);
     }
 }
