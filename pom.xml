@@ -16,7 +16,7 @@
         <jakarta.servlet.version>6.1.0</jakarta.servlet.version>
         <mssql.jdbc.version>12.8.1.jre11</mssql.jdbc.version>
         <hibernate.version>6.6.9.Final</hibernate.version>
-        <hikari.version>6.2.1</hikari.version>
+        <hikari.version>7.1.0</hikari.version>
         <jetty.version>12.1.13</jetty.version>
         <jetty.port>8081</jetty.port>
     </properties>
