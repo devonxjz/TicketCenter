@@ -84,3 +84,43 @@ Ba lượt rà soát độc lập không phát hiện thay đổi hành vi trong
 SQL/tham số/giao dịch, CSRF, chữ ký QR, idempotency, cache/TTL, hoàn tiền
 và hủy sự kiện. Các integration test cần fixture riêng không được tính
 là đã đạt khi bỏ qua. Không chạy giao dịch kiểm thử trên database chung.
+## Đối chiếu SQL/Redis thật và giới hạn CI — 16/10/2026
+
+GitHub Actions không khởi động job vì hạn mức/thanh toán của tài khoản chủ
+repository. Annotation của job chất lượng và worker xác nhận nguyên nhân
+này; các trạng thái đỏ không phải kết quả thực thi test. Không thay đổi
+workflow, trạng thái check hoặc cơ chế bảo vệ nhánh để che kết quả.
+
+Đã chạy thêm 9 suite, 75 ca SQL/Redis thật trên các database kiểm thử
+localhost hiện có. Sau đó chạy cùng 75 ca trên source `dev` gốc tại
+`69371845e53353330cbc178314e7443271535205`:
+
+| Bản | Đạt | Assertion không đạt | Lỗi | Bỏ qua |
+|---|---:|---:|---:|---:|
+| dev gốc | 59 | 8 | 8 | 0 |
+| clean | 59 | 8 | 8 | 0 |
+
+Đối chiếu từng tên ca, trạng thái và loại exception: không có khác biệt.
+Các ca chưa đạt được giữ nguyên trong báo cáo; không tính là nghiệm thu
+thành công. Metadata xác nhận fixture `TicketCenter_Khanh03_Test` thiếu
+`vw_ActorAuthority`; ca compensation còn tham chiếu view cũ
+`vw_RefundAttemptLedger` không tồn tại trong `TicketCenter_Khanh02_Test`.
+Không sửa source nghiệp vụ/test hoặc cài lại schema để làm các ca này đạt.
+
+Các suite chạy thêm: `TicketCheckInSqlServerTest`, `CheckInConcurrencyTest`,
+`RedisCheckInScanCacheTest`, `RefundRequestSqlServerTest`,
+`RefundRequestRedisTest`, `AdminRefundDecisionSqlServerTest`,
+`RedisAdminRefundCacheTest`, `RefundWorkerSqlServerTest`,
+`RefundWorkerRedisTest`.
+
+Mỗi lượt dùng tài khoản SQL tạm với role riêng và Redis riêng trên loopback;
+đã dừng Redis, thu hồi toàn bộ tài khoản tạm. SQL chỉ sửa UUID fixture mới;
+các ca rollback tạo/xóa trigger fault trong database kiểm thử. Không chạy
+migration, không gọi worker toàn cục, không truy cập Azure. Log clean ở
+`target/clean-release-integration.log`; báo cáo đối chiếu ở thư mục
+`target/clean-release/` của workspace ban đầu. Dữ liệu fixture UUID được
+các suite để lại theo thiết kế.
+
+Kết quả cho thấy không phát hiện hồi quy so với dev trong phạm vi đã kiểm
+tra. Đây không phải cam kết không còn mọi lỗi hoặc nghiệm thu đầy đủ bằng
+camera/trình duyệt hay môi trường triển khai.
