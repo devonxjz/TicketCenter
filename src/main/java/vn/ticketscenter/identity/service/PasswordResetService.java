@@ -7,6 +7,8 @@ import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.identity.dto.ForgotPasswordRequestDto;
 import vn.ticketscenter.identity.dto.OtpSendRequestDto;
 import vn.ticketscenter.identity.dto.PasswordResetRequestDto;
+import vn.ticketscenter.identity.error.IdentityError;
+import vn.ticketscenter.identity.error.IdentityException;
 import vn.ticketscenter.identity.model.OtpPurpose;
 import vn.ticketscenter.identity.model.User;
 import vn.ticketscenter.identity.repository.UserRepository;
@@ -52,7 +54,15 @@ public class PasswordResetService {
             throw new IllegalArgumentException("Dữ liệu yêu cầu không được để trống");
         }
 
-        otpService.sendOtp(new OtpSendRequestDto(request.email(), OtpPurpose.RESET_PASSWORD));
+        try {
+            otpService.sendOtp(new OtpSendRequestDto(request.email(), OtpPurpose.RESET_PASSWORD));
+        } catch (IdentityException failure) {
+            // This endpoint has always reported a failed delivery as a plain OTP error (400), not a 500.
+            if (failure.error() == IdentityError.EMAIL_SEND_FAILED) {
+                throw new IdentityException(IdentityError.OTP_ERROR, failure.getMessage(), failure);
+            }
+            throw failure;
+        }
         return NEUTRAL_FORGOT_PASSWORD_MESSAGE;
     }
 
@@ -71,11 +81,17 @@ public class PasswordResetService {
         return Boolean.TRUE.equals(transactions.execute(DatabasePrincipal.AUTH, em -> {
             User user = userRepository.findById(em, userId).orElse(null);
             if (user == null) {
-                throw new SecurityException("INVALID_TOKEN: Token không hợp lệ hoặc tài khoản không tồn tại");
+                throw new IdentityException(IdentityError.INVALID_TOKEN,
+                        "INVALID_TOKEN: Token không hợp lệ hoặc tài khoản không tồn tại");
             }
 
             // Xác thực chữ ký token và tính hợp lệ với trạng thái hiện tại của tài khoản
-            otpCryptoHelper.parseAndVerifyResetToken(request.token(), user.getId(), user.getPasswordHash(), user.getAuthVersion());
+            try {
+                otpCryptoHelper.parseAndVerifyResetToken(
+                        request.token(), user.getId(), user.getPasswordHash(), user.getAuthVersion());
+            } catch (SecurityException invalid) {
+                throw new IdentityException(IdentityError.INVALID_TOKEN, invalid.getMessage(), invalid);
+            }
 
             // Băm mật khẩu mới (12-256 ký tự đã được validate tại DTO)
             String newPasswordHash = passwordHasher.hash(request.newPassword());

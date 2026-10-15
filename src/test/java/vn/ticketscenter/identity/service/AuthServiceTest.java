@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.PersistenceRegistry;
 import vn.ticketscenter.config.persistence.TransactionManager;
+import vn.ticketscenter.identity.error.IdentityError;
+import vn.ticketscenter.identity.error.IdentityException;
 import vn.ticketscenter.identity.dto.CurrentUserDto;
 import vn.ticketscenter.identity.dto.LoginRequestDto;
 import vn.ticketscenter.identity.dto.RegisterRequestDto;
@@ -51,11 +53,13 @@ public class AuthServiceTest {
     void testLoginNullOrBlankInputs() {
         AuthService service = new AuthService(new TransactionManager(java.util.Map.of()), userRepository, passwordHasher);
 
-        assertThrows(SecurityException.class, () ->
+        IdentityException blankIdentifier = assertThrows(IdentityException.class, () ->
                 service.login(new LoginRequestDto("", "password")));
+        assertEquals(IdentityError.INVALID_CREDENTIALS, blankIdentifier.error());
 
-        assertThrows(SecurityException.class, () ->
+        IdentityException blankPassword = assertThrows(IdentityException.class, () ->
                 service.login(new LoginRequestDto("user@test.vn", "")));
+        assertEquals(IdentityError.INVALID_CREDENTIALS, blankPassword.error());
     }
 
 
@@ -137,15 +141,15 @@ public class AuthServiceTest {
             boolean registered = service.register(new RegisterRequestDto(userName, "Nguyen Van Test", email, password));
             assertTrue(registered, "Registration should succeed");
 
-            // 2. Đăng ký lại cùng email hoặc userName phải bị từ chối 409 (IllegalStateException)
-            assertThrows(IllegalStateException.class, () ->
+            // 2. Đăng ký lại cùng email hoặc userName phải bị từ chối 409 (IdentityException)
+            assertThrows(IdentityException.class, () ->
                     service.register(new RegisterRequestDto("diff" + suffix, "Nguyen Van Test", email, password)));
 
-            assertThrows(IllegalStateException.class, () ->
+            assertThrows(IdentityException.class, () ->
                     service.register(new RegisterRequestDto(userName, "Nguyen Van Test", "diff." + suffix + "@tc.vn", password)));
 
             // 3. Đăng nhập sai mật khẩu -> từ chối
-            assertThrows(SecurityException.class, () ->
+            assertThrows(IdentityException.class, () ->
                     service.login(new LoginRequestDto(email, "WrongPassword123!")));
 
             // 4. Đăng nhập đúng -> trả về UserPrincipal
@@ -182,9 +186,9 @@ public class AuthServiceTest {
                     "Disabled user session must be rejected");
 
             // Đăng nhập lại bị chặn ACCOUNT_DISABLED
-            SecurityException secEx = assertThrows(SecurityException.class, () ->
+            IdentityException disabled = assertThrows(IdentityException.class, () ->
                     service.login(new LoginRequestDto(email, password)));
-            assertEquals("ACCOUNT_DISABLED", secEx.getMessage());
+            assertEquals(IdentityError.ACCOUNT_DISABLED, disabled.error());
 
         } finally {
             registry.close();

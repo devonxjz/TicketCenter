@@ -9,6 +9,8 @@ import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.identity.dto.CurrentUserDto;
 import vn.ticketscenter.identity.dto.LoginRequestDto;
 import vn.ticketscenter.identity.dto.RegisterRequestDto;
+import vn.ticketscenter.identity.error.IdentityError;
+import vn.ticketscenter.identity.error.IdentityException;
 import vn.ticketscenter.identity.model.OrganizationRole;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.model.User;
@@ -80,10 +82,12 @@ public class AuthService {
         try {
             return Boolean.TRUE.equals(transactions.execute(DatabasePrincipal.AUTH, em -> {
                 if (userRepository.existsByNormalizedEmail(em, email)) {
-                    throw new IllegalStateException("EMAIL_ALREADY_EXISTS: Email đã được sử dụng");
+                    throw new IdentityException(IdentityError.EMAIL_ALREADY_EXISTS,
+                            "EMAIL_ALREADY_EXISTS: Email đã được sử dụng");
                 }
                 if (userRepository.existsByNormalizedUserName(em, userName)) {
-                    throw new IllegalStateException("USERNAME_ALREADY_EXISTS: Tên đăng nhập đã được sử dụng");
+                    throw new IdentityException(IdentityError.USERNAME_ALREADY_EXISTS,
+                            "USERNAME_ALREADY_EXISTS: Tên đăng nhập đã được sử dụng");
                 }
 
                 User newUser = new User(email, userName.trim(), fullName.trim(), passwordHash);
@@ -92,7 +96,8 @@ public class AuthService {
             }));
         } catch (PersistenceException ex) {
             LOGGER.log(Level.WARNING, "Lỗi xung đột khi lưu tài khoản: " + ex.getMessage());
-            throw new IllegalStateException("IDENTITY_CONFLICT: Email hoặc tên đăng nhập đã tồn tại trong hệ thống");
+            throw new IdentityException(IdentityError.IDENTITY_CONFLICT,
+                    "IDENTITY_CONFLICT: Email hoặc tên đăng nhập đã tồn tại trong hệ thống", ex);
         }
     }
 
@@ -103,7 +108,7 @@ public class AuthService {
     public UserPrincipal login(LoginRequestDto request) {
         if (request == null || request.identifier() == null || request.identifier().isBlank()
                 || request.password() == null || request.password().isBlank()) {
-            throw new SecurityException("INVALID_CREDENTIALS");
+            throw invalidCredentials();
         }
 
         String identifier = request.identifier().trim();
@@ -130,15 +135,15 @@ public class AuthService {
 
         if (user == null) {
             passwordHasher.verify(request.password(), DUMMY_HASH);
-            throw new SecurityException("INVALID_CREDENTIALS");
+            throw invalidCredentials();
         }
 
         if (!passwordHasher.verify(request.password(), user.getPasswordHash())) {
-            throw new SecurityException("INVALID_CREDENTIALS");
+            throw invalidCredentials();
         }
 
         if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new SecurityException("ACCOUNT_DISABLED");
+            throw new IdentityException(IdentityError.ACCOUNT_DISABLED, "Tài khoản của bạn đã bị vô hiệu hóa");
         }
 
         if (passwordHasher.needsRehash(user.getPasswordHash())) {
@@ -172,6 +177,10 @@ public class AuthService {
         });
 
         return new UserPrincipal(user.getId(), user.getPlatformRole(), user.getAuthVersion(), orgRole, user.getEmail());
+    }
+
+    private static IdentityException invalidCredentials() {
+        return new IdentityException(IdentityError.INVALID_CREDENTIALS, "Email hoặc mật khẩu không chính xác");
     }
 
     /**

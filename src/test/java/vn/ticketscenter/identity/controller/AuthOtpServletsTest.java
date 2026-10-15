@@ -7,6 +7,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import vn.ticketscenter.config.persistence.TransactionManager;
+import vn.ticketscenter.identity.error.IdentityError;
+import vn.ticketscenter.identity.error.IdentityException;
 import vn.ticketscenter.identity.dto.ForgotPasswordRequestDto;
 import vn.ticketscenter.identity.dto.OtpSendRequestDto;
 import vn.ticketscenter.identity.dto.OtpVerifyRequestDto;
@@ -150,7 +152,7 @@ public class AuthOtpServletsTest {
                 new OtpCryptoHelper("secret"), new FakeEmailSender()) {
             @Override
             public boolean sendOtp(OtpSendRequestDto request) {
-                throw new IllegalStateException("COOLDOWN_ACTIVE: Vui lòng đợi 45 giây");
+                throw new IdentityException(IdentityError.COOLDOWN_ACTIVE, "COOLDOWN_ACTIVE: Vui lòng đợi 45 giây");
             }
         };
 

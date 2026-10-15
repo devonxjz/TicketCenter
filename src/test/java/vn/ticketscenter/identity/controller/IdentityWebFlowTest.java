@@ -11,6 +11,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import vn.ticketscenter.config.persistence.TransactionManager;
+import vn.ticketscenter.identity.error.IdentityError;
+import vn.ticketscenter.identity.error.IdentityException;
 import vn.ticketscenter.identity.dto.CurrentUserDto;
 import vn.ticketscenter.identity.dto.LoginRequestDto;
 import vn.ticketscenter.identity.model.PlatformRole;
@@ -499,7 +501,7 @@ public class IdentityWebFlowTest {
                 new TransactionManager(Map.of()), new UserRepository(), new PasswordHasher()) {
             @Override
             public UserPrincipal login(LoginRequestDto request) {
-                throw new SecurityException("ACCOUNT_DISABLED");
+                throw new IdentityException(IdentityError.ACCOUNT_DISABLED, "Tài khoản của bạn đã bị vô hiệu hóa");
             }
         };
 

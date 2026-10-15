@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.identity.config.IdentityServices;
+import vn.ticketscenter.identity.controller.support.IdentityErrorWriter;
 import vn.ticketscenter.identity.dto.CurrentUserDto;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
@@ -43,8 +44,7 @@ public class MeServlet extends HttpServlet {
 
         AuthService service = authService(req.getServletContext());
         if (service == null) {
-            HttpResponses.error(resp, HttpServletResponse.SC_SERVICE_UNAVAILABLE,
-                    "DATABASE_UNAVAILABLE", "Hệ thống cơ sở dữ liệu chưa sẵn sàng");
+            IdentityErrorWriter.databaseUnavailable(resp);
             return;
         }
 
@@ -56,13 +56,6 @@ public class MeServlet extends HttpServlet {
             return;
         }
 
-        String json = "{\"id\":\"" + user.id() + "\","
-                + "\"email\":" + HttpResponses.jsonString(user.email()) + ","
-                + "\"userName\":" + HttpResponses.jsonString(user.userName()) + ","
-                + "\"fullName\":" + HttpResponses.jsonString(user.fullName()) + ","
-                + "\"platformRole\":\"" + user.platformRole().name() + "\","
-                + "\"admin\":" + user.admin() + "}";
-
-        HttpResponses.data(resp, json);
+        HttpResponses.data(resp, user.toJson());
     }
 }

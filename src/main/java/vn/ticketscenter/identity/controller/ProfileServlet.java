@@ -5,15 +5,16 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import vn.ticketscenter.config.web.HttpResponses;
-import vn.ticketscenter.config.web.JsonObjectParser;
 import vn.ticketscenter.identity.config.IdentityServices;
+import vn.ticketscenter.identity.controller.support.IdentityErrorWriter;
+import vn.ticketscenter.identity.controller.support.RequestFields;
 import vn.ticketscenter.identity.dto.ProfileDto;
+import vn.ticketscenter.identity.error.IdentityException;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.identity.service.AuthService;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -23,9 +24,13 @@ public class ProfileServlet extends HttpServlet {
     private static final Logger LOGGER = Logger.getLogger(ProfileServlet.class.getName());
     private final AuthService injected;
 
-    public ProfileServlet() { this(null); }
+    public ProfileServlet() {
+        this(null);
+    }
 
-    public ProfileServlet(AuthService authService) { this.injected = authService; }
+    public ProfileServlet(AuthService authService) {
+        this.injected = authService;
+    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -37,10 +42,12 @@ public class ProfileServlet extends HttpServlet {
         handle(request, response, true);
     }
 
-    private void handle(HttpServletRequest request, HttpServletResponse response, boolean update) throws IOException {
+    private void handle(HttpServletRequest request, HttpServletResponse response, boolean update)
+            throws IOException {
         UserPrincipal principal = SecurityContext.getCurrentUser(request).orElse(null);
         if (principal == null) {
-            HttpResponses.error(response, 401, "UNAUTHENTICATED", "Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn");
+            HttpResponses.error(response, 401, "UNAUTHENTICATED",
+                    "Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn");
             return;
         }
         AuthService service = injected;
@@ -49,7 +56,7 @@ public class ProfileServlet extends HttpServlet {
             service = services == null ? null : services.authService();
         }
         if (service == null) {
-            HttpResponses.error(response, 503, "DATABASE_UNAVAILABLE", "Hệ thống cơ sở dữ liệu chưa sẵn sàng");
+            IdentityErrorWriter.databaseUnavailable(response);
             return;
         }
         try {
@@ -57,15 +64,11 @@ public class ProfileServlet extends HttpServlet {
             if (update) {
                 // Checked here as well as in CsrfFilter so the write never depends on filter wiring alone.
                 if (!SecurityContext.validateCsrfToken(request)) {
-                    HttpResponses.error(response, 403, "CSRF_TOKEN_INVALID", "Yêu cầu thiếu hoặc mã CSRF không hợp lệ");
+                    HttpResponses.error(response, 403, "CSRF_TOKEN_INVALID",
+                            "Yêu cầu thiếu hoặc mã CSRF không hợp lệ");
                     return;
                 }
-                Map<String, String> body;
-                try { body = JsonObjectParser.parse(request.getReader()); }
-                catch (RuntimeException | IOException invalid) {
-                    HttpResponses.error(response, 400, "INVALID_JSON", "Định dạng JSON không hợp lệ");
-                    return;
-                }
+                RequestFields body = RequestFields.readJson(request);
                 profile = service.updateProfile(principal.actorId(), body.get("fullName"), body.get("phone"));
             } else {
                 profile = service.getProfile(principal.actorId());
@@ -74,11 +77,9 @@ public class ProfileServlet extends HttpServlet {
                 HttpResponses.error(response, 404, "PROFILE_NOT_FOUND", "Không tìm thấy tài khoản");
                 return;
             }
-            HttpResponses.data(response, "{\"id\":\"" + profile.id() + "\","
-                    + "\"email\":" + HttpResponses.jsonString(profile.email()) + ","
-                    + "\"userName\":" + HttpResponses.jsonString(profile.userName()) + ","
-                    + "\"fullName\":" + HttpResponses.jsonString(profile.fullName()) + ","
-                    + "\"phone\":" + HttpResponses.jsonString(profile.phone()) + "}");
+            HttpResponses.data(response, profile.toJson());
+        } catch (IdentityException invalidBody) {
+            IdentityErrorWriter.write(response, invalidBody, null);
         } catch (IllegalArgumentException invalid) {
             HttpResponses.error(response, 400, "PROFILE_INVALID", invalid.getMessage());
         } catch (RuntimeException failure) {

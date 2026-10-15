@@ -9,6 +9,8 @@ import vn.ticketscenter.identity.integration.mail.EmailDeliveryException;
 import vn.ticketscenter.identity.integration.mail.EmailMessage;
 import vn.ticketscenter.identity.integration.mail.EmailSender;
 import vn.ticketscenter.identity.integration.mail.OtpEmailTemplate;
+import vn.ticketscenter.identity.error.IdentityError;
+import vn.ticketscenter.identity.error.IdentityException;
 import vn.ticketscenter.identity.model.Otp;
 import vn.ticketscenter.identity.model.OtpPurpose;
 import vn.ticketscenter.identity.model.User;
@@ -74,7 +76,8 @@ public class OtpService {
                     otpCryptoHelper.hashOtp("000000");
                     return null;
                 }
-                throw new IllegalArgumentException("USER_NOT_FOUND: Không tìm thấy tài khoản với email này");
+                throw new IdentityException(IdentityError.VALIDATION_FAILED,
+                        "USER_NOT_FOUND: Không tìm thấy tài khoản với email này");
             }
 
             // Kiểm tra Cooldown 60s
@@ -83,7 +86,8 @@ public class OtpService {
                 long elapsedSeconds = Duration.between(latestOtp.getCreatedAt(), now).getSeconds();
                 if (elapsedSeconds < COOLDOWN_SECONDS) {
                     long remainingSeconds = COOLDOWN_SECONDS - elapsedSeconds;
-                    throw new IllegalStateException("COOLDOWN_ACTIVE: Vui lòng đợi " + remainingSeconds + " giây trước khi gửi lại mã OTP");
+                    throw new IdentityException(IdentityError.COOLDOWN_ACTIVE, "COOLDOWN_ACTIVE: Vui lòng đợi "
+                            + remainingSeconds + " giây trước khi gửi lại mã OTP");
                 }
             }
 
@@ -138,7 +142,8 @@ public class OtpService {
                 otpRepository.invalidateExistingOtpsByEmail(em, normalizedEmail, request.purpose(), Instant.now());
                 return null;
             });
-            throw new IllegalStateException("EMAIL_SEND_FAILED: Không thể gửi email chứa mã OTP, vui lòng thử lại sau.", ex);
+            throw new IdentityException(IdentityError.EMAIL_SEND_FAILED,
+                    "EMAIL_SEND_FAILED: Không thể gửi email chứa mã OTP, vui lòng thử lại sau.", ex);
         }
 
         return true;
@@ -151,7 +156,7 @@ public class OtpService {
      */
     public OtpVerifyResponseDto verifyOtp(OtpVerifyRequestDto request) {
         if (request == null) {
-            throw new IllegalArgumentException("Yêu cầu xác minh OTP không được để trống");
+            throw new IdentityException(IdentityError.OTP_INVALID, "Yêu cầu xác minh OTP không được để trống");
         }
 
         String rawCode = request.code().trim();
@@ -162,25 +167,28 @@ public class OtpService {
         Otp currentOtp = transactions.execute(DatabasePrincipal.AUTH, em -> {
             User user = userRepository.findByNormalizedEmail(em, normalizedEmail).orElse(null);
             if (user == null) {
-                throw new IllegalArgumentException("USER_NOT_FOUND: Tài khoản không tồn tại");
+                throw new IdentityException(IdentityError.OTP_INVALID, "USER_NOT_FOUND: Tài khoản không tồn tại");
             }
             return otpRepository.findLatestOtpByEmail(em, normalizedEmail, request.purpose()).orElse(null);
         });
 
         if (currentOtp == null) {
-            throw new IllegalStateException("OTP_NOT_FOUND: Không tìm thấy mã OTP hợp lệ cho yêu cầu này");
+            throw new IdentityException(IdentityError.OTP_NOT_FOUND,
+                    "OTP_NOT_FOUND: Không tìm thấy mã OTP hợp lệ cho yêu cầu này");
         }
 
         if (currentOtp.isConsumed()) {
-            throw new IllegalStateException("OTP_ALREADY_USED: Mã OTP này đã được sử dụng");
+            throw new IdentityException(IdentityError.OTP_ALREADY_USED, "OTP_ALREADY_USED: Mã OTP này đã được sử dụng");
         }
 
         if (currentOtp.isInvalidated() || currentOtp.getFailedAttempts() >= MAX_FAILED_ATTEMPTS) {
-            throw new IllegalStateException("OTP_MAX_ATTEMPTS_EXCEEDED: Mã OTP đã bị khóa do nhập sai quá " + MAX_FAILED_ATTEMPTS + " lần");
+            throw new IdentityException(IdentityError.OTP_MAX_ATTEMPTS_EXCEEDED,
+                    "OTP_MAX_ATTEMPTS_EXCEEDED: Mã OTP đã bị khóa do nhập sai quá " + MAX_FAILED_ATTEMPTS + " lần");
         }
 
         if (currentOtp.isExpired(now)) {
-            throw new IllegalStateException("OTP_EXPIRED: Mã OTP đã hết hạn (hiệu lực " + OTP_EXPIRY_MINUTES + " phút)");
+            throw new IdentityException(IdentityError.OTP_EXPIRED,
+                    "OTP_EXPIRED: Mã OTP đã hết hạn (hiệu lực " + OTP_EXPIRY_MINUTES + " phút)");
         }
 
         // 2. So sánh mã băm an toàn constant-time
@@ -195,20 +203,24 @@ public class OtpService {
             });
 
             if (newAttempts >= MAX_FAILED_ATTEMPTS) {
-                throw new IllegalStateException("OTP_MAX_ATTEMPTS_EXCEEDED: Bạn đã nhập sai mã OTP quá " + MAX_FAILED_ATTEMPTS + " lần. Mã đã bị khóa.");
+                throw new IdentityException(IdentityError.OTP_MAX_ATTEMPTS_EXCEEDED, "OTP_MAX_ATTEMPTS_EXCEEDED: "
+                        + "Bạn đã nhập sai mã OTP quá " + MAX_FAILED_ATTEMPTS + " lần. Mã đã bị khóa.");
             }
             int remaining = MAX_FAILED_ATTEMPTS - newAttempts;
-            throw new IllegalArgumentException("OTP_INVALID: Mã OTP không chính xác. Bạn còn " + remaining + " lần thử.");
+            throw new IdentityException(IdentityError.OTP_INVALID,
+                    "OTP_INVALID: Mã OTP không chính xác. Bạn còn " + remaining + " lần thử.");
         }
 
         // 3. Mã đúng: Tiêu thụ nguyên tử và thực hiện hành động tương ứng trong một transaction
         return transactions.execute(DatabasePrincipal.AUTH, em -> {
             User user = userRepository.findByNormalizedEmail(em, normalizedEmail)
-                    .orElseThrow(() -> new IllegalArgumentException("USER_NOT_FOUND: Tài khoản không tồn tại"));
+                    .orElseThrow(() -> new IdentityException(IdentityError.OTP_INVALID,
+                            "USER_NOT_FOUND: Tài khoản không tồn tại"));
 
             boolean consumed = otpRepository.consumeOtpAtomically(em, currentOtp.getId(), now);
             if (!consumed) {
-                throw new IllegalStateException("OTP_ALREADY_USED: Mã OTP đã được xác thực bởi một yêu cầu khác");
+                throw new IdentityException(IdentityError.OTP_ALREADY_USED,
+                        "OTP_ALREADY_USED: Mã OTP đã được xác thực bởi một yêu cầu khác");
             }
 
             if (request.purpose() == OtpPurpose.VERIFY_EMAIL) {
@@ -220,7 +232,7 @@ public class OtpService {
                         user.getId(), tokenExpiresAt, user.getPasswordHash(), user.getAuthVersion());
                 return OtpVerifyResponseDto.forPasswordReset("Xác minh OTP thành công", resetToken);
             } else {
-                throw new IllegalArgumentException("Mục đích OTP không được hỗ trợ");
+                throw new IdentityException(IdentityError.OTP_INVALID, "Mục đích OTP không được hỗ trợ");
             }
         });
     }

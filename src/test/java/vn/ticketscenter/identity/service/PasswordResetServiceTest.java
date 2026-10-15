@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Test;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.PersistenceRegistry;
 import vn.ticketscenter.config.persistence.TransactionManager;
+import vn.ticketscenter.identity.error.IdentityError;
+import vn.ticketscenter.identity.error.IdentityException;
 import vn.ticketscenter.identity.dto.ForgotPasswordRequestDto;
 import vn.ticketscenter.identity.dto.OtpSendRequestDto;
 import vn.ticketscenter.identity.dto.OtpVerifyRequestDto;
@@ -138,8 +140,9 @@ public class PasswordResetServiceTest {
             assertEquals(1, updatedUser.getAuthVersion());
 
             // 4. Thử tái sử dụng resetToken cũ -> Bị từ chối ngay lập tức do authVersion và passwordHash đã đổi
-            assertThrows(SecurityException.class, () ->
+            IdentityException stale = assertThrows(IdentityException.class, () ->
                     resetService.resetPassword(new PasswordResetRequestDto(resetToken, "AnotherPassword123!")));
+            assertEquals(IdentityError.INVALID_TOKEN, stale.error());
 
         } finally {
             registry.close();
