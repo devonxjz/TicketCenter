@@ -1,5 +1,7 @@
 package vn.ticketscenter.payment.integration;
 
+import vn.ticketscenter.config.error.UpstreamException;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.OkHttpClient;
 import vn.payos.PayOS;
@@ -74,11 +76,15 @@ public final class PayosClient implements PayosGateway {
             CreatePaymentLinkResponse created = payOS.paymentRequests().create(request);
             return new CheckoutLink(created.getOrderCode(), created.getPaymentLinkId(), created.getCheckoutUrl());
         } catch (APIException failure) {
-            if (!ORDER_CODE_EXISTS.equals(failure.getErrorCode().orElse(null))) throw failure;
+            if (!ORDER_CODE_EXISTS.equals(failure.getErrorCode().orElse(null))) throw unavailable(failure);
             // A retry after a lost response: reuse the link payOS already holds for this order code.
-            LinkStatus existing = findLink(orderCode).orElseThrow(() -> failure);
-            if (!"PENDING".equals(existing.status()) || existing.amount() != amount) throw failure;
+            LinkStatus existing = findLink(orderCode).orElseThrow(() -> unavailable(failure));
+            if (!"PENDING".equals(existing.status()) || existing.amount() != amount) throw unavailable(failure);
             return new CheckoutLink(orderCode, existing.paymentLinkId(), CHECKOUT_BASE + existing.paymentLinkId());
+        } catch (UpstreamException failure) {
+            throw failure;
+        } catch (RuntimeException failure) {
+            throw unavailable(failure);
         }
     }
 
@@ -93,8 +99,16 @@ public final class PayosClient implements PayosGateway {
             return Optional.empty();
         } catch (APIException failure) {
             if (LINK_NOT_FOUND.equals(failure.getErrorCode().orElse(null))) return Optional.empty();
+            throw unavailable(failure);
+        } catch (UpstreamException failure) {
             throw failure;
+        } catch (RuntimeException failure) {
+            throw unavailable(failure);
         }
+    }
+
+    private static UpstreamException unavailable(RuntimeException cause) {
+        return new UpstreamException("PAYOS_UNAVAILABLE", "payOS request failed", cause);
     }
 
     @Override

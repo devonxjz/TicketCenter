@@ -12,8 +12,9 @@
 
         <form class="search-wrapper tc-header-search" role="search" action="${pageContext.request.contextPath}/" method="get">
             <select id="header-category" name="categoryId" class="tc-header-category" aria-label="Danh mục sự kiện"><option value="">Tất cả danh mục</option></select>
-            <input type="search" name="keyword" class="search-input" maxlength="100" placeholder="Tìm sự kiện hoặc địa điểm..." aria-label="Tìm sự kiện hoặc địa điểm">
+            <input type="search" name="keyword" class="search-input" maxlength="100" placeholder="Tìm sự kiện hoặc địa điểm..." aria-label="Tìm sự kiện hoặc địa điểm" autocomplete="off">
             <button class="search-btn" type="submit">Tìm kiếm</button>
+            <div id="header-search-dropdown" class="tc-search-dropdown" hidden aria-label="Gợi ý sự kiện" role="region"></div>
         </form>
 
         <!-- Cụm tài khoản -->

@@ -51,7 +51,7 @@ app.base.url=http://localhost:8080/ticketscenter
 app.env=development
 app.data.mode=real
 app.secret.key=
-# Persistent local image files when Cloudinary is unconfigured. Keep this directory across restarts.
+# Persistent local image files for event images. Keep this directory across restarts.
 # app.base.url must contain the deployment context used by the image-serving route.
 event.image.directory=.local/event-images
 
@@ -64,14 +64,6 @@ runtime.port=18082
 # Chính sách server-side dùng khi admin duyệt tổ chức; không nhận từ applicant.
 # organization.initialCommissionPolicy={"ratePercent":5,"fixedFee":0,"effectiveFrom":"2026-01-01","effectiveTo":"2027-01-01"}
 
-# Demo admin seed. Keep disabled unless explicitly needed.
-admin.seed.enabled=false
-
-# Demo manager/staff/buyer accounts with a published password. Local development only;
-# ignored when app.env=production.
-demo.seed.enabled=false
-admin.email=admin@fixture.invalid
-admin.password=
 
 # 3. Cấu hình Cổng Thanh Toán payOS (lấy key tại https://my.payos.vn → Kênh thanh toán)
 # Có thể đặt bằng biến môi trường PAYOS_CLIENT_ID / PAYOS_API_KEY / PAYOS_CHECKSUM_KEY.
@@ -102,12 +94,8 @@ redis.host=localhost
 redis.port=6379
 redis.password=
 redis.timeout=2000
-
-
-# 6. Cấu hình Cloudinary Storage
-CLOUDINARY_CLOUD_NAME=
-CLOUDINARY_API_KEY=
-CLOUDINARY_API_SECRET=
+# redis.url=redis://default:password@host:6379
+# redis.cache.catalog.enabled=true
 
 # 7. Cấu hình Connection Pool (HikariCP)
 hikari.maximum-pool-size=20
@@ -116,3 +104,12 @@ hikari.idle-timeout=600000
 hikari.connection-timeout=30000
 hikari.max-lifetime=1800000
 hikari.pool-budget=60
+
+# Identity: OTP, password reset, login throttle, session cache (defaults shown)
+identity.otp.expiry.minutes=5
+identity.otp.cooldown.seconds=60
+identity.otp.max.failed.attempts=5
+identity.reset.token.expiry.minutes=15
+identity.login.max.failures=5
+identity.login.throttle.window.minutes=15
+identity.session.cache.ttl.seconds=180

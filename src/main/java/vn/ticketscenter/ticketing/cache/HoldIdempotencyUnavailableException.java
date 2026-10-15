@@ -1,7 +1,9 @@
 package vn.ticketscenter.ticketing.cache;
 
-public final class HoldIdempotencyUnavailableException extends RuntimeException {
+import vn.ticketscenter.config.error.AppException;
+
+public final class HoldIdempotencyUnavailableException extends AppException {
     public HoldIdempotencyUnavailableException() {
-        super("Hold idempotency is unavailable");
+        super(503, "HOLD_UNAVAILABLE", "Hold idempotency is unavailable");
     }
 }

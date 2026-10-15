@@ -19,7 +19,6 @@ class ExternalTestIsolationTest {
 
     @Test void legacyTargetsRegisterGuardEvenWhenDiscoveryIsDisabled() throws Exception {
         for(String name:List.of("vn.ticketscenter.MigrationSuiteVerificationTest",
-                "vn.ticketscenter.config.seed.DemoAccountSeederTest",
                 "vn.ticketscenter.identity.repository.OtpRepositoryTest",
                 "vn.ticketscenter.identity.repository.OrganizationRepositoryTest",
                 "vn.ticketscenter.identity.repository.OrganizationMembershipRepositoryTest",

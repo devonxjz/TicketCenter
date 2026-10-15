@@ -12,6 +12,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_CACHE_CATALOG_ENABLED=${REDIS_CACHE_CATALOG_ENABLED:-true}
       - TC_SQL_HOST=${TC_SQL_HOST:-host.docker.internal}
       - TC_SQL_PORT=${TC_SQL_PORT:-1433}
       - TC_SQL_DEV_DB=${TC_SQL_DEV_DB:-TicketsCenter_Dev}

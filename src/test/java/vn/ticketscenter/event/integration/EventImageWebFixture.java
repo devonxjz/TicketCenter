@@ -16,7 +16,7 @@ import vn.ticketscenter.event.dto.EventSave;
 import vn.ticketscenter.event.repository.EventRepository;
 import vn.ticketscenter.event.service.EventService;
 import vn.ticketscenter.identity.security.SecurityContext;
-import vn.ticketscenter.storage.CloudinaryStorageService;
+import vn.ticketscenter.storage.LocalImageStorage;
 
 import java.io.IOException;
 import java.net.URL;
@@ -35,7 +35,7 @@ public final class EventImageWebFixture {
         if (args.length != 1 || !args[0].equals("serve-local-test"))
             throw new IllegalArgumentException("Pass serve-local-test");
         try (EventImageFixture fixture = new EventImageFixture()) {
-            var storage = CloudinaryStorageService.fromEnvironment();
+            var storage = LocalImageStorage.fromConfiguration();
             EventService service = new EventService(new EventRepository(fixture.source), storage);
             var published =
                     service.save(
@@ -45,7 +45,7 @@ public final class EventImageWebFixture {
                                     EventSave.Kind.CREATE,
                                     fixture.organization,
                                     0,
-                                    fixture.fields("Cloudinary browser verification"),
+                                    fixture.fields("Local image browser verification"),
                                     EventImageFixture.png(0x12bb88)));
             fixture.sql("UPDATE dbo.tc_events SET status='PUBLISHED' WHERE id=?", published.id());
             Path repository = Path.of(System.getProperty("user.home"), ".m2", "repository");

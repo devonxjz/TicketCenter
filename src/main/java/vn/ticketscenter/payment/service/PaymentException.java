@@ -1,22 +1,14 @@
 package vn.ticketscenter.payment.service;
 
+import vn.ticketscenter.config.error.AppException;
+
 import java.util.Objects;
 
-public final class PaymentException extends RuntimeException {
-    private final int status;
-    private final String code;
-
+public final class PaymentException extends AppException {
     public PaymentException(int status, String code, String message) {
-        super(Objects.requireNonNull(message, "message is required"));
-        if (status < 400 || status > 599) {
-            throw new IllegalArgumentException("invalid HTTP status: " + status);
-        }
-        this.status = status;
-        this.code = Objects.requireNonNull(code, "code is required");
+        super(status, Objects.requireNonNull(code, "code is required"),
+                Objects.requireNonNull(message, "message is required"));
     }
-
-    public int status() { return status; }
-    public String code() { return code; }
 
     public static PaymentException unauthenticated() {
         return new PaymentException(401, "UNAUTHENTICATED", "A current session is required.");

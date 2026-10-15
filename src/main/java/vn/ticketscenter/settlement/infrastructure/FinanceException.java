@@ -1,11 +1,9 @@
 package vn.ticketscenter.settlement.infrastructure;
 
-public final class FinanceException extends RuntimeException {
-    private final String code;
-    private final int status;
+import vn.ticketscenter.config.error.AppException;
+
+public final class FinanceException extends AppException {
     public FinanceException(String code, int status) {
-        super(code); this.code = code; this.status = status;
+        super(status, code, code);
     }
-    public String code() { return code; }
-    public int status() { return status; }
 }

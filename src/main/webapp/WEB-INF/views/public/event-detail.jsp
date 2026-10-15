@@ -12,7 +12,7 @@
   <p id="hold-message" role="status" aria-live="polite">Đang đối chiếu lượt giữ…</p>
   <div id="hold-auth" class="tc-notice mb-4" hidden><p>Đăng nhập và xác minh email để chọn vé, xem ghế còn trống và giữ vị trí.</p><a id="booking-login" href="${pageContext.request.contextPath}/auth/login" class="btn-primary-custom">Đăng nhập để chọn vé</a> <a href="${pageContext.request.contextPath}/auth/verify-email" class="btn-outline-custom">Xác minh email</a></div>
   <div id="hold-recovery" class="hold-notice" hidden><p>Kết quả yêu cầu chưa rõ. Thử lại cùng yêu cầu để đối chiếu với máy chủ.</p><button id="hold-retry" type="button" class="btn-outline-custom">Thử lại yêu cầu</button></div>
-  <section id="current-hold" class="tc-hold-confirmed mb-4" hidden><h3 class="h5 fw-bold">Lượt giữ hiện tại</h3><p id="hold-id" hidden></p><p>Thời gian còn lại <strong id="hold-countdown" role="timer" aria-label="Thời gian còn lại"></strong></p><p id="hold-deadline" class="small text-muted"></p><ul id="hold-items" class="hold-items"></ul><p>Giá vé đã giữ <strong id="hold-total"></strong></p><div class="tc-page-actions"><a id="hold-pay-link" class="btn-primary-custom" href="${pageContext.request.contextPath}/checkout?prepare=1">Thanh toán ngay</a><a id="hold-view" class="btn-outline-custom" href="${pageContext.request.contextPath}/checkout">Xem đơn &amp; nhập mã giảm giá</a><button id="hold-cancel" type="button" class="btn-outline-custom">Hủy lượt giữ</button></div><p class="small text-muted mt-2 mb-0">Vé được giữ cho bạn đến hết thời gian trên. Bạn có thể thanh toán bất cứ lúc nào trước khi hết hạn.</p></section>
+   <section id="current-hold" class="tc-hold-confirmed mb-4" hidden><h3 class="h5 fw-bold">Lượt giữ hiện tại</h3><p id="hold-id" hidden></p><p>Thời gian còn lại <strong id="hold-countdown" role="timer" aria-label="Thời gian còn lại"></strong></p><p id="hold-deadline" class="small text-muted"></p><ul id="hold-items" class="hold-items"></ul><p>Giá vé đã giữ <strong id="hold-total"></strong></p><div class="tc-page-actions"><a id="hold-pay-link" class="btn-primary-custom" href="${pageContext.request.contextPath}/checkout?prepare=1&amp;pay=now">Thanh toán ngay</a><a id="hold-view" class="btn-outline-custom" href="${pageContext.request.contextPath}/checkout">Xem đơn vé &amp; ưu đãi</a><button id="hold-cancel" type="button" class="btn-outline-custom">Hủy lượt giữ</button></div><p class="small text-muted mt-2 mb-0">Vé được giữ cho bạn đến hết thời gian trên. Bạn có thể thanh toán bất cứ lúc nào trước khi hết hạn.</p></section>
   <form id="hold-form" hidden>
    <p id="sale-deadline" class="small text-muted"></p>
    <div class="hold-zone-navigation">
@@ -53,8 +53,8 @@
        <p>Tạm tính <strong id="selection-total">0 đ</strong></p>
        <p class="small text-muted">Tối đa 8 vé mỗi lượt. Vé được giữ trong 10 phút sau khi xác nhận.</p>
        <div class="d-grid gap-2">
-        <button id="hold-pay-now" type="submit" class="btn-primary-custom" disabled>Thanh toán ngay</button>
-        <button id="hold-submit" type="submit" class="btn-outline-custom" disabled>Giữ vé, thanh toán sau</button>
+        <button id="hold-pay-now" type="submit" class="btn-primary-custom w-100 py-3 fw-bold fs-6" disabled>Thanh toán ngay</button>
+        <button id="hold-submit" type="submit" class="btn-outline-custom w-100 py-2 fw-semibold" disabled>Giữ vé (thanh toán sau)</button>
        </div>
       </div>
      </aside>

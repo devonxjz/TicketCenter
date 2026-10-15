@@ -25,6 +25,7 @@ ENV CATALINA_HOME=/opt/tomcat
 ENV PATH=$CATALINA_HOME/bin:$PATH
 ENV TOMCAT_VERSION=11.0.4
 ENV JAVA_OPTS="-Djava.awt.headless=true -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
+ENV REDIS_CACHE_CATALOG_ENABLED=true
 
 # Cài đặt curl cho healthcheck và thiết lập Tomcat 11 với fallback mirror
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \

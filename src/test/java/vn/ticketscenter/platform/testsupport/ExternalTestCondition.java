@@ -14,8 +14,7 @@ public final class ExternalTestCondition implements ExecutionCondition {
     private static final Set<String> DB_CLASSES = Set.of(
             IDENTITY + "repository.OtpRepositoryTest",
             IDENTITY + "service.OtpServiceTest",
-            IDENTITY + "service.PasswordResetServiceTest",
-            "vn.ticketscenter.config.seed.DemoAccountSeederTest");
+            IDENTITY + "service.PasswordResetServiceTest");
 
     @Override
     public ConditionEvaluationResult evaluateExecutionCondition(ExtensionContext context) {

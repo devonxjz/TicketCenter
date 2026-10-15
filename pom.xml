@@ -90,13 +90,6 @@
             <version>5.2.0</version>
         </dependency>
 
-        <!-- Server-side image upload and asset management -->
-        <dependency>
-            <groupId>com.cloudinary</groupId>
-            <artifactId>cloudinary-http5</artifactId>
-            <version>2.0.0</version>
-        </dependency>
-
         <!-- payOS payment gateway SDK (payment links, webhooks) -->
         <dependency>
             <groupId>vn.payos</groupId>

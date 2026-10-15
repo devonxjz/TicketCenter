@@ -723,7 +723,20 @@ test('pay now opens checkout for coupon review without requesting a provider pay
     await f.settle();
     assert.equal(f.redirects.length,1);
     assert.match(f.redirects[0],/^\/checkout\?prepare=1&holdId=/);
+    assert.equal(f.redirects[0].includes('&pay=now'),true);
     assert.equal(f.calls.some(call=>call.path.includes('/payments')),false);
+});
+
+test('hold submit opens checkout without autoPay', async () => {
+    const api=fixture();
+    api.server.create=(_,reply)=>{api.server.hold=hold();return reply(receipt('CREATED'),201);};
+    const f=await bookingBrowserFixture(api),get=f.get;
+    get('standing-zones').querySelectorAll('button[data-quantity-step]').find(button=>button.dataset.quantityStep==='1').listeners.click();
+    get('hold-form').listeners.submit({preventDefault(){},submitter:{id:'hold-submit'}});
+    await f.settle();
+    assert.equal(f.redirects.length,1);
+    assert.match(f.redirects[0],/^\/checkout\?prepare=1&holdId=/);
+    assert.equal(f.redirects[0].includes('&pay=now'),false);
 });
 
 test('prototype layout keeps seated and standing inventory separate and steppers enforce their shared limit', async () => {

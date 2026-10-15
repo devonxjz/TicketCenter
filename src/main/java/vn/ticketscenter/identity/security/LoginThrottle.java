@@ -1,5 +1,6 @@
 package vn.ticketscenter.identity.security;
 
+import vn.ticketscenter.config.IdentityConfig;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -20,7 +21,8 @@ public final class LoginThrottle {
     private final Clock clock;
 
     public LoginThrottle() {
-        this(5, Duration.ofMinutes(15), Clock.systemUTC());
+        this(IdentityConfig.getLoginMaxFailures(),
+                Duration.ofMinutes(IdentityConfig.getLoginThrottleWindowMinutes()), Clock.systemUTC());
     }
 
     public LoginThrottle(int maxFailures, Duration window, Clock clock) {

@@ -1,5 +1,7 @@
 package vn.ticketscenter.payment.repository;
 
+import vn.ticketscenter.config.error.AppException;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 import vn.ticketscenter.payment.dto.PaymentStatusResult;
@@ -43,8 +45,8 @@ public class PaymentRepository {
     public record ReconcileCandidate(UUID paymentId, UUID orderId, String txnRef, BigDecimal amount, Instant createdAt) { }
 
     /** The order costs 0 VND: it is completed with {@link #completeZeroOrder} instead of a payment. */
-    public static final class ZeroOrderDetectedException extends RuntimeException {
-        public ZeroOrderDetectedException() { super("Order is 0 VND"); }
+    public static final class ZeroOrderDetectedException extends AppException {
+        public ZeroOrderDetectedException() { super(409, "ORDER_ZERO_AMOUNT", "Order is 0 VND"); }
     }
 
     // ---------------------------------------------------------------- Buyer: start paying

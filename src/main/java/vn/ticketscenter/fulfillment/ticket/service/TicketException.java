@@ -1,22 +1,20 @@
 package vn.ticketscenter.fulfillment.ticket.service;
 
+import vn.ticketscenter.config.error.AppException;
+
 import java.util.Objects;
 
 /**
  * Ngoại lệ nghiệp vụ cho miền vé (LIEM-05).
  */
-public final class TicketException extends RuntimeException {
-    private final int httpStatus;
-    private final String errorCode;
+public final class TicketException extends AppException {
 
     public TicketException(int httpStatus, String errorCode, String message) {
-        super(message);
-        this.httpStatus = httpStatus;
-        this.errorCode = Objects.requireNonNull(errorCode, "errorCode is required");
+        super(httpStatus, Objects.requireNonNull(errorCode, "errorCode is required"), message);
     }
 
-    public int httpStatus() { return httpStatus; }
-    public String errorCode() { return errorCode; }
+    public int httpStatus() { return status(); }
+    public String errorCode() { return code(); }
 
     public static TicketException unauthenticated() {
         return new TicketException(401, "UNAUTHENTICATED", "A current session is required.");
@@ -39,6 +37,6 @@ public final class TicketException extends RuntimeException {
     }
 
     public String toJson() {
-        return "{\"error\":\"" + errorCode + "\",\"message\":\"" + getMessage() + "\"}";
+        return "{\"error\":\"" + code() + "\",\"message\":\"" + getMessage() + "\"}";
     }
 }

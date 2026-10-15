@@ -21,7 +21,7 @@ public final class RefundProcessingWorker {
      result=claim.kind().equals("EXECUTE")?gateway.executeRefund(claim.request()):gateway.queryRefundStatus(claim.providerReference(),claim.request().attemptId());
      if(result==null||result.status()==null)throw new IllegalStateException("Missing gateway result");
      if(result.status()==RefundGateway.Status.FAILED)error="GATEWAY_DECLINED";
-    }catch(RefundGateway.Timeout|RuntimeException uncertain){
+    }catch(RuntimeException uncertain){
      result=new RefundTransferResult(RefundGateway.Status.UNKNOWN,claim.providerReference());error="GATEWAY_OUTCOME_UNKNOWN";
     }
     store.record(claim,result.gatewayResult(),error);applied++;

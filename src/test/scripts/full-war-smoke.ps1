@@ -73,7 +73,7 @@ $config=[ordered]@{
  'redis.host'='127.0.0.1';'redis.port'=[string]$RedisPort;'redis.timeout'='300';'redis.password'='';'finance.redis.enabled'='false';'payout.adapter'='unavailable';
  'mail.smtp.host'='127.0.0.1';'mail.smtp.port'='1025';'mail.smtp.user'='local-test';'mail.smtp.password'='local-test';
  'payos.client.id'='';'payos.api.key'='';'payos.checksum.key'='';
- 'CLOUDINARY_CLOUD_NAME'='';'CLOUDINARY_API_KEY'='';'CLOUDINARY_API_SECRET'='';
+ 
  'event.image.directory'=($run.Replace('\','/')+'/data/images');'refund.simulated.state.directory'=($run.Replace('\','/')+'/data/refunds');'refund.simulated.outcome'='SUCCEEDED';'refund.simulated.timeoutAfterSideEffect'='false';
  'payout.simulated.state.directory'=($run.Replace('\','/')+'/data/payouts');'payout.simulated.outcome'='SUCCEEDED';'payout.simulated.timeoutAfterSideEffect'='false'
 }
@@ -84,7 +84,7 @@ foreach($name in @('application.properties','application.properties.example')) {
 $psi=[Diagnostics.ProcessStartInfo]::new()
 $psi.FileName=$java;$psi.WorkingDirectory=$run;$psi.UseShellExecute=$false;$psi.CreateNoWindow=$true;$psi.RedirectStandardOutput=$true;$psi.RedirectStandardError=$true
 # Remove inherited app overrides, including Java launcher injection, before loading private configuration.
-foreach($key in @($psi.Environment.Keys)) { if($key -match '^(DB_|TC_|APP_|ADMIN_|REDIS_|MAIL_|PAYOS_|CLOUDINARY_|HIKARI_|REFUND_|PAYOUT_|EVENT_|db\.|app\.|admin\.|redis\.|mail\.|payos\.|hikari\.|refund\.|payout\.|event\.)' -or $key -in @('JAVA_TOOL_OPTIONS','JDK_JAVA_OPTIONS','_JAVA_OPTIONS','CLASSPATH')) { $psi.Environment.Remove($key) | Out-Null } }
+foreach($key in @($psi.Environment.Keys)) { if($key -match '^(DB_|TC_|APP_|ADMIN_|REDIS_|MAIL_|PAYOS_|HIKARI_|REFUND_|PAYOUT_|EVENT_|db\.|app\.|admin\.|redis\.|mail\.|payos\.|hikari\.|refund\.|payout\.|event\.)' -or $key -in @('JAVA_TOOL_OPTIONS','JDK_JAVA_OPTIONS','_JAVA_OPTIONS','CLASSPATH')) { $psi.Environment.Remove($key) | Out-Null } }
 foreach($arg in @("-Dcatalina.home=$tomcat","-Dcatalina.base=$run","-Djava.io.tmpdir=$run/temp",'-Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager',"-Djava.util.logging.config.file=$run/conf/logging.properties",'-classpath',"$tomcat/bin/bootstrap.jar;$tomcat/bin/tomcat-juli.jar",'org.apache.catalina.startup.Bootstrap','start')) { $psi.ArgumentList.Add($arg) }
 $proc=[Diagnostics.Process]::new();$proc.StartInfo=$psi
 $started=$false

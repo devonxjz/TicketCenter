@@ -285,7 +285,7 @@ test("payment remains blocked while expiry, hold or pending provider state disal
     const client = f.create(); await client.refresh(); await client.pay(); assert.equal(f.calls.filter(c=>c.method === "POST").length,0);
 });
 
-function browserFixture() {
+function browserFixture(search = "") {
     const fixtureApi = fixture(), handlers = new Map(), timers = new Map();
     let timerId = 0, observer;
     class Element {
@@ -303,7 +303,7 @@ function browserFixture() {
     const document = { body: { dataset: { context: "" } }, visibilityState: "visible", getElementById: id => elements[id], createElement: () => new Element(),
         addEventListener: (name, handler) => handlers.set("document:" + name, handler) };
     const redirects = [];
-    const window = { document, location: {assign: url => redirects.push(url)}, TicketHold: require("../../main/webapp/assets/js/ticket-hold.js"), fetch: fixtureApi.create().fetch,
+    const window = { document, location: {assign: url => redirects.push(url), search}, TicketHold: require("../../main/webapp/assets/js/ticket-hold.js"), fetch: fixtureApi.create().fetch,
         sessionStorage: fixtureApi.storage, performance: { now: () => 0 }, crypto: { randomUUID: () => "60000000-0000-4000-8000-000000000123" },
         setTimeout: (fn, delay) => { const id = ++timerId; timers.set(id, { fn, delay }); return id; }, clearTimeout: id => timers.delete(id),
         addEventListener: (name, handler) => handlers.set(name, handler), MutationObserver: class {
@@ -443,4 +443,21 @@ test("native coupon popup focus preserves the selection while normal window focu
     const after = f.calls.length; f.handlers.get("focus")(); await f.settle();
     assert.ok(f.calls.length > after);
     assert.equal(select.disabled, false);
+});
+
+test("pay=now autoPay progression creates order and redirects to provider immediately", async () => {
+    const f = browserFixture("?prepare=1&pay=now&holdId=" + HOLD);
+    f.server.post = (path, options, reply) => {
+        if (path.includes("/payments")) return reply({paymentId:ITEM,txnRef:"PAY-01",amount:"300000",currency:"VND",zeroOrder:false,redirectUrl:"https://pay.payos.vn/web/0123456789abcdef"});
+        if (path === "/api/orders") { f.server.order = order(); return reply(f.server.order, 201); }
+        reply({});
+    };
+    await f.settle();
+    for (let round = 0; round < 3; round++) {
+        for (const [id, timer] of Array.from(f.timers.entries())) {
+            if (timer.delay === 0) { f.timers.delete(id); timer.fn(); }
+        }
+        await f.settle();
+    }
+    assert.deepEqual(f.redirects, ["https://pay.payos.vn/web/0123456789abcdef"]);
 });

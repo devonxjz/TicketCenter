@@ -274,11 +274,32 @@
     let expiryTimer = null;
     const query = new URLSearchParams(root.location.search);
     let prepareOrder = query.get('prepare') === '1' || query.get('pay') === 'now';
+    let autoPay = query.get('pay') === 'now';
+
+    function autoPayOverlay(show, message) {
+        const overlay = get("checkout-autopay-overlay");
+        if (!overlay) return;
+        overlay.hidden = !show;
+        const text = get("checkout-autopay-text");
+        if (text && message) text.textContent = message;
+    }
+
     function advancePreparation(state, holdBusy) {
-        if (!prepareOrder || holdBusy || state.phase !== 'ready') return;
-        prepareOrder = false;
+        if (holdBusy) return;
         if (query.get('holdId') && query.get('holdId') !== state.hold?.id) return;
-        if (client.creatable()) root.setTimeout(() => void client.create(), 0);
+        if (prepareOrder && state.phase === 'ready') {
+            prepareOrder = false;
+            if (client.creatable()) {
+                if (autoPay) autoPayOverlay(true, "Đang khởi tạo đơn hàng và kết nối thanh toán…");
+                root.setTimeout(() => void client.create(), 0);
+                return;
+            }
+        }
+        if (autoPay && state.phase === 'ready' && state.order && client.editable()) {
+            autoPay = false;
+            autoPayOverlay(true, "Đang mở cổng thanh toán chuyển khoản payOS VietQR…");
+            root.setTimeout(() => void client.pay(), 0);
+        }
     }
     const client = new OrderClient({ fetch: (path, options) => root.fetch(context + path, options), storage: {
         getItem: key => root.sessionStorage.getItem(key), setItem: (key, value) => root.sessionStorage.setItem(key, value), removeItem: key => root.sessionStorage.removeItem(key)
@@ -317,11 +338,17 @@
             state.coupons.length ? "Chọn mã để tự động áp dụng. Số tiền thanh toán sẽ cập nhật bên dưới." : "Hiện chưa có mã giảm giá đủ điều kiện cho vé này.");
         if (get("order-pay")) {
             get("order-pay").disabled = holdBusy || !client.editable();
-            get("order-pay").textContent = state.order?.totalAmount === "0" ? "Hoàn tất đơn miễn phí" : "Tiếp tục thanh toán";
+            get("order-pay").textContent = state.order?.totalAmount === "0" ? "Hoàn tất đơn miễn phí" : "Thanh toán ngay (payOS QR)";
             get("payment-message").textContent = state.phase === "redirecting" ? state.message : "";
             get("order-detail-link").hidden = !state.order;
             if (state.order) get("order-detail-link").href = context + "/orders/" + state.order.orderId;
-            if (state.paymentRedirect && state.phase === "redirecting") root.location.assign(state.paymentRedirect);
+            if (state.paymentRedirect && state.phase === "redirecting") {
+                autoPayOverlay(true, "Đang chuyển đến cổng thanh toán VietQR payOS…");
+                root.location.assign(state.paymentRedirect);
+            }
+        }
+        if (state.phase === "failed" || state.phase === "uncertain") {
+            autoPayOverlay(false);
         }
         const preview = state.preview;
         get("order-preview-result").textContent = preview ? preview.eligible ? "Mã " + preview.couponCode + " giảm dự kiến " + holdApi.vnd(preview.discountAmount) +
