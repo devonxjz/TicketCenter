@@ -122,6 +122,12 @@
             return this.state.phase === "ready" && !this.state.pending && this.remaining() > 0 && order && order.status === "PENDING_PAYMENT" &&
                 order.holdStatus === "ACTIVE" && order.paymentResolution === "CLEAR" && order.canEditCoupon;
         }
+        // Back from payOS leaves the payment PENDING; the server reuses it and its payOS link, so paying again is allowed.
+        payable() {
+            const order = this.state.order;
+            return this.state.phase === "ready" && !this.state.pending && this.remaining() > 0 && order && order.status === "PENDING_PAYMENT" &&
+                order.holdStatus === "ACTIVE" && ["CLEAR", "PAYMENT_PENDING"].includes(order.paymentResolution);
+        }
         creatable() { return this.state.phase === "ready" && !this.state.pending && !this.state.order && this.state.hold && this.remaining() > 0; }
         async reconcile(op, message = "") {
             const current = holdApi.currentHold(await this.read(op, "/api/me/hold"));
@@ -178,7 +184,7 @@
                     error.message || "Không thể kết nối. Hãy thử lại cùng yêu cầu đã lưu." });
         }
         async command(kind, body) {
-            if (kind === "create" ? !this.creatable() : !this.editable()) return;
+            if (kind === "create" ? !this.creatable() : kind === "payment" ? !this.payable() : !this.editable()) return;
             const op = this.begin();
             try {
                 if (kind === "coupon" && body.couponCode !== null && !coupon(body.couponCode)) throw new Error("Nhập mã giảm giá từ 1 đến 80 ký tự.");
@@ -295,10 +301,14 @@
                 return;
             }
         }
-        if (autoPay && state.phase === 'ready' && state.order && client.editable()) {
+        if (autoPay && state.phase === 'ready' && state.order && client.payable()) {
             autoPay = false;
             autoPayOverlay(true, "Đang mở cổng thanh toán chuyển khoản payOS VietQR…");
             root.setTimeout(() => void client.pay(), 0);
+        }
+        else if (autoPay && state.phase === 'ready' && !prepareOrder && !client.creatable() && !client.payable()) {
+            autoPay = false;
+            autoPayOverlay(false);
         }
     }
     const client = new OrderClient({ fetch: (path, options) => root.fetch(context + path, options), storage: {
@@ -337,7 +347,7 @@
         get("order-coupon-help").textContent = state.couponMessage || (state.phase === "ready" && !(client.creatable() || client.editable()) ? "Đơn hàng này hiện không thể thay đổi mã giảm giá." : state.coupons === null ? "Đang đối chiếu ưu đãi…" :
             state.coupons.length ? "Chọn mã để tự động áp dụng. Số tiền thanh toán sẽ cập nhật bên dưới." : "Hiện chưa có mã giảm giá đủ điều kiện cho vé này.");
         if (get("order-pay")) {
-            get("order-pay").disabled = holdBusy || !client.editable();
+            get("order-pay").disabled = holdBusy || !client.payable();
             get("order-pay").textContent = state.order?.totalAmount === "0" ? "Hoàn tất đơn miễn phí" : "Thanh toán ngay (payOS QR)";
             get("payment-message").textContent = state.phase === "redirecting" ? state.message : "";
             get("order-detail-link").hidden = !state.order;
@@ -357,6 +367,7 @@
             const order = state.order;
             get("order-code").textContent = state.hold?.eventTitle || "Đơn vé của bạn";
             get("order-status").textContent = status[order.status] + (order.holdStatus !== "ACTIVE" ? ". Lượt giữ không còn hoạt động." :
+                order.paymentResolution === "PAYMENT_PENDING" ? ". Giao dịch chưa hoàn tất, bạn có thể bấm Thanh toán ngay để mở lại payOS." :
                 order.paymentResolution !== "CLEAR" ? ". Đang đối chiếu thanh toán, chưa thể đổi mã giảm giá." : "");
             get("order-items").replaceChildren();
             for (const item of order.items) {
@@ -388,7 +399,12 @@
             if (code) await client.applyCoupon(code); else await client.removeCoupon();
         }
     });
-    get("order-pay")?.addEventListener("click", () => void client.pay());
+    get("order-pay")?.addEventListener("click", async () => {
+        if (!client.payable()) return;
+        autoPayOverlay(true, "Đang mở cổng thanh toán chuyển khoản payOS VietQR…");
+        await client.pay();
+        if (client.state.phase !== "redirecting") autoPayOverlay(false);
+    });
     get("order-retry").addEventListener("click", () => void client.retry());
     get("order-refresh").addEventListener("click", () => void client.refresh());
     for (const id of ["hold-cancel", "hold-retry", "hold-refresh"]) get(id).addEventListener("click", () => {
@@ -400,7 +416,7 @@
     });
     observer.observe(document.body, { attributes: true, attributeFilter: ["data-hold-state"] });
     root.addEventListener("pagehide", () => { root.clearTimeout(expiryTimer); expiryTimer = null; client.pause(); });
-    root.addEventListener("pageshow", event => { if (event.persisted) void client.refresh(); });
+    root.addEventListener("pageshow", event => { if (event.persisted) { autoPayOverlay(false); void client.refresh(); } });
     root.addEventListener("focus", () => {
         // Native select popups can return window focus before committing their change.
         // Rebuilding checkout here would disable the select and discard that choice.

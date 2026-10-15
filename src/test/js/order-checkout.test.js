@@ -280,9 +280,16 @@ test("payment completion for zero order is confirmed from current server state",
     assert.equal(client.editable(),false); assert.equal(f.values.size,0);
 });
 
-test("payment remains blocked while expiry, hold or pending provider state disallows editing", async () => {
-    const f = fixture(); f.server.order = {...order(),paymentResolution:"PAYMENT_PENDING",canEditCoupon:false};
+test("payment is blocked while the provider state is unknown", async () => {
+    const f = fixture(); f.server.order = {...order(),paymentResolution:"UNKNOWN",canEditCoupon:false};
     const client = f.create(); await client.refresh(); await client.pay(); assert.equal(f.calls.filter(c=>c.method === "POST").length,0);
+});
+
+test("payment can be retried while a provider payment is still pending (back from payOS)", async () => {
+    const f = fixture(); f.server.order = {...order(),paymentResolution:"PAYMENT_PENDING",canEditCoupon:false};
+    const client = f.create(); await client.refresh();
+    assert.equal(client.payable(),true); assert.equal(client.editable(),false);
+    await client.pay(); assert.equal(f.calls.filter(c=>c.method === "POST" && c.path.endsWith("/payments")).length,1);
 });
 
 function browserFixture(search = "") {

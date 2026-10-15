@@ -9,7 +9,7 @@
 <body class="buyer-page checkout-page" data-hold-page="current" data-context="${pageContext.request.contextPath}">
 <jsp:include page="/WEB-INF/views/layout/header.jsp" />
 <main class="container my-5 hold-page buyer-container">
-<div id="checkout-autopay-overlay" hidden class="checkout-overlay">
+<div id="checkout-autopay-overlay" ${param.pay == 'now' ? '' : 'hidden'} class="checkout-overlay">
     <div class="spinner-border text-danger" role="status" style="width: 3rem; height: 3rem;"></div>
     <h3 class="fw-bold mt-3 mb-1">Đang chuyển đến cổng thanh toán…</h3>
     <p id="checkout-autopay-text" class="text-muted mb-0">Vui lòng đợi trong giây lát, đang mở trang thanh toán VietQR payOS…</p>
@@ -95,5 +95,5 @@
 <noscript>Vui lòng bật JavaScript để xem và thanh toán vé đang giữ.</noscript>
 </main><jsp:include page="/WEB-INF/views/layout/footer.jsp" />
 <script src="${pageContext.request.contextPath}/assets/js/ticket-hold.js?v=seat-coupon-10" defer></script>
-<script src="${pageContext.request.contextPath}/assets/js/order-checkout.js?v=coupon-select-8" defer></script>
+<script src="${pageContext.request.contextPath}/assets/js/order-checkout.js?v=coupon-select-11" defer></script>
 </body></html>
