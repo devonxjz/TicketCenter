@@ -9,7 +9,7 @@ import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import vn.ticketscenter.config.persistence.*;
 import vn.ticketscenter.fulfillment.refund.dto.*;
-import vn.ticketscenter.fulfillment.refund.repository.*;
+import vn.ticketscenter.fulfillment.refund.dao.*;
 import vn.ticketscenter.fulfillment.refund.service.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static vn.ticketscenter.fulfillment.refund.integration.RefundFixture.*;

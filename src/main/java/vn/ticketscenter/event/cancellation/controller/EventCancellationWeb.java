@@ -7,7 +7,7 @@ import vn.ticketscenter.config.web.*;
 import vn.ticketscenter.config.persistence.*;
 import vn.ticketscenter.event.cancellation.dto.*;
 import vn.ticketscenter.event.cancellation.service.*;
-import vn.ticketscenter.event.repository.EventCancellationRepository;
+import vn.ticketscenter.event.dao.EventCancellationRepository;
 import vn.ticketscenter.fulfillment.refund.service.RefundException;
 import vn.ticketscenter.identity.security.*;
 

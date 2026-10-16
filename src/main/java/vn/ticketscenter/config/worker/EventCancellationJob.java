@@ -2,7 +2,7 @@ package vn.ticketscenter.config.worker;
 
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.TransactionManager;
-import vn.ticketscenter.event.repository.EventCancellationRepository;
+import vn.ticketscenter.event.dao.EventCancellationRepository;
 
 import java.util.Objects;
 

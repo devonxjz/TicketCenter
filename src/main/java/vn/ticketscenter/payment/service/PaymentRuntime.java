@@ -15,7 +15,7 @@ import vn.ticketscenter.config.worker.PaymentReconciliationJob;
 import vn.ticketscenter.payment.cache.RedisPaymentIdempotency;
 import vn.ticketscenter.payment.integration.PayosClient;
 import vn.ticketscenter.payment.integration.PayosGateway;
-import vn.ticketscenter.payment.repository.PaymentRepository;
+import vn.ticketscenter.payment.dao.PaymentRepository;
 
 import java.time.Clock;
 import java.util.concurrent.Executors;

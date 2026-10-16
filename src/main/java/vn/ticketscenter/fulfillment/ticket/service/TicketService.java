@@ -3,8 +3,8 @@ package vn.ticketscenter.fulfillment.ticket.service;
 import vn.ticketscenter.fulfillment.ticket.cache.TicketCache;
 import vn.ticketscenter.fulfillment.ticket.dto.TicketDetailDto;
 import vn.ticketscenter.fulfillment.ticket.dto.TicketSummaryDto;
-import vn.ticketscenter.fulfillment.ticket.repository.TicketRepository;
-import vn.ticketscenter.fulfillment.ticket.repository.TicketRepository.TicketRecord;
+import vn.ticketscenter.fulfillment.ticket.dao.TicketRepository;
+import vn.ticketscenter.fulfillment.ticket.dao.TicketRepository.TicketRecord;
 
 import java.util.List;
 import java.util.Objects;

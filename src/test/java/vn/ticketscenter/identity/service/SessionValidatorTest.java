@@ -3,7 +3,7 @@ package vn.ticketscenter.identity.service;
 import org.junit.jupiter.api.Test;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.identity.model.UserStatus;
-import vn.ticketscenter.identity.repository.UserRepository;
+import vn.ticketscenter.identity.dao.UserRepository;
 
 import java.util.Map;
 import java.util.Optional;

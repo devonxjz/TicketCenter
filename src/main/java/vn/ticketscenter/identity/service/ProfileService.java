@@ -5,7 +5,7 @@ import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.identity.dto.CurrentUserDto;
 import vn.ticketscenter.identity.dto.ProfileDto;
 import vn.ticketscenter.identity.model.User;
-import vn.ticketscenter.identity.repository.UserRepository;
+import vn.ticketscenter.identity.dao.UserRepository;
 
 import java.sql.SQLException;
 import java.util.Objects;

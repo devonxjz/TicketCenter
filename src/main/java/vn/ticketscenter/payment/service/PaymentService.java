@@ -8,9 +8,9 @@ import vn.ticketscenter.payment.dto.PayosWebhookResult;
 import vn.ticketscenter.payment.integration.PayosGateway;
 import vn.ticketscenter.payment.integration.PayosGateway.Outcome;
 import vn.ticketscenter.payment.integration.PayosOrderCodes;
-import vn.ticketscenter.payment.repository.PaymentRepository;
-import vn.ticketscenter.payment.repository.PaymentRepository.PaymentIntent;
-import vn.ticketscenter.payment.repository.PaymentRepository.PaymentRecord;
+import vn.ticketscenter.payment.dao.PaymentRepository;
+import vn.ticketscenter.payment.dao.PaymentRepository.PaymentIntent;
+import vn.ticketscenter.payment.dao.PaymentRepository.PaymentRecord;
 
 import java.math.BigDecimal;
 import java.time.Clock;

@@ -7,7 +7,7 @@ import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.order.cache.RedisOrderCache;
-import vn.ticketscenter.order.repository.OrderRepository;
+import vn.ticketscenter.order.dao.OrderRepository;
 import vn.ticketscenter.order.service.OrderService;
 
 import java.io.PrintWriter;

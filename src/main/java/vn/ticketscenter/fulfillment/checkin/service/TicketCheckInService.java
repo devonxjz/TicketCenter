@@ -2,7 +2,7 @@ package vn.ticketscenter.fulfillment.checkin.service;
 import vn.ticketscenter.fulfillment.checkin.CheckInException;
 import vn.ticketscenter.fulfillment.checkin.dto.*;
 import vn.ticketscenter.fulfillment.checkin.security.SignedQrDecoder;
-import vn.ticketscenter.fulfillment.checkin.repository.TicketCheckInRepository;
+import vn.ticketscenter.fulfillment.checkin.dao.TicketCheckInRepository;
 import vn.ticketscenter.fulfillment.checkin.cache.CheckInScanCache;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;

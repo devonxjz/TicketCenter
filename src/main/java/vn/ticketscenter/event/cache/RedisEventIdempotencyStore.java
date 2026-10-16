@@ -4,7 +4,7 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.params.SetParams;
 import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.config.web.*;
-import vn.ticketscenter.event.repository.EventManagementRepository.Result;
+import vn.ticketscenter.event.dao.EventManagementRepository.Result;
 import vn.ticketscenter.event.service.EventProblem;
 import java.io.StringReader;
 import java.util.*;

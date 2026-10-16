@@ -11,7 +11,7 @@ import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.ticketing.cache.RedisActiveHoldCache;
 import vn.ticketscenter.ticketing.cache.RedisHoldIdempotency;
-import vn.ticketscenter.ticketing.repository.HoldRepository;
+import vn.ticketscenter.ticketing.dao.HoldRepository;
 
 import java.time.Clock;
 import java.util.*;

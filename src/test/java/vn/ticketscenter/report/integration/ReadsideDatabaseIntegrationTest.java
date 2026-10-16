@@ -14,7 +14,7 @@ import vn.ticketscenter.report.service.*;
 import vn.ticketscenter.audit.dto.AuditFilter;
 import vn.ticketscenter.audit.service.AuditService;
 import vn.ticketscenter.dashboard.service.DashboardService;
-import vn.ticketscenter.dashboard.repository.DashboardRepository;
+import vn.ticketscenter.dashboard.dao.DashboardRepository;
 import vn.ticketscenter.settlement.infrastructure.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -137,17 +137,17 @@ class ReadsideDatabaseIntegrationTest {
     }
     @Test void reportSummaryAndTopEventsUseWholeFilteredSetInsteadOfPage()throws Exception{
         var p=new HashMap<>(Map.of("metric","COHORT_REVENUE","from","2026-10-01T00:00:00Z","to","2026-10-02T00:00:00Z","pageSize","1"));
-        var data=new vn.ticketscenter.report.repository.ReportRepository().page(connection,ReportFilter.parse(p,orgA));
+        var data=new vn.ticketscenter.report.dao.ReportRepository().page(connection,ReportFilter.parse(p,orgA));
         var summary=(Map<?,?>)data.get("summary");assertNotNull(summary);assertEquals(2L,summary.get("totalEvents"));
         assertEquals(new java.math.BigDecimal("100"),summary.get("grossRevenue"));assertEquals(new java.math.BigDecimal("5"),summary.get("totalCommission"));assertEquals(new java.math.BigDecimal("95"),summary.get("netPayable"));
         var top=(List<Map<String,Object>>)data.get("topEvents");assertEquals(eventA.toString(),top.get(0).get("eventId"));assertEquals(1,((List<?>)data.get("rows")).size());
-        p.put("eventId",zeroA.toString());data=new vn.ticketscenter.report.repository.ReportRepository().page(connection,ReportFilter.parse(p,orgA));summary=(Map<?,?>)data.get("summary");assertEquals(1L,summary.get("totalEvents"));assertEquals(java.math.BigDecimal.ZERO,summary.get("grossRevenue"));
+        p.put("eventId",zeroA.toString());data=new vn.ticketscenter.report.dao.ReportRepository().page(connection,ReportFilter.parse(p,orgA));summary=(Map<?,?>)data.get("summary");assertEquals(1L,summary.get("totalEvents"));assertEquals(java.math.BigDecimal.ZERO,summary.get("grossRevenue"));
     }
     @Test void checkinCountIncludesPreviouslyUsedRefundedTicketsWithoutMultiplyingMoney()throws Exception{
         UUID order;try(var q=connection.prepareStatement("SELECT TOP(1) id FROM dbo.tc_orders WHERE event_id=? ORDER BY paid_at")){q.setString(1,eventA.toString());try(var r=q.executeQuery()){assertTrue(r.next());order=UUID.fromString(r.getString(1));}}
         UUID item=UUID.randomUUID();sql("INSERT dbo.tc_order_items(id,order_id,quantity,unit_price) VALUES(?,?,3,0)",item,order);
         for(String status:List.of("USED","REFUNDED","ACTIVE")){UUID ticket=UUID.randomUUID();sql("INSERT dbo.tc_tickets(id,order_item_id,ticket_code,status,paid_amount,used_at) VALUES(?,?,?,?,0,?)",ticket,item,ticket.toString(),status,status.equals("ACTIVE")?null:"2026-10-01T12:00:00");}
-        var data=new vn.ticketscenter.report.repository.ReportRepository().page(connection,filter("EVENT_SALES",orgA));var summary=(Map<?,?>)data.get("summary");assertNotNull(summary);
+        var data=new vn.ticketscenter.report.dao.ReportRepository().page(connection,filter("EVENT_SALES",orgA));var summary=(Map<?,?>)data.get("summary");assertNotNull(summary);
         assertEquals(3L,summary.get("ticketCount"));assertEquals(2L,summary.get("ticketsCheckedInCount"));assertEquals(new java.math.BigDecimal("155"),summary.get("grossRevenue"));
         var rows=(List<Map<String,Object>>)data.get("rows");var event=rows.stream().filter(r->r.get("eventId").equals(eventA.toString())).findFirst().orElseThrow();assertEquals(2L,event.get("ticketsCheckedInCount"));
         var out=new ByteArrayOutputStream();new ReportService(database,ReportCache.none()).export(managerActor(),filter("EVENT_SALES",orgA),out);assertTrue(out.toString(java.nio.charset.StandardCharsets.UTF_8).contains("\"ticketsCheckedInCount\""));

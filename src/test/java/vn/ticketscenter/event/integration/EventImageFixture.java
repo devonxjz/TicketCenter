@@ -1,7 +1,7 @@
 package vn.ticketscenter.event.integration;
 
 import vn.ticketscenter.event.dto.*;
-import vn.ticketscenter.event.repository.EventRepository;
+import vn.ticketscenter.event.dao.EventRepository;
 import vn.ticketscenter.event.service.EventService;
 import vn.ticketscenter.identity.model.*;
 import vn.ticketscenter.identity.security.UserPrincipal;

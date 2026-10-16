@@ -2,7 +2,7 @@ package vn.ticketscenter.fulfillment.checkin.cache;
 
 import org.junit.jupiter.api.Test;
 import redis.clients.jedis.Jedis;
-import vn.ticketscenter.fulfillment.checkin.repository.CheckInEventRepository.EventInfo;
+import vn.ticketscenter.fulfillment.checkin.dao.CheckInEventRepository.EventInfo;
 import java.time.Instant;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;

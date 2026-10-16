@@ -3,7 +3,7 @@ package vn.ticketscenter.event.controller;
 import jakarta.servlet.http.*;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.event.dto.*;
-import vn.ticketscenter.event.repository.EventManagementRepository.Actor;
+import vn.ticketscenter.event.dao.EventManagementRepository.Actor;
 import vn.ticketscenter.event.service.*;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.storage.ImageContentValidator;

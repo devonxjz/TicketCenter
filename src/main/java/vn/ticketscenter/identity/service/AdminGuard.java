@@ -3,7 +3,7 @@ package vn.ticketscenter.identity.service;
 import jakarta.persistence.EntityManager;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.model.User;
-import vn.ticketscenter.identity.repository.UserRepository;
+import vn.ticketscenter.identity.dao.UserRepository;
 
 import java.util.Objects;
 import java.util.UUID;

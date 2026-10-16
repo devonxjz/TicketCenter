@@ -9,7 +9,7 @@ import vn.ticketscenter.config.DatabaseConfig;
 import vn.ticketscenter.config.persistence.ConnectionBudgets;
 import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.order.cache.RedisOrderCache;
-import vn.ticketscenter.order.repository.OrderRepository;
+import vn.ticketscenter.order.dao.OrderRepository;
 
 import java.time.Clock;
 

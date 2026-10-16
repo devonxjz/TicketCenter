@@ -46,7 +46,7 @@ class ExternalTestIsolationTest {
         assertEquals(0,result.failed);
     }
     @Test void directMembershipGuardSurvivesDisabledAutomaticDiscovery() {
-        ProbeResult result=execute(vn.ticketscenter.identity.repository.OrganizationMembershipRepositoryTest.class,
+        ProbeResult result=execute(vn.ticketscenter.identity.dao.OrganizationMembershipRepositoryTest.class,
                 Map.of("junit.jupiter.extensions.autodetection.enabled","false"));
         assertEquals(1,result.skipped,"Real membership writes require an isolated DB opt-in");
         assertEquals(0,result.failed);
@@ -60,7 +60,7 @@ class ExternalTestIsolationTest {
     }
 
     @Test void organizationRepositoryIntegrationIsDisabledBeforeDatabaseAccess() {
-        ProbeResult result = execute(vn.ticketscenter.identity.repository.OrganizationRepositoryTest.class, Map.of());
+        ProbeResult result = execute(vn.ticketscenter.identity.dao.OrganizationRepositoryTest.class, Map.of());
         assertEquals(1, result.skipped, "Organization fixture creation must require explicit isolated DB opt-in");
         assertEquals(0, result.failed);
     }

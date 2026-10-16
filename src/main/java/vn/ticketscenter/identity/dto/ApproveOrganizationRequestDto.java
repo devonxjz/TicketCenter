@@ -1,7 +1,7 @@
 package vn.ticketscenter.identity.dto;
 
 import vn.ticketscenter.config.web.JsonObjectParser;
-import vn.ticketscenter.identity.repository.OrganizationDecisionRepository.CommissionPolicy;
+import vn.ticketscenter.identity.dao.OrganizationDecisionRepository.CommissionPolicy;
 
 import java.io.StringReader;
 import java.math.BigDecimal;

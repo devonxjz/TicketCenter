@@ -8,7 +8,7 @@ import vn.ticketscenter.config.AppConfig;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.settlement.infrastructure.*;
-import vn.ticketscenter.settlement.repository.FinanceRepository;
+import vn.ticketscenter.settlement.dao.FinanceRepository;
 
 @WebServlet(name="FinancePageServlet",urlPatterns={"/finance/commission","/finance/settlements"})
 public final class FinancePageServlet extends HttpServlet {

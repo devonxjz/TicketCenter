@@ -13,7 +13,7 @@ import vn.ticketscenter.identity.dto.LoginRequestDto;
 import vn.ticketscenter.identity.dto.RegisterRequestDto;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.model.UserStatus;
-import vn.ticketscenter.identity.repository.UserRepository;
+import vn.ticketscenter.identity.dao.UserRepository;
 import vn.ticketscenter.identity.security.UserPrincipal;
 
 import java.lang.reflect.Field;

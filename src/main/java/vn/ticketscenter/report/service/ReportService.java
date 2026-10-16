@@ -6,7 +6,7 @@ import java.util.Objects;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.report.csv.StreamingCsvExporter;
 import vn.ticketscenter.report.dto.ReportFilter;
-import vn.ticketscenter.report.repository.ReportRepository;
+import vn.ticketscenter.report.dao.ReportRepository;
 import vn.ticketscenter.settlement.infrastructure.*;
 
 public final class ReportService {
@@ -33,10 +33,10 @@ public final class ReportService {
             if(selectedOrg!=null)FinanceAuthorization.requireManager(db,actor,selectedOrg);
             var organizations=new java.util.ArrayList<java.util.Map<String,Object>>();
             String sql="SELECT o.id,o.name FROM dbo.vw_FinanceOrganizations o"+(admin?"":" WHERE EXISTS (SELECT 1 FROM dbo.vw_ActiveManagerMemberships m WHERE m.organization_id=o.id AND m.user_id=?)")+" ORDER BY o.name,o.id";
-            try(var q=db.prepareStatement(sql)){if(!admin)q.setString(1,actor.actorId().toString());try(var r=q.executeQuery()){while(r.next())organizations.add(vn.ticketscenter.report.repository.ReadProjection.row(r,java.util.List.of("id","name")));}}
+            try(var q=db.prepareStatement(sql)){if(!admin)q.setString(1,actor.actorId().toString());try(var r=q.executeQuery()){while(r.next())organizations.add(vn.ticketscenter.report.dao.ReadProjection.row(r,java.util.List.of("id","name")));}}
             if(!admin && organizations.isEmpty())throw new FinanceException("FORBIDDEN",403);
             var events=new java.util.ArrayList<java.util.Map<String,Object>>();
-            if(selectedOrg!=null){try(var q=db.prepareStatement("SELECT id,title FROM dbo.vw_FinanceEvents WHERE organization_id=? ORDER BY title,id")){q.setString(1,selectedOrg.toString());try(var r=q.executeQuery()){while(r.next())events.add(vn.ticketscenter.report.repository.ReadProjection.row(r,java.util.List.of("id","title")));}}}
+            if(selectedOrg!=null){try(var q=db.prepareStatement("SELECT id,title FROM dbo.vw_FinanceEvents WHERE organization_id=? ORDER BY title,id")){q.setString(1,selectedOrg.toString());try(var r=q.executeQuery()){while(r.next())events.add(vn.ticketscenter.report.dao.ReadProjection.row(r,java.util.List.of("id","title")));}}}
             return FinanceJson.write(java.util.Map.of("data",java.util.Map.of("isAdmin",admin,"organizations",organizations,"events",events)));
         }
     }

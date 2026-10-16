@@ -6,7 +6,7 @@ import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import vn.ticketscenter.ticketing.cache.*;
 import vn.ticketscenter.ticketing.dto.*;
-import vn.ticketscenter.ticketing.repository.HoldRepository;
+import vn.ticketscenter.ticketing.dao.HoldRepository;
 import vn.ticketscenter.ticketing.service.HoldService;
 
 import javax.sql.DataSource;

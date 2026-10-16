@@ -4,8 +4,8 @@ import vn.ticketscenter.fulfillment.checkin.CheckInException;
 import vn.ticketscenter.fulfillment.checkin.cache.CheckInEventCache;
 import vn.ticketscenter.fulfillment.checkin.dto.CheckInEventSummaryDto;
 import vn.ticketscenter.fulfillment.checkin.dto.CheckInWindowStatusDto;
-import vn.ticketscenter.fulfillment.checkin.repository.CheckInEventRepository;
-import vn.ticketscenter.fulfillment.checkin.repository.CheckInEventRepository.EventInfo;
+import vn.ticketscenter.fulfillment.checkin.dao.CheckInEventRepository;
+import vn.ticketscenter.fulfillment.checkin.dao.CheckInEventRepository.EventInfo;
 
 import java.time.Clock;
 import java.time.Instant;

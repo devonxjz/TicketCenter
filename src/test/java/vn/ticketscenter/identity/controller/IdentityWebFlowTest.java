@@ -1,9 +1,6 @@
 package vn.ticketscenter.identity.controller;
 
 import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletConfig;
-import jakarta.servlet.ServletContext;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -16,7 +13,7 @@ import vn.ticketscenter.identity.error.IdentityException;
 import vn.ticketscenter.identity.dto.CurrentUserDto;
 import vn.ticketscenter.identity.dto.LoginRequestDto;
 import vn.ticketscenter.identity.model.PlatformRole;
-import vn.ticketscenter.identity.repository.UserRepository;
+import vn.ticketscenter.identity.dao.UserRepository;
 import vn.ticketscenter.identity.security.CsrfFilter;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.SessionValidationFilter;
@@ -28,7 +25,6 @@ import vn.ticketscenter.identity.service.SessionValidator;
 import vn.ticketscenter.identity.service.PasswordHasher;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.lang.reflect.Proxy;

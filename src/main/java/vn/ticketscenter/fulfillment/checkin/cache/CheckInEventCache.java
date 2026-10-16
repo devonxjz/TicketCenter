@@ -1,6 +1,6 @@
 package vn.ticketscenter.fulfillment.checkin.cache;
 
-import vn.ticketscenter.fulfillment.checkin.repository.CheckInEventRepository.EventInfo;
+import vn.ticketscenter.fulfillment.checkin.dao.CheckInEventRepository.EventInfo;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

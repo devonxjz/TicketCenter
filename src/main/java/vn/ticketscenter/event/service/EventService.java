@@ -3,7 +3,7 @@ package vn.ticketscenter.event.service;
 import vn.ticketscenter.event.EventException;
 import vn.ticketscenter.event.dto.*;
 import vn.ticketscenter.event.image.EventImagePlaceholders;
-import vn.ticketscenter.event.repository.EventRepository;
+import vn.ticketscenter.event.dao.EventRepository;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.storage.*;
 
@@ -109,7 +109,7 @@ public class EventService {
         try {
             EventDto saved=repository.finalizeSave(actor, command, claim, asset, maintenanceCall);
             if(redisLease!=null) {
-                try {redisLeases.completed(redisLease,fingerprint,new vn.ticketscenter.event.repository.EventManagementRepository.Result(200,"{\"data\":"+saved.toJson()+"}",saved.organizationId(),saved.id()));}
+                try {redisLeases.completed(redisLease,fingerprint,new vn.ticketscenter.event.dao.EventManagementRepository.Result(200,"{\"data\":"+saved.toJson()+"}",saved.organizationId(),saved.id()));}
                 catch(RuntimeException ignored) { }
             }
             return saved;

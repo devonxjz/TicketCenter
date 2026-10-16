@@ -9,7 +9,7 @@ import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.identity.security.*;
 import vn.ticketscenter.settlement.infrastructure.*;
 import vn.ticketscenter.settlement.payout.*;
-import vn.ticketscenter.settlement.repository.FinanceRepository;
+import vn.ticketscenter.settlement.dao.FinanceRepository;
 import vn.ticketscenter.settlement.service.FinanceMutationService;
 import vn.ticketscenter.settlement.commission.service.CommissionRuleCache;
 import vn.ticketscenter.report.service.ReportCache;

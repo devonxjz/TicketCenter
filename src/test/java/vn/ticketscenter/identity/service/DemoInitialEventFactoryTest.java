@@ -5,7 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import vn.ticketscenter.identity.model.Organization;
 import vn.ticketscenter.identity.model.User;
-import vn.ticketscenter.identity.repository.OrganizationDecisionRepository.InitialEvent;
+import vn.ticketscenter.identity.dao.OrganizationDecisionRepository.InitialEvent;
 
 import java.time.Duration;
 import java.time.Instant;

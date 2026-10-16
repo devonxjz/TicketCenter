@@ -1,7 +1,7 @@
 package vn.ticketscenter.identity.dto;
 
 import org.junit.jupiter.api.Test;
-import vn.ticketscenter.identity.repository.OrganizationDecisionRepository.CommissionPolicy;
+import vn.ticketscenter.identity.dao.OrganizationDecisionRepository.CommissionPolicy;
 
 import java.math.BigDecimal;
 import java.time.Duration;

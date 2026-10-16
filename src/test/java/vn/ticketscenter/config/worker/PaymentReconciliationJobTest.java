@@ -3,7 +3,7 @@ package vn.ticketscenter.config.worker;
 import org.junit.jupiter.api.Test;
 import vn.ticketscenter.payment.integration.PayosGateway;
 import vn.ticketscenter.payment.integration.PayosGateway.Outcome;
-import vn.ticketscenter.payment.repository.PaymentRepository.ReconcileCandidate;
+import vn.ticketscenter.payment.dao.PaymentRepository.ReconcileCandidate;
 
 import java.math.BigDecimal;
 import java.time.Instant;

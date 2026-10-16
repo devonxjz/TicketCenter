@@ -2,7 +2,7 @@ package vn.ticketscenter.identity.service;
 
 import vn.ticketscenter.config.ServerConfig;
 import vn.ticketscenter.identity.model.Organization;
-import vn.ticketscenter.identity.repository.OrganizationDecisionRepository.InitialEvent;
+import vn.ticketscenter.identity.dao.OrganizationDecisionRepository.InitialEvent;
 
 import java.time.Duration;
 import java.time.Instant;

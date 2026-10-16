@@ -6,7 +6,7 @@ import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import vn.ticketscenter.ticketing.cache.*;
 import vn.ticketscenter.ticketing.dto.*;
-import vn.ticketscenter.ticketing.repository.HoldRepository;
+import vn.ticketscenter.ticketing.dao.HoldRepository;
 import vn.ticketscenter.ticketing.service.HoldService;
 
 import javax.sql.DataSource;
@@ -30,7 +30,7 @@ final class OrderFixture implements AutoCloseable {
     final Source worker = new Source("WORKER");
     final HoldRepository repository = new HoldRepository(buyer, worker);
     final java.util.List<UUID> coupons = new java.util.ArrayList<>();
-    final vn.ticketscenter.order.repository.OrderRepository orders = new vn.ticketscenter.order.repository.OrderRepository(buyer);
+    final vn.ticketscenter.order.dao.OrderRepository orders = new vn.ticketscenter.order.dao.OrderRepository(buyer);
     final vn.ticketscenter.order.cache.RedisOrderCache orderCache;
     final vn.ticketscenter.order.service.OrderService orderService;
     final HoldActor actor;

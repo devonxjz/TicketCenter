@@ -5,7 +5,7 @@ import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.PersistenceListener;
 import vn.ticketscenter.config.persistence.PersistenceRegistry;
 import vn.ticketscenter.event.cache.RedisEventCatalogCache;
-import vn.ticketscenter.event.repository.EventCatalogRepository;
+import vn.ticketscenter.event.dao.EventCatalogRepository;
 import vn.ticketscenter.event.service.EventCatalogService;
 
 public final class EventCatalogRuntime {

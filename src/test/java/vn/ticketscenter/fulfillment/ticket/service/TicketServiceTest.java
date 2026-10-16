@@ -5,10 +5,9 @@ import org.junit.jupiter.api.Test;
 import vn.ticketscenter.fulfillment.ticket.cache.TicketCache;
 import vn.ticketscenter.fulfillment.ticket.dto.TicketDetailDto;
 import vn.ticketscenter.fulfillment.ticket.dto.TicketSummaryDto;
-import vn.ticketscenter.fulfillment.ticket.repository.TicketRepository;
-import vn.ticketscenter.fulfillment.ticket.repository.TicketRepository.TicketRecord;
+import vn.ticketscenter.fulfillment.ticket.dao.TicketRepository;
+import vn.ticketscenter.fulfillment.ticket.dao.TicketRepository.TicketRecord;
 
-import javax.sql.DataSource;
 import java.time.Instant;
 import java.util.*;
 

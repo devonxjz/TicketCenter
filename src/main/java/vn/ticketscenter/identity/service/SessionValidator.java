@@ -4,7 +4,7 @@ import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.identity.model.User;
 import vn.ticketscenter.identity.model.UserStatus;
-import vn.ticketscenter.identity.repository.UserRepository;
+import vn.ticketscenter.identity.dao.UserRepository;
 
 import java.util.Objects;
 import java.util.Optional;

@@ -5,7 +5,7 @@ import redis.clients.jedis.params.ScanParams;
 import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.config.web.JsonObjectParser;
-import vn.ticketscenter.fulfillment.checkin.repository.CheckInEventRepository.EventInfo;
+import vn.ticketscenter.fulfillment.checkin.dao.CheckInEventRepository.EventInfo;
 
 import java.io.StringReader;
 import java.time.Instant;

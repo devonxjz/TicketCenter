@@ -6,7 +6,7 @@ import org.junit.jupiter.api.*;
 
 import vn.ticketscenter.event.EventException;
 import vn.ticketscenter.event.dto.*;
-import vn.ticketscenter.event.repository.EventRepository;
+import vn.ticketscenter.event.dao.EventRepository;
 import vn.ticketscenter.event.service.EventService;
 import vn.ticketscenter.storage.StoredAsset;
 

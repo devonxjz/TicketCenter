@@ -13,7 +13,7 @@ import vn.ticketscenter.event.controller.EventApiServlet;
 import vn.ticketscenter.event.controller.EventDetailServlet;
 import vn.ticketscenter.event.controller.HomeServlet;
 import vn.ticketscenter.event.dto.EventSave;
-import vn.ticketscenter.event.repository.EventRepository;
+import vn.ticketscenter.event.dao.EventRepository;
 import vn.ticketscenter.event.service.EventService;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.storage.LocalImageStorage;

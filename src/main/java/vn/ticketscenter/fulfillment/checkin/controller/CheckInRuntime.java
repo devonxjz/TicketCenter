@@ -6,12 +6,12 @@ import vn.ticketscenter.config.persistence.PersistenceListener;
 import vn.ticketscenter.config.persistence.PersistenceRegistry;
 import vn.ticketscenter.fulfillment.checkin.CheckInException;
 import vn.ticketscenter.fulfillment.checkin.cache.RedisCheckInEventCache;
-import vn.ticketscenter.fulfillment.checkin.repository.CheckInEventRepository;
+import vn.ticketscenter.fulfillment.checkin.dao.CheckInEventRepository;
 import vn.ticketscenter.fulfillment.checkin.service.CheckInEventService;
 import java.time.Clock;
 import vn.ticketscenter.fulfillment.checkin.service.TicketCheckInService;
 import vn.ticketscenter.fulfillment.checkin.security.SignedQrDecoder;
-import vn.ticketscenter.fulfillment.checkin.repository.TicketCheckInRepository;
+import vn.ticketscenter.fulfillment.checkin.dao.TicketCheckInRepository;
 import vn.ticketscenter.fulfillment.checkin.cache.RedisCheckInScanCache;
 
 /** Feature-owned wiring; does not alter shared persistence/configuration files. */

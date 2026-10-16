@@ -11,7 +11,7 @@ import vn.ticketscenter.config.DatabaseConfig;
 import vn.ticketscenter.config.persistence.ConnectionBudgets;
 import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.fulfillment.ticket.cache.RedisTicketCache;
-import vn.ticketscenter.fulfillment.ticket.repository.TicketRepository;
+import vn.ticketscenter.fulfillment.ticket.dao.TicketRepository;
 
 @WebListener
 public final class TicketRuntime implements ServletContextListener {

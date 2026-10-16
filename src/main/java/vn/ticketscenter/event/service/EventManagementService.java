@@ -4,8 +4,8 @@ import vn.ticketscenter.event.cache.*;
 import vn.ticketscenter.event.dto.EventCommand;
 import vn.ticketscenter.event.dto.EventResponseValues;
 import vn.ticketscenter.storage.StoredAsset;
-import vn.ticketscenter.event.repository.EventManagementRepository;
-import vn.ticketscenter.event.repository.EventManagementRepository.*;
+import vn.ticketscenter.event.dao.EventManagementRepository;
+import vn.ticketscenter.event.dao.EventManagementRepository.*;
 import java.util.*;
 
 public final class EventManagementService {

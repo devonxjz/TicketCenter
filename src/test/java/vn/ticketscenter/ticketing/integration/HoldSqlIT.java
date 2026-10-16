@@ -5,7 +5,7 @@ import org.junit.jupiter.api.*;
 import redis.clients.jedis.Jedis;
 import vn.ticketscenter.ticketing.cache.*;
 import vn.ticketscenter.ticketing.dto.*;
-import vn.ticketscenter.ticketing.repository.HoldRepository;
+import vn.ticketscenter.ticketing.dao.HoldRepository;
 import vn.ticketscenter.ticketing.service.*;
 
 import java.sql.*;

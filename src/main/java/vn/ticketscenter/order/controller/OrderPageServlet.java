@@ -9,7 +9,7 @@ import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.order.dto.OrderActor;
 import vn.ticketscenter.order.dto.OrderDetailDto;
-import vn.ticketscenter.order.repository.OrderRepository;
+import vn.ticketscenter.order.dao.OrderRepository;
 import vn.ticketscenter.order.service.OrderException;
 import vn.ticketscenter.order.service.OrderRuntime;
 import vn.ticketscenter.order.service.OrderService;

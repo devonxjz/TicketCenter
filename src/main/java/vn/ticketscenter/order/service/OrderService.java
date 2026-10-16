@@ -2,7 +2,7 @@ package vn.ticketscenter.order.service;
 
 import vn.ticketscenter.order.cache.RedisOrderCache;
 import vn.ticketscenter.order.dto.*;
-import vn.ticketscenter.order.repository.OrderRepository;
+import vn.ticketscenter.order.dao.OrderRepository;
 
 import java.util.Objects;
 import java.util.UUID;

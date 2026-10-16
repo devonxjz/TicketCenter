@@ -2,8 +2,8 @@ package vn.ticketscenter.event.service;
 
 import vn.ticketscenter.event.cache.*;
 import vn.ticketscenter.event.dto.*;
-import vn.ticketscenter.event.repository.EventManagementRepository;
-import vn.ticketscenter.event.repository.EventManagementRepository.*;
+import vn.ticketscenter.event.dao.EventManagementRepository;
+import vn.ticketscenter.event.dao.EventManagementRepository.*;
 import vn.ticketscenter.storage.*;
 import java.io.*;
 import java.net.URI;

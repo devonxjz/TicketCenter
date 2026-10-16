@@ -2,7 +2,7 @@ package vn.ticketscenter.dashboard.service;
 import java.sql.*;
 import java.time.*;
 import java.util.*;
-import vn.ticketscenter.dashboard.repository.DashboardRepository;
+import vn.ticketscenter.dashboard.dao.DashboardRepository;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.settlement.infrastructure.*;
 public final class DashboardService {

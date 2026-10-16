@@ -16,8 +16,8 @@ import vn.ticketscenter.identity.integration.mail.OtpEmailComposer;
 import vn.ticketscenter.identity.model.Otp;
 import vn.ticketscenter.identity.model.OtpPurpose;
 import vn.ticketscenter.identity.model.User;
-import vn.ticketscenter.identity.repository.OtpRepository;
-import vn.ticketscenter.identity.repository.UserRepository;
+import vn.ticketscenter.identity.dao.OtpRepository;
+import vn.ticketscenter.identity.dao.UserRepository;
 
 import java.time.Duration;
 import java.time.Instant;

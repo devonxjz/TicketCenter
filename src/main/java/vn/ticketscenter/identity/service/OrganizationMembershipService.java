@@ -13,8 +13,8 @@ import vn.ticketscenter.identity.model.OrganizationRole;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.model.User;
 import vn.ticketscenter.identity.model.UserStatus;
-import vn.ticketscenter.identity.repository.OrganizationMembershipRepository;
-import vn.ticketscenter.identity.repository.UserRepository;
+import vn.ticketscenter.identity.dao.OrganizationMembershipRepository;
+import vn.ticketscenter.identity.dao.UserRepository;
 
 import java.util.List;
 import java.util.Objects;

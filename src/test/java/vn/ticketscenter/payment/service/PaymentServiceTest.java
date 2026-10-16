@@ -10,8 +10,8 @@ import vn.ticketscenter.payment.dto.PaymentReturnResult;
 import vn.ticketscenter.payment.dto.PayosWebhookResult;
 import vn.ticketscenter.payment.integration.PayosGateway;
 import vn.ticketscenter.payment.integration.PayosOrderCodes;
-import vn.ticketscenter.payment.repository.PaymentRepository;
-import vn.ticketscenter.payment.repository.PaymentRepository.PaymentIntent;
+import vn.ticketscenter.payment.dao.PaymentRepository;
+import vn.ticketscenter.payment.dao.PaymentRepository.PaymentIntent;
 
 import javax.sql.DataSource;
 import java.math.BigDecimal;

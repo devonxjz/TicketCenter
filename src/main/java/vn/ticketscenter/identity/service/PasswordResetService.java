@@ -9,7 +9,7 @@ import vn.ticketscenter.identity.error.IdentityError;
 import vn.ticketscenter.identity.error.IdentityException;
 import vn.ticketscenter.identity.model.OtpPurpose;
 import vn.ticketscenter.identity.model.User;
-import vn.ticketscenter.identity.repository.UserRepository;
+import vn.ticketscenter.identity.dao.UserRepository;
 
 import java.util.Objects;
 import java.util.UUID;

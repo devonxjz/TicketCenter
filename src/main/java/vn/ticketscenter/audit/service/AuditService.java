@@ -2,7 +2,7 @@ package vn.ticketscenter.audit.service;
 import java.sql.*;
 import java.util.*;
 import vn.ticketscenter.audit.dto.AuditFilter;
-import vn.ticketscenter.audit.repository.AuditRepository;
+import vn.ticketscenter.audit.dao.AuditRepository;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.settlement.infrastructure.*;
 public final class AuditService {

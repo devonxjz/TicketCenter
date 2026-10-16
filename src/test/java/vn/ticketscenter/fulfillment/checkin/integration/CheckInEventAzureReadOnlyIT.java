@@ -7,7 +7,7 @@ import vn.ticketscenter.config.DatabaseConfig;
 import vn.ticketscenter.config.persistence.*;
 import vn.ticketscenter.fulfillment.checkin.CheckInException;
 import vn.ticketscenter.fulfillment.checkin.cache.CheckInEventCache;
-import vn.ticketscenter.fulfillment.checkin.repository.CheckInEventRepository;
+import vn.ticketscenter.fulfillment.checkin.dao.CheckInEventRepository;
 import vn.ticketscenter.fulfillment.checkin.service.CheckInEventService;
 import javax.sql.DataSource;
 import java.lang.reflect.Proxy;

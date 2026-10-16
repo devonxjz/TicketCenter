@@ -9,7 +9,7 @@ import vn.ticketscenter.config.worker.EventCancellationJob;
 import vn.ticketscenter.config.worker.OutboxEmailJob;
 import vn.ticketscenter.config.worker.OutboxWorker;
 import vn.ticketscenter.config.worker.RefundJob;
-import vn.ticketscenter.event.repository.EventCancellationRepository;
+import vn.ticketscenter.event.dao.EventCancellationRepository;
 import vn.ticketscenter.payment.integration.RefundGateway;
 import vn.ticketscenter.payment.integration.SimulatedRefundGateway;
 import java.util.concurrent.Executors;

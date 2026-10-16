@@ -3,7 +3,7 @@ package vn.ticketscenter.ticketing.service;
 import vn.ticketscenter.ticketing.cache.RedisActiveHoldCache;
 import vn.ticketscenter.ticketing.cache.RedisHoldIdempotency;
 import vn.ticketscenter.ticketing.dto.*;
-import vn.ticketscenter.ticketing.repository.HoldRepository;
+import vn.ticketscenter.ticketing.dao.HoldRepository;
 
 import java.util.List;
 import java.util.Objects;

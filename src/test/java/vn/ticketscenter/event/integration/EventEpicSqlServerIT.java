@@ -2,8 +2,8 @@ package vn.ticketscenter.event.integration;
 
 import org.junit.jupiter.api.*;
 import vn.ticketscenter.event.dto.*;
-import vn.ticketscenter.event.repository.*;
-import vn.ticketscenter.event.repository.EventManagementRepository.*;
+import vn.ticketscenter.event.dao.*;
+import vn.ticketscenter.event.dao.EventManagementRepository.*;
 import vn.ticketscenter.event.service.*;
 import vn.ticketscenter.storage.StoredAsset;
 import java.sql.*;

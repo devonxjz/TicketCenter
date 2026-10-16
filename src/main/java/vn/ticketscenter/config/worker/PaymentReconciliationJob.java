@@ -1,7 +1,7 @@
 package vn.ticketscenter.config.worker;
 
 import vn.ticketscenter.payment.integration.PayosGateway;
-import vn.ticketscenter.payment.repository.PaymentRepository.ReconcileCandidate;
+import vn.ticketscenter.payment.dao.PaymentRepository.ReconcileCandidate;
 
 import java.util.List;
 import java.util.logging.Level;

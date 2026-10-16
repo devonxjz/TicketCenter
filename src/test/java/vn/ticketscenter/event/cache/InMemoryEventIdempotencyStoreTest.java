@@ -1,7 +1,7 @@
 package vn.ticketscenter.event.cache;
 
 import org.junit.jupiter.api.Test;
-import vn.ticketscenter.event.repository.EventManagementRepository.Result;
+import vn.ticketscenter.event.dao.EventManagementRepository.Result;
 import vn.ticketscenter.event.service.EventProblem;
 
 import java.util.UUID;

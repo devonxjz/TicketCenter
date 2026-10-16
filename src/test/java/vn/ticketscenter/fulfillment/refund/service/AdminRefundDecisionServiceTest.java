@@ -3,7 +3,7 @@ package vn.ticketscenter.fulfillment.refund.service;
 import java.util.*;
 import org.junit.jupiter.api.Test;
 import vn.ticketscenter.fulfillment.refund.dto.*;
-import vn.ticketscenter.fulfillment.refund.repository.AdminRefundStore;
+import vn.ticketscenter.fulfillment.refund.dao.AdminRefundStore;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import static org.junit.jupiter.api.Assertions.*;

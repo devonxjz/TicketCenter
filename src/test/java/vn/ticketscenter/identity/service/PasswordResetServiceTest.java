@@ -16,8 +16,8 @@ import vn.ticketscenter.identity.dto.PasswordResetRequestDto;
 import vn.ticketscenter.identity.integration.mail.FakeEmailSender;
 import vn.ticketscenter.identity.model.OtpPurpose;
 import vn.ticketscenter.identity.model.User;
-import vn.ticketscenter.identity.repository.OtpRepository;
-import vn.ticketscenter.identity.repository.UserRepository;
+import vn.ticketscenter.identity.dao.OtpRepository;
+import vn.ticketscenter.identity.dao.UserRepository;
 
 import java.util.UUID;
 import java.util.regex.Matcher;

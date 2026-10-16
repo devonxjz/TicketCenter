@@ -7,12 +7,12 @@ import vn.ticketscenter.identity.dto.OrganizationRequestDetailDto;
 import vn.ticketscenter.identity.dto.OrganizationRequestSummaryDto;
 import vn.ticketscenter.identity.model.Organization;
 import vn.ticketscenter.identity.model.OrganizationStatus;
-import vn.ticketscenter.identity.repository.OrganizationDecisionRepository;
-import vn.ticketscenter.identity.repository.OrganizationDecisionRepository.Approval;
-import vn.ticketscenter.identity.repository.OrganizationDecisionRepository.CommissionPolicy;
-import vn.ticketscenter.identity.repository.OrganizationDecisionRepository.InitialEvent;
-import vn.ticketscenter.identity.repository.OrganizationRepository;
-import vn.ticketscenter.identity.repository.UserRepository;
+import vn.ticketscenter.identity.dao.OrganizationDecisionRepository;
+import vn.ticketscenter.identity.dao.OrganizationDecisionRepository.Approval;
+import vn.ticketscenter.identity.dao.OrganizationDecisionRepository.CommissionPolicy;
+import vn.ticketscenter.identity.dao.OrganizationDecisionRepository.InitialEvent;
+import vn.ticketscenter.identity.dao.OrganizationRepository;
+import vn.ticketscenter.identity.dao.UserRepository;
 
 import java.util.List;
 import java.util.NoSuchElementException;

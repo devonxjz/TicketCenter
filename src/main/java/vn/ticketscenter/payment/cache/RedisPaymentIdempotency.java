@@ -14,6 +14,11 @@ public final class RedisPaymentIdempotency {
     public static final Duration DEFAULT_RETENTION = Duration.ofMinutes(10);
     public static final Duration LOCK_TIMEOUT = Duration.ofSeconds(5);
 
+    // KEYS[1]: key Redis cần cập nhật.
+    // ARGV[1]: mã đánh dấu yêu cầu đang xử lý, tức pendingMarker.
+    // ARGV[2]: kết quả muốn lưu.
+    // ARGV[3]: thời gian tồn tại của kết quả, tính bằng mili giây.
+
     private static final String COMPLETE_LUA = """
             if redis.call('GET', KEYS[1]) ~= ARGV[1] then return 0 end
             redis.call('PSETEX', KEYS[1], ARGV[3], ARGV[2])

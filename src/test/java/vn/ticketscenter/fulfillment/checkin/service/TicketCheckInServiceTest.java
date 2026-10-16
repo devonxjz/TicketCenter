@@ -3,7 +3,7 @@ import org.junit.jupiter.api.Test;
 import vn.ticketscenter.fulfillment.checkin.CheckInException;
 import vn.ticketscenter.fulfillment.checkin.cache.CheckInScanCache;
 import vn.ticketscenter.fulfillment.checkin.dto.*;
-import vn.ticketscenter.fulfillment.checkin.repository.TicketCheckInRepository;
+import vn.ticketscenter.fulfillment.checkin.dao.TicketCheckInRepository;
 import vn.ticketscenter.fulfillment.checkin.security.SignedQrDecoder;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;

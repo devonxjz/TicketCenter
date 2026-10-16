@@ -9,8 +9,8 @@ import vn.ticketscenter.identity.error.IdentityException;
 import vn.ticketscenter.identity.model.OrganizationRole;
 import vn.ticketscenter.identity.model.User;
 import vn.ticketscenter.identity.model.UserStatus;
-import vn.ticketscenter.identity.repository.OrganizationMembershipRepository;
-import vn.ticketscenter.identity.repository.UserRepository;
+import vn.ticketscenter.identity.dao.OrganizationMembershipRepository;
+import vn.ticketscenter.identity.dao.UserRepository;
 import vn.ticketscenter.identity.security.UserPrincipal;
 
 import java.util.Objects;

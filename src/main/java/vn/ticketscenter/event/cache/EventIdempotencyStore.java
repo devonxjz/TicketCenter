@@ -1,6 +1,6 @@
 package vn.ticketscenter.event.cache;
 
-import vn.ticketscenter.event.repository.EventManagementRepository.Result;
+import vn.ticketscenter.event.dao.EventManagementRepository.Result;
 
 public interface EventIdempotencyStore {
     record Lease(String key,String value) { }

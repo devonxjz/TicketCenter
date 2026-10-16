@@ -4,7 +4,7 @@ import org.json.JSONObject;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.params.SetParams;
 import vn.ticketscenter.order.dto.*;
-import vn.ticketscenter.order.repository.OrderRepository;
+import vn.ticketscenter.order.dao.OrderRepository;
 
 import java.time.Clock;
 import java.time.Duration;

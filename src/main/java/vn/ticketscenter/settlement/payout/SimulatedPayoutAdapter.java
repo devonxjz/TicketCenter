@@ -4,7 +4,7 @@ import java.sql.*;
 import java.security.MessageDigest;
 import java.util.UUID;
 import vn.ticketscenter.settlement.infrastructure.*;
-import vn.ticketscenter.settlement.repository.FinanceJdbc;
+import vn.ticketscenter.settlement.dao.FinanceJdbc;
 
 /** Explicit, durable fixture simulator. Never represents an actual bank transfer. */
 public final class SimulatedPayoutAdapter implements PayoutAdapter {
