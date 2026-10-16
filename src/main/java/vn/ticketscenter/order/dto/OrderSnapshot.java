@@ -12,9 +12,16 @@ import vn.ticketscenter.order.model.OrderStatus;
 
 /** Stored prices and totals only. Adapters to Long models must use longValueExact(). */
 public record OrderSnapshot(
-        UUID orderId, String orderCode, UUID buyerId, UUID eventId, UUID holdId,
-        OrderStatus status, Instant expiresAt, List<Item> items,
-        Totals totals, Optional<String> appliedCouponCode) {
+        UUID orderId,
+        String orderCode,
+        UUID buyerId,
+        UUID eventId,
+        UUID holdId,
+        OrderStatus status,
+        Instant expiresAt,
+        List<Item> items,
+        Totals totals,
+        Optional<String> appliedCouponCode) {
     public OrderSnapshot {
         OrderRequests.requireId(orderId);
         OrderRequests.requireId(buyerId);
@@ -27,21 +34,30 @@ public record OrderSnapshot(
         Objects.requireNonNull(appliedCouponCode, "appliedCouponCode");
         appliedCouponCode.ifPresent(code -> OrderRequests.requireText(code, 80));
         items = List.copyOf(items);
-        if (items.isEmpty() || items.size() > 8) throw new IllegalArgumentException("Expected 1 to 8 items");
+        if (items.isEmpty() || items.size() > 8)
+            throw new IllegalArgumentException("Expected 1 to 8 items");
         var ids = new HashSet<UUID>();
         int quantity = 0;
         BigDecimal subtotal = BigDecimal.ZERO;
         for (Item item : items) {
-            if (!ids.add(item.orderItemId())) throw new IllegalArgumentException("Duplicate item identity");
+            if (!ids.add(item.orderItemId()))
+                throw new IllegalArgumentException("Duplicate item identity");
             quantity += item.quantity();
             subtotal = subtotal.add(item.lineTotal());
         }
         if (quantity > 8) throw new IllegalArgumentException("Expected 1 to 8 tickets");
-        if (!subtotal.equals(totals.subtotal())) throw new IllegalArgumentException("Item subtotal differs from Order");
+        if (!subtotal.equals(totals.subtotal()))
+            throw new IllegalArgumentException("Item subtotal differs from Order");
     }
 
-    public record Item(UUID orderItemId, UUID zoneId, UUID seatId, String zoneNameSnapshot,
-                       Optional<String> seatLabelSnapshot, int quantity, BigDecimal unitPrice) {
+    public record Item(
+            UUID orderItemId,
+            UUID zoneId,
+            UUID seatId,
+            String zoneNameSnapshot,
+            Optional<String> seatLabelSnapshot,
+            int quantity,
+            BigDecimal unitPrice) {
         public Item {
             OrderRequests.requireId(orderItemId);
             OrderRequests.requireId(zoneId);
@@ -49,7 +65,9 @@ public record OrderSnapshot(
             OrderRequests.requireText(zoneNameSnapshot, 120);
             Objects.requireNonNull(seatLabelSnapshot, "seatLabelSnapshot");
             seatLabelSnapshot.ifPresent(label -> OrderRequests.requireText(label, 50));
-            if (quantity < 1 || quantity > 8 || (seatId != null && quantity != 1)
+            if (quantity < 1
+                    || quantity > 8
+                    || (seatId != null && quantity != 1)
                     || (seatId == null && seatLabelSnapshot.isPresent())) {
                 throw new IllegalArgumentException("Invalid item quantity");
             }
@@ -67,8 +85,10 @@ public record OrderSnapshot(
             subtotal = money(subtotal);
             discountAmount = money(discountAmount);
             totalAmount = money(totalAmount);
-            BigDecimal cap = subtotal.multiply(new BigDecimal("0.30")).setScale(0, RoundingMode.DOWN);
-            if (discountAmount.compareTo(cap) > 0 || !subtotal.subtract(discountAmount).equals(totalAmount)) {
+            BigDecimal cap =
+                    subtotal.multiply(new BigDecimal("0.30")).setScale(0, RoundingMode.DOWN);
+            if (discountAmount.compareTo(cap) > 0
+                    || !subtotal.subtract(discountAmount).equals(totalAmount)) {
                 throw new IllegalArgumentException("Inconsistent Order totals");
             }
         }

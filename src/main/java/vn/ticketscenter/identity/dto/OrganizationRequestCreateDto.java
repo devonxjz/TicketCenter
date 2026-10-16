@@ -11,14 +11,14 @@ public record OrganizationRequestCreateDto(
         String eventDate,
         String eventStartTime,
         String eventEndTime,
-        String eventVenue
-) {
-    private static final Pattern EMAIL_PATTERN = Pattern.compile(
-            "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$"
-    );
+        String eventVenue) {
+    private static final Pattern EMAIL_PATTERN =
+            Pattern.compile(
+                    "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$");
     private static final Pattern PHONE_PATTERN = Pattern.compile("^0\\d{9}$");
 
-    public OrganizationRequestCreateDto(String name, String contactEmail, String contactPhone, String description) {
+    public OrganizationRequestCreateDto(
+            String name, String contactEmail, String contactPhone, String description) {
         this(name, contactEmail, contactPhone, description, null, null, null, null, null);
     }
 
@@ -28,7 +28,8 @@ public record OrganizationRequestCreateDto(
         }
         String trimmedName = name.trim();
         if (trimmedName.length() < 3 || trimmedName.length() > 150) {
-            throw new IllegalArgumentException("Organization name must be between 3 and 150 characters.");
+            throw new IllegalArgumentException(
+                    "Organization name must be between 3 and 150 characters.");
         }
         if (contactEmail == null || contactEmail.isBlank()) {
             throw new IllegalArgumentException("Contact email must not be blank.");
@@ -38,7 +39,8 @@ public record OrganizationRequestCreateDto(
         }
         if (contactPhone != null && !contactPhone.isBlank()) {
             if (!PHONE_PATTERN.matcher(contactPhone.trim()).matches()) {
-                throw new IllegalArgumentException("Contact phone must be 10 digits starting with 0.");
+                throw new IllegalArgumentException(
+                        "Contact phone must be 10 digits starting with 0.");
             }
         }
         if (description != null && description.length() > 2000) {

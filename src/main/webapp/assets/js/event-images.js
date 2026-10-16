@@ -1,8 +1,9 @@
-(function (root) {
+(function(root) {
     "use strict";
 
     const FIELD_NAMES = ["title", "description", "categoryId", "venueName", "venueAddress",
-        "saleStart", "saleEnd", "startTime", "endTime"];
+        "saleStart", "saleEnd", "startTime", "endTime"
+    ];
     const TIME_NAMES = ["saleStart", "saleEnd", "startTime", "endTime"];
     const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -22,7 +23,8 @@
             fields[name] = TIME_NAMES.includes(name) ? new Date(value).toISOString() : value;
         }
         if (!UUID.test(fields.categoryId)) throw new Error("Vui lòng chọn thể loại hợp lệ.");
-        if (!(fields.saleStart < fields.saleEnd && fields.saleEnd <= fields.startTime && fields.startTime < fields.endTime)) {
+        if (!(fields.saleStart < fields.saleEnd && fields.saleEnd <= fields.startTime && fields.startTime < fields
+                .endTime)) {
             throw new Error("Lịch phải thỏa mãn mở bán < đóng bán ≤ bắt đầu < kết thúc.");
         }
         return fields;
@@ -39,12 +41,21 @@
         validateFile(file);
         if (mode === "cover") {
             if (!file) throw new Error("Chọn ảnh mới để thay ảnh bìa. Ảnh hiện tại đang được giữ nguyên.");
-            return { path: "/api/events/" + current.id + "/cover", fields: { expectedVersion: String(current.version) } };
+            return {
+                path: "/api/events/" + current.id + "/cover",
+                fields: {
+                    expectedVersion: String(current.version)
+                }
+            };
         }
         if (!UUID.test(organizationId)) throw new Error("Vui lòng chọn tổ chức hợp lệ.");
         const fields = fieldsForRequest(values);
         if (current) fields.expectedVersion = String(current.version);
-        return { path: current ? "/api/events/" + current.id + "/edit" : "/api/organizations/" + organizationId + "/events", fields };
+        return {
+            path: current ? "/api/events/" + current.id + "/edit" : "/api/organizations/" + organizationId +
+                "/events",
+            fields
+        };
     }
 
     function cloudCover(url) {
@@ -59,10 +70,19 @@
 
     function retryKey(storage, slot, fingerprint, randomUUID) {
         let previous;
-        try { previous = JSON.parse(storage.getItem(slot)); } catch (_) { previous = null; }
+        try {
+            previous = JSON.parse(storage.getItem(slot));
+        } catch (_) {
+            previous = null;
+        }
         if (previous && previous.fingerprint === fingerprint && UUID.test(previous.key)) return previous.key;
         const key = randomUUID();
-        try { storage.setItem(slot, JSON.stringify({ fingerprint, key })); } catch (_) { }
+        try {
+            storage.setItem(slot, JSON.stringify({
+                fingerprint,
+                key
+            }));
+        } catch (_) {}
         return key;
     }
 
@@ -73,7 +93,16 @@
         return JSON.stringify([fields, file ? hash : null]);
     }
 
-    const exported = { FIELD_NAMES, validateFile, fieldsForRequest, cloudCover, retryKey, fingerprint, editorMode, saveRequest };
+    const exported = {
+        FIELD_NAMES,
+        validateFile,
+        fieldsForRequest,
+        cloudCover,
+        retryKey,
+        fingerprint,
+        editorMode,
+        saveRequest
+    };
     if (typeof module !== "undefined" && module.exports) {
         module.exports = exported;
         return;
@@ -92,11 +121,20 @@
 
     async function api(path, options = {}) {
         let response;
-        try { response = await root.fetch(context + path, { credentials: "same-origin", ...options }); }
-        catch (_) { throw new Error("Không thể kết nối. Vui lòng thử lại với cùng thông tin."); }
+        try {
+            response = await root.fetch(context + path, {
+                credentials: "same-origin",
+                ...options
+            });
+        } catch (_) {
+            throw new Error("Không thể kết nối. Vui lòng thử lại với cùng thông tin.");
+        }
         let envelope;
-        try { envelope = await response.json(); }
-        catch (_) { throw new Error("Máy chủ trả về dữ liệu không hợp lệ. Vui lòng thử lại."); }
+        try {
+            envelope = await response.json();
+        } catch (_) {
+            throw new Error("Máy chủ trả về dữ liệu không hợp lệ. Vui lòng thử lại.");
+        }
         if (!response.ok) {
             if (envelope.error?.code === "REQUEST_ABORTED") {
                 const error = new Error("Yêu cầu trước đã hết hạn. Bấm thử lưu lại để tạo yêu cầu mới.");
@@ -104,8 +142,10 @@
                 throw error;
             }
             if (response.status === 401) throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
-            if (response.status === 403) throw new Error(envelope.error?.message || "Bạn không có quyền quản lý sự kiện này.");
-            if (response.status === 409) throw new Error(envelope.error?.message || "Sự kiện đã thay đổi. Tải lại trang để xem phiên bản mới.");
+            if (response.status === 403) throw new Error(envelope.error?.message ||
+                "Bạn không có quyền quản lý sự kiện này.");
+            if (response.status === 409) throw new Error(envelope.error?.message ||
+                "Sự kiện đã thay đổi. Tải lại trang để xem phiên bản mới.");
             throw new Error(envelope.error?.message || "Chưa thể hoàn tất yêu cầu. Vui lòng thử lại.");
         }
         return envelope.data;
@@ -135,10 +175,15 @@
         const placeholder = () => {
             container.replaceChildren(element("div", "cover-placeholder", category || "Ảnh sự kiện"));
         };
-        if (!localPreview && !cloudCover(url)) { placeholder(); return; }
+        if (!localPreview && !cloudCover(url)) {
+            placeholder();
+            return;
+        }
         const image = element("img", "event-cover");
         image.alt = title || "Ảnh bìa sự kiện";
-        image.addEventListener("error", placeholder, { once: true });
+        image.addEventListener("error", placeholder, {
+            once: true
+        });
         image.src = url;
         container.append(image);
     }
@@ -179,8 +224,14 @@
     }
 
     function statusText(status) {
-        return { DRAFT: "Bản nháp", REJECTED: "Bị từ chối", PENDING_APPROVAL: "Chờ duyệt",
-            PUBLISHED: "Đã công bố", CANCELLED: "Đã hủy", COMPLETED: "Đã kết thúc" }[status] || status;
+        return {
+            DRAFT: "Bản nháp",
+            REJECTED: "Bị từ chối",
+            PENDING_APPROVAL: "Chờ duyệt",
+            PUBLISHED: "Đã công bố",
+            CANCELLED: "Đã hủy",
+            COMPLETED: "Đã kết thúc"
+        } [status] || status;
     }
 
     function managerRows(events) {
@@ -226,7 +277,10 @@
         const available = await api("/api/manager/event-options");
         const select = get("event-organization");
         options(select, available.organizations, params.get("organizationId"));
-        if (!available.organizations.length) { message("Bạn chưa có tổ chức với quyền quản lý."); return; }
+        if (!available.organizations.length) {
+            message("Bạn chưa có tổ chức với quyền quản lý.");
+            return;
+        }
         select.disabled = false;
         let generation = 0;
         let loaded = [];
@@ -241,11 +295,18 @@
             loaded = [];
             message("Đang tải sự kiện...");
             get("event-list").replaceChildren();
-            get("event-create-link").href = context + "/organizer/events/new?organizationId=" + encodeURIComponent(select.value);
+            get("event-create-link").href = context + "/organizer/events/new?organizationId=" +
+                encodeURIComponent(select.value);
             try {
-                const events = await api("/api/manager/events?organizationId=" + encodeURIComponent(select.value));
-                if (current === generation) { loaded = events; render(); }
-            } catch (error) { if (current === generation) message(error.message, true); }
+                const events = await api("/api/manager/events?organizationId=" + encodeURIComponent(
+                    select.value));
+                if (current === generation) {
+                    loaded = events;
+                    render();
+                }
+            } catch (error) {
+                if (current === generation) message(error.message, true);
+            }
         };
         select.addEventListener("change", load);
         await load();
@@ -295,7 +356,8 @@
         const fill = event => {
             current = event;
             eventId = event.id;
-            for (const name of FIELD_NAMES) get(name).value = TIME_NAMES.includes(name) ? localTime(event[name]) : event[name] || "";
+            for (const name of FIELD_NAMES) get(name).value = TIME_NAMES.includes(name) ? localTime(event[
+                name]) : event[name] || "";
             organization.value = event.organizationId;
             organization.disabled = true;
             get("editor-heading").textContent = "Biên tập sự kiện";
@@ -307,17 +369,18 @@
             for (const name of FIELD_NAMES) get(name).disabled = mode !== "edit";
             organization.disabled = current !== null;
             get("event-save").textContent = mode === "cover" ? "Lưu ảnh bìa" : "Lưu bản nháp";
-            get("event-file-help").textContent = mode === "cover"
-                ? "Sự kiện đã công bố. Chọn ảnh PNG hoặc JPEG tối đa 5 MiB để thay ảnh bìa."
-                : "Tối đa 5 MiB. Không chọn ảnh mới để giữ ảnh hiện tại. Sự kiện mới không có ảnh dùng ảnh mặc định theo thể loại.";
+            get("event-file-help").textContent = mode === "cover" ?
+                "Sự kiện đã công bố. Chọn ảnh PNG hoặc JPEG tối đa 5 MiB để thay ảnh bìa." :
+                "Tối đa 5 MiB. Không chọn ảnh mới để giữ ảnh hiện tại. Sự kiện mới không có ảnh dùng ảnh mặc định theo thể loại.";
             return mode;
         };
         if (eventId) fill(await api("/api/manager/events/" + encodeURIComponent(eventId)));
         else originalPreview();
         form.hidden = false;
         const mode = applyMode();
-        message(mode === "readonly" ? "Sự kiện " + statusText(current.status).toLowerCase() + " không được sửa thông tin hoặc ảnh bìa."
-            : mode === "cover" ? "Bạn có thể thay ảnh bìa của sự kiện đã công bố." : "");
+        message(mode === "readonly" ? "Sự kiện " + statusText(current.status).toLowerCase() +
+            " không được sửa thông tin hoặc ảnh bìa." :
+            mode === "cover" ? "Bạn có thể thay ảnh bìa của sự kiện đã công bố." : "");
         fileInput.addEventListener("change", () => {
             releasePreview();
             const file = fileInput.files[0];
@@ -335,16 +398,26 @@
                 message(error.message, true);
             }
         });
-        get("categoryId").addEventListener("change", () => { if (!fileInput.files[0]) originalPreview(); });
-        root.addEventListener("pagehide", releasePreview, { once: true });
+        get("categoryId").addEventListener("change", () => {
+            if (!fileInput.files[0]) originalPreview();
+        });
+        root.addEventListener("pagehide", releasePreview, {
+            once: true
+        });
         const memory = new Map();
-        const memoryStorage = { getItem: key => memory.get(key), setItem: (key, value) => memory.set(key, value), removeItem: key => memory.delete(key) };
+        const memoryStorage = {
+            getItem: key => memory.get(key),
+            setItem: (key, value) => memory.set(key, value),
+            removeItem: key => memory.delete(key)
+        };
         let storage;
         try {
             storage = root.sessionStorage;
             storage.setItem("tc:event-storage-check", "1");
             storage.removeItem("tc:event-storage-check");
-        } catch (_) { storage = memoryStorage; }
+        } catch (_) {
+            storage = memoryStorage;
+        }
         form.addEventListener("submit", async submit => {
             submit.preventDefault();
             if (pending || fieldset.disabled || !form.reportValidity()) return;
@@ -355,7 +428,10 @@
             try {
                 const file = fileInput.files[0];
                 const values = Object.fromEntries(FIELD_NAMES.map(name => [name, get(name).value]));
-                const { path, fields } = saveRequest(current, organization.value, values, file);
+                const {
+                    path,
+                    fields
+                } = saveRequest(current, organization.value, values, file);
                 const signature = await fingerprint(fields, file, root.crypto);
                 const slot = "tc:event-request:" + path;
                 requestSlot = slot;
@@ -366,19 +442,28 @@
                 fieldset.disabled = true;
                 message("Đang lưu sự kiện và ảnh bìa...");
                 const csrf = await api("/api/auth/csrf");
-                if (!csrf?.token) throw new Error("Không lấy được mã bảo vệ phiên. Vui lòng tải lại trang.");
-                const saved = await api(path, { method: "POST", headers: {
-                    "X-CSRF-Token": csrf.token, "Idempotency-Key": key
-                }, body: multipart });
+                if (!csrf?.token) throw new Error(
+                    "Không lấy được mã bảo vệ phiên. Vui lòng tải lại trang.");
+                const saved = await api(path, {
+                    method: "POST",
+                    headers: {
+                        "X-CSRF-Token": csrf.token,
+                        "Idempotency-Key": key
+                    },
+                    body: multipart
+                });
                 releasePreview();
                 fileInput.value = "";
                 fill(saved);
-                const query = new URLSearchParams({ id: saved.id });
+                const query = new URLSearchParams({
+                    id: saved.id
+                });
                 root.history.replaceState(null, "", root.location.pathname + "?" + query);
                 completed = true;
                 message("Đã lưu sự kiện.");
             } catch (error) {
-                if (error.code === "REQUEST_ABORTED" && requestSlot) storage.removeItem(requestSlot);
+                if (error.code === "REQUEST_ABORTED" && requestSlot) storage.removeItem(
+                requestSlot);
                 originalPreview();
                 message(error.message, true);
             } finally {
@@ -389,7 +474,11 @@
         });
     }
 
-    const start = { catalog,
-        detail, "manager-list": managerList, editor }[page];
+    const start = {
+        catalog,
+        detail,
+        "manager-list": managerList,
+        editor
+    } [page];
     if (start) start().catch(error => message(error.message, true));
 })(typeof window !== "undefined" ? window : globalThis);

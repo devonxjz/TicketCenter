@@ -33,10 +33,9 @@ import java.util.stream.Collectors;
  * - POST /api/coupons/{id}/deactivate: Vô hiệu hóa coupon
  * - DELETE /api/coupons/{id}: Xóa coupon
  */
-@WebServlet(name = "CouponAdminServlet", urlPatterns = {
-        "/api/admin/coupons",
-        "/api/coupons/*"
-})
+@WebServlet(
+        name = "CouponAdminServlet",
+        urlPatterns = {"/api/admin/coupons", "/api/coupons/*"})
 public class CouponAdminServlet extends HttpServlet {
     private final CouponAdminService suppliedService;
 
@@ -59,8 +58,14 @@ public class CouponAdminServlet extends HttpServlet {
         String path = request.getRequestURI().substring(request.getContextPath().length());
 
         try {
-            UserPrincipal principal = SecurityContext.getCurrentUser(request)
-                    .orElseThrow(() -> new OrderException(401, "UNAUTHENTICATED", "A current session is required."));
+            UserPrincipal principal =
+                    SecurityContext.getCurrentUser(request)
+                            .orElseThrow(
+                                    () ->
+                                            new OrderException(
+                                                    401,
+                                                    "UNAUTHENTICATED",
+                                                    "A current session is required."));
 
             if ("GET".equals(method)) {
                 handleGet(request, response, principal, path);
@@ -80,19 +85,26 @@ public class CouponAdminServlet extends HttpServlet {
         }
     }
 
-    private void handleGet(HttpServletRequest request, HttpServletResponse response, UserPrincipal principal, String path)
+    private void handleGet(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            UserPrincipal principal,
+            String path)
             throws IOException {
         int page = parsePositiveInt(request.getParameter("page"), 1);
         int size = parsePositiveInt(request.getParameter("size"), 20);
 
         if ("/api/admin/coupons".equals(path)) {
             String orgParam = request.getParameter("organizationId");
-            UUID filterOrgId = (orgParam != null && !orgParam.isBlank()) ? UUID.fromString(orgParam) : null;
-            List<CouponAdminDto> coupons = service().listAllCoupons(principal, page, size, filterOrgId);
+            UUID filterOrgId =
+                    (orgParam != null && !orgParam.isBlank()) ? UUID.fromString(orgParam) : null;
+            List<CouponAdminDto> coupons =
+                    service().listAllCoupons(principal, page, size, filterOrgId);
             writeCouponsResponse(response, coupons);
         } else if (path.matches("^/api/(admin/)?organizations/[^/]+/coupons$")) {
             UUID orgId = parseUuid(path.split("/")[path.contains("admin") ? 4 : 3]);
-            List<CouponAdminDto> coupons = service().listOrganizationCoupons(principal, orgId, page, size);
+            List<CouponAdminDto> coupons =
+                    service().listOrganizationCoupons(principal, orgId, page, size);
             writeCouponsResponse(response, coupons);
         } else if (path.matches("^/api/coupons/[^/]+$")) {
             UUID couponId = parseUuid(path.split("/")[3]);
@@ -104,15 +116,24 @@ public class CouponAdminServlet extends HttpServlet {
         }
     }
 
-    private void handleMutation(HttpServletRequest request, HttpServletResponse response, UserPrincipal principal, String method, String path)
+    private void handleMutation(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            UserPrincipal principal,
+            String method,
+            String path)
             throws IOException {
         // Checked here as well as in CsrfFilter: this servlet is also reached by a named forward.
         if (!SecurityContext.validateCsrfToken(request)) {
-            throw new OrderException(403, "CSRF_TOKEN_INVALID", "Yêu cầu thiếu hoặc mã CSRF không hợp lệ.");
+            throw new OrderException(
+                    403, "CSRF_TOKEN_INVALID", "Yêu cầu thiếu hoặc mã CSRF không hợp lệ.");
         }
         String idemKey = request.getHeader("Idempotency-Key");
         if (idemKey == null || idemKey.isBlank()) {
-            throw new OrderException(400, "IDEMPOTENCY_KEY_REQUIRED", "Idempotency-Key header is required for coupon mutations.");
+            throw new OrderException(
+                    400,
+                    "IDEMPOTENCY_KEY_REQUIRED",
+                    "Idempotency-Key header is required for coupon mutations.");
         }
 
         if (path.matches("^/api/(admin/)?organizations/[^/]+/coupons$") && "POST".equals(method)) {
@@ -151,7 +172,8 @@ public class CouponAdminServlet extends HttpServlet {
         }
     }
 
-    private void writeCouponsResponse(HttpServletResponse response, List<CouponAdminDto> coupons) throws IOException {
+    private void writeCouponsResponse(HttpServletResponse response, List<CouponAdminDto> coupons)
+            throws IOException {
         String json = coupons.stream().map(CouponAdminDto::toJson).collect(Collectors.joining(","));
         response.setStatus(HttpServletResponse.SC_OK);
         response.getWriter().write("{\"coupons\":[" + json + "]}");

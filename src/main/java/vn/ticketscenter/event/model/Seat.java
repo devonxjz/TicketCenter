@@ -12,8 +12,13 @@ import jakarta.persistence.UniqueConstraint;
 import vn.ticketscenter.persistence.model.BaseEntity;
 
 @Entity
-@Table(name = "tc_seats", schema = "dbo",
-        uniqueConstraints = @UniqueConstraint(name = "uq_seat_zone_row_number", columnNames = {"zone_id", "row_name", "seat_number"}))
+@Table(
+        name = "tc_seats",
+        schema = "dbo",
+        uniqueConstraints =
+                @UniqueConstraint(
+                        name = "uq_seat_zone_row_number",
+                        columnNames = {"zone_id", "row_name", "seat_number"}))
 public class Seat extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "zone_id", nullable = false)
@@ -29,7 +34,7 @@ public class Seat extends BaseEntity {
     @Column(nullable = false, length = 20)
     private SeatStatus status = SeatStatus.AVAILABLE;
 
-    protected Seat() { }
+    protected Seat() {}
 
     public Seat(Zone zone, String rowName, int seatNumber) {
         this.zone = zone;
@@ -37,8 +42,19 @@ public class Seat extends BaseEntity {
         this.seatNumber = seatNumber;
     }
 
-    public Zone getZone() { return zone; }
-    public String getRowName() { return rowName; }
-    public int getSeatNumber() { return seatNumber; }
-    public SeatStatus getStatus() { return status; }
+    public Zone getZone() {
+        return zone;
+    }
+
+    public String getRowName() {
+        return rowName;
+    }
+
+    public int getSeatNumber() {
+        return seatNumber;
+    }
+
+    public SeatStatus getStatus() {
+        return status;
+    }
 }

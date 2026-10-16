@@ -36,6 +36,7 @@ public final class PaymentRuntime implements ServletContextListener {
     private static final String CLOSED = PaymentRuntime.class.getName() + ".closed";
 
     private ScheduledExecutorService reconciliation;
+
     /** Only touched by the reconciliation thread; keeps its retry back-off between runs. */
     private PaymentReconciliationJob reconciliationJob;
 
@@ -51,8 +52,9 @@ public final class PaymentRuntime implements ServletContextListener {
             LOGGER.info("Payment reconciliation disabled");
             return;
         }
-        reconciliation = Executors.newSingleThreadScheduledExecutor(
-                Thread.ofPlatform().name("payment-reconciliation").daemon(true).factory());
+        reconciliation =
+                Executors.newSingleThreadScheduledExecutor(
+                        Thread.ofPlatform().name("payment-reconciliation").daemon(true).factory());
         reconciliation.scheduleWithFixedDelay(() -> reconcile(context), 30, 60, TimeUnit.SECONDS);
     }
 
@@ -62,28 +64,35 @@ public final class PaymentRuntime implements ServletContextListener {
         ServletContext context = event.getServletContext();
         synchronized (context) {
             context.setAttribute(CLOSED, true);
-            if (context.getAttribute(COMPONENTS) instanceof Components components) components.close();
+            if (context.getAttribute(COMPONENTS) instanceof Components components)
+                components.close();
             context.removeAttribute(COMPONENTS);
         }
     }
 
     /** Off when payment.reconciliation.enabled=false; on by default whenever payOS credentials exist. */
     private static boolean reconciliationEnabled() {
-        return PayosConfig.isConfigured() && AppConfig.getBoolean("payment.reconciliation.enabled", true);
+        return PayosConfig.isConfigured()
+                && AppConfig.getBoolean("payment.reconciliation.enabled", true);
     }
 
     private void reconcile(ServletContext context) {
         try {
-            if (reconciliationJob == null) reconciliationJob = components(context).reconciliationJob();
+            if (reconciliationJob == null)
+                reconciliationJob = components(context).reconciliationJob();
             reconciliationJob.runOnce();
         } catch (RuntimeException failure) {
-            LOGGER.log(Level.WARNING, "Payment reconciliation batch failed; it will be retried", failure);
+            LOGGER.log(
+                    Level.WARNING,
+                    "Payment reconciliation batch failed; it will be retried",
+                    failure);
         }
     }
 
     private static Components components(ServletContext context) {
         synchronized (context) {
-            if (Boolean.TRUE.equals(context.getAttribute(CLOSED))) throw PaymentException.unavailable();
+            if (Boolean.TRUE.equals(context.getAttribute(CLOSED)))
+                throw PaymentException.unavailable();
             if (context.getAttribute(COMPONENTS) instanceof Components existing) return existing;
             Components created = Components.create();
             context.setAttribute(COMPONENTS, created);
@@ -92,12 +101,18 @@ public final class PaymentRuntime implements ServletContextListener {
     }
 
     /** Everything the payment feature needs, created together and closed together. */
-    private record Components(PaymentService service, PaymentRepository repository, PayosGateway payos,
-                              RedisPaymentIdempotency idempotency, HikariDataSource buyerPool, HikariDataSource workerPool) {
+    private record Components(
+            PaymentService service,
+            PaymentRepository repository,
+            PayosGateway payos,
+            RedisPaymentIdempotency idempotency,
+            HikariDataSource buyerPool,
+            HikariDataSource workerPool) {
 
         static Components create() {
             if (!PayosConfig.isConfigured()) {
-                LOGGER.warning("payOS is not configured (payos.client.id / payos.api.key / payos.checksum.key)");
+                LOGGER.warning(
+                        "payOS is not configured (payos.client.id / payos.api.key / payos.checksum.key)");
                 throw PaymentException.unavailable();
             }
             PayosGateway payos = null;
@@ -108,9 +123,14 @@ public final class PaymentRuntime implements ServletContextListener {
                 RedisPaymentIdempotency idempotency = newIdempotency();
                 buyerPool = newPool("buyer");
                 workerPool = newPool("worker");
-                PaymentRepository repository = new PaymentRepository(ConnectionBudgets.wrap(buyerPool), ConnectionBudgets.wrap(workerPool));
-                PaymentService service = new PaymentService(repository, payos, idempotency, Clock.systemUTC());
-                return new Components(service, repository, payos, idempotency, buyerPool, workerPool);
+                PaymentRepository repository =
+                        new PaymentRepository(
+                                ConnectionBudgets.wrap(buyerPool),
+                                ConnectionBudgets.wrap(workerPool));
+                PaymentService service =
+                        new PaymentService(repository, payos, idempotency, Clock.systemUTC());
+                return new Components(
+                        service, repository, payos, idempotency, buyerPool, workerPool);
             } catch (RuntimeException failure) {
                 if (payos != null) payos.close();
                 if (buyerPool != null) buyerPool.close();
@@ -125,8 +145,17 @@ public final class PaymentRuntime implements ServletContextListener {
             Clock clock = Clock.systemUTC();
             return new PaymentReconciliationJob(
                     repository::findPaymentsToReconcile,
-                    c -> payos.query(c.txnRef(), c.amount(), clock.instant().isAfter(c.createdAt().plus(PayosGateway.PAYMENT_WINDOW))),
-                    (c, status, reference) -> repository.applyPaymentResult(c.orderId(), c.paymentId(), status, reference),
+                    c ->
+                            payos.query(
+                                    c.txnRef(),
+                                    c.amount(),
+                                    clock.instant()
+                                            .isAfter(
+                                                    c.createdAt()
+                                                            .plus(PayosGateway.PAYMENT_WINDOW))),
+                    (c, status, reference) ->
+                            repository.applyPaymentResult(
+                                    c.orderId(), c.paymentId(), status, reference),
                     idempotency::acquireOrderLock,
                     20);
         }
@@ -146,14 +175,16 @@ public final class PaymentRuntime implements ServletContextListener {
                     // fall through to the in-memory store
                 }
             }
-            LOGGER.info("Redis is unavailable or disabled; falling back to in-memory payment idempotency");
+            LOGGER.info(
+                    "Redis is unavailable or disabled; falling back to in-memory payment idempotency");
             return RedisPaymentIdempotency.inMemory();
         }
 
         private static HikariDataSource newPool(String principal) {
             String user = AppConfig.get("db." + principal + ".user");
             String password = AppConfig.get("db." + principal + ".password");
-            if (user == null || password == null) throw new IllegalStateException("db." + principal + ".user/password are required");
+            if (user == null || password == null)
+                throw new IllegalStateException("db." + principal + ".user/password are required");
             HikariConfig config = new HikariConfig();
             config.setPoolName("payment-" + principal);
             config.setJdbcUrl(DatabaseConfig.getJdbcUrl());

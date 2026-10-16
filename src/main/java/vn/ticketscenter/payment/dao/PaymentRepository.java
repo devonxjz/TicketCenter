@@ -38,15 +38,20 @@ public class PaymentRepository {
     }
 
     /** A payment opened (or reused) for an order, plus how long its seat hold still lasts. */
-    public record PaymentIntent(UUID paymentId, String txnRef, BigDecimal amount, Duration holdRemaining) { }
+    public record PaymentIntent(
+            UUID paymentId, String txnRef, BigDecimal amount, Duration holdRemaining) {}
 
-    public record PaymentRecord(UUID paymentId, UUID orderId, String txnRef, BigDecimal amount, String paymentStatus) { }
+    public record PaymentRecord(
+            UUID paymentId, UUID orderId, String txnRef, BigDecimal amount, String paymentStatus) {}
 
-    public record ReconcileCandidate(UUID paymentId, UUID orderId, String txnRef, BigDecimal amount, Instant createdAt) { }
+    public record ReconcileCandidate(
+            UUID paymentId, UUID orderId, String txnRef, BigDecimal amount, Instant createdAt) {}
 
     /** The order costs 0 VND: it is completed with {@link #completeZeroOrder} instead of a payment. */
     public static final class ZeroOrderDetectedException extends AppException {
-        public ZeroOrderDetectedException() { super(409, "ORDER_ZERO_AMOUNT", "Order is 0 VND"); }
+        public ZeroOrderDetectedException() {
+            super(409, "ORDER_ZERO_AMOUNT", "Order is 0 VND");
+        }
     }
 
     // ---------------------------------------------------------------- Buyer: start paying
@@ -56,26 +61,33 @@ public class PaymentRepository {
         Objects.requireNonNull(actorId, "actorId is required");
 
         Duration holdRemaining = checkOrderIsPayable(orderId, actorId);
-        return withRetry(() -> {
-            try (Connection conn = buyer.getConnection();
-                 PreparedStatement ps = conn.prepareStatement("EXEC dbo.usp_BeginOrderPayment ?, ?")) {
-                conn.setAutoCommit(true);
-                ps.setQueryTimeout(20);
-                ps.setString(1, orderId.toString());
-                ps.setString(2, actorId.toString());
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (!rs.next()) throw PaymentException.unavailable();
-                    return new PaymentIntent(UUID.fromString(rs.getString("payment_id")), rs.getString("txn_ref"),
-                            rs.getBigDecimal("amount"), holdRemaining);
-                }
-            }
-        });
+        return withRetry(
+                () -> {
+                    try (Connection conn = buyer.getConnection();
+                            PreparedStatement ps =
+                                    conn.prepareStatement("EXEC dbo.usp_BeginOrderPayment ?, ?")) {
+                        conn.setAutoCommit(true);
+                        ps.setQueryTimeout(20);
+                        ps.setString(1, orderId.toString());
+                        ps.setString(2, actorId.toString());
+                        try (ResultSet rs = ps.executeQuery()) {
+                            if (!rs.next()) throw PaymentException.unavailable();
+                            return new PaymentIntent(
+                                    UUID.fromString(rs.getString("payment_id")),
+                                    rs.getString("txn_ref"),
+                                    rs.getBigDecimal("amount"),
+                                    holdRemaining);
+                        }
+                    }
+                });
     }
 
     /** @return how long the seat hold still lasts; throws when the order cannot be paid now */
     private Duration checkOrderIsPayable(UUID orderId, UUID actorId) {
         try (Connection conn = buyer.getConnection();
-             PreparedStatement ps = conn.prepareStatement("""
+                PreparedStatement ps =
+                        conn.prepareStatement(
+                                """
                      SELECT total_amount, expires_at, order_status, hold_status, event_status
                      FROM dbo.vw_PaymentOrderContext WHERE order_id = ? AND user_id = ?
                      """)) {
@@ -86,14 +98,18 @@ public class PaymentRepository {
                     assertOrderAccess(conn, orderId);
                     throw PaymentException.orderNotFound();
                 }
-                if (!"PENDING_PAYMENT".equals(rs.getString("order_status")) || !"ACTIVE".equals(rs.getString("hold_status"))) {
+                if (!"PENDING_PAYMENT".equals(rs.getString("order_status"))
+                        || !"ACTIVE".equals(rs.getString("hold_status"))) {
                     throw PaymentException.orderNotPayable();
                 }
-                if (!"PUBLISHED".equals(rs.getString("event_status"))) throw PaymentException.eventUnavailable();
+                if (!"PUBLISHED".equals(rs.getString("event_status")))
+                    throw PaymentException.eventUnavailable();
 
-                long remainingMs = rs.getTimestamp("expires_at", UTC).getTime() - System.currentTimeMillis();
+                long remainingMs =
+                        rs.getTimestamp("expires_at", UTC).getTime() - System.currentTimeMillis();
                 if (remainingMs <= 0) throw PaymentException.orderNotPayable();
-                if (rs.getBigDecimal("total_amount").signum() == 0) throw new ZeroOrderDetectedException();
+                if (rs.getBigDecimal("total_amount").signum() == 0)
+                    throw new ZeroOrderDetectedException();
                 return Duration.ofMillis(remainingMs);
             }
         } catch (SQLException failure) {
@@ -106,7 +122,8 @@ public class PaymentRepository {
         Objects.requireNonNull(actorId, "actorId is required");
         String tickets = newTicketIdentities(orderId, buyer);
         try (Connection conn = buyer.getConnection();
-             CallableStatement cs = conn.prepareCall("{call dbo.usp_CompleteFreeOrder(?, ?, ?)}")) {
+                CallableStatement cs =
+                        conn.prepareCall("{call dbo.usp_CompleteFreeOrder(?, ?, ?)}")) {
             cs.setObject(1, orderId);
             cs.setObject(2, actorId);
             cs.setString(3, tickets);
@@ -120,7 +137,9 @@ public class PaymentRepository {
         Objects.requireNonNull(orderId, "orderId is required");
         Objects.requireNonNull(actorId, "actorId is required");
         try (Connection conn = buyer.getConnection();
-             PreparedStatement ps = conn.prepareStatement("""
+                PreparedStatement ps =
+                        conn.prepareStatement(
+                                """
                      SELECT TOP 1 o.order_id, o.order_status, o.total_amount,
                             p.payment_id, p.payment_status, p.amount AS payment_amount, p.currency, p.paid_at
                      FROM dbo.vw_PaymentOrderContext o
@@ -135,36 +154,48 @@ public class PaymentRepository {
                     assertOrderAccess(conn, orderId);
                     return Optional.empty();
                 }
-                BigDecimal amount = Optional.ofNullable(rs.getBigDecimal("payment_amount"))
-                        .orElse(Optional.ofNullable(rs.getBigDecimal("total_amount")).orElse(BigDecimal.ZERO));
+                BigDecimal amount =
+                        Optional.ofNullable(rs.getBigDecimal("payment_amount"))
+                                .orElse(
+                                        Optional.ofNullable(rs.getBigDecimal("total_amount"))
+                                                .orElse(BigDecimal.ZERO));
                 String currency = rs.getString("currency");
-                return Optional.of(new PaymentStatusResult(
-                        UUID.fromString(rs.getString("order_id")),
-                        rs.getString("order_status"),
-                        Optional.ofNullable(rs.getString("payment_id")).map(UUID::fromString),
-                        Optional.ofNullable(rs.getString("payment_status")),
-                        amount,
-                        currency == null ? "VND" : currency.trim(),
-                        Optional.ofNullable(rs.getTimestamp("paid_at", UTC)).map(Timestamp::toInstant)));
+                return Optional.of(
+                        new PaymentStatusResult(
+                                UUID.fromString(rs.getString("order_id")),
+                                rs.getString("order_status"),
+                                Optional.ofNullable(rs.getString("payment_id"))
+                                        .map(UUID::fromString),
+                                Optional.ofNullable(rs.getString("payment_status")),
+                                amount,
+                                currency == null ? "VND" : currency.trim(),
+                                Optional.ofNullable(rs.getTimestamp("paid_at", UTC))
+                                        .map(Timestamp::toInstant)));
             }
         } catch (SQLException failure) {
             throw toPaymentException(failure);
         }
     }
 
-    // ---------------------------------------------------------------- Worker: settle with the payOS result
+    // ---------------------------------------------------------------- Worker: settle with the
+    // payOS result
 
     public Optional<PaymentRecord> findPaymentByTxnRef(String txnRef) {
         if (txnRef == null || txnRef.isBlank()) return Optional.empty();
         try (Connection conn = worker.getConnection();
-             PreparedStatement ps = conn.prepareStatement(
-                     "SELECT payment_id, order_id, txn_ref, amount, payment_status FROM dbo.vw_PaymentRuntimeDetails WHERE txn_ref = ?")) {
+                PreparedStatement ps =
+                        conn.prepareStatement(
+                                "SELECT payment_id, order_id, txn_ref, amount, payment_status FROM dbo.vw_PaymentRuntimeDetails WHERE txn_ref = ?")) {
             ps.setString(1, txnRef.trim());
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) return Optional.empty();
-                return Optional.of(new PaymentRecord(UUID.fromString(rs.getString("payment_id")),
-                        UUID.fromString(rs.getString("order_id")), rs.getString("txn_ref"),
-                        rs.getBigDecimal("amount"), rs.getString("payment_status")));
+                return Optional.of(
+                        new PaymentRecord(
+                                UUID.fromString(rs.getString("payment_id")),
+                                UUID.fromString(rs.getString("order_id")),
+                                rs.getString("txn_ref"),
+                                rs.getBigDecimal("amount"),
+                                rs.getString("payment_status")));
             }
         } catch (SQLException failure) {
             throw toPaymentException(failure);
@@ -176,11 +207,13 @@ public class PaymentRepository {
      * match exactly one payment; an ambiguous match is treated as unknown rather than guessed.
      */
     public Optional<PaymentRecord> findPaymentByTxnRefPrefix(String txnRefPrefix) {
-        if (txnRefPrefix == null || !txnRefPrefix.matches("[A-Za-z0-9-]{1,90}")) return Optional.empty();
+        if (txnRefPrefix == null || !txnRefPrefix.matches("[A-Za-z0-9-]{1,90}"))
+            return Optional.empty();
         Optional<String> txnRef;
         try (Connection conn = worker.getConnection();
-             PreparedStatement ps = conn.prepareStatement(
-                     "SELECT TOP 2 txn_ref FROM dbo.vw_PaymentRuntimeDetails WHERE txn_ref LIKE ?")) {
+                PreparedStatement ps =
+                        conn.prepareStatement(
+                                "SELECT TOP 2 txn_ref FROM dbo.vw_PaymentRuntimeDetails WHERE txn_ref LIKE ?")) {
             ps.setString(1, txnRefPrefix + "%");
             ps.setQueryTimeout(15);
             try (ResultSet rs = ps.executeQuery()) {
@@ -190,22 +223,28 @@ public class PaymentRepository {
         } catch (SQLException failure) {
             throw PaymentException.unavailable();
         }
-        // The worker pool may hold a single connection: look the payment up only after closing the first one.
+        // The worker pool may hold a single connection: look the payment up only after closing the
+        // first one.
         return txnRef.flatMap(this::findPaymentByTxnRef);
     }
 
     public List<ReconcileCandidate> findPaymentsToReconcile(int limit) {
         try (Connection conn = worker.getConnection();
-             PreparedStatement ps = conn.prepareStatement(
-                     "SELECT TOP (?) id, order_id, txn_ref, amount, created_at FROM dbo.vw_PaymentsToReconcile ORDER BY created_at")) {
+                PreparedStatement ps =
+                        conn.prepareStatement(
+                                "SELECT TOP (?) id, order_id, txn_ref, amount, created_at FROM dbo.vw_PaymentsToReconcile ORDER BY created_at")) {
             ps.setInt(1, limit);
             ps.setQueryTimeout(20);
             List<ReconcileCandidate> candidates = new ArrayList<>();
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    candidates.add(new ReconcileCandidate(UUID.fromString(rs.getString("id")),
-                            UUID.fromString(rs.getString("order_id")), rs.getString("txn_ref"),
-                            rs.getBigDecimal("amount"), rs.getTimestamp("created_at", UTC).toInstant()));
+                    candidates.add(
+                            new ReconcileCandidate(
+                                    UUID.fromString(rs.getString("id")),
+                                    UUID.fromString(rs.getString("order_id")),
+                                    rs.getString("txn_ref"),
+                                    rs.getBigDecimal("amount"),
+                                    rs.getTimestamp("created_at", UTC).toInstant()));
                 }
             }
             return candidates;
@@ -215,22 +254,28 @@ public class PaymentRepository {
     }
 
     /** @param status CAPTURED, FAILED or UNKNOWN; tickets are generated only for CAPTURED */
-    public void applyPaymentResult(UUID orderId, UUID paymentId, String status, String providerReference) {
+    public void applyPaymentResult(
+            UUID orderId, UUID paymentId, String status, String providerReference) {
         Objects.requireNonNull(orderId, "orderId is required");
         Objects.requireNonNull(paymentId, "paymentId is required");
         Objects.requireNonNull(status, "status is required");
 
         String tickets = "CAPTURED".equals(status) ? newTicketIdentities(orderId, worker) : "[]";
-        // "0" is a placeholder some gateways send for cancelled transactions, not a provider identity.
-        boolean noReference = providerReference == null || providerReference.isBlank()
-                || ("0".equals(providerReference) && !"CAPTURED".equals(status));
-        String verifiedResult = new JSONObject()
-                .put("status", status)
-                .put("providerReference", noReference ? JSONObject.NULL : providerReference)
-                .toString();
+        // "0" is a placeholder some gateways send for cancelled transactions, not a provider
+        // identity.
+        boolean noReference =
+                providerReference == null
+                        || providerReference.isBlank()
+                        || ("0".equals(providerReference) && !"CAPTURED".equals(status));
+        String verifiedResult =
+                new JSONObject()
+                        .put("status", status)
+                        .put("providerReference", noReference ? JSONObject.NULL : providerReference)
+                        .toString();
 
         try (Connection conn = worker.getConnection();
-             CallableStatement cs = conn.prepareCall("{call dbo.usp_ApplyPaymentResult(?, ?, ?, ?, ?)}")) {
+                CallableStatement cs =
+                        conn.prepareCall("{call dbo.usp_ApplyPaymentResult(?, ?, ?, ?, ?)}")) {
             cs.setObject(1, orderId);
             cs.setNull(2, Types.OTHER);
             cs.setObject(3, paymentId);
@@ -248,7 +293,9 @@ public class PaymentRepository {
     private static String newTicketIdentities(UUID orderId, DataSource source) {
         int quantity = 0;
         try (Connection conn = source.getConnection();
-             PreparedStatement ps = conn.prepareStatement("SELECT quantity FROM dbo.vw_OrderTicketQuantity WHERE order_id = ?")) {
+                PreparedStatement ps =
+                        conn.prepareStatement(
+                                "SELECT quantity FROM dbo.vw_OrderTicketQuantity WHERE order_id = ?")) {
             ps.setObject(1, orderId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) quantity = rs.getInt(1);
@@ -262,9 +309,17 @@ public class PaymentRepository {
         for (int i = 0; i < quantity; i++) {
             byte[] secret = new byte[32];
             RANDOM.nextBytes(secret);
-            tickets.put(new JSONObject()
-                    .put("ticketCode", "TC-" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase())
-                    .put("qrSecretHashHex", HexFormat.of().formatHex(sha256(secret))));
+            tickets.put(
+                    new JSONObject()
+                            .put(
+                                    "ticketCode",
+                                    "TC-"
+                                            + UUID.randomUUID()
+                                                    .toString()
+                                                    .replace("-", "")
+                                                    .substring(0, 12)
+                                                    .toUpperCase())
+                            .put("qrSecretHashHex", HexFormat.of().formatHex(sha256(secret))));
         }
         return tickets.toString();
     }
@@ -292,7 +347,9 @@ public class PaymentRepository {
     }
 
     @FunctionalInterface
-    private interface SqlCall<T> { T run() throws SQLException; }
+    private interface SqlCall<T> {
+        T run() throws SQLException;
+    }
 
     /** Retries deadlocks, lock timeouts and dropped connections up to 3 times. */
     private static <T> T withRetry(SqlCall<T> call) {
@@ -316,12 +373,18 @@ public class PaymentRepository {
     private static PaymentException domainError(SQLException failure) {
         for (SQLException error = failure; error != null; error = error.getNextException()) {
             switch (error.getErrorCode()) {
-                case 51280, 51395: return PaymentException.orderNotPayable();
-                case 51281: return PaymentException.eventUnavailable();
-                case 51392: return PaymentException.orderNotFound();
-                case 51393: return PaymentException.forbidden();
-                case 51232, 51389: return PaymentException.paymentUnresolved();
-                default: break;
+                case 51280, 51395:
+                    return PaymentException.orderNotPayable();
+                case 51281:
+                    return PaymentException.eventUnavailable();
+                case 51392:
+                    return PaymentException.orderNotFound();
+                case 51393:
+                    return PaymentException.forbidden();
+                case 51232, 51389:
+                    return PaymentException.paymentUnresolved();
+                default:
+                    break;
             }
         }
         return null;
@@ -331,7 +394,9 @@ public class PaymentRepository {
         for (SQLException error = failure; error != null; error = error.getNextException()) {
             if (error.getErrorCode() == 1205 || error.getErrorCode() == 1222) return true;
             String state = error.getSQLState();
-            if (state != null && (state.startsWith("08") || state.equals("HYT00") || state.equals("HYT01"))) return true;
+            if (state != null
+                    && (state.startsWith("08") || state.equals("HYT00") || state.equals("HYT01")))
+                return true;
         }
         return false;
     }

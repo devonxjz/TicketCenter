@@ -17,10 +17,19 @@ import vn.ticketscenter.order.model.Order;
 import java.util.UUID;
 
 @Entity
-@Table(name = "tc_coupon_redemptions", schema = "dbo",
-        uniqueConstraints = @UniqueConstraint(name = "uq_coupon_redemption_order", columnNames = {"coupon_id", "order_id"}))
+@Table(
+        name = "tc_coupon_redemptions",
+        schema = "dbo",
+        uniqueConstraints =
+                @UniqueConstraint(
+                        name = "uq_coupon_redemption_order",
+                        columnNames = {"coupon_id", "order_id"}))
 public class CouponRedemption {
-    public enum Status { RESERVED, CONSUMED, RELEASED }
+    public enum Status {
+        RESERVED,
+        CONSUMED,
+        RELEASED
+    }
 
     @Id
     @Column(nullable = false, updatable = false)
@@ -42,7 +51,7 @@ public class CouponRedemption {
     @Column(nullable = false, length = 20)
     private Status status = Status.RESERVED;
 
-    protected CouponRedemption() { }
+    protected CouponRedemption() {}
 
     public CouponRedemption(Coupon coupon, Order order, User user) {
         this.id = UUID.randomUUID();
@@ -51,9 +60,23 @@ public class CouponRedemption {
         this.user = user;
     }
 
-    public UUID getId() { return id; }
-    public Coupon getCoupon() { return coupon; }
-    public Order getOrder() { return order; }
-    public User getUser() { return user; }
-    public Status getStatus() { return status; }
+    public UUID getId() {
+        return id;
+    }
+
+    public Coupon getCoupon() {
+        return coupon;
+    }
+
+    public Order getOrder() {
+        return order;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public Status getStatus() {
+        return status;
+    }
 }

@@ -9,7 +9,9 @@ import vn.ticketscenter.identity.security.SecurityContext;
 
 import java.io.IOException;
 
-@WebServlet(name = "LogoutServlet", urlPatterns = {"/api/auth/logout", "/auth/logout"})
+@WebServlet(
+        name = "LogoutServlet",
+        urlPatterns = {"/api/auth/logout", "/auth/logout"})
 public class LogoutServlet extends HttpServlet {
 
     @Override
@@ -20,7 +22,10 @@ public class LogoutServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         if (req.getSession(false) != null && !SecurityContext.validateCsrfToken(req)) {
-            HttpResponses.error(resp, HttpServletResponse.SC_FORBIDDEN, "CSRF_TOKEN_INVALID",
+            HttpResponses.error(
+                    resp,
+                    HttpServletResponse.SC_FORBIDDEN,
+                    "CSRF_TOKEN_INVALID",
                     "Yêu cầu thiếu hoặc mã CSRF không hợp lệ");
             return;
         }

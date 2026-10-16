@@ -16,30 +16,44 @@ import vn.ticketscenter.event.dao.EventCancellationRepository;
 import vn.ticketscenter.fulfillment.refund.service.RefundException;
 import vn.ticketscenter.identity.security.SecurityContext;
 
-@WebServlet(name = "CancellationReviewServlet", urlPatterns = "/api/event-cancellation-review-internal")
+@WebServlet(
+        name = "CancellationReviewServlet",
+        urlPatterns = "/api/event-cancellation-review-internal")
 public final class CancellationReviewServlet extends HttpServlet {
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
         handle(request, response);
     }
 
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
         handle(request, response);
     }
 
-    private void handle(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    private void handle(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
         request.setCharacterEncoding("UTF-8");
         response.setHeader("Cache-Control", "no-store");
         try {
-            String[] path = request.getRequestURI().substring(request.getContextPath().length()).split("/", -1);
+            String[] path =
+                    request.getRequestURI()
+                            .substring(request.getContextPath().length())
+                            .split("/", -1);
             boolean admin = path.length == 6 && path[2].equals("admin") && path[3].equals("events");
             boolean manager = path.length == 5 && path[2].equals("events");
-            if (!admin && !manager) throw new RefundException(404, "ROUTE_NOT_FOUND", "Đường dẫn không tồn tại.");
+            if (!admin && !manager)
+                throw new RefundException(404, "ROUTE_NOT_FOUND", "Đường dẫn không tồn tại.");
 
-            var actor = SecurityContext.getCurrentUser(request)
-                    .orElseThrow(() -> new RefundException(401, "AUTH_REQUIRED", "Cần đăng nhập."));
-            if (admin && !actor.isAdmin()) throw new RefundException(403, "ADMIN_REQUIRED", "Cần quyền quản trị viên.");
+            var actor =
+                    SecurityContext.getCurrentUser(request)
+                            .orElseThrow(
+                                    () ->
+                                            new RefundException(
+                                                    401, "AUTH_REQUIRED", "Cần đăng nhập."));
+            if (admin && !actor.isAdmin())
+                throw new RefundException(403, "ADMIN_REQUIRED", "Cần quyền quản trị viên.");
 
             String endpoint = path[path.length - 1];
             String action = action(request.getMethod(), endpoint);
@@ -49,22 +63,32 @@ public final class CancellationReviewServlet extends HttpServlet {
             if (!action.equals("READ")) {
                 key = EventCancellationWeb.mutation(request);
                 if (action.equals("APPROVE")) {
-                    if (!EventCancellationWeb.readBody(request).strip().equals("{}")) throw EventCancellationWeb.invalid();
+                    if (!EventCancellationWeb.readBody(request).strip().equals("{}"))
+                        throw EventCancellationWeb.invalid();
                 } else {
                     reason = EventCancellationWeb.body(request).reason();
                 }
             }
 
-            Object configured = request.getServletContext().getAttribute(PersistenceListener.REGISTRY_ATTRIBUTE);
+            Object configured =
+                    request.getServletContext()
+                            .getAttribute(PersistenceListener.REGISTRY_ATTRIBUTE);
             if (!(configured instanceof PersistenceRegistry registry)) {
-                throw new RefundException(503, "DATABASE_UNAVAILABLE", "Hệ thống hủy chưa sẵn sàng.");
+                throw new RefundException(
+                        503, "DATABASE_UNAVAILABLE", "Hệ thống hủy chưa sẵn sàng.");
             }
             var cache = new CancellationProgressCacheHelper();
-            var service = new CancellationReviewService(new CancellationReviewRepository(registry.transactionManager()), id -> {
-                // The service invokes this after approval commits.
-                var projection = new EventCancellationRepository(registry.transactionManager()).progress(actor, id);
-                cache.cancelled(projection);
-            });
+            var service =
+                    new CancellationReviewService(
+                            new CancellationReviewRepository(registry.transactionManager()),
+                            id -> {
+                                // The service invokes this after approval commits.
+                                var projection =
+                                        new EventCancellationRepository(
+                                                        registry.transactionManager())
+                                                .progress(actor, id);
+                                cache.cancelled(projection);
+                            });
             HttpResponses.data(response, service.execute(actor, eventId, action, reason, key));
         } catch (RuntimeException failure) {
             EventCancellationWeb.error(response, failure);
@@ -72,13 +96,17 @@ public final class CancellationReviewServlet extends HttpServlet {
     }
 
     private static String action(String method, String endpoint) {
-        String action = method.equals("GET") ? "READ" : switch (endpoint) {
-            case "cancellation-request" -> "REQUEST";
-            case "cancellation-approve" -> "APPROVE";
-            case "cancellation-reject" -> "REJECT";
-            default -> throw EventCancellationWeb.invalid();
-        };
-        if ((action.equals("READ") || action.equals("REQUEST")) && !endpoint.equals("cancellation-request")) {
+        String action =
+                method.equals("GET")
+                        ? "READ"
+                        : switch (endpoint) {
+                            case "cancellation-request" -> "REQUEST";
+                            case "cancellation-approve" -> "APPROVE";
+                            case "cancellation-reject" -> "REJECT";
+                            default -> throw EventCancellationWeb.invalid();
+                        };
+        if ((action.equals("READ") || action.equals("REQUEST"))
+                && !endpoint.equals("cancellation-request")) {
             throw EventCancellationWeb.invalid();
         }
         return action;

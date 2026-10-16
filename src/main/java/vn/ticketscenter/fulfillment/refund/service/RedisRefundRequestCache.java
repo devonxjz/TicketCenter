@@ -43,7 +43,7 @@ public final class RedisRefundRequestCache implements RefundRequestCache {
             try (var redis = connections.get()) {
                 redis.eval(
                         "if redis.call('get',KEYS[1]) == ARGV[1] then return"
-                            + " redis.call('del',KEYS[1]) else return 0 end",
+                                + " redis.call('del',KEYS[1]) else return 0 end",
                         List.of(key),
                         List.of(token));
             } catch (RuntimeException ignored) {

@@ -9,5 +9,7 @@ public final class CheckInException extends AppException {
         super(httpStatus, code, message);
     }
 
-    public int httpStatus() { return status(); }
+    public int httpStatus() {
+        return status();
+    }
 }

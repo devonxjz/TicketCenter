@@ -27,65 +27,110 @@ public final class HoldRepository {
             requireVisibleEvent(create.request().eventId());
             JSONArray selections = new JSONArray();
             for (HoldSelection selection : create.request().selections())
-                selections.put(new JSONObject().put("zoneId", selection.zoneId().toString())
-                        .put("seatId", selection.seatId() == null ? JSONObject.NULL : selection.seatId().toString())
-                        .put("quantity", selection.quantity()));
-            return call(buyer, "EXEC dbo.usp_CreateHoldRequest ?,?,?,?,?,?", rows -> receipt(rows, command),
-                    actor.id(), actor.authVersion(), command.key(), command.fingerprint(),
-                    create.request().eventId(), selections.toString());
+                selections.put(
+                        new JSONObject()
+                                .put("zoneId", selection.zoneId().toString())
+                                .put(
+                                        "seatId",
+                                        selection.seatId() == null
+                                                ? JSONObject.NULL
+                                                : selection.seatId().toString())
+                                .put("quantity", selection.quantity()));
+            return call(
+                    buyer,
+                    "EXEC dbo.usp_CreateHoldRequest ?,?,?,?,?,?",
+                    rows -> receipt(rows, command),
+                    actor.id(),
+                    actor.authVersion(),
+                    command.key(),
+                    command.fingerprint(),
+                    create.request().eventId(),
+                    selections.toString());
         }
         HoldCommand.Cancel cancel = (HoldCommand.Cancel) command;
-        return call(buyer, "EXEC dbo.usp_CancelHoldRequest ?,?,?,?,?", rows -> receipt(rows, command),
-                actor.id(), actor.authVersion(), command.key(), command.fingerprint(), cancel.holdId());
+        return call(
+                buyer,
+                "EXEC dbo.usp_CancelHoldRequest ?,?,?,?,?",
+                rows -> receipt(rows, command),
+                actor.id(),
+                actor.authVersion(),
+                command.key(),
+                command.fingerprint(),
+                cancel.holdId());
     }
 
     public CurrentHold current(HoldActor actor) {
-        CurrentHold current = call(buyer, "EXEC dbo.usp_ReadActiveHold ?,?", rows -> {
-            String body = payload(rows);
-            JSONObject root = new JSONObject(body);
-            Instant serverTime = Instant.parse(root.getString("serverTime"));
-            if (root.isNull("hold")) return new CurrentHold(body, Optional.empty());
-            JSONObject hold = root.getJSONObject("hold");
-            if (!"ACTIVE".equals(hold.getString("status"))) throw HoldException.unavailable();
-            Instant expires = Instant.parse(hold.getString("expiresAt"));
-            if (!serverTime.isBefore(expires)) throw HoldException.unavailable();
-            List<ActiveHoldProjection.Item> items = new ArrayList<>();
-            JSONArray array = hold.getJSONArray("items");
-            for (int i = 0; i < array.length(); i++) {
-                JSONObject item = array.getJSONObject(i);
-                items.add(new ActiveHoldProjection.Item(id(item, "zoneId"),
-                        item.isNull("seatId") ? null : id(item, "seatId"), item.getInt("quantity"),
-                        new BigDecimal(item.getString("unitPrice"))));
-            }
-            return new CurrentHold(body, Optional.of(new ActiveHoldProjection(id(hold, "id"),
-                    actor.id(), id(hold, "eventId"), expires, items)));
-        }, actor.id(), actor.authVersion());
+        CurrentHold current =
+                call(
+                        buyer,
+                        "EXEC dbo.usp_ReadActiveHold ?,?",
+                        rows -> {
+                            String body = payload(rows);
+                            JSONObject root = new JSONObject(body);
+                            Instant serverTime = Instant.parse(root.getString("serverTime"));
+                            if (root.isNull("hold")) return new CurrentHold(body, Optional.empty());
+                            JSONObject hold = root.getJSONObject("hold");
+                            if (!"ACTIVE".equals(hold.getString("status")))
+                                throw HoldException.unavailable();
+                            Instant expires = Instant.parse(hold.getString("expiresAt"));
+                            if (!serverTime.isBefore(expires)) throw HoldException.unavailable();
+                            List<ActiveHoldProjection.Item> items = new ArrayList<>();
+                            JSONArray array = hold.getJSONArray("items");
+                            for (int i = 0; i < array.length(); i++) {
+                                JSONObject item = array.getJSONObject(i);
+                                items.add(
+                                        new ActiveHoldProjection.Item(
+                                                id(item, "zoneId"),
+                                                item.isNull("seatId") ? null : id(item, "seatId"),
+                                                item.getInt("quantity"),
+                                                new BigDecimal(item.getString("unitPrice"))));
+                            }
+                            return new CurrentHold(
+                                    body,
+                                    Optional.of(
+                                            new ActiveHoldProjection(
+                                                    id(hold, "id"),
+                                                    actor.id(),
+                                                    id(hold, "eventId"),
+                                                    expires,
+                                                    items)));
+                        },
+                        actor.id(),
+                        actor.authVersion());
         // Release the procedure connection before acquiring one for the visibility read.
-        if (current.projection().isPresent()) requireVisibleEvent(current.projection().orElseThrow().eventId());
+        if (current.projection().isPresent())
+            requireVisibleEvent(current.projection().orElseThrow().eventId());
         return current;
     }
 
     public String options(HoldActor actor, UUID eventId) {
         requireVisibleEvent(eventId);
-        return call(buyer, "EXEC dbo.usp_ReadHoldOptions ?,?,?", rows -> {
-            String body = rows.getString("response_payload");
-            if (body == null) throw HoldException.unavailable();
-            new JSONObject(body);
-            return body;
-        },
-                actor.id(), actor.authVersion(), eventId);
+        return call(
+                buyer,
+                "EXEC dbo.usp_ReadHoldOptions ?,?,?",
+                rows -> {
+                    String body = rows.getString("response_payload");
+                    if (body == null) throw HoldException.unavailable();
+                    new JSONObject(body);
+                    return body;
+                },
+                actor.id(),
+                actor.authVersion(),
+                eventId);
     }
 
     private void requireVisibleEvent(UUID eventId) {
         if (ServerConfig.isDemoData()) return;
         try (Connection connection = buyer.getConnection();
-             PreparedStatement statement = connection.prepareStatement(
-                     "SELECT e.event_id FROM dbo.vw_PublicEvents e WHERE e.event_id=? AND "
-                             + RealEventVisibility.predicate("e"))) {
+                PreparedStatement statement =
+                        connection.prepareStatement(
+                                "SELECT e.event_id FROM dbo.vw_PublicEvents e WHERE e.event_id=? AND "
+                                        + RealEventVisibility.predicate("e"))) {
             statement.setQueryTimeout(5);
             statement.setString(1, eventId.toString());
             try (ResultSet rows = statement.executeQuery()) {
-                if (!rows.next()) throw new HoldException(404, "NOT_FOUND", "Hold or Event was not found.");
+                if (!rows.next())
+                    throw new HoldException(404, "NOT_FOUND", "Hold or Event was not found.");
             }
         } catch (SQLException failure) {
             throw HoldException.unavailable();
@@ -93,16 +138,25 @@ public final class HoldRepository {
     }
 
     public List<HoldMutationReceipt.Change> expire(int batchSize) {
-        if (batchSize < 1 || batchSize > 100) throw new IllegalArgumentException("Invalid expiry batch size");
-        return call(worker, "EXEC dbo.usp_ExpireHolds ?", rows -> changes(rows.getString("changes_payload")), batchSize);
+        if (batchSize < 1 || batchSize > 100)
+            throw new IllegalArgumentException("Invalid expiry batch size");
+        return call(
+                worker,
+                "EXEC dbo.usp_ExpireHolds ?",
+                rows -> changes(rows.getString("changes_payload")),
+                batchSize);
     }
 
-    private static HoldMutationReceipt receipt(ResultSet rows, HoldCommand command) throws SQLException {
+    private static HoldMutationReceipt receipt(ResultSet rows, HoldCommand command)
+            throws SQLException {
         String body = payload(rows);
         JSONObject receipt = new JSONObject(body);
         String expected = command instanceof HoldCommand.Create ? "CREATED" : "CANCELLED";
         if (!expected.equals(receipt.getString("outcome"))) throw HoldException.unavailable();
-        return new HoldMutationReceipt(command.httpStatus(), body, rows.getBoolean("replayed"),
+        return new HoldMutationReceipt(
+                command.httpStatus(),
+                body,
+                rows.getBoolean("replayed"),
                 changes(rows.getString("changes_payload")));
     }
 
@@ -119,16 +173,24 @@ public final class HoldRepository {
         List<HoldMutationReceipt.Change> changes = new ArrayList<>();
         for (int i = 0; i < array.length(); i++) {
             JSONObject change = array.getJSONObject(i);
-            changes.add(new HoldMutationReceipt.Change(id(change, "actorId"), id(change, "eventId"),
-                    id(change, "holdId"), change.getLong("version")));
+            changes.add(
+                    new HoldMutationReceipt.Change(
+                            id(change, "actorId"),
+                            id(change, "eventId"),
+                            id(change, "holdId"),
+                            change.getLong("version")));
         }
         return List.copyOf(changes);
     }
 
-    private static UUID id(JSONObject value, String key) { return UUID.fromString(value.getString(key)); }
+    private static UUID id(JSONObject value, String key) {
+        return UUID.fromString(value.getString(key));
+    }
 
     @FunctionalInterface
-    private interface Read<T> { T read(ResultSet rows) throws SQLException; }
+    private interface Read<T> {
+        T read(ResultSet rows) throws SQLException;
+    }
 
     private static <T> T call(DataSource source, String sql, Read<T> read, Object... args) {
         for (int attempt = 0; attempt < 3; attempt++) {
@@ -137,7 +199,8 @@ public final class HoldRepository {
                 try (PreparedStatement statement = connection.prepareStatement(sql)) {
                     statement.setQueryTimeout(20);
                     for (int i = 0; i < args.length; i++)
-                        statement.setObject(i + 1, args[i] instanceof UUID id ? id.toString() : args[i]);
+                        statement.setObject(
+                                i + 1, args[i] instanceof UUID id ? id.toString() : args[i]);
                     try (ResultSet rows = statement.executeQuery()) {
                         if (!rows.next()) throw HoldException.unavailable();
                         return read.read(rows);
@@ -161,22 +224,42 @@ public final class HoldRepository {
             int code = error.getErrorCode();
             if (code == 1205 || code == 1222 || code == 51309) return true;
             String state = error.getSQLState();
-            if (state != null && (state.startsWith("08") || state.equals("HYT00") || state.equals("HYT01"))) return true;
+            if (state != null
+                    && (state.startsWith("08") || state.equals("HYT00") || state.equals("HYT01")))
+                return true;
         }
         return false;
     }
 
     private static HoldException domainFailure(SQLException failure) {
         for (SQLException error = failure; error != null; error = error.getNextException()) {
-            HoldException mapped = switch (error.getErrorCode()) {
-                case 51301 -> new HoldException(401, "UNAUTHENTICATED", "A current session is required.");
-                case 51224, 51303 -> new HoldException(403, "FORBIDDEN", "An active verified account is required.");
-                case 51270, 51272, 51304 -> new HoldException(404, "NOT_FOUND", "Hold or Event was not found.");
-                case 51308 -> new HoldException(409, "IDEMPOTENCY_CONFLICT", "Use a new key for a changed command.");
-                case 51225, 51226, 51228, 51229, 51306 -> new HoldException(409, "HOLD_CONFLICT", "Refresh your Hold and available tickets.");
-                case 51220, 51221, 51222, 51223, 51227, 51300 -> new HoldException(400, "INVALID_REQUEST", "Invalid Hold selection.");
-                default -> null;
-            };
+            HoldException mapped =
+                    switch (error.getErrorCode()) {
+                        case 51301 ->
+                                new HoldException(
+                                        401, "UNAUTHENTICATED", "A current session is required.");
+                        case 51224, 51303 ->
+                                new HoldException(
+                                        403,
+                                        "FORBIDDEN",
+                                        "An active verified account is required.");
+                        case 51270, 51272, 51304 ->
+                                new HoldException(404, "NOT_FOUND", "Hold or Event was not found.");
+                        case 51308 ->
+                                new HoldException(
+                                        409,
+                                        "IDEMPOTENCY_CONFLICT",
+                                        "Use a new key for a changed command.");
+                        case 51225, 51226, 51228, 51229, 51306 ->
+                                new HoldException(
+                                        409,
+                                        "HOLD_CONFLICT",
+                                        "Refresh your Hold and available tickets.");
+                        case 51220, 51221, 51222, 51223, 51227, 51300 ->
+                                new HoldException(
+                                        400, "INVALID_REQUEST", "Invalid Hold selection.");
+                        default -> null;
+                    };
             if (mapped != null) return mapped;
         }
         return null;

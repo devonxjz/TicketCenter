@@ -19,8 +19,7 @@ public record TicketSummaryDto(
         long paidAmount,
         String status,
         Instant issuedAt,
-        long version
-) {
+        long version) {
     public TicketSummaryDto {
         Objects.requireNonNull(id, "id is required");
         Objects.requireNonNull(orderId, "orderId is required");
@@ -30,22 +29,49 @@ public record TicketSummaryDto(
     }
 
     public String toJson() {
-        return "{\"id\":\"" + id + "\","
-                + "\"orderId\":\"" + orderId + "\","
-                + "\"ticketCode\":\"" + escape(ticketCode) + "\","
-                + "\"eventTitle\":\"" + escape(eventTitle) + "\","
-                + "\"venueName\":\"" + escape(venueName != null ? venueName : "") + "\","
-                + "\"startTime\":\"" + (startTime != null ? startTime.toString() : "") + "\","
-                + "\"zoneName\":\"" + escape(zoneName != null ? zoneName : "") + "\","
-                + "\"seatLabel\":\"" + escape(seatLabel != null ? seatLabel : "") + "\","
-                + "\"paidAmount\":" + paidAmount + ","
-                + "\"status\":\"" + escape(status) + "\","
-                + "\"issuedAt\":\"" + (issuedAt != null ? issuedAt.toString() : "") + "\","
-                + "\"version\":" + version + "}";
+        return "{\"id\":\""
+                + id
+                + "\","
+                + "\"orderId\":\""
+                + orderId
+                + "\","
+                + "\"ticketCode\":\""
+                + escape(ticketCode)
+                + "\","
+                + "\"eventTitle\":\""
+                + escape(eventTitle)
+                + "\","
+                + "\"venueName\":\""
+                + escape(venueName != null ? venueName : "")
+                + "\","
+                + "\"startTime\":\""
+                + (startTime != null ? startTime.toString() : "")
+                + "\","
+                + "\"zoneName\":\""
+                + escape(zoneName != null ? zoneName : "")
+                + "\","
+                + "\"seatLabel\":\""
+                + escape(seatLabel != null ? seatLabel : "")
+                + "\","
+                + "\"paidAmount\":"
+                + paidAmount
+                + ","
+                + "\"status\":\""
+                + escape(status)
+                + "\","
+                + "\"issuedAt\":\""
+                + (issuedAt != null ? issuedAt.toString() : "")
+                + "\","
+                + "\"version\":"
+                + version
+                + "}";
     }
 
     private static String escape(String s) {
         if (s == null) return "";
-        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r");
+        return s.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r");
     }
 }

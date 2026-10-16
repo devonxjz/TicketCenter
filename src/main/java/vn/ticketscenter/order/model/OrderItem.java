@@ -46,10 +46,16 @@ public class OrderItem extends BaseEntity {
     @OneToMany(mappedBy = "orderItem", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Ticket> tickets = new ArrayList<>();
 
-    protected OrderItem() { }
+    protected OrderItem() {}
 
-    public OrderItem(Order order, Zone zone, Seat seat, String zoneNameSnapshot,
-                     String seatLabelSnapshot, int quantity, long unitPrice) {
+    public OrderItem(
+            Order order,
+            Zone zone,
+            Seat seat,
+            String zoneNameSnapshot,
+            String seatLabelSnapshot,
+            int quantity,
+            long unitPrice) {
         this.order = order;
         this.zone = zone;
         this.seat = seat;
@@ -59,13 +65,39 @@ public class OrderItem extends BaseEntity {
         this.unitPrice = unitPrice;
     }
 
-    public Order getOrder() { return order; }
-    public Zone getZone() { return zone; }
-    public Seat getSeat() { return seat; }
-    public String getZoneNameSnapshot() { return zoneNameSnapshot; }
-    public String getSeatLabelSnapshot() { return seatLabelSnapshot; }
-    public int getQuantity() { return quantity; }
-    public long getUnitPrice() { return unitPrice; }
-    public long lineTotal() { return unitPrice * quantity; }
-    public List<Ticket> getTickets() { return List.copyOf(tickets); }
+    public Order getOrder() {
+        return order;
+    }
+
+    public Zone getZone() {
+        return zone;
+    }
+
+    public Seat getSeat() {
+        return seat;
+    }
+
+    public String getZoneNameSnapshot() {
+        return zoneNameSnapshot;
+    }
+
+    public String getSeatLabelSnapshot() {
+        return seatLabelSnapshot;
+    }
+
+    public int getQuantity() {
+        return quantity;
+    }
+
+    public long getUnitPrice() {
+        return unitPrice;
+    }
+
+    public long lineTotal() {
+        return unitPrice * quantity;
+    }
+
+    public List<Ticket> getTickets() {
+        return List.copyOf(tickets);
+    }
 }

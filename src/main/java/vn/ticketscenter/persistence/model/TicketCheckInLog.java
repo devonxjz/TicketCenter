@@ -46,9 +46,10 @@ public class TicketCheckInLog {
     @Column(name = "failure_reason", length = 2000)
     private String failureReason;
 
-    protected TicketCheckInLog() { }
+    protected TicketCheckInLog() {}
 
-    public TicketCheckInLog(Event event, Ticket ticket, User actor, CheckInResult result, Instant scannedAt) {
+    public TicketCheckInLog(
+            Event event, Ticket ticket, User actor, CheckInResult result, Instant scannedAt) {
         this.id = UUID.randomUUID();
         this.event = event;
         this.ticket = ticket;
@@ -57,11 +58,31 @@ public class TicketCheckInLog {
         this.scannedAt = scannedAt;
     }
 
-    public UUID getId() { return id; }
-    public Event getEvent() { return event; }
-    public Ticket getTicket() { return ticket; }
-    public User getActor() { return actor; }
-    public CheckInResult getResult() { return result; }
-    public Instant getScannedAt() { return scannedAt; }
-    public String getFailureReason() { return failureReason; }
+    public UUID getId() {
+        return id;
+    }
+
+    public Event getEvent() {
+        return event;
+    }
+
+    public Ticket getTicket() {
+        return ticket;
+    }
+
+    public User getActor() {
+        return actor;
+    }
+
+    public CheckInResult getResult() {
+        return result;
+    }
+
+    public Instant getScannedAt() {
+        return scannedAt;
+    }
+
+    public String getFailureReason() {
+        return failureReason;
+    }
 }

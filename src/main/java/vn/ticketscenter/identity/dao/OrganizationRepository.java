@@ -12,7 +12,8 @@ import java.util.UUID;
 public class OrganizationRepository {
 
     /** JPQL enum literal; kept as a constant so queries stay within the line limit. */
-    private static final String PENDING = "vn.ticketscenter.identity.model.OrganizationStatus.PENDING_APPROVAL";
+    private static final String PENDING =
+            "vn.ticketscenter.identity.model.OrganizationStatus.PENDING_APPROVAL";
 
     public Optional<Organization> findById(EntityManager em, UUID id) {
         Objects.requireNonNull(em, "EntityManager must not be null.");
@@ -39,20 +40,23 @@ public class OrganizationRepository {
         if (requesterId == null) {
             return false;
         }
-        Long count = em.createQuery(
-                        "SELECT COUNT(o) FROM Organization o WHERE o.requester.id = :requesterId AND o.status = "
-                                + PENDING,
-                        Long.class)
-                .setParameter("requesterId", requesterId)
-                .getSingleResult();
+        Long count =
+                em.createQuery(
+                                "SELECT COUNT(o) FROM Organization o WHERE o.requester.id = :requesterId AND o.status = "
+                                        + PENDING,
+                                Long.class)
+                        .setParameter("requesterId", requesterId)
+                        .getSingleResult();
         return count != null && count > 0;
     }
 
-    public List<Organization> findByStatus(EntityManager em, OrganizationStatus status, int offset, int limit) {
+    public List<Organization> findByStatus(
+            EntityManager em, OrganizationStatus status, int offset, int limit) {
         Objects.requireNonNull(em, "EntityManager must not be null.");
-        String q = status != null
-                ? "SELECT o FROM Organization o WHERE o.status = :status ORDER BY o.submittedAt DESC, o.createdAt DESC"
-                : "SELECT o FROM Organization o ORDER BY o.submittedAt DESC, o.createdAt DESC";
+        String q =
+                status != null
+                        ? "SELECT o FROM Organization o WHERE o.status = :status ORDER BY o.submittedAt DESC, o.createdAt DESC"
+                        : "SELECT o FROM Organization o ORDER BY o.submittedAt DESC, o.createdAt DESC";
         var query = em.createQuery(q, Organization.class);
         if (status != null) {
             query.setParameter("status", status);
@@ -68,9 +72,10 @@ public class OrganizationRepository {
 
     public long countByStatus(EntityManager em, OrganizationStatus status) {
         Objects.requireNonNull(em, "EntityManager must not be null.");
-        String q = status != null
-                ? "SELECT COUNT(o) FROM Organization o WHERE o.status = :status"
-                : "SELECT COUNT(o) FROM Organization o";
+        String q =
+                status != null
+                        ? "SELECT COUNT(o) FROM Organization o WHERE o.status = :status"
+                        : "SELECT COUNT(o) FROM Organization o";
         var query = em.createQuery(q, Long.class);
         if (status != null) {
             query.setParameter("status", status);

@@ -21,7 +21,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "tc_orders", schema = "dbo",
+@Table(
+        name = "tc_orders",
+        schema = "dbo",
         uniqueConstraints = @UniqueConstraint(name = "uq_order_code", columnNames = "order_code"))
 public class Order extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -69,10 +71,16 @@ public class Order extends BaseEntity {
     @OneToMany(mappedBy = "order")
     private List<Payment> payments = new ArrayList<>();
 
-    protected Order() { }
+    protected Order() {}
 
-    public Order(User buyer, Event event, TicketHold hold, String orderCode,
-                 long subtotalAmount, long discountAmount, long totalAmount) {
+    public Order(
+            User buyer,
+            Event event,
+            TicketHold hold,
+            String orderCode,
+            long subtotalAmount,
+            long discountAmount,
+            long totalAmount) {
         this.buyer = buyer;
         this.event = event;
         this.hold = hold;
@@ -82,16 +90,51 @@ public class Order extends BaseEntity {
         this.totalAmount = totalAmount;
     }
 
-    public User getBuyer() { return buyer; }
-    public Event getEvent() { return event; }
-    public TicketHold getHold() { return hold; }
-    public Coupon getCoupon() { return coupon; }
-    public Payment getAcceptedPayment() { return acceptedPayment; }
-    public String getOrderCode() { return orderCode; }
-    public OrderStatus getStatus() { return status; }
-    public long getDiscountAmount() { return discountAmount; }
-    public long getSubtotalAmount() { return subtotalAmount; }
-    public long getTotalAmount() { return totalAmount; }
-    public Instant getPaidAt() { return paidAt; }
-    public List<OrderItem> getItems() { return List.copyOf(items); }
+    public User getBuyer() {
+        return buyer;
+    }
+
+    public Event getEvent() {
+        return event;
+    }
+
+    public TicketHold getHold() {
+        return hold;
+    }
+
+    public Coupon getCoupon() {
+        return coupon;
+    }
+
+    public Payment getAcceptedPayment() {
+        return acceptedPayment;
+    }
+
+    public String getOrderCode() {
+        return orderCode;
+    }
+
+    public OrderStatus getStatus() {
+        return status;
+    }
+
+    public long getDiscountAmount() {
+        return discountAmount;
+    }
+
+    public long getSubtotalAmount() {
+        return subtotalAmount;
+    }
+
+    public long getTotalAmount() {
+        return totalAmount;
+    }
+
+    public Instant getPaidAt() {
+        return paidAt;
+    }
+
+    public List<OrderItem> getItems() {
+        return List.copyOf(items);
+    }
 }

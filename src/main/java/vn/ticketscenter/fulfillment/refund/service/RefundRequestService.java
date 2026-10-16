@@ -37,7 +37,7 @@ public class RefundRequestService {
         try {
             lease = cache.lock(request.ticketIds());
         } catch (RuntimeException unavailable) {
-            lease = () -> { };
+            lease = () -> {};
         }
         try {
             var result = store.create(actor, request, key);
@@ -50,7 +50,8 @@ public class RefundRequestService {
         } finally {
             try {
                 lease.close();
-            } catch (RuntimeException ignored) { }
+            } catch (RuntimeException ignored) {
+            }
         }
     }
 
@@ -68,7 +69,8 @@ public class RefundRequestService {
 
     private void authorize(UserPrincipal actor) {
         if (actor == null || !store.active(actor)) {
-            throw new RefundException(401, "SESSION_EXPIRED", "Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn.");
+            throw new RefundException(
+                    401, "SESSION_EXPIRED", "Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn.");
         }
     }
 }

@@ -28,7 +28,9 @@ public final class CouponAdminRuntime implements ServletContextListener {
                 manager = pool("manager");
                 admin = pool("admin");
                 var redis = RedisClientProvider.getInstance();
-                var repository = new CouponAdminRepository(ConnectionBudgets.wrap(manager), ConnectionBudgets.wrap(admin));
+                var repository =
+                        new CouponAdminRepository(
+                                ConnectionBudgets.wrap(manager), ConnectionBudgets.wrap(admin));
                 var service = new CouponAdminService(repository, redis::getResource);
                 context.setAttribute(MANAGER_POOL, manager);
                 context.setAttribute(ADMIN_POOL, admin);

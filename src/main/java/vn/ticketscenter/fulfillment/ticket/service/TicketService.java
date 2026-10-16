@@ -18,7 +18,8 @@ public class TicketService {
     private final SignedTicketQrSigner qrSigner;
     private final TicketCache cache;
 
-    public TicketService(TicketRepository repository, SignedTicketQrSigner qrSigner, TicketCache cache) {
+    public TicketService(
+            TicketRepository repository, SignedTicketQrSigner qrSigner, TicketCache cache) {
         this.repository = Objects.requireNonNull(repository, "repository is required");
         this.qrSigner = Objects.requireNonNull(qrSigner, "qrSigner is required");
         this.cache = Objects.requireNonNull(cache, "cache is required");
@@ -70,12 +71,16 @@ public class TicketService {
 
         // Kiểm tra cache hoặc nạp vào cache
         return cache.getTicketDetail(ticketId)
-                .filter(cached -> cached.version() == record.version() && cached.status().equals(record.status()))
-                .orElseGet(() -> {
-            TicketDetailDto dto = record.toDetailDto();
-            cache.putTicketDetail(dto);
-            return dto;
-        });
+                .filter(
+                        cached ->
+                                cached.version() == record.version()
+                                        && cached.status().equals(record.status()))
+                .orElseGet(
+                        () -> {
+                            TicketDetailDto dto = record.toDetailDto();
+                            cache.putTicketDetail(dto);
+                            return dto;
+                        });
     }
 
     /**
@@ -88,7 +93,8 @@ public class TicketService {
         return getTicketQrPng(actorId, -1, ticketId, width, height);
     }
 
-    public byte[] getTicketQrPng(UUID actorId, int authVersion, UUID ticketId, int width, int height) {
+    public byte[] getTicketQrPng(
+            UUID actorId, int authVersion, UUID ticketId, int width, int height) {
         if (actorId == null) throw TicketException.unauthenticated();
         if (ticketId == null) throw TicketException.badRequest("ticketId is required");
 

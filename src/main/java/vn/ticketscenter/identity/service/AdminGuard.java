@@ -14,7 +14,8 @@ public class AdminGuard {
     private final UserRepository userRepository;
 
     public AdminGuard(UserRepository userRepository) {
-        this.userRepository = Objects.requireNonNull(userRepository, "userRepository must not be null.");
+        this.userRepository =
+                Objects.requireNonNull(userRepository, "userRepository must not be null.");
     }
 
     /**
@@ -23,8 +24,13 @@ public class AdminGuard {
      * @throws SecurityException when the user is not an admin
      */
     public void requireAdmin(EntityManager em, UUID userId, String action) {
-        User user = userRepository.findById(em, userId)
-                .orElseThrow(() -> new IllegalArgumentException("USER_NOT_FOUND: Người dùng không tồn tại"));
+        User user =
+                userRepository
+                        .findById(em, userId)
+                        .orElseThrow(
+                                () ->
+                                        new IllegalArgumentException(
+                                                "USER_NOT_FOUND: Người dùng không tồn tại"));
         if (user.getPlatformRole() != PlatformRole.ADMIN) {
             throw new SecurityException("FORBIDDEN: Chỉ quản trị viên mới có quyền " + action);
         }

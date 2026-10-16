@@ -71,7 +71,8 @@ public final class RequestFields {
         try {
             return JsonObjectParser.parse(request.getReader());
         } catch (IOException | RuntimeException invalid) {
-            throw new IdentityException(IdentityError.INVALID_JSON, "Định dạng JSON không hợp lệ", invalid);
+            throw new IdentityException(
+                    IdentityError.INVALID_JSON, "Định dạng JSON không hợp lệ", invalid);
         }
     }
 }

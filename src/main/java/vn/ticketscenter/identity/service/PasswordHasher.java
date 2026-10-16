@@ -22,8 +22,13 @@ public class PasswordHasher {
         byte[] salt = new byte[16];
         RANDOM.nextBytes(salt);
         byte[] hash = pbkdf2(password.toCharArray(), salt, ITERATIONS);
-        return PREFIX + ":" + ITERATIONS + ":" + Base64.getEncoder().encodeToString(salt)
-                + ":" + Base64.getEncoder().encodeToString(hash);
+        return PREFIX
+                + ":"
+                + ITERATIONS
+                + ":"
+                + Base64.getEncoder().encodeToString(salt)
+                + ":"
+                + Base64.getEncoder().encodeToString(hash);
     }
 
     public boolean verify(String password, String storedHash) {
@@ -45,7 +50,8 @@ public class PasswordHasher {
             } else {
                 return false;
             }
-            return java.security.MessageDigest.isEqual(hash, pbkdf2(password.toCharArray(), salt, iterations));
+            return java.security.MessageDigest.isEqual(
+                    hash, pbkdf2(password.toCharArray(), salt, iterations));
         } catch (IllegalArgumentException malformed) {
             return false;
         }
@@ -57,7 +63,9 @@ public class PasswordHasher {
         String[] parts = storedHash.split(":");
         if (parts.length == 2) return true;
         try {
-            return parts.length == 4 && PREFIX.equals(parts[0]) && Integer.parseInt(parts[1]) < ITERATIONS;
+            return parts.length == 4
+                    && PREFIX.equals(parts[0])
+                    && Integer.parseInt(parts[1]) < ITERATIONS;
         } catch (NumberFormatException malformed) {
             return false;
         }

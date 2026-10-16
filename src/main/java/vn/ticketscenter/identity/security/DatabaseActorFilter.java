@@ -11,7 +11,7 @@ import vn.ticketscenter.config.persistence.DatabaseActorContext;
 
 import java.io.IOException;
 
-@WebFilter(urlPatterns="/*")
+@WebFilter(urlPatterns = "/*")
 public final class DatabaseActorFilter implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
@@ -20,11 +20,14 @@ public final class DatabaseActorFilter implements Filter {
     }
 
     /** Named forwards may bypass REQUEST filters; establish and restore their actor explicitly. */
-    public static void withActor(ServletRequest request, ServletResponse response, FilterChain chain)
+    public static void withActor(
+            ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
         var previous = DatabaseActorContext.current();
-        DatabaseActorContext.set(SecurityContext.getCurrentUser((HttpServletRequest) request)
-                .map(UserPrincipal::actorId).orElse(null));
+        DatabaseActorContext.set(
+                SecurityContext.getCurrentUser((HttpServletRequest) request)
+                        .map(UserPrincipal::actorId)
+                        .orElse(null));
         try {
             chain.doFilter(request, response);
         } finally {

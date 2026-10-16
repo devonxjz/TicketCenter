@@ -2,11 +2,7 @@ package vn.ticketscenter.identity.dto;
 
 import vn.ticketscenter.identity.model.OtpPurpose;
 
-public record OtpVerifyRequestDto(
-        String email,
-        OtpPurpose purpose,
-        String code
-) {
+public record OtpVerifyRequestDto(String email, OtpPurpose purpose, String code) {
     public OtpVerifyRequestDto {
         if (email == null || email.isBlank()) {
             throw new IllegalArgumentException("Email không được để trống");

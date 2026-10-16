@@ -17,8 +17,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
-
-@WebServlet(urlPatterns = {PayosConfig.WEBHOOK_PATH, PayosConfig.RETURN_PATH, PayosConfig.CANCEL_PATH})
+@WebServlet(
+        urlPatterns = {PayosConfig.WEBHOOK_PATH, PayosConfig.RETURN_PATH, PayosConfig.CANCEL_PATH})
 public class PayosCallbackServlet extends HttpServlet {
     private static final int MAX_WEBHOOK_BYTES = 64 * 1024;
     private final PaymentService suppliedService;
@@ -32,13 +32,17 @@ public class PayosCallbackServlet extends HttpServlet {
     }
 
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
         if (!PayosConfig.WEBHOOK_PATH.equals(path(request))) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
         String body = readBody(request.getInputStream());
-        PayosWebhookResult result = body == null ? PayosWebhookResult.invalidSignature() : service().processWebhook(body);
+        PayosWebhookResult result =
+                body == null
+                        ? PayosWebhookResult.invalidSignature()
+                        : service().processWebhook(body);
         response.setStatus(result.httpStatus());
         writeJson(response, result.toJson());
     }
@@ -65,11 +69,14 @@ public class PayosCallbackServlet extends HttpServlet {
         request.setAttribute("amount", result.amount());
         request.setAttribute("success", result.success());
         request.setAttribute("message", result.message());
-        request.getRequestDispatcher("/WEB-INF/views/payment/payment-result.jsp").forward(request, response);
+        request.getRequestDispatcher("/WEB-INF/views/payment/payment-result.jsp")
+                .forward(request, response);
     }
 
     private PaymentService service() {
-        return suppliedService != null ? suppliedService : PaymentRuntime.resolve(getServletContext());
+        return suppliedService != null
+                ? suppliedService
+                : PaymentRuntime.resolve(getServletContext());
     }
 
     private static String path(HttpServletRequest request) {

@@ -17,18 +17,29 @@ public class EventCheckInLogsServlet extends HttpServlet {
     public static final String EVENT_ATTRIBUTE = EventCheckInLogsServlet.class.getName() + ".event";
     private final TicketCheckInService injected;
 
-    public EventCheckInLogsServlet() { this(null); }
-    public EventCheckInLogsServlet(TicketCheckInService service) { injected = service; }
+    public EventCheckInLogsServlet() {
+        this(null);
+    }
+
+    public EventCheckInLogsServlet(TicketCheckInService service) {
+        injected = service;
+    }
 
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
         try {
             var actor = CheckInWeb.actor(request);
             var event = CheckInWeb.id((String) request.getAttribute(EVENT_ATTRIBUTE));
             int limit = pageSize(request.getParameter("pageSize"));
-            var service = injected == null ? CheckInRuntime.resolveScanner(request.getServletContext()) : injected;
-            String logs = service.recent(actor, event, limit).stream()
-                    .map(RecentCheckInLogDto::toJson).collect(Collectors.joining(",", "[", "]"));
+            var service =
+                    injected == null
+                            ? CheckInRuntime.resolveScanner(request.getServletContext())
+                            : injected;
+            String logs =
+                    service.recent(actor, event, limit).stream()
+                            .map(RecentCheckInLogDto::toJson)
+                            .collect(Collectors.joining(",", "[", "]"));
             HttpResponses.data(response, logs);
         } catch (RuntimeException exception) {
             CheckInWeb.error(response, exception);

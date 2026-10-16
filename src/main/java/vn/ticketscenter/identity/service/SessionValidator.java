@@ -17,10 +17,13 @@ public class SessionValidator {
     private final UserRepository userRepository;
     private final UserSessionCache cache;
 
-    public SessionValidator(TransactionManager transactions, UserRepository userRepository,
-                            UserSessionCache cache) {
+    public SessionValidator(
+            TransactionManager transactions,
+            UserRepository userRepository,
+            UserSessionCache cache) {
         this.transactions = Objects.requireNonNull(transactions, "transactions must not be null");
-        this.userRepository = Objects.requireNonNull(userRepository, "userRepository must not be null");
+        this.userRepository =
+                Objects.requireNonNull(userRepository, "userRepository must not be null");
         this.cache = Objects.requireNonNull(cache, "cache must not be null");
     }
 
@@ -41,9 +44,13 @@ public class SessionValidator {
             return cached.get().matches(expectedAuthVersion);
         }
 
-        User user = transactions.execute(DatabasePrincipal.AUTH,
-                em -> userRepository.findById(em, actorId).orElse(null));
-        if (user == null || user.getStatus() != UserStatus.ACTIVE || user.getAuthVersion() != expectedAuthVersion) {
+        User user =
+                transactions.execute(
+                        DatabasePrincipal.AUTH,
+                        em -> userRepository.findById(em, actorId).orElse(null));
+        if (user == null
+                || user.getStatus() != UserStatus.ACTIVE
+                || user.getAuthVersion() != expectedAuthVersion) {
             cache.evict(actorId);
             return false;
         }
@@ -56,13 +63,15 @@ public class SessionValidator {
         if (actorId == null) {
             return;
         }
-        transactions.execute(DatabasePrincipal.AUTH, em -> {
-            User user = userRepository.findById(em, actorId).orElse(null);
-            if (user != null) {
-                userRepository.updateAuthVersion(em, actorId, user.getAuthVersion() + 1);
-                cache.evict(actorId);
-            }
-            return null;
-        });
+        transactions.execute(
+                DatabasePrincipal.AUTH,
+                em -> {
+                    User user = userRepository.findById(em, actorId).orElse(null);
+                    if (user != null) {
+                        userRepository.updateAuthVersion(em, actorId, user.getAuthVersion() + 1);
+                        cache.evict(actorId);
+                    }
+                    return null;
+                });
     }
 }

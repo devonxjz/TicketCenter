@@ -15,14 +15,15 @@ public record CommissionRuleDto(
         long fixedFee,
         Instant effectiveFrom,
         Instant effectiveTo,
-        long associatedEventsCount
-) {
+        long associatedEventsCount) {
     public CommissionRuleDto {
         if (ruleId == null || organizationId == null) {
-            throw new CommissionRuleException("COMMISSION_RULE_INVALID", "Rule and organization IDs are required.");
+            throw new CommissionRuleException(
+                    "COMMISSION_RULE_INVALID", "Rule and organization IDs are required.");
         }
         if (associatedEventsCount < 0) {
-            throw new CommissionRuleException("COMMISSION_RULE_INVALID", "Associated event count must be nonnegative.");
+            throw new CommissionRuleException(
+                    "COMMISSION_RULE_INVALID", "Associated event count must be nonnegative.");
         }
         var terms = new CommissionRuleCreateDto(ratePercent, fixedFee, effectiveFrom, effectiveTo);
         ratePercent = terms.ratePercent();

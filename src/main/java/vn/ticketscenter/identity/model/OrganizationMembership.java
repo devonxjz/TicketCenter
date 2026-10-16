@@ -19,9 +19,13 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "tc_organization_memberships", schema = "dbo",
-        uniqueConstraints = @UniqueConstraint(
-                name = "uq_membership_user_org", columnNames = {"user_id", "organization_id"}))
+@Table(
+        name = "tc_organization_memberships",
+        schema = "dbo",
+        uniqueConstraints =
+                @UniqueConstraint(
+                        name = "uq_membership_user_org",
+                        columnNames = {"user_id", "organization_id"}))
 public class OrganizationMembership {
 
     @Id
@@ -51,7 +55,7 @@ public class OrganizationMembership {
     @Column(name = "version")
     private Long version;
 
-    protected OrganizationMembership() { }
+    protected OrganizationMembership() {}
 
     public OrganizationMembership(User user, Organization organization, OrganizationRole role) {
         this.user = user;
@@ -67,13 +71,39 @@ public class OrganizationMembership {
         }
     }
 
-    public UUID getId() { return id; }
-    public User getUser() { return user; }
-    public Organization getOrganization() { return organization; }
-    public OrganizationRole getRole() { return role; }
-    public void changeRole(OrganizationRole role) { this.role = role; }
-    public boolean isActive() { return active; }
-    public void setActive(boolean active) { this.active = active; }
-    public Instant getJoinedAt() { return joinedAt; }
-    public Long getVersion() { return version; }
+    public UUID getId() {
+        return id;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public Organization getOrganization() {
+        return organization;
+    }
+
+    public OrganizationRole getRole() {
+        return role;
+    }
+
+    public void changeRole(OrganizationRole role) {
+        this.role = role;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    public Instant getJoinedAt() {
+        return joinedAt;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
 }

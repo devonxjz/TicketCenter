@@ -19,14 +19,14 @@ import vn.ticketscenter.identity.service.PasswordResetService;
 
 import java.io.IOException;
 
-@WebServlet(name = "PasswordResetServlet",
+@WebServlet(
+        name = "PasswordResetServlet",
         urlPatterns = {"/api/auth/password/reset", "/auth/password/reset", "/auth/reset-password"})
 public class PasswordResetServlet extends HttpServlet {
 
     private PasswordResetService passwordResetService;
 
-    public PasswordResetServlet() {
-    }
+    public PasswordResetServlet() {}
 
     public PasswordResetServlet(PasswordResetService passwordResetService) {
         this.passwordResetService = passwordResetService;
@@ -41,7 +41,8 @@ public class PasswordResetServlet extends HttpServlet {
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
         String token = req.getParameter("token");
         if (token != null && !token.isBlank() && token.matches("^[A-Za-z0-9_.-]+$")) {
             req.setAttribute("token", token);
@@ -62,7 +63,8 @@ public class PasswordResetServlet extends HttpServlet {
             String token = fields.get("token");
             String newPassword = fields.get("newPassword");
             if (token == null || token.isBlank() || newPassword == null || newPassword.isBlank()) {
-                throw new IdentityException(IdentityError.VALIDATION_FAILED,
+                throw new IdentityException(
+                        IdentityError.VALIDATION_FAILED,
                         "Token và mật khẩu mới không được để trống");
             }
             service.resetPassword(new PasswordResetRequestDto(token, newPassword));

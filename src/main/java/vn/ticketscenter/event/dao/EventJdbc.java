@@ -115,17 +115,46 @@ final class EventJdbc {
             case 52703 -> failure(401, "SESSION_EXPIRED", "Current session is no longer valid");
             case 52704 -> failure(403, "EVENT_FORBIDDEN", "Current Manager membership is required");
             case 52705 -> failure(403, "ORGANIZATION_NOT_APPROVED", "Organization is not approved");
-            case 52706 -> failure(403, "MAINTENANCE_FORBIDDEN", "Database owner connection is required for maintenance");
-            case 52707 -> failure(409, "IDEMPOTENCY_CONFLICT", "Request key was already used for different input");
-            case 52708 -> failure(409, "REQUEST_ABORTED", "Save has been cancelled; use a new request key");
-            case 52709 -> failure(409, "REQUEST_IN_PROGRESS", "Save is still running; retry shortly");
+            case 52706 ->
+                    failure(
+                            403,
+                            "MAINTENANCE_FORBIDDEN",
+                            "Database owner connection is required for maintenance");
+            case 52707 ->
+                    failure(
+                            409,
+                            "IDEMPOTENCY_CONFLICT",
+                            "Request key was already used for different input");
+            case 52708 ->
+                    failure(
+                            409,
+                            "REQUEST_ABORTED",
+                            "Save has been cancelled; use a new request key");
+            case 52709 ->
+                    failure(409, "REQUEST_IN_PROGRESS", "Save is still running; retry shortly");
             case 52710 -> failure(400, "CATEGORY_NOT_FOUND", "Unknown category");
-            case 52711 -> failure(409, "EVENT_VERSION_CONFLICT", "Event has changed; reload before saving");
-            case 52712 -> failure(409, "EVENT_NOT_EDITABLE", "Only draft or rejected Events can be edited");
-            case 52713 -> failure(409, "EVENT_NOT_EDITABLE", "Event cover cannot be changed in this state");
+            case 52711 ->
+                    failure(
+                            409,
+                            "EVENT_VERSION_CONFLICT",
+                            "Event has changed; reload before saving");
+            case 52712 ->
+                    failure(
+                            409,
+                            "EVENT_NOT_EDITABLE",
+                            "Only draft or rejected Events can be edited");
+            case 52713 ->
+                    failure(
+                            409,
+                            "EVENT_NOT_EDITABLE",
+                            "Event cover cannot be changed in this state");
             case 52714 -> failure(409, "REQUEST_LOST", "Save intent is missing");
             case 52715 -> failure(409, "STALE_REQUEST", "Save lease has changed; retry");
-            case 52716 -> failure(502, "IMAGE_METADATA_INVALID", "Image provider returned invalid metadata");
+            case 52716 ->
+                    failure(
+                            502,
+                            "IMAGE_METADATA_INVALID",
+                            "Image provider returned invalid metadata");
             case 52717 -> failure(409, "ASSET_UNAVAILABLE", "Image is scheduled for cleanup");
             default -> null;
         };
@@ -155,9 +184,11 @@ final class EventJdbc {
             EventException mapped = procedureFailure(exception.getErrorCode());
             if (mapped != null) throw mapped;
             if (exception.getErrorCode() == 51810)
-                throw failure(403, "MANAGER_REQUIRED", "Active manager of this organization required");
+                throw failure(
+                        403, "MANAGER_REQUIRED", "Active manager of this organization required");
             if (exception.getErrorCode() == 51813)
-                throw failure(409, "EVENT_VERSION_CONFLICT", "Event has changed; reload before saving");
+                throw failure(
+                        409, "EVENT_VERSION_CONFLICT", "Event has changed; reload before saving");
             if (exception.getErrorCode() == 51812)
                 throw failure(409, "EVENT_NOT_EDITABLE", "Only editable drafts may be changed");
             throw failure(

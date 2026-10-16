@@ -18,19 +18,27 @@ import java.util.UUID;
 public final class HoldRequestParser {
     public static final int MAX_BODY_BYTES = 64 * 1024;
 
-    public enum Failure { INVALID_BODY, BODY_TOO_LARGE }
+    public enum Failure {
+        INVALID_BODY,
+        BODY_TOO_LARGE
+    }
 
     public static final class ParseException extends AppException {
         private final Failure failure;
 
         private ParseException(Failure failure) {
-            super(failure == Failure.BODY_TOO_LARGE ? 413 : 400,
+            super(
+                    failure == Failure.BODY_TOO_LARGE ? 413 : 400,
                     failure == Failure.BODY_TOO_LARGE ? "BODY_TOO_LARGE" : "INVALID_BODY",
-                    failure == Failure.BODY_TOO_LARGE ? "Hold request body is too large" : "Invalid hold request body");
+                    failure == Failure.BODY_TOO_LARGE
+                            ? "Hold request body is too large"
+                            : "Invalid hold request body");
             this.failure = failure;
         }
 
-        public Failure failure() { return failure; }
+        public Failure failure() {
+            return failure;
+        }
     }
 
     public static CreateHoldRequest parseCreate(InputStream input) {
@@ -72,9 +80,13 @@ public final class HoldRequestParser {
         try {
             byte[] body = input.readNBytes(MAX_BODY_BYTES + 1);
             if (body.length > MAX_BODY_BYTES) throw new ParseException(Failure.BODY_TOO_LARGE);
-            String text = StandardCharsets.UTF_8.newDecoder()
-                    .onMalformedInput(CodingErrorAction.REPORT).onUnmappableCharacter(CodingErrorAction.REPORT)
-                    .decode(ByteBuffer.wrap(body)).toString();
+            String text =
+                    StandardCharsets.UTF_8
+                            .newDecoder()
+                            .onMalformedInput(CodingErrorAction.REPORT)
+                            .onUnmappableCharacter(CodingErrorAction.REPORT)
+                            .decode(ByteBuffer.wrap(body))
+                            .toString();
             return new Cursor(text);
         } catch (CharacterCodingException malformed) {
             throw invalid();
@@ -83,16 +95,21 @@ public final class HoldRequestParser {
         }
     }
 
-    private static ParseException invalid() { return new ParseException(Failure.INVALID_BODY); }
+    private static ParseException invalid() {
+        return new ParseException(Failure.INVALID_BODY);
+    }
 
     private static final class Cursor {
         private final String text;
         private int position;
 
-        private Cursor(String text) { this.text = text; }
+        private Cursor(String text) {
+            this.text = text;
+        }
 
         private void whitespace() {
-            while (position < text.length() && " \t\r\n".indexOf(text.charAt(position)) >= 0) position++;
+            while (position < text.length() && " \t\r\n".indexOf(text.charAt(position)) >= 0)
+                position++;
         }
 
         private boolean consume(char token) {
@@ -104,9 +121,14 @@ public final class HoldRequestParser {
             return false;
         }
 
-        private void expect(char token) { if (!consume(token)) throw invalid(); }
+        private void expect(char token) {
+            if (!consume(token)) throw invalid();
+        }
 
-        private void end() { whitespace(); if (position != text.length()) throw invalid(); }
+        private void end() {
+            whitespace();
+            if (position != text.length()) throw invalid();
+        }
 
         private String string() {
             expect('"');
@@ -114,21 +136,25 @@ public final class HoldRequestParser {
             boolean closed = false;
             while (position < text.length()) {
                 char character = text.charAt(position++);
-                if (character == '"') { closed = true; break; }
+                if (character == '"') {
+                    closed = true;
+                    break;
+                }
                 if (character < 32) throw invalid();
                 if (character == '\\') {
                     if (position == text.length()) throw invalid();
                     char escaped = text.charAt(position++);
-                    character = switch (escaped) {
-                        case '"', '\\', '/' -> escaped;
-                        case 'b' -> '\b';
-                        case 'f' -> '\f';
-                        case 'n' -> '\n';
-                        case 'r' -> '\r';
-                        case 't' -> '\t';
-                        case 'u' -> unicode();
-                        default -> throw invalid();
-                    };
+                    character =
+                            switch (escaped) {
+                                case '"', '\\', '/' -> escaped;
+                                case 'b' -> '\b';
+                                case 'f' -> '\f';
+                                case 'n' -> '\n';
+                                case 'r' -> '\r';
+                                case 't' -> '\t';
+                                case 'u' -> unicode();
+                                default -> throw invalid();
+                            };
                 }
                 value.append(character);
             }
@@ -136,7 +162,8 @@ public final class HoldRequestParser {
             for (int index = 0; index < value.length(); index++) {
                 char character = value.charAt(index);
                 if (Character.isHighSurrogate(character)) {
-                    if (++index == value.length() || !Character.isLowSurrogate(value.charAt(index))) throw invalid();
+                    if (++index == value.length() || !Character.isLowSurrogate(value.charAt(index)))
+                        throw invalid();
                 } else if (Character.isLowSurrogate(character)) throw invalid();
             }
             return value.toString();
@@ -147,9 +174,12 @@ public final class HoldRequestParser {
             int value = 0;
             for (int index = 0; index < 4; index++) {
                 char digit = text.charAt(position++);
-                int hex = digit >= '0' && digit <= '9' ? digit - '0'
-                        : digit >= 'a' && digit <= 'f' ? digit - 'a' + 10
-                        : digit >= 'A' && digit <= 'F' ? digit - 'A' + 10 : -1;
+                int hex =
+                        digit >= '0' && digit <= '9'
+                                ? digit - '0'
+                                : digit >= 'a' && digit <= 'f'
+                                        ? digit - 'a' + 10
+                                        : digit >= 'A' && digit <= 'F' ? digit - 'A' + 10 : -1;
                 if (hex < 0) throw invalid();
                 value = value * 16 + hex;
             }
@@ -158,13 +188,17 @@ public final class HoldRequestParser {
 
         private UUID uuid() {
             String value = string();
-            if (!value.matches("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")) throw invalid();
+            if (!value.matches(
+                    "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"))
+                throw invalid();
             return UUID.fromString(value);
         }
 
         private int quantity() {
             whitespace();
-            if (position == text.length() || text.charAt(position) < '1' || text.charAt(position) > '8') throw invalid();
+            if (position == text.length()
+                    || text.charAt(position) < '1'
+                    || text.charAt(position) > '8') throw invalid();
             return text.charAt(position++) - '0';
         }
 

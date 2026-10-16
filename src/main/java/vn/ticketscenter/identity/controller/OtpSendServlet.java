@@ -18,13 +18,14 @@ import vn.ticketscenter.identity.service.OtpService;
 
 import java.io.IOException;
 
-@WebServlet(name = "OtpSendServlet", urlPatterns = {"/api/auth/otp/send"})
+@WebServlet(
+        name = "OtpSendServlet",
+        urlPatterns = {"/api/auth/otp/send"})
 public class OtpSendServlet extends HttpServlet {
 
     private OtpService otpService;
 
-    public OtpSendServlet() {
-    }
+    public OtpSendServlet() {}
 
     public OtpSendServlet(OtpService otpService) {
         this.otpService = otpService;
@@ -49,7 +50,8 @@ public class OtpSendServlet extends HttpServlet {
             RequestFields fields = RequestFields.read(req);
             String email = fields.get("email");
             if (email == null || email.isBlank()) {
-                throw new IdentityException(IdentityError.VALIDATION_FAILED, "Email không được để trống");
+                throw new IdentityException(
+                        IdentityError.VALIDATION_FAILED, "Email không được để trống");
             }
             service.sendOtp(new OtpSendRequestDto(email, parsePurpose(fields.get("purpose"))));
             HttpResponses.data(resp, JsonObjectBuilder.object().put("sent", true).build());
@@ -66,7 +68,8 @@ public class OtpSendServlet extends HttpServlet {
         try {
             return OtpPurpose.valueOf(value.trim().toUpperCase());
         } catch (IllegalArgumentException invalid) {
-            throw new IdentityException(IdentityError.VALIDATION_FAILED, "Mục đích OTP không hợp lệ", invalid);
+            throw new IdentityException(
+                    IdentityError.VALIDATION_FAILED, "Mục đích OTP không hợp lệ", invalid);
         }
     }
 }

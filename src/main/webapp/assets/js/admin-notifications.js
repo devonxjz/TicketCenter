@@ -5,15 +5,15 @@
     'use strict';
 
     function getContextPath() {
-        return window.TC_CONTEXT_PATH
-            || document.querySelector('meta[name="context-path"]')?.getAttribute('content')
-            || '';
+        return window.TC_CONTEXT_PATH ||
+            document.querySelector('meta[name="context-path"]')?.getAttribute('content') ||
+            '';
     }
 
     function getCsrfToken() {
-        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
-            || document.querySelector('input[name="_csrf"]')?.value
-            || '';
+        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+            document.querySelector('input[name="_csrf"]')?.value ||
+            '';
     }
 
     function escapeHtml(str) {
@@ -30,7 +30,10 @@
         if (!instantStr) return '';
         try {
             const date = new Date(instantStr);
-            return date.toLocaleDateString('vi-VN') + ' ' + date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+            return date.toLocaleDateString('vi-VN') + ' ' + date.toLocaleTimeString('vi-VN', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
         } catch (e) {
             return instantStr;
         }
@@ -52,10 +55,10 @@
         toastEl.setAttribute('role', 'alert');
         toastEl.setAttribute('aria-live', 'assertive');
         toastEl.setAttribute('aria-atomic', 'true');
-        toastEl.innerHTML = '<div class="d-flex">'
-            + '<div class="toast-body small fw-semibold">' + escapeHtml(message) + '</div>'
-            + '<button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>'
-            + '</div>';
+        toastEl.innerHTML = '<div class="d-flex">' +
+            '<div class="toast-body small fw-semibold">' + escapeHtml(message) + '</div>' +
+            '<button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>' +
+            '</div>';
 
         container.appendChild(toastEl);
         setTimeout(function() {
@@ -82,17 +85,20 @@
         const csrfToken = getCsrfToken();
 
         try {
-            const response = await fetch(contextPath + '/api/admin/organization-requests/' + encodeURIComponent(organizationId) + '/approve', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': csrfToken,
-                    'Accept': 'application/json'
-                }
-            });
+            const response = await fetch(contextPath + '/api/admin/organization-requests/' +
+                encodeURIComponent(organizationId) + '/approve', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken,
+                        'Accept': 'application/json'
+                    }
+                });
 
             if (!response.ok) {
-                const errData = await response.json().catch(function() { return {}; });
+                const errData = await response.json().catch(function() {
+                    return {};
+                });
                 const errMsg = errData?.error?.message || 'Không thể phê duyệt yêu cầu.';
                 showAdminToast(errMsg, 'danger');
                 if (button) {
@@ -102,7 +108,8 @@
                 return;
             }
 
-            const itemEl = document.querySelector('.admin-notification-item[data-org-id="' + organizationId + '"]');
+            const itemEl = document.querySelector('.admin-notification-item[data-org-id="' +
+                organizationId + '"]');
             if (itemEl) {
                 itemEl.remove();
             }
@@ -132,12 +139,14 @@
             showAdminToast('Đã phê duyệt yêu cầu và cập nhật lịch sự kiện thành công.', 'success');
 
             // Finance audit/report tables may also contain this organization UUID.
-            const tableRow = document.querySelector('#pendingOrgTableBody tr[data-org-id="' + organizationId + '"]');
+            const tableRow = document.querySelector('#pendingOrgTableBody tr[data-org-id="' +
+                organizationId + '"]');
             if (tableRow) {
                 tableRow.remove();
                 const tbody = document.getElementById('pendingOrgTableBody');
                 if (tbody && tbody.querySelectorAll('tr[data-org-id]').length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">Không có hồ sơ nào đang chờ xét duyệt.</td></tr>';
+                    tbody.innerHTML =
+                        '<tr><td colspan="6" class="text-center py-4 text-muted">Không có hồ sơ nào đang chờ xét duyệt.</td></tr>';
                 }
             } else {
                 const allRows = document.querySelectorAll('#pendingOrgTableBody tr');
@@ -173,7 +182,8 @@
         }
 
         if (!items || items.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">Không có hồ sơ nào đang chờ xét duyệt.</td></tr>';
+            tbody.innerHTML =
+                '<tr><td colspan="6" class="text-center py-4 text-muted">Không có hồ sơ nào đang chờ xét duyệt.</td></tr>';
             return;
         }
 
@@ -184,41 +194,51 @@
 
             let scheduleHtml = '';
             if (item.eventDate) {
-                const time = (item.eventStartTime || '') + (item.eventEndTime ? (' - ' + item.eventEndTime) : '');
-                scheduleHtml = '<div class="small text-secondary mt-1"><i class="fa-regular fa-calendar me-1"></i>' + escapeHtml(item.eventDate + (time ? ' (' + time + ')' : '')) + '</div>';
+                const time = (item.eventStartTime || '') + (item.eventEndTime ? (' - ' + item
+                    .eventEndTime) : '');
+                scheduleHtml =
+                    '<div class="small text-secondary mt-1"><i class="fa-regular fa-calendar me-1"></i>' +
+                    escapeHtml(item.eventDate + (time ? ' (' + time + ')' : '')) + '</div>';
             } else if (item.description && item.description.includes('[Lịch trình')) {
-                const match = item.description.match(/\[Lịch trình[^\]]*\]\s*([^|\n]+(?:\|\s*[^|\n]+)*)/);
+                const match = item.description.match(
+                    /\[Lịch trình[^\]]*\]\s*([^|\n]+(?:\|\s*[^|\n]+)*)/);
                 if (match) {
-                    scheduleHtml = '<div class="small text-secondary mt-1"><i class="fa-regular fa-calendar me-1"></i>' + escapeHtml(match[1].trim()) + '</div>';
+                    scheduleHtml =
+                        '<div class="small text-secondary mt-1"><i class="fa-regular fa-calendar me-1"></i>' +
+                        escapeHtml(match[1].trim()) + '</div>';
                 }
             }
 
-            tr.innerHTML = '<td>'
-                + '<strong class="d-block text-dark">' + escapeHtml(item.name || 'Hồ sơ đối tác') + '</strong>'
-                + '<span class="small text-muted">Organization: ' + escapeHtml(item.organizationId) + '</span>'
-                + scheduleHtml
-                + '</td>'
-                + '<td>'
-                + '<span class="d-block text-dark">' + escapeHtml(item.contactEmail || '-') + '</span>'
-                + '</td>'
-                + '<td>' + formatDate(item.submittedAt) + '</td>'
-                + '<td>'
-                + '<span class="small text-muted">' + (item.description ? escapeHtml(item.description.split('\n')[0]) : '-') + '</span>'
-                + '</td>'
-                + '<td>'
-                + '<select class="form-select form-select-sm rounded-0 border-secondary-subtle" style="width: 110px;">'
-                + '<option value="5">5.0%</option>'
-                + '<option value="8" selected>8.0%</option>'
-                + '<option value="10">10.0%</option>'
-                + '</select>'
-                + '</td>'
-                + '<td class="text-end">'
-                + '<div class="d-inline-flex gap-2">'
-                + '<button class="btn btn-sm btn-dark rounded-0 px-3 py-1" onclick="approveFromNotification(event, \'' + escapeHtml(item.organizationId) + '\')">'
-                + 'Phê duyệt'
-                + '</button>'
-                + '</div>'
-                + '</td>';
+            tr.innerHTML = '<td>' +
+                '<strong class="d-block text-dark">' + escapeHtml(item.name || 'Hồ sơ đối tác') +
+                '</strong>' +
+                '<span class="small text-muted">Organization: ' + escapeHtml(item.organizationId) +
+                '</span>' +
+                scheduleHtml +
+                '</td>' +
+                '<td>' +
+                '<span class="d-block text-dark">' + escapeHtml(item.contactEmail || '-') + '</span>' +
+                '</td>' +
+                '<td>' + formatDate(item.submittedAt) + '</td>' +
+                '<td>' +
+                '<span class="small text-muted">' + (item.description ? escapeHtml(item.description
+                    .split('\n')[0]) : '-') + '</span>' +
+                '</td>' +
+                '<td>' +
+                '<select class="form-select form-select-sm rounded-0 border-secondary-subtle" style="width: 110px;">' +
+                '<option value="5">5.0%</option>' +
+                '<option value="8" selected>8.0%</option>' +
+                '<option value="10">10.0%</option>' +
+                '</select>' +
+                '</td>' +
+                '<td class="text-end">' +
+                '<div class="d-inline-flex gap-2">' +
+                '<button class="btn btn-sm btn-dark rounded-0 px-3 py-1" onclick="approveFromNotification(event, \'' +
+                escapeHtml(item.organizationId) + '\')">' +
+                'Phê duyệt' +
+                '</button>' +
+                '</div>' +
+                '</td>';
             tbody.appendChild(tr);
         });
     }
@@ -235,7 +255,9 @@
 
         try {
             const response = await fetch(contextPath + '/api/admin/organization-requests/pending', {
-                headers: { 'Accept': 'application/json' }
+                headers: {
+                    'Accept': 'application/json'
+                }
             });
 
             if (!response.ok) {
@@ -264,15 +286,19 @@
                 }
 
                 const oldItems = listContainer.querySelectorAll('.admin-notification-item');
-                oldItems.forEach(function(el) { el.remove(); });
+                oldItems.forEach(function(el) {
+                    el.remove();
+                });
 
                 items.forEach(function(item) {
                     let scheduleInfo = '';
                     if (item.eventDate) {
-                        const time = (item.eventStartTime || '') + (item.eventEndTime ? (' - ' + item.eventEndTime) : '');
+                        const time = (item.eventStartTime || '') + (item.eventEndTime ? (' - ' + item
+                            .eventEndTime) : '');
                         scheduleInfo = item.eventDate + (time ? ' (' + time + ')' : '');
                     } else if (item.description && item.description.includes('[Lịch trình')) {
-                        const match = item.description.match(/\[Lịch trình[^\]]*\]\s*([^|\n]+(?:\|\s*[^|\n]+)*)/);
+                        const match = item.description.match(
+                            /\[Lịch trình[^\]]*\]\s*([^|\n]+(?:\|\s*[^|\n]+)*)/);
                         if (match) {
                             scheduleInfo = match[1].trim();
                         }
@@ -282,21 +308,31 @@
                     li.className = 'p-3 border-bottom text-dark admin-notification-item';
                     li.setAttribute('data-org-id', item.organizationId);
 
-                    let html = '<div class="d-flex justify-content-between align-items-start gap-2 mb-1">';
-                    html += '<strong class="small text-dark text-truncate">' + escapeHtml(item.name || 'Hồ sơ đối tác') + '</strong>';
-                    html += '<button class="btn btn-sm btn-success rounded-0 py-1 px-2 flex-shrink-0" style="font-size: 0.75rem;" onclick="approveFromNotification(event, \'' + escapeHtml(item.organizationId) + '\')">Duyệt</button>';
+                    let html =
+                        '<div class="d-flex justify-content-between align-items-start gap-2 mb-1">';
+                    html += '<strong class="small text-dark text-truncate">' + escapeHtml(item.name ||
+                        'Hồ sơ đối tác') + '</strong>';
+                    html +=
+                        '<button class="btn btn-sm btn-success rounded-0 py-1 px-2 flex-shrink-0" style="font-size: 0.75rem;" onclick="approveFromNotification(event, \'' +
+                        escapeHtml(item.organizationId) + '\')">Duyệt</button>';
                     html += '</div>';
 
                     if (item.contactEmail) {
-                        html += '<div class="small text-muted"><i class="fa-regular fa-envelope me-1"></i>' + escapeHtml(item.contactEmail) + '</div>';
+                        html +=
+                            '<div class="small text-muted"><i class="fa-regular fa-envelope me-1"></i>' +
+                            escapeHtml(item.contactEmail) + '</div>';
                     }
 
                     if (scheduleInfo) {
-                        html += '<div class="small text-secondary mt-1"><i class="fa-regular fa-calendar me-1"></i>' + escapeHtml(scheduleInfo) + '</div>';
+                        html +=
+                            '<div class="small text-secondary mt-1"><i class="fa-regular fa-calendar me-1"></i>' +
+                            escapeHtml(scheduleInfo) + '</div>';
                     }
 
                     if (item.submittedAt) {
-                        html += '<div class="text-muted mt-1" style="font-size: 0.7rem;"><i class="fa-regular fa-clock me-1"></i>' + formatDate(item.submittedAt) + '</div>';
+                        html +=
+                            '<div class="text-muted mt-1" style="font-size: 0.7rem;"><i class="fa-regular fa-clock me-1"></i>' +
+                            formatDate(item.submittedAt) + '</div>';
                     }
 
                     li.innerHTML = html;

@@ -33,12 +33,14 @@ public class ProfileServlet extends HttpServlet {
     }
 
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
         handle(request, response, false);
     }
 
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
         handle(request, response, true);
     }
 
@@ -46,7 +48,10 @@ public class ProfileServlet extends HttpServlet {
             throws IOException {
         UserPrincipal principal = SecurityContext.getCurrentUser(request).orElse(null);
         if (principal == null) {
-            HttpResponses.error(response, 401, "UNAUTHENTICATED",
+            HttpResponses.error(
+                    response,
+                    401,
+                    "UNAUTHENTICATED",
                     "Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn");
             return;
         }
@@ -62,14 +67,20 @@ public class ProfileServlet extends HttpServlet {
         try {
             ProfileDto profile;
             if (update) {
-                // Checked here as well as in CsrfFilter so the write never depends on filter wiring alone.
+                // Checked here as well as in CsrfFilter so the write never depends on filter wiring
+                // alone.
                 if (!SecurityContext.validateCsrfToken(request)) {
-                    HttpResponses.error(response, 403, "CSRF_TOKEN_INVALID",
+                    HttpResponses.error(
+                            response,
+                            403,
+                            "CSRF_TOKEN_INVALID",
                             "Yêu cầu thiếu hoặc mã CSRF không hợp lệ");
                     return;
                 }
                 RequestFields body = RequestFields.readJson(request);
-                profile = service.updateProfile(principal.actorId(), body.get("fullName"), body.get("phone"));
+                profile =
+                        service.updateProfile(
+                                principal.actorId(), body.get("fullName"), body.get("phone"));
             } else {
                 profile = service.getProfile(principal.actorId());
             }

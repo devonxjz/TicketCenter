@@ -48,8 +48,7 @@ public class Event {
     @Column(nullable = false, length = 5000)
     private String description;
 
-    @Transient
-    private EventCategory category;
+    @Transient private EventCategory category;
 
     @Column(name = "venue_name", nullable = false, length = 300)
     private String venueName;
@@ -94,10 +93,15 @@ public class Event {
     @OneToOne(mappedBy = "event", fetch = FetchType.LAZY)
     private Settlement settlement;
 
-    protected Event() { }
+    protected Event() {}
 
-    public Event(Organization organization, String title, String description, EventCategory category,
-                 String venueName, String venueAddress) {
+    public Event(
+            Organization organization,
+            String title,
+            String description,
+            EventCategory category,
+            String venueName,
+            String venueAddress) {
         this.organization = organization;
         this.title = title;
         this.description = description;
@@ -106,53 +110,135 @@ public class Event {
         this.venueAddress = venueAddress;
     }
 
-    public Event(Organization organization, String title, String description, EventCategory category,
-                 String venueName, String venueAddress, Instant startTime, Instant endTime) {
+    public Event(
+            Organization organization,
+            String title,
+            String description,
+            EventCategory category,
+            String venueName,
+            String venueAddress,
+            Instant startTime,
+            Instant endTime) {
         this(organization, title, description, category, venueName, venueAddress);
         this.startTime = startTime;
         this.endTime = endTime;
-        this.saleStart = (startTime != null) ? startTime.minus(java.time.Duration.ofDays(7)) : Instant.now();
-        this.saleEnd = (startTime != null) ? startTime : Instant.now().plus(java.time.Duration.ofDays(1));
+        this.saleStart =
+                (startTime != null) ? startTime.minus(java.time.Duration.ofDays(7)) : Instant.now();
+        this.saleEnd =
+                (startTime != null) ? startTime : Instant.now().plus(java.time.Duration.ofDays(1));
     }
 
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-    public UUID getCategoryId() { return categoryId; }
-    public void setCategoryId(UUID categoryId) { this.categoryId = categoryId; }
-    public void setCommissionRule(CommissionRule rule) { this.commissionRule = rule; }
-    public Instant getCreatedAt() { return createdAt; }
-    public long getVersion() { return version; }
+    public UUID getId() {
+        return id;
+    }
 
-    public void setSchedule(Instant saleStart, Instant saleEnd, Instant startTime, Instant endTime) {
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
+    public UUID getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(UUID categoryId) {
+        this.categoryId = categoryId;
+    }
+
+    public void setCommissionRule(CommissionRule rule) {
+        this.commissionRule = rule;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public long getVersion() {
+        return version;
+    }
+
+    public void setSchedule(
+            Instant saleStart, Instant saleEnd, Instant startTime, Instant endTime) {
         this.saleStart = saleStart;
         this.saleEnd = saleEnd;
         this.startTime = startTime;
         this.endTime = endTime;
     }
 
-    public Organization getOrganization() { return organization; }
-    public CommissionRule getCommissionRule() { return commissionRule; }
-    public String getTitle() { return title; }
-    public String getDescription() { return description; }
-    public EventCategory getCategory() { return category; }
-    public String getVenueName() { return venueName; }
-    public String getVenueAddress() { return venueAddress; }
-    public String getCoverImageUrl() { return eventImage; }
-    public String getEventImage() { return eventImage; }
-    public String getEventImagePublicId() { return eventImagePublicId; }
-    public Instant getSaleStart() { return saleStart; }
-    public Instant getSaleEnd() { return saleEnd; }
-    public Instant getStartTime() { return startTime; }
-    public Instant getEndTime() { return endTime; }
-    public EventStatus getStatus() { return status; }
-    public String getRejectionReason() { return rejectionReason; }
-    public List<Zone> getZones() { return List.copyOf(zones); }
+    public Organization getOrganization() {
+        return organization;
+    }
+
+    public CommissionRule getCommissionRule() {
+        return commissionRule;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public EventCategory getCategory() {
+        return category;
+    }
+
+    public String getVenueName() {
+        return venueName;
+    }
+
+    public String getVenueAddress() {
+        return venueAddress;
+    }
+
+    public String getCoverImageUrl() {
+        return eventImage;
+    }
+
+    public String getEventImage() {
+        return eventImage;
+    }
+
+    public String getEventImagePublicId() {
+        return eventImagePublicId;
+    }
+
+    public Instant getSaleStart() {
+        return saleStart;
+    }
+
+    public Instant getSaleEnd() {
+        return saleEnd;
+    }
+
+    public Instant getStartTime() {
+        return startTime;
+    }
+
+    public Instant getEndTime() {
+        return endTime;
+    }
+
+    public EventStatus getStatus() {
+        return status;
+    }
+
+    public String getRejectionReason() {
+        return rejectionReason;
+    }
+
+    public List<Zone> getZones() {
+        return List.copyOf(zones);
+    }
 
     public boolean isSaleActive(Instant now) {
         return status == EventStatus.PUBLISHED && !now.isBefore(saleStart) && now.isBefore(saleEnd);
     }
 
     public boolean isCheckInOpen(Instant now) {
-        return status == EventStatus.PUBLISHED && !now.isBefore(startTime.minusSeconds(3600)) && now.isBefore(endTime);
+        return status == EventStatus.PUBLISHED
+                && !now.isBefore(startTime.minusSeconds(3600))
+                && now.isBefore(endTime);
     }
 }

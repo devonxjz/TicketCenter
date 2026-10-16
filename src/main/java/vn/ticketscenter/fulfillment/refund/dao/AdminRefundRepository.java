@@ -223,8 +223,8 @@ public final class AdminRefundRepository implements AdminRefundStore {
                                     query(
                                             c,
                                             "SELECT TOP(1) note FROM"
-                                                + " dbo.vw_AdminRefundApprovalNotes WHERE"
-                                                + " refund_id=? ORDER BY created_at DESC,id DESC",
+                                                    + " dbo.vw_AdminRefundApprovalNotes WHERE"
+                                                    + " refund_id=? ORDER BY created_at DESC,id DESC",
                                             id);
                             var r = q.executeQuery()) {
                         if (r.next()) note = r.getString(1);

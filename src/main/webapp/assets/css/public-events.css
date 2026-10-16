@@ -1,15 +1,585 @@
-.tc-catalog-intro{padding:40px 0 24px}.tc-catalog-intro h1{font-size:clamp(2rem,4.8vw,3.4rem);letter-spacing:-.045em;margin-bottom:12px}.tc-catalog-intro p{color:var(--gray-text);max-width:640px}
-.tc-featured{display:grid;grid-template-columns:1.1fr 1fr;gap:40px;align-items:center;padding-bottom:40px;margin-bottom:40px;border-bottom:1px solid var(--gray-border)}
-.tc-featured-cover,.tc-event-poster{position:relative;aspect-ratio:16/9;background:var(--gray-bg);display:grid;place-items:center;overflow:hidden}
-.tc-featured-cover img,.tc-event-poster img{position:absolute;width:100%;height:100%;object-fit:cover;inset:0}.tc-featured h2{font-size:clamp(1.4rem,2.4vw,2rem);letter-spacing:-.025em;text-wrap:balance}.tc-eyebrow{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--gray-text)}
-.tc-catalog-filters{background:var(--gray-bg);border:1px solid var(--gray-border);padding:24px;margin-bottom:28px}.tc-catalog-filters .form-control,.tc-catalog-filters .form-select{border-radius:0}
-.tc-event-card{display:flex;flex-direction:column;height:100%;border:1px solid var(--gray-border);box-shadow:none!important}.tc-card-cover{height:auto;aspect-ratio:16/9;position:relative;display:grid;place-items:center;background:var(--gray-bg)}.tc-card-cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.tc-image-empty{color:var(--gray-text);font-size:.85rem}
-.tc-event-card .event-card-body{display:flex;flex-direction:column;flex:1;padding:22px}.tc-event-card .event-title{font-size:1.05rem;line-height:1.45;text-wrap:pretty;margin-bottom:16px}.tc-event-card .event-title a{color:var(--black);text-decoration:none}.tc-event-meta{font-size:.85rem;color:var(--gray-text);margin-bottom:8px}.tc-event-card .event-price{font-size:1.1rem;margin-top:auto;padding-top:16px}.tc-event-card .btn-outline-custom{align-self:flex-start;margin-top:8px}
-.tc-detail{padding-top:40px;padding-bottom:64px}.tc-detail-hero{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:48px;align-items:start;padding-bottom:48px;margin-bottom:48px;border-bottom:1px solid var(--gray-border)}.tc-event-poster .event-category-badge{position:absolute;top:14px;left:14px;z-index:1}.tc-detail-title{font-size:clamp(1.65rem,2.4vw,2.25rem);font-weight:750;letter-spacing:-.025em;line-height:1.3;text-wrap:balance;margin-bottom:22px}.tc-detail-meta{margin:0 0 24px;border-top:1px solid var(--gray-border);border-bottom:1px solid var(--gray-border);padding:10px 0}.tc-detail-meta>div{display:grid;grid-template-columns:145px 1fr;gap:20px;padding:10px 0;font-size:.85rem}.tc-detail-meta dt{font-weight:400;color:var(--gray-text)}.tc-detail-meta dd{text-align:right;margin:0;font-weight:500}.tc-detail-price{display:flex;align-items:center;justify-content:space-between;gap:16px;border:1px solid var(--gray-border);padding:22px}.tc-detail-price strong{display:block;font-size:1.7rem;color:var(--primary);line-height:1.4;font-weight:750}.tc-detail-section-title{font-size:1.35rem;font-weight:750;letter-spacing:-.02em;margin-bottom:22px}.tc-detail-section-title:after{content:'';display:block;width:32px;height:3px;background:var(--primary);margin-top:12px}.tc-event-description{white-space:pre-wrap;line-height:1.8;max-width:850px;margin:24px 0 48px;overflow-wrap:anywhere}.tc-zone-line{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;padding:16px 0;border-top:1px solid var(--gray-border);font-size:.9rem}.tc-event-status{display:inline-block;padding:5px 10px;border:1px solid var(--gray-border);font-size:.75rem;background:var(--gray-bg);margin-bottom:16px}
-.tc-booking-section{scroll-margin-top:160px}.tc-booking-columns{display:grid;grid-template-columns:minmax(0,2fr) minmax(270px,1fr);gap:32px}.tc-booking-columns fieldset{min-width:0}.tc-booking-summary{position:sticky;top:160px;align-self:start;border:1px solid var(--gray-border);padding:24px}.tc-booking-summary .hold-summary{border:0;padding:0;margin:0;position:static;box-shadow:none}.tc-booking-summary .hold-summary .btn{width:100%}.tc-booking-summary .hold-summary strong{font-size:1.6rem;color:var(--primary)}.tc-booking-columns .hold-zone{margin-top:0}.tc-booking-columns .hold-seat{padding:0;min-width:42px;min-height:42px;justify-content:center;position:relative}.tc-booking-columns .hold-seat input{position:absolute;width:1px;height:1px;opacity:0}.tc-booking-columns .hold-seat span{padding:10px;display:block}.tc-booking-columns .hold-seat:has(input:checked){background:var(--black);border-color:var(--black);color:white}.tc-booking-columns .hold-seat:has(input:focus-visible){outline:2px solid var(--primary);outline-offset:3px}.tc-booking-columns .hold-seat:has(input:disabled){opacity:.5;cursor:not-allowed}.tc-hold-confirmed{border-left:3px solid var(--primary);padding:20px;background:var(--gray-bg)}
-@media(max-width:991px){.tc-detail-hero{gap:28px;grid-template-columns:1fr 1fr}.tc-booking-columns{grid-template-columns:1fr}.tc-booking-summary{position:static}.tc-detail-meta>div{grid-template-columns:110px 1fr;gap:12px}}
-@media(max-width:767px){.tc-featured,.tc-detail-hero{grid-template-columns:1fr;gap:24px}.tc-detail{padding-top:24px}.tc-detail-meta>div{grid-template-columns:110px 1fr}.tc-detail-price{align-items:flex-start;flex-direction:column}.tc-detail-price .btn-primary-custom{width:100%;text-align:center}.tc-catalog-filters{padding:16px}.tc-booking-summary{padding:20px}.tc-featured{margin-bottom:24px;padding-bottom:24px}.tc-hold-confirmed .tc-page-actions>*{width:100%;text-align:center;min-height:44px}.tc-booking-summary .btn-primary-custom,.tc-booking-summary .btn-outline-custom{min-height:48px}}
+.tc-catalog-intro {
+    padding: 40px 0 24px
+}
 
-.tc-hero{position:relative;overflow:hidden;background:#111;margin:8px 0 28px}.tc-hero-track{display:flex;transition:transform .55s ease}.tc-hero-slide{position:relative;flex:0 0 100%;min-width:0;height:370px;color:#fff!important;text-decoration:none;overflow:hidden;display:flex;align-items:flex-end}.tc-hero-slide:after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.8),rgba(0,0,0,.08))}.tc-hero-slide img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.tc-hero-caption{position:relative;z-index:1;padding:40px 48px 64px;max-width:740px}.tc-hero-caption h2{font-size:clamp(1.5rem,3vw,2.6rem);font-weight:750;line-height:1.2;letter-spacing:-.03em}.tc-hero-caption .tc-eyebrow{color:#ddd}.tc-hero-caption p{font-size:.85rem;color:#ddd;margin:18px 0 12px}.tc-hero-caption strong{font-size:1.15rem}.tc-hero-controls{position:absolute;bottom:16px;right:24px;z-index:2;display:flex;align-items:center;gap:8px}.tc-hero-controls>button{width:36px;height:36px;background:#fff;color:#111;border:0;font-size:24px}.tc-hero-controls #hero-pause{font-size:14px}.tc-hero-dots{display:flex;gap:6px;margin:0 6px}.tc-hero-dots button{width:7px;height:7px;border:0;padding:0;background:#ffffff66;border-radius:50%}.tc-hero-dots button[aria-current=true]{background:#fff;width:20px;border-radius:4px}.tc-search-options{margin-bottom:24px}.tc-search-options>summary{font-size:.85rem;font-weight:600;padding:14px 0;cursor:pointer}.category-nav{overflow-x:auto;display:flex;gap:24px;white-space:nowrap}.category-nav button{background:transparent;border:0;border-bottom:2px solid transparent;padding:16px 0;color:#777;font:inherit;font-size:.85rem;cursor:pointer}.category-nav button.active{color:#e50914;border-bottom-color:#e50914;font-weight:700}.tc-catalog-intro{padding-top:28px;padding-bottom:8px}.tc-catalog-intro h1{font-size:2rem}
-@media(max-width:767px){.tc-hero-slide{height:290px}.tc-hero-caption{padding:24px 24px 66px}.tc-hero-controls{right:16px}.tc-hero-caption p{margin:12px 0}.tc-hero-caption h2{font-size:1.5rem}}
-@media(prefers-reduced-motion:reduce){.tc-hero-track{transition:none}}
+.tc-catalog-intro h1 {
+    font-size: clamp(2rem,4.8vw,3.4rem);
+    letter-spacing: -.045em;
+    margin-bottom: 12px
+}
+
+.tc-catalog-intro p {
+    color: var(--gray-text);
+    max-width: 640px
+}
+
+.tc-featured {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 40px;
+    align-items: center;
+    padding-bottom: 40px;
+    margin-bottom: 40px;
+    border-bottom: 1px solid var(--gray-border)
+}
+
+.tc-featured-cover,.tc-event-poster {
+    position: relative;
+    aspect-ratio: 16/9;
+    background: var(--gray-bg);
+    display: grid;
+    place-items: center;
+    overflow: hidden
+}
+
+.tc-featured-cover img,.tc-event-poster img {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    inset: 0
+}
+
+.tc-featured h2 {
+    font-size: clamp(1.4rem,2.4vw,2rem);
+    letter-spacing: -.025em;
+    text-wrap: balance
+}
+
+.tc-eyebrow {
+    font-size: .72rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--gray-text)
+}
+
+.tc-catalog-filters {
+    background: var(--gray-bg);
+    border: 1px solid var(--gray-border);
+    padding: 24px;
+    margin-bottom: 28px
+}
+
+.tc-catalog-filters .form-control,.tc-catalog-filters .form-select {
+    border-radius: 0
+}
+
+.tc-event-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border: 1px solid var(--gray-border);
+    box-shadow: none!important
+}
+
+.tc-card-cover {
+    height: auto;
+    aspect-ratio: 16/9;
+    position: relative;
+    display: grid;
+    place-items: center;
+    background: var(--gray-bg)
+}
+
+.tc-card-cover img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover
+}
+
+.tc-image-empty {
+    color: var(--gray-text);
+    font-size: .85rem
+}
+
+.tc-event-card .event-card-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding: 22px
+}
+
+.tc-event-card .event-title {
+    font-size: 1.05rem;
+    line-height: 1.45;
+    text-wrap: pretty;
+    margin-bottom: 16px
+}
+
+.tc-event-card .event-title a {
+    color: var(--black);
+    text-decoration: none
+}
+
+.tc-event-meta {
+    font-size: .85rem;
+    color: var(--gray-text);
+    margin-bottom: 8px
+}
+
+.tc-event-card .event-price {
+    font-size: 1.1rem;
+    margin-top: auto;
+    padding-top: 16px
+}
+
+.tc-event-card .btn-outline-custom {
+    align-self: flex-start;
+    margin-top: 8px
+}
+
+.tc-detail {
+    padding-top: 40px;
+    padding-bottom: 64px
+}
+
+.tc-detail-hero {
+    display: grid;
+    grid-template-columns: minmax(0,5fr) minmax(0,7fr);
+    gap: 48px;
+    align-items: start;
+    padding-bottom: 48px;
+    margin-bottom: 48px;
+    border-bottom: 1px solid var(--gray-border)
+}
+
+.tc-event-poster .event-category-badge {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    z-index: 1
+}
+
+.tc-detail-title {
+    font-size: clamp(1.65rem,2.4vw,2.25rem);
+    font-weight: 750;
+    letter-spacing: -.025em;
+    line-height: 1.3;
+    text-wrap: balance;
+    margin-bottom: 22px
+}
+
+.tc-detail-meta {
+    margin: 0 0 24px;
+    border-top: 1px solid var(--gray-border);
+    border-bottom: 1px solid var(--gray-border);
+    padding: 10px 0
+}
+
+.tc-detail-meta>div {
+    display: grid;
+    grid-template-columns: 145px 1fr;
+    gap: 20px;
+    padding: 10px 0;
+    font-size: .85rem
+}
+
+.tc-detail-meta dt {
+    font-weight: 400;
+    color: var(--gray-text)
+}
+
+.tc-detail-meta dd {
+    text-align: right;
+    margin: 0;
+    font-weight: 500
+}
+
+.tc-detail-price {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    border: 1px solid var(--gray-border);
+    padding: 22px
+}
+
+.tc-detail-price strong {
+    display: block;
+    font-size: 1.7rem;
+    color: var(--primary);
+    line-height: 1.4;
+    font-weight: 750
+}
+
+.tc-detail-section-title {
+    font-size: 1.35rem;
+    font-weight: 750;
+    letter-spacing: -.02em;
+    margin-bottom: 22px
+}
+
+.tc-detail-section-title:after {
+    content: '';
+    display: block;
+    width: 32px;
+    height: 3px;
+    background: var(--primary);
+    margin-top: 12px
+}
+
+.tc-event-description {
+    white-space: pre-wrap;
+    line-height: 1.8;
+    max-width: 850px;
+    margin: 24px 0 48px;
+    overflow-wrap: anywhere
+}
+
+.tc-zone-line {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 0;
+    border-top: 1px solid var(--gray-border);
+    font-size: .9rem
+}
+
+.tc-event-status {
+    display: inline-block;
+    padding: 5px 10px;
+    border: 1px solid var(--gray-border);
+    font-size: .75rem;
+    background: var(--gray-bg);
+    margin-bottom: 16px
+}
+
+.tc-booking-section {
+    scroll-margin-top: 160px
+}
+
+.tc-booking-columns {
+    display: grid;
+    grid-template-columns: minmax(0,2fr) minmax(270px,1fr);
+    gap: 32px
+}
+
+.tc-booking-columns fieldset {
+    min-width: 0
+}
+
+.tc-booking-summary {
+    position: sticky;
+    top: 160px;
+    align-self: start;
+    border: 1px solid var(--gray-border);
+    padding: 24px
+}
+
+.tc-booking-summary .hold-summary {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    position: static;
+    box-shadow: none
+}
+
+.tc-booking-summary .hold-summary .btn {
+    width: 100%
+}
+
+.tc-booking-summary .hold-summary strong {
+    font-size: 1.6rem;
+    color: var(--primary)
+}
+
+.tc-booking-columns .hold-zone {
+    margin-top: 0
+}
+
+.tc-booking-columns .hold-seat {
+    padding: 0;
+    min-width: 42px;
+    min-height: 42px;
+    justify-content: center;
+    position: relative
+}
+
+.tc-booking-columns .hold-seat input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0
+}
+
+.tc-booking-columns .hold-seat span {
+    padding: 10px;
+    display: block
+}
+
+.tc-booking-columns .hold-seat:has(input:checked) {
+    background: var(--black);
+    border-color: var(--black);
+    color: white
+}
+
+.tc-booking-columns .hold-seat:has(input:focus-visible) {
+    outline: 2px solid var(--primary);
+    outline-offset: 3px
+}
+
+.tc-booking-columns .hold-seat:has(input:disabled) {
+    opacity: .5;
+    cursor: not-allowed
+}
+
+.tc-hold-confirmed {
+    border-left: 3px solid var(--primary);
+    padding: 20px;
+    background: var(--gray-bg)
+}
+
+@media(max-width:991px) {
+    .tc-detail-hero {
+        gap: 28px;
+        grid-template-columns: 1fr 1fr
+    }
+
+    .tc-booking-columns {
+        grid-template-columns: 1fr
+    }
+
+    .tc-booking-summary {
+        position: static
+    }
+
+    .tc-detail-meta>div {
+        grid-template-columns: 110px 1fr;
+        gap: 12px
+    }
+}
+
+@media(max-width:767px) {
+    .tc-featured,.tc-detail-hero {
+        grid-template-columns: 1fr;
+        gap: 24px
+    }
+
+    .tc-detail {
+        padding-top: 24px
+    }
+
+    .tc-detail-meta>div {
+        grid-template-columns: 110px 1fr
+    }
+
+    .tc-detail-price {
+        align-items: flex-start;
+        flex-direction: column
+    }
+
+    .tc-detail-price .btn-primary-custom {
+        width: 100%;
+        text-align: center
+    }
+
+    .tc-catalog-filters {
+        padding: 16px
+    }
+
+    .tc-booking-summary {
+        padding: 20px
+    }
+
+    .tc-featured {
+        margin-bottom: 24px;
+        padding-bottom: 24px
+    }
+
+    .tc-hold-confirmed .tc-page-actions>* {
+        width: 100%;
+        text-align: center;
+        min-height: 44px
+    }
+
+    .tc-booking-summary .btn-primary-custom,.tc-booking-summary .btn-outline-custom {
+        min-height: 48px
+    }
+}
+
+.tc-hero {
+    position: relative;
+    overflow: hidden;
+    background: #111;
+    margin: 8px 0 28px
+}
+
+.tc-hero-track {
+    display: flex;
+    transition: transform .55s ease
+}
+
+.tc-hero-slide {
+    position: relative;
+    flex: 0 0 100%;
+    min-width: 0;
+    height: 370px;
+    color: #fff!important;
+    text-decoration: none;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-end
+}
+
+.tc-hero-slide:after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg,rgba(0,0,0,.8),rgba(0,0,0,.08))
+}
+
+.tc-hero-slide img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover
+}
+
+.tc-hero-caption {
+    position: relative;
+    z-index: 1;
+    padding: 40px 48px 64px;
+    max-width: 740px
+}
+
+.tc-hero-caption h2 {
+    font-size: clamp(1.5rem,3vw,2.6rem);
+    font-weight: 750;
+    line-height: 1.2;
+    letter-spacing: -.03em
+}
+
+.tc-hero-caption .tc-eyebrow {
+    color: #ddd
+}
+
+.tc-hero-caption p {
+    font-size: .85rem;
+    color: #ddd;
+    margin: 18px 0 12px
+}
+
+.tc-hero-caption strong {
+    font-size: 1.15rem
+}
+
+.tc-hero-controls {
+    position: absolute;
+    bottom: 16px;
+    right: 24px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 8px
+}
+
+.tc-hero-controls>button {
+    width: 36px;
+    height: 36px;
+    background: #fff;
+    color: #111;
+    border: 0;
+    font-size: 24px
+}
+
+.tc-hero-controls #hero-pause {
+    font-size: 14px
+}
+
+.tc-hero-dots {
+    display: flex;
+    gap: 6px;
+    margin: 0 6px
+}
+
+.tc-hero-dots button {
+    width: 7px;
+    height: 7px;
+    border: 0;
+    padding: 0;
+    background: #ffffff66;
+    border-radius: 50%
+}
+
+.tc-hero-dots button[aria-current=true] {
+    background: #fff;
+    width: 20px;
+    border-radius: 4px
+}
+
+.tc-search-options {
+    margin-bottom: 24px
+}
+
+.tc-search-options>summary {
+    font-size: .85rem;
+    font-weight: 600;
+    padding: 14px 0;
+    cursor: pointer
+}
+
+.category-nav {
+    overflow-x: auto;
+    display: flex;
+    gap: 24px;
+    white-space: nowrap
+}
+
+.category-nav button {
+    background: transparent;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    padding: 16px 0;
+    color: #777;
+    font: inherit;
+    font-size: .85rem;
+    cursor: pointer
+}
+
+.category-nav button.active {
+    color: #e50914;
+    border-bottom-color: #e50914;
+    font-weight: 700
+}
+
+.tc-catalog-intro {
+    padding-top: 28px;
+    padding-bottom: 8px
+}
+
+.tc-catalog-intro h1 {
+    font-size: 2rem
+}
+
+@media(max-width:767px) {
+    .tc-hero-slide {
+        height: 290px
+    }
+
+    .tc-hero-caption {
+        padding: 24px 24px 66px
+    }
+
+    .tc-hero-controls {
+        right: 16px
+    }
+
+    .tc-hero-caption p {
+        margin: 12px 0
+    }
+
+    .tc-hero-caption h2 {
+        font-size: 1.5rem
+    }
+}
+
+@media(prefers-reduced-motion:reduce) {
+    .tc-hero-track {
+        transition: none
+    }
+}

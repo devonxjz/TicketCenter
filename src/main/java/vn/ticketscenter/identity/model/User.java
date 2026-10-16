@@ -41,7 +41,7 @@ public class User extends BaseEntity {
     @Column(name = "platform_role", nullable = false, length = 20)
     private PlatformRole platformRole = PlatformRole.CUSTOMER;
 
-    protected User() { }
+    protected User() {}
 
     public User(String email, String userName, String fullName, String passwordHash) {
         this.email = email;
@@ -50,30 +50,72 @@ public class User extends BaseEntity {
         this.passwordHash = passwordHash;
     }
 
-    public User(String email, String userName, String passwordHash, String fullName, Instant emailVerifiedAt) {
+    public User(
+            String email,
+            String userName,
+            String passwordHash,
+            String fullName,
+            Instant emailVerifiedAt) {
         this(email, userName, fullName, passwordHash);
         this.emailVerifiedAt = emailVerifiedAt;
     }
 
-    public String getEmail() { return email; }
-    public String getUserName() { return userName; }
-    public String getFullName() { return fullName; }
-    public String getPhone() { return phone; }
-    public UserStatus getStatus() { return status; }
-    public String getPasswordHash() { return passwordHash; }
-    public int getAuthVersion() { return authVersion; }
-    public Instant getEmailVerifiedAt() { return emailVerifiedAt; }
-    public PlatformRole getPlatformRole() { return platformRole; }
+    public String getEmail() {
+        return email;
+    }
 
-    public boolean isEmailVerified() { return emailVerifiedAt != null; }
-    public void verifyEmail() { emailVerifiedAt = Instant.now(); }
-    public void verifyEmail(Instant verifiedAt) { emailVerifiedAt = verifiedAt; }
+    public String getUserName() {
+        return userName;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public UserStatus getStatus() {
+        return status;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public int getAuthVersion() {
+        return authVersion;
+    }
+
+    public Instant getEmailVerifiedAt() {
+        return emailVerifiedAt;
+    }
+
+    public PlatformRole getPlatformRole() {
+        return platformRole;
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerifiedAt != null;
+    }
+
+    public void verifyEmail() {
+        emailVerifiedAt = Instant.now();
+    }
+
+    public void verifyEmail(Instant verifiedAt) {
+        emailVerifiedAt = verifiedAt;
+    }
+
     public boolean hasPlatformRole(String role) {
         return platformRole.name().equalsIgnoreCase(role);
     }
+
     public void grantPlatformRole(String role) {
         platformRole = PlatformRole.valueOf(role.toUpperCase());
     }
+
     public void updateProfile(String fullName, String phone) {
         this.fullName = fullName;
         this.phone = phone;

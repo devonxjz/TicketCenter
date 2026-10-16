@@ -1,83 +1,554 @@
 /* Buyer flows follow the approved flat, red-white-black prototype. */
-.buyer-page { background: #f8f8f8; color: #111; min-height: 100dvh; }
-.buyer-page main { flex: 1; }
-.buyer-page .buyer-container { max-width: 1140px; }
-.buyer-page .buyer-detail { max-width: 860px; }
-.buyer-page h1,.buyer-page h2,.buyer-page h3 { letter-spacing: -.035em; text-wrap: balance; }
-.buyer-page .buyer-heading { margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid #e0e0e0; }
-.buyer-page .buyer-heading h1 { font-size: clamp(1.7rem,3.2vw,2.4rem); font-weight: 800; }
-.buyer-page .buyer-navigation { display: flex; flex-wrap: wrap; gap: 24px; margin-bottom: 28px; border-bottom: 1px solid #e0e0e0; }
-.buyer-navigation a { padding: 12px 0; color: #666; font-size: .875rem; font-weight: 600; text-decoration: none; border-bottom: 2px solid transparent; }
-.buyer-navigation a[aria-current="page"] { color: #111; border-bottom-color: #e50914; }
-.buyer-page .order-card,.buyer-page .ticket-card,.buyer-page .detail-card,.buyer-page .ticket-pass,.buyer-page .result-card,.buyer-page .panel-box,.buyer-page .hold-panel { border: 1px solid #e0e0e0; border-radius: 0; background: #fff; box-shadow: none; }
-.buyer-page .detail-card,.buyer-page .hold-panel { padding: 28px; margin-bottom: 24px; }
-.buyer-page .order-card:hover,.buyer-page .ticket-card:hover { transform: none; box-shadow: none; border-color: #111; }
-.buyer-page .shadow-sm { box-shadow: none !important; }
-.buyer-page .btn,.buyer-page .badge,.buyer-page .form-control,.buyer-page .form-select,.buyer-page .list-group-item,.buyer-page .alert,.buyer-page .rounded,.buyer-page .rounded-4,.buyer-page .rounded-pill { border-radius: 0 !important; }
-.buyer-page .btn { font-weight: 600; padding: .65rem 1.1rem; }
-.buyer-page .btn-primary,.buyer-page .btn-qr,.buyer-page .btn-custom-primary { background: #e50914; border: 1px solid #e50914; color: #fff; border-radius: 0; }
-.buyer-page .btn-primary:hover,.buyer-page .btn-qr:hover,.buyer-page .btn-custom-primary:hover { background: #c70812; border-color: #c70812; color: #fff; transform: none; }
-.buyer-page .btn-outline-primary { color: #111; border-color: #111; }
-.buyer-page .btn-outline-primary:hover { background: #111; color: #fff; }
-.buyer-page .btn-custom-secondary { background: #fff; border: 1px solid #111; color: #111; padding: 12px 24px; font-weight: 600; }
-.buyer-page .text-primary { color: #e50914 !important; }
-.buyer-page .bg-primary-subtle,.buyer-page .bg-info-subtle { background: #f8f8f8 !important; }
-.buyer-page .text-info { color: #666 !important; }
-.buyer-page .badge-status,.buyer-page .badge { font-size: .72rem; font-weight: 600; padding: 6px 10px; }
-.buyer-page .empty-state,.buyer-page .tc-empty-state { padding: 64px 24px; text-align: center; background: #fff; border: 1px solid #e0e0e0; border-radius: 0; }
-.buyer-page .table thead th { color: #666; background: #f8f8f8; font-size: .75rem; font-weight: 600; padding: 14px 12px; }
-.buyer-page .table td { padding: 16px 12px; }
-.buyer-page .ticket-wrapper { max-width: 580px; margin: 40px auto; }
-.buyer-page .ticket-header { background: #111; color: #fff; padding: 30px; text-align: center; }
-.buyer-page .qr-section { padding: 32px 20px; text-align: center; border-bottom: 1px dashed #ccc; }
-.buyer-page .qr-section::before,.buyer-page .qr-section::after { display: none; }
-.buyer-page .qr-img { width: 220px; height: 220px; padding: 8px; border: 1px solid #e0e0e0; border-radius: 0; }
-.buyer-page .ticket-body { padding: 28px; }
-.buyer-page .info-row,.buyer-page .detail-row { display: flex; justify-content: space-between; gap: 20px; padding: 12px 0; border-bottom: 1px solid #eee; }
-.buyer-page .info-label,.buyer-page .detail-label { color: #666; }
-.buyer-page .info-val,.buyer-page .detail-value { text-align: right; font-weight: 600; overflow-wrap: anywhere; }
-.buyer-page .result-container { width: min(640px,100%); margin: 60px auto; padding: 0 20px; }
-.buyer-page .header-banner { padding: 40px 28px; text-align: center; background: #fff; border-bottom: 1px solid #e0e0e0; }
-.buyer-page .header-banner.success { background: #fff; color: #111; }
-.buyer-page .header-banner.failure { background: #fff5f5; color: #111; }
-.buyer-page .status-icon { font-size: 48px; margin-bottom: 16px; }
-.buyer-page .auth-container { max-width: 480px; margin: 16px auto; padding: 40px; background: #fff; border: 1px solid #e0e0e0; box-shadow: none !important; }
-.buyer-page .auth-tabs { display: flex; border-bottom: 1px solid #e0e0e0; margin-bottom: 32px; }
-.buyer-page .auth-tab-btn { flex: 1; padding: 12px 0; text-align: center; font-weight: 700; color: #666; text-decoration: none; border-bottom: 2px solid transparent; }
-.buyer-page .auth-tab-btn.active { color: #111; border-bottom-color: #e50914; }
-.buyer-page .auth-tab-btn:hover { color: #e50914; }
-.buyer-page .otp-input { text-align: center; letter-spacing: .5em; font-family: var(--font-mono,monospace); font-size: 1.3rem; }
-.buyer-page [hidden] { display: none !important; }
-.buyer-page .profile-avatar { width: 64px; height: 64px; display: grid; place-items: center; background: #111; color: #fff; font-weight: 800; font-size: 1.3rem; }
-.buyer-page .checkout-grid { display: grid; grid-template-columns: minmax(0,1.15fr) minmax(0,1fr); gap: 32px; align-items: start; }
-.buyer-page .hold-timer-bar { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; padding: 18px 24px; background: #111; color: #fff; }
-.buyer-page #hold-countdown { font-family: var(--font-mono,monospace); color: #ff4a53; font-size: 1.4rem; font-variant-numeric: tabular-nums; }
-.buyer-page .checkout-total { display: grid; grid-template-columns: 1fr auto; gap: 12px; padding: 20px 0; border-top: 1px solid #e0e0e0; }
-.buyer-page .checkout-total dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
-.buyer-page #order-total { color: #e50914; font-weight: 800; }
-.buyer-page .refund-container { max-width: 860px; margin: 48px auto; padding: 0 20px; }
-.buyer-page .refund-panel { padding: 28px; background: #fff; border: 1px solid #e0e0e0; }
-.buyer-page .policy { padding: 20px; background: #f8f8f8; border-left: 3px solid #e50914; line-height: 1.6; }
-.buyer-page .refund-panel label { display: block; font-size: .85rem; font-weight: 600; margin: 20px 0 8px; }
-.buyer-page .refund-panel select,.buyer-page .refund-panel textarea { width: 100%; font: inherit; padding: 12px; border: 1px solid #ccc; border-radius: 0; }
-.buyer-page .refund-panel button,.buyer-page dialog button { font: inherit; font-weight: 600; padding: 12px 20px; background: #111; color: #fff; border: 1px solid #111; }
-.buyer-page .refund-panel button:disabled { opacity: .5; }
-.buyer-page .refund-panel .ticket { border-bottom: 1px solid #e0e0e0; padding: 12px 0; }
-.buyer-page .refund-panel .ticket label { display: flex; align-items: center; gap: 12px; }
-.buyer-page .muted { font-size: .85rem; color: #666; }
-.buyer-page .total { font-size: 1.4rem; font-weight: 800; color: #e50914; margin: 24px 0; }
-.buyer-page .refund-panel article { padding: 24px 0; border-bottom: 1px solid #e0e0e0; }
-.buyer-page .refund-panel article h2 { margin-top: 16px; font-size: 1.15rem; }
-.buyer-page .refund-panel .badge { color: #666; background: #f2f2f2; }
-.buyer-page .refund-panel .badge.COMPLETED { color: #17643b; background: #eaf5ef; }
-.buyer-page .refund-panel .badge.REJECTED,.buyer-page .refund-panel .badge.RETRYABLE { color: #ba0912; background: #fff0f0; }
-.buyer-page .refund-panel small { color: #666; overflow-wrap: anywhere; }
-.buyer-page .refund-panel pre,.buyer-page #details { white-space: pre-wrap; font: inherit; line-height: 1.6; }
-.buyer-page #message { white-space: pre-wrap; padding: 16px 0; }
-.buyer-page dialog { max-width: min(680px,calc(100% - 32px)); padding: 28px; border: 1px solid #111; border-radius: 0; }
-.buyer-page dialog::backdrop { background: #1118; }
-.buyer-page :is(a,button,input,select,textarea):focus-visible { outline: 2px solid #e50914; outline-offset: 3px; }
-.buyer-page .checkout-overlay { position: fixed; inset: 0; z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(6px); text-align: center; }
-@media(max-width:767px) { .buyer-page .checkout-grid { grid-template-columns: 1fr; gap: 0; } .buyer-page .buyer-heading { align-items: start !important; flex-direction: column; gap: 20px; } .buyer-page .auth-container { padding: 28px 24px; } .buyer-page .detail-card,.buyer-page .hold-panel,.buyer-page .refund-panel { padding: 20px; } .buyer-page .result-container { margin: 32px auto; } .buyer-page .buyer-navigation { flex-wrap: nowrap; gap: 20px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; } .buyer-page .buyer-navigation::-webkit-scrollbar { display: none; } .buyer-navigation a { flex: 0 0 auto; white-space: nowrap; } }
-@media(max-width:575px) { .buyer-page .hold-panel .d-flex.flex-wrap > .btn { flex: 1 1 auto; margin-top: 0; } .buyer-page #order-refresh,.buyer-page #hold-refresh { width: 100%; } .buyer-page .hold-timer-bar { padding: 14px 16px; } .buyer-page #btnResendOtp { min-height: 44px; padding: 0 12px !important; } .buyer-page .ticket-card .btn-qr { white-space: nowrap; } }
-@media print { .buyer-page .navbar,.buyer-page footer,.buyer-page .buyer-navigation,.buyer-page .ticket-wrapper > .mb-3,.buyer-page .ticket-body .d-grid { display: none; } .buyer-page .ticket-pass { border-color: #111; } }
+.buyer-page {
+    background: #f8f8f8;
+    color: #111;
+    min-height: 100dvh;
+}
+
+.buyer-page main {
+    flex: 1;
+}
+
+.buyer-page .buyer-container {
+    max-width: 1140px;
+}
+
+.buyer-page .buyer-detail {
+    max-width: 860px;
+}
+
+.buyer-page h1,.buyer-page h2,.buyer-page h3 {
+    letter-spacing: -.035em;
+    text-wrap: balance;
+}
+
+.buyer-page .buyer-heading {
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.buyer-page .buyer-heading h1 {
+    font-size: clamp(1.7rem,3.2vw,2.4rem);
+    font-weight: 800;
+}
+
+.buyer-page .buyer-navigation {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    margin-bottom: 28px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.buyer-navigation a {
+    padding: 12px 0;
+    color: #666;
+    font-size: .875rem;
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+}
+
+.buyer-navigation a[aria-current="page"] {
+    color: #111;
+    border-bottom-color: #e50914;
+}
+
+.buyer-page .order-card,.buyer-page .ticket-card,.buyer-page .detail-card,.buyer-page .ticket-pass,.buyer-page .result-card,.buyer-page .panel-box,.buyer-page .hold-panel {
+    border: 1px solid #e0e0e0;
+    border-radius: 0;
+    background: #fff;
+    box-shadow: none;
+}
+
+.buyer-page .detail-card,.buyer-page .hold-panel {
+    padding: 28px;
+    margin-bottom: 24px;
+}
+
+.buyer-page .order-card:hover,.buyer-page .ticket-card:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: #111;
+}
+
+.buyer-page .shadow-sm {
+    box-shadow: none !important;
+}
+
+.buyer-page .btn,.buyer-page .badge,.buyer-page .form-control,.buyer-page .form-select,.buyer-page .list-group-item,.buyer-page .alert,.buyer-page .rounded,.buyer-page .rounded-4,.buyer-page .rounded-pill {
+    border-radius: 0 !important;
+}
+
+.buyer-page .btn {
+    font-weight: 600;
+    padding: .65rem 1.1rem;
+}
+
+.buyer-page .btn-primary,.buyer-page .btn-qr,.buyer-page .btn-custom-primary {
+    background: #e50914;
+    border: 1px solid #e50914;
+    color: #fff;
+    border-radius: 0;
+}
+
+.buyer-page .btn-primary:hover,.buyer-page .btn-qr:hover,.buyer-page .btn-custom-primary:hover {
+    background: #c70812;
+    border-color: #c70812;
+    color: #fff;
+    transform: none;
+}
+
+.buyer-page .btn-outline-primary {
+    color: #111;
+    border-color: #111;
+}
+
+.buyer-page .btn-outline-primary:hover {
+    background: #111;
+    color: #fff;
+}
+
+.buyer-page .btn-custom-secondary {
+    background: #fff;
+    border: 1px solid #111;
+    color: #111;
+    padding: 12px 24px;
+    font-weight: 600;
+}
+
+.buyer-page .text-primary {
+    color: #e50914 !important;
+}
+
+.buyer-page .bg-primary-subtle,.buyer-page .bg-info-subtle {
+    background: #f8f8f8 !important;
+}
+
+.buyer-page .text-info {
+    color: #666 !important;
+}
+
+.buyer-page .badge-status,.buyer-page .badge {
+    font-size: .72rem;
+    font-weight: 600;
+    padding: 6px 10px;
+}
+
+.buyer-page .empty-state,.buyer-page .tc-empty-state {
+    padding: 64px 24px;
+    text-align: center;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 0;
+}
+
+.buyer-page .table thead th {
+    color: #666;
+    background: #f8f8f8;
+    font-size: .75rem;
+    font-weight: 600;
+    padding: 14px 12px;
+}
+
+.buyer-page .table td {
+    padding: 16px 12px;
+}
+
+.buyer-page .ticket-wrapper {
+    max-width: 580px;
+    margin: 40px auto;
+}
+
+.buyer-page .ticket-header {
+    background: #111;
+    color: #fff;
+    padding: 30px;
+    text-align: center;
+}
+
+.buyer-page .qr-section {
+    padding: 32px 20px;
+    text-align: center;
+    border-bottom: 1px dashed #ccc;
+}
+
+.buyer-page .qr-section::before,.buyer-page .qr-section::after {
+    display: none;
+}
+
+.buyer-page .qr-img {
+    width: 220px;
+    height: 220px;
+    padding: 8px;
+    border: 1px solid #e0e0e0;
+    border-radius: 0;
+}
+
+.buyer-page .ticket-body {
+    padding: 28px;
+}
+
+.buyer-page .info-row,.buyer-page .detail-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 12px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.buyer-page .info-label,.buyer-page .detail-label {
+    color: #666;
+}
+
+.buyer-page .info-val,.buyer-page .detail-value {
+    text-align: right;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.buyer-page .result-container {
+    width: min(640px,100%);
+    margin: 60px auto;
+    padding: 0 20px;
+}
+
+.buyer-page .header-banner {
+    padding: 40px 28px;
+    text-align: center;
+    background: #fff;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.buyer-page .header-banner.success {
+    background: #fff;
+    color: #111;
+}
+
+.buyer-page .header-banner.failure {
+    background: #fff5f5;
+    color: #111;
+}
+
+.buyer-page .status-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.buyer-page .auth-container {
+    max-width: 480px;
+    margin: 16px auto;
+    padding: 40px;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    box-shadow: none !important;
+}
+
+.buyer-page .auth-tabs {
+    display: flex;
+    border-bottom: 1px solid #e0e0e0;
+    margin-bottom: 32px;
+}
+
+.buyer-page .auth-tab-btn {
+    flex: 1;
+    padding: 12px 0;
+    text-align: center;
+    font-weight: 700;
+    color: #666;
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+}
+
+.buyer-page .auth-tab-btn.active {
+    color: #111;
+    border-bottom-color: #e50914;
+}
+
+.buyer-page .auth-tab-btn:hover {
+    color: #e50914;
+}
+
+.buyer-page .otp-input {
+    text-align: center;
+    letter-spacing: .5em;
+    font-family: var(--font-mono,monospace);
+    font-size: 1.3rem;
+}
+
+.buyer-page [hidden] {
+    display: none !important;
+}
+
+.buyer-page .profile-avatar {
+    width: 64px;
+    height: 64px;
+    display: grid;
+    place-items: center;
+    background: #111;
+    color: #fff;
+    font-weight: 800;
+    font-size: 1.3rem;
+}
+
+.buyer-page .checkout-grid {
+    display: grid;
+    grid-template-columns: minmax(0,1.15fr) minmax(0,1fr);
+    gap: 32px;
+    align-items: start;
+}
+
+.buyer-page .hold-timer-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 24px;
+    background: #111;
+    color: #fff;
+}
+
+.buyer-page #hold-countdown {
+    font-family: var(--font-mono,monospace);
+    color: #ff4a53;
+    font-size: 1.4rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.buyer-page .checkout-total {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    padding: 20px 0;
+    border-top: 1px solid #e0e0e0;
+}
+
+.buyer-page .checkout-total dd {
+    margin: 0;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.buyer-page #order-total {
+    color: #e50914;
+    font-weight: 800;
+}
+
+.buyer-page .refund-container {
+    max-width: 860px;
+    margin: 48px auto;
+    padding: 0 20px;
+}
+
+.buyer-page .refund-panel {
+    padding: 28px;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+}
+
+.buyer-page .policy {
+    padding: 20px;
+    background: #f8f8f8;
+    border-left: 3px solid #e50914;
+    line-height: 1.6;
+}
+
+.buyer-page .refund-panel label {
+    display: block;
+    font-size: .85rem;
+    font-weight: 600;
+    margin: 20px 0 8px;
+}
+
+.buyer-page .refund-panel select,.buyer-page .refund-panel textarea {
+    width: 100%;
+    font: inherit;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 0;
+}
+
+.buyer-page .refund-panel button,.buyer-page dialog button {
+    font: inherit;
+    font-weight: 600;
+    padding: 12px 20px;
+    background: #111;
+    color: #fff;
+    border: 1px solid #111;
+}
+
+.buyer-page .refund-panel button:disabled {
+    opacity: .5;
+}
+
+.buyer-page .refund-panel .ticket {
+    border-bottom: 1px solid #e0e0e0;
+    padding: 12px 0;
+}
+
+.buyer-page .refund-panel .ticket label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.buyer-page .muted {
+    font-size: .85rem;
+    color: #666;
+}
+
+.buyer-page .total {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #e50914;
+    margin: 24px 0;
+}
+
+.buyer-page .refund-panel article {
+    padding: 24px 0;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.buyer-page .refund-panel article h2 {
+    margin-top: 16px;
+    font-size: 1.15rem;
+}
+
+.buyer-page .refund-panel .badge {
+    color: #666;
+    background: #f2f2f2;
+}
+
+.buyer-page .refund-panel .badge.COMPLETED {
+    color: #17643b;
+    background: #eaf5ef;
+}
+
+.buyer-page .refund-panel .badge.REJECTED,.buyer-page .refund-panel .badge.RETRYABLE {
+    color: #ba0912;
+    background: #fff0f0;
+}
+
+.buyer-page .refund-panel small {
+    color: #666;
+    overflow-wrap: anywhere;
+}
+
+.buyer-page .refund-panel pre,.buyer-page #details {
+    white-space: pre-wrap;
+    font: inherit;
+    line-height: 1.6;
+}
+
+.buyer-page #message {
+    white-space: pre-wrap;
+    padding: 16px 0;
+}
+
+.buyer-page dialog {
+    max-width: min(680px,calc(100% - 32px));
+    padding: 28px;
+    border: 1px solid #111;
+    border-radius: 0;
+}
+
+.buyer-page dialog::backdrop {
+    background: #1118;
+}
+
+.buyer-page :is(a,button,input,select,textarea):focus-visible {
+    outline: 2px solid #e50914;
+    outline-offset: 3px;
+}
+
+.buyer-page .checkout-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 24px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(6px);
+    text-align: center;
+}
+
+@media(max-width:767px) {
+    .buyer-page .checkout-grid {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+
+    .buyer-page .buyer-heading {
+        align-items: start !important;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .buyer-page .auth-container {
+        padding: 28px 24px;
+    }
+
+    .buyer-page .detail-card,.buyer-page .hold-panel,.buyer-page .refund-panel {
+        padding: 20px;
+    }
+
+    .buyer-page .result-container {
+        margin: 32px auto;
+    }
+
+    .buyer-page .buyer-navigation {
+        flex-wrap: nowrap;
+        gap: 20px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .buyer-page .buyer-navigation::-webkit-scrollbar {
+        display: none;
+    }
+
+    .buyer-navigation a {
+        flex: 0 0 auto;
+        white-space: nowrap;
+    }
+}
+
+@media(max-width:575px) {
+    .buyer-page .hold-panel .d-flex.flex-wrap > .btn {
+        flex: 1 1 auto;
+        margin-top: 0;
+    }
+
+    .buyer-page #order-refresh,.buyer-page #hold-refresh {
+        width: 100%;
+    }
+
+    .buyer-page .hold-timer-bar {
+        padding: 14px 16px;
+    }
+
+    .buyer-page #btnResendOtp {
+        min-height: 44px;
+        padding: 0 12px !important;
+    }
+
+    .buyer-page .ticket-card .btn-qr {
+        white-space: nowrap;
+    }
+}
+
+@media print {
+    .buyer-page .navbar,.buyer-page footer,.buyer-page .buyer-navigation,.buyer-page .ticket-wrapper > .mb-3,.buyer-page .ticket-body .d-grid {
+        display: none;
+    }
+
+    .buyer-page .ticket-pass {
+        border-color: #111;
+    }
+}

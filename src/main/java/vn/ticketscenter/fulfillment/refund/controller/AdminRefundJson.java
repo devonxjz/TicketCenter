@@ -5,9 +5,10 @@ import vn.ticketscenter.fulfillment.refund.dto.AdminRefundDecisionRequestDto;
 import vn.ticketscenter.fulfillment.refund.service.RefundException;
 
 final class AdminRefundJson {
-    private static final Set<String> DECISION_FIELDS = Set.of("decision", "note", "rejectReason", "rejectionReason");
+    private static final Set<String> DECISION_FIELDS =
+            Set.of("decision", "note", "rejectReason", "rejectionReason");
 
-    private AdminRefundJson() { }
+    private AdminRefundJson() {}
 
     static AdminRefundDecisionRequestDto decision(String source) {
         var fields = object(source);
@@ -17,7 +18,9 @@ final class AdminRefundJson {
         if (fields.containsKey("rejectReason") && fields.containsKey("rejectionReason")) {
             throw RefundException.invalid();
         }
-        return new AdminRefundDecisionRequestDto(fields.get("decision"), fields.get("note"),
+        return new AdminRefundDecisionRequestDto(
+                fields.get("decision"),
+                fields.get("note"),
                 fields.getOrDefault("rejectReason", fields.get("rejectionReason")));
     }
 

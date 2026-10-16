@@ -46,7 +46,10 @@ public final class RedisClientProvider implements AutoCloseable {
             this.jedisPool = new JedisPool(poolConfig, host, port, timeout);
         }
 
-        LOGGER.info(String.format("Khởi tạo JedisPool tới Redis tại %s:%d (timeout=%dms)", host, port, timeout));
+        LOGGER.info(
+                String.format(
+                        "Khởi tạo JedisPool tới Redis tại %s:%d (timeout=%dms)",
+                        host, port, timeout));
     }
 
     public static RedisClientProvider getInstance() {

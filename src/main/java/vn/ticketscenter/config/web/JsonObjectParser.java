@@ -58,7 +58,13 @@ public final class JsonObjectParser {
         int start = index;
         char open = index < source.length() ? source.charAt(index) : 0;
         if (open == '-' || (open >= '0' && open <= '9')) {
-            while (index < source.length() && (Character.isDigit(source.charAt(index)) || source.charAt(index) == '.' || source.charAt(index) == 'e' || source.charAt(index) == 'E' || source.charAt(index) == '+' || source.charAt(index) == '-')) {
+            while (index < source.length()
+                    && (Character.isDigit(source.charAt(index))
+                            || source.charAt(index) == '.'
+                            || source.charAt(index) == 'e'
+                            || source.charAt(index) == 'E'
+                            || source.charAt(index) == '+'
+                            || source.charAt(index) == '-')) {
                 index++;
             }
             return source.substring(start, index);
@@ -92,12 +98,17 @@ public final class JsonObjectParser {
             }
             if (index >= source.length()) throw invalid();
             char escaped = source.charAt(index++);
-            value.append(switch (escaped) {
-                case '"', '\\', '/' -> escaped;
-                case 'b' -> '\b'; case 'f' -> '\f'; case 'n' -> '\n'; case 'r' -> '\r'; case 't' -> '\t';
-                case 'u' -> unicode();
-                default -> throw invalid();
-            });
+            value.append(
+                    switch (escaped) {
+                        case '"', '\\', '/' -> escaped;
+                        case 'b' -> '\b';
+                        case 'f' -> '\f';
+                        case 'n' -> '\n';
+                        case 'r' -> '\r';
+                        case 't' -> '\t';
+                        case 'u' -> unicode();
+                        default -> throw invalid();
+                    });
         }
         throw invalid();
     }
@@ -113,9 +124,29 @@ public final class JsonObjectParser {
         }
     }
 
-    private void expect(char expected) { skipWhitespace(); expectRaw(expected); }
-    private void expectRaw(char expected) { if (index >= source.length() || source.charAt(index++) != expected) throw invalid(); }
-    private boolean take(char expected) { skipWhitespace(); if (index < source.length() && source.charAt(index) == expected) { index++; return true; } return false; }
-    private void skipWhitespace() { while (index < source.length() && Character.isWhitespace(source.charAt(index))) index++; }
-    private IllegalArgumentException invalid() { return new IllegalArgumentException("invalid JSON object"); }
+    private void expect(char expected) {
+        skipWhitespace();
+        expectRaw(expected);
+    }
+
+    private void expectRaw(char expected) {
+        if (index >= source.length() || source.charAt(index++) != expected) throw invalid();
+    }
+
+    private boolean take(char expected) {
+        skipWhitespace();
+        if (index < source.length() && source.charAt(index) == expected) {
+            index++;
+            return true;
+        }
+        return false;
+    }
+
+    private void skipWhitespace() {
+        while (index < source.length() && Character.isWhitespace(source.charAt(index))) index++;
+    }
+
+    private IllegalArgumentException invalid() {
+        return new IllegalArgumentException("invalid JSON object");
+    }
 }

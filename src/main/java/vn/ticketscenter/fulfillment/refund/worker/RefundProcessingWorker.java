@@ -13,11 +13,13 @@ public final class RefundProcessingWorker {
     private final RefundLease leases;
     private final int batchSize;
 
-    public RefundProcessingWorker(RefundWorkerStore store, RefundGateway gateway, RefundLease leases, int batchSize) {
+    public RefundProcessingWorker(
+            RefundWorkerStore store, RefundGateway gateway, RefundLease leases, int batchSize) {
         this.store = Objects.requireNonNull(store);
         this.gateway = Objects.requireNonNull(gateway);
         this.leases = Objects.requireNonNull(leases);
-        if (batchSize < 1 || batchSize > 1000) throw new IllegalArgumentException("Batch must be 1..1000");
+        if (batchSize < 1 || batchSize > 1000)
+            throw new IllegalArgumentException("Batch must be 1..1000");
         this.batchSize = batchSize;
     }
 
@@ -40,7 +42,9 @@ public final class RefundProcessingWorker {
                     applied++;
                 }
             } catch (RuntimeException failure) {
-                LOG.warning("Refund attempt remains durable for reconciliation: " + candidate.attemptId());
+                LOG.warning(
+                        "Refund attempt remains durable for reconciliation: "
+                                + candidate.attemptId());
             }
         }
         return applied;
@@ -48,17 +52,23 @@ public final class RefundProcessingWorker {
 
     private GatewayOutcome transfer(RefundWorkerStore.Claim claim) {
         try {
-            var result = claim.kind().equals("EXECUTE")
-                    ? gateway.executeRefund(claim.request())
-                    : gateway.queryRefundStatus(claim.providerReference(), claim.request().attemptId());
-            if (result == null || result.status() == null) throw new IllegalStateException("Missing gateway result");
-            String error = result.status() == RefundGateway.Status.FAILED ? "GATEWAY_DECLINED" : null;
+            var result =
+                    claim.kind().equals("EXECUTE")
+                            ? gateway.executeRefund(claim.request())
+                            : gateway.queryRefundStatus(
+                                    claim.providerReference(), claim.request().attemptId());
+            if (result == null || result.status() == null)
+                throw new IllegalStateException("Missing gateway result");
+            String error =
+                    result.status() == RefundGateway.Status.FAILED ? "GATEWAY_DECLINED" : null;
             return new GatewayOutcome(result, error);
         } catch (RuntimeException uncertain) {
-            return new GatewayOutcome(new RefundTransferResult(RefundGateway.Status.UNKNOWN, claim.providerReference()),
+            return new GatewayOutcome(
+                    new RefundTransferResult(
+                            RefundGateway.Status.UNKNOWN, claim.providerReference()),
                     "GATEWAY_OUTCOME_UNKNOWN");
         }
     }
 
-    private record GatewayOutcome(RefundTransferResult result, String error) { }
+    private record GatewayOutcome(RefundTransferResult result, String error) {}
 }

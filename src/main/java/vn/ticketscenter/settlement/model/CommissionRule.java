@@ -39,10 +39,14 @@ public class CommissionRule {
     @Column(name = "effective_to", nullable = false)
     private Instant effectiveTo;
 
-    protected CommissionRule() { }
+    protected CommissionRule() {}
 
-    public CommissionRule(Organization organization, BigDecimal ratePercent, long fixedFee,
-                           Instant effectiveFrom, Instant effectiveTo) {
+    public CommissionRule(
+            Organization organization,
+            BigDecimal ratePercent,
+            long fixedFee,
+            Instant effectiveFrom,
+            Instant effectiveTo) {
         this.organization = organization;
         this.ratePercent = ratePercent;
         this.fixedFee = fixedFee;
@@ -50,10 +54,27 @@ public class CommissionRule {
         this.effectiveTo = effectiveTo;
     }
 
-    public UUID getId() { return id; }
-    public Organization getOrganization() { return organization; }
-    public BigDecimal getRatePercent() { return ratePercent; }
-    public long getFixedFee() { return fixedFee; }
-    public Instant getEffectiveFrom() { return effectiveFrom; }
-    public Instant getEffectiveTo() { return effectiveTo; }
+    public UUID getId() {
+        return id;
+    }
+
+    public Organization getOrganization() {
+        return organization;
+    }
+
+    public BigDecimal getRatePercent() {
+        return ratePercent;
+    }
+
+    public long getFixedFee() {
+        return fixedFee;
+    }
+
+    public Instant getEffectiveFrom() {
+        return effectiveFrom;
+    }
+
+    public Instant getEffectiveTo() {
+        return effectiveTo;
+    }
 }

@@ -17,7 +17,7 @@ import java.util.UUID;
  */
 public class ResetTokenCodec {
 
-    public record Claims(UUID userId, Instant expiresAt) { }
+    public record Claims(UUID userId, Instant expiresAt) {}
 
     private final HmacSha256 hmac;
 
@@ -34,7 +34,11 @@ public class ResetTokenCodec {
         Objects.requireNonNull(expiresAt, "expiresAt must not be null");
         Objects.requireNonNull(passwordHash, "passwordHash must not be null");
         long expiresAtMilli = expiresAt.toEpochMilli();
-        return userId + "." + expiresAtMilli + "." + sign(userId, expiresAtMilli, passwordHash, authVersion);
+        return userId
+                + "."
+                + expiresAtMilli
+                + "."
+                + sign(userId, expiresAtMilli, passwordHash, authVersion);
     }
 
     /** Reads the user id without checking the signature, so the user can be loaded to verify against. */
@@ -51,7 +55,8 @@ public class ResetTokenCodec {
      * @throws IdentityException {@code VALIDATION_FAILED} for a malformed token, {@code INVALID_TOKEN} for a
      *     wrong user, an expired token or a bad signature
      */
-    public Claims verify(String token, UUID expectedUserId, String currentPasswordHash, int currentAuthVersion) {
+    public Claims verify(
+            String token, UUID expectedUserId, String currentPasswordHash, int currentAuthVersion) {
         String[] parts = split(token);
         UUID tokenUserId;
         long expiresAtMilli;
@@ -68,8 +73,10 @@ public class ResetTokenCodec {
         if (Instant.now().isAfter(expiresAt)) {
             throw rejected("RESET_TOKEN_EXPIRED");
         }
-        String expected = sign(expectedUserId, expiresAtMilli, currentPasswordHash, currentAuthVersion);
-        if (!MessageDigest.isEqual(parts[2].getBytes(StandardCharsets.UTF_8),
+        String expected =
+                sign(expectedUserId, expiresAtMilli, currentPasswordHash, currentAuthVersion);
+        if (!MessageDigest.isEqual(
+                parts[2].getBytes(StandardCharsets.UTF_8),
                 expected.getBytes(StandardCharsets.UTF_8))) {
             throw rejected("RESET_TOKEN_INVALID");
         }

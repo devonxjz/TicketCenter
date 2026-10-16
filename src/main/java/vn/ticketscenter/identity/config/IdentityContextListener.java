@@ -26,15 +26,18 @@ public final class IdentityContextListener implements ServletContextListener {
         if (isProduction) {
             config.setSecure(true);
         }
-        LOGGER.info("IdentityContextListener initialized: SessionCookieConfig HttpOnly=true, Secure="
-                + isProduction);
+        LOGGER.info(
+                "IdentityContextListener initialized: SessionCookieConfig HttpOnly=true, Secure="
+                        + isProduction);
 
-        // Build the services now when persistence is already up (a no-op otherwise: the first request builds them).
+        // Build the services now when persistence is already up (a no-op otherwise: the first
+        // request builds them).
         IdentityServices.from(context);
     }
 
     @Override
     public void contextDestroyed(ServletContextEvent sce) {
-        // Nothing to release: the services only hold shared pools owned by the persistence listener.
+        // Nothing to release: the services only hold shared pools owned by the persistence
+        // listener.
     }
 }

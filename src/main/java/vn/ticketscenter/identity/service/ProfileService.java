@@ -16,6 +16,7 @@ public class ProfileService {
 
     /** {@code usp_UpdateMyProfile} THROW numbers. */
     private static final int PROFILE_INVALID = 52800;
+
     private static final int PROFILE_USER_MISSING = 52801;
 
     private final TransactionManager transactions;
@@ -23,15 +24,21 @@ public class ProfileService {
 
     public ProfileService(TransactionManager transactions, UserRepository userRepository) {
         this.transactions = Objects.requireNonNull(transactions, "transactions must not be null");
-        this.userRepository = Objects.requireNonNull(userRepository, "userRepository must not be null");
+        this.userRepository =
+                Objects.requireNonNull(userRepository, "userRepository must not be null");
     }
 
     public ProfileDto getProfile(UUID actorId) {
         if (actorId == null) {
             return null;
         }
-        return transactions.execute(DatabasePrincipal.AUTH, em ->
-                userRepository.findById(em, actorId).map(ProfileService::toProfile).orElse(null));
+        return transactions.execute(
+                DatabasePrincipal.AUTH,
+                em ->
+                        userRepository
+                                .findById(em, actorId)
+                                .map(ProfileService::toProfile)
+                                .orElse(null));
     }
 
     /**
@@ -51,13 +58,15 @@ public class ProfileService {
             throw new IllegalArgumentException("Số điện thoại không hợp lệ");
         }
         try {
-            return transactions.execute(DatabasePrincipal.AUTH, em ->
-                    userRepository.updateProfile(em, actorId, fullName, phone).orElse(null));
+            return transactions.execute(
+                    DatabasePrincipal.AUTH,
+                    em -> userRepository.updateProfile(em, actorId, fullName, phone).orElse(null));
         } catch (RuntimeException failure) {
             for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
                 if (cause instanceof SQLException sql) {
                     if (sql.getErrorCode() == PROFILE_INVALID) {
-                        throw new IllegalArgumentException("Họ tên hoặc số điện thoại không hợp lệ");
+                        throw new IllegalArgumentException(
+                                "Họ tên hoặc số điện thoại không hợp lệ");
                     }
                     if (sql.getErrorCode() == PROFILE_USER_MISSING) {
                         return null;
@@ -72,13 +81,29 @@ public class ProfileService {
         if (actorId == null) {
             return null;
         }
-        return transactions.execute(DatabasePrincipal.AUTH, em -> userRepository.findById(em, actorId)
-                .map(user -> new CurrentUserDto(user.getId(), user.getEmail(), user.getUserName(),
-                        user.getFullName(), user.getPlatformRole(), user.hasPlatformRole("ADMIN")))
-                .orElse(null));
+        return transactions.execute(
+                DatabasePrincipal.AUTH,
+                em ->
+                        userRepository
+                                .findById(em, actorId)
+                                .map(
+                                        user ->
+                                                new CurrentUserDto(
+                                                        user.getId(),
+                                                        user.getEmail(),
+                                                        user.getUserName(),
+                                                        user.getFullName(),
+                                                        user.getPlatformRole(),
+                                                        user.hasPlatformRole("ADMIN")))
+                                .orElse(null));
     }
 
     private static ProfileDto toProfile(User user) {
-        return new ProfileDto(user.getId(), user.getEmail(), user.getUserName(), user.getFullName(), user.getPhone());
+        return new ProfileDto(
+                user.getId(),
+                user.getEmail(),
+                user.getUserName(),
+                user.getFullName(),
+                user.getPhone());
     }
 }

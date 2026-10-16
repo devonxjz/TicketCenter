@@ -35,7 +35,7 @@ public class SettlementTransferLog {
     @Column(name = "processed_at")
     private Instant processedAt;
 
-    protected SettlementTransferLog() { }
+    protected SettlementTransferLog() {}
 
     public SettlementTransferLog(Settlement settlement, UUID payoutId, long amount, String result) {
         this.id = payoutId;
@@ -44,10 +44,27 @@ public class SettlementTransferLog {
         this.result = result;
     }
 
-    public UUID getId() { return id; }
-    public Settlement getSettlement() { return settlement; }
-    public long getAmount() { return amount; }
-    public String getResult() { return result; }
-    public String getProviderReference() { return providerReference; }
-    public Instant getProcessedAt() { return processedAt; }
+    public UUID getId() {
+        return id;
+    }
+
+    public Settlement getSettlement() {
+        return settlement;
+    }
+
+    public long getAmount() {
+        return amount;
+    }
+
+    public String getResult() {
+        return result;
+    }
+
+    public String getProviderReference() {
+        return providerReference;
+    }
+
+    public Instant getProcessedAt() {
+        return processedAt;
+    }
 }

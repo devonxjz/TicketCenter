@@ -36,7 +36,7 @@ public class Ticket extends BaseEntity {
     @Column(name = "used_at")
     private Instant usedAt;
 
-    protected Ticket() { }
+    protected Ticket() {}
 
     public Ticket(OrderItem orderItem, String ticketCode, long paidAmount) {
         this.orderItem = orderItem;
@@ -44,10 +44,27 @@ public class Ticket extends BaseEntity {
         this.paidAmount = paidAmount;
     }
 
-    public OrderItem getOrderItem() { return orderItem; }
-    public String getTicketCode() { return ticketCode; }
-    public TicketStatus getStatus() { return status; }
-    public long getPaidAmount() { return paidAmount; }
-    public Instant getIssuedAt() { return issuedAt; }
-    public Instant getUsedAt() { return usedAt; }
+    public OrderItem getOrderItem() {
+        return orderItem;
+    }
+
+    public String getTicketCode() {
+        return ticketCode;
+    }
+
+    public TicketStatus getStatus() {
+        return status;
+    }
+
+    public long getPaidAmount() {
+        return paidAmount;
+    }
+
+    public Instant getIssuedAt() {
+        return issuedAt;
+    }
+
+    public Instant getUsedAt() {
+        return usedAt;
+    }
 }

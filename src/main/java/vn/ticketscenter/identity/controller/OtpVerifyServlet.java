@@ -19,13 +19,14 @@ import vn.ticketscenter.identity.service.OtpService;
 
 import java.io.IOException;
 
-@WebServlet(name = "OtpVerifyServlet", urlPatterns = {"/api/auth/otp/verify", "/auth/verify-email"})
+@WebServlet(
+        name = "OtpVerifyServlet",
+        urlPatterns = {"/api/auth/otp/verify", "/auth/verify-email"})
 public class OtpVerifyServlet extends HttpServlet {
 
     private OtpService otpService;
 
-    public OtpVerifyServlet() {
-    }
+    public OtpVerifyServlet() {}
 
     public OtpVerifyServlet(OtpService otpService) {
         this.otpService = otpService;
@@ -40,7 +41,8 @@ public class OtpVerifyServlet extends HttpServlet {
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
         req.setAttribute("csrfToken", SecurityContext.getOrCreateCsrfToken(req));
         req.getRequestDispatcher("/WEB-INF/views/auth/verify-email.jsp").forward(req, resp);
     }
@@ -57,7 +59,8 @@ public class OtpVerifyServlet extends HttpServlet {
             String email = fields.get("email");
             String code = fields.get("code");
             if (email == null || email.isBlank() || code == null || code.isBlank()) {
-                throw new IdentityException(IdentityError.VALIDATION_FAILED, "Email và mã OTP không được để trống");
+                throw new IdentityException(
+                        IdentityError.VALIDATION_FAILED, "Email và mã OTP không được để trống");
             }
             OtpPurpose purpose = OtpSendServlet.parsePurpose(fields.get("purpose"));
             HttpResponses.data(resp, service.verifyOtp(requestOf(email, purpose, code)).toJson());

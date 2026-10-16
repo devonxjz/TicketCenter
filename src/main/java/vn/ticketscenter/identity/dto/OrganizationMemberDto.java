@@ -14,17 +14,24 @@ public record OrganizationMemberDto(
         String email,
         OrganizationRole role,
         boolean isActive,
-        Instant joinedAt
-) {
+        Instant joinedAt) {
     public String toJson() {
-        return "{\"membershipId\":" + HttpResponses.jsonString(membershipId != null ? membershipId.toString() : "")
-                + ",\"userId\":" + HttpResponses.jsonString(userId != null ? userId.toString() : "")
-                + ",\"userName\":" + HttpResponses.jsonString(userName)
-                + ",\"fullName\":" + HttpResponses.jsonString(fullName)
-                + ",\"email\":" + HttpResponses.jsonString(email)
-                + ",\"role\":" + HttpResponses.jsonString(role != null ? role.name() : "")
-                + ",\"isActive\":" + isActive
-                + ",\"joinedAt\":" + (joinedAt != null ? HttpResponses.jsonString(joinedAt.toString()) : "null")
+        return "{\"membershipId\":"
+                + HttpResponses.jsonString(membershipId != null ? membershipId.toString() : "")
+                + ",\"userId\":"
+                + HttpResponses.jsonString(userId != null ? userId.toString() : "")
+                + ",\"userName\":"
+                + HttpResponses.jsonString(userName)
+                + ",\"fullName\":"
+                + HttpResponses.jsonString(fullName)
+                + ",\"email\":"
+                + HttpResponses.jsonString(email)
+                + ",\"role\":"
+                + HttpResponses.jsonString(role != null ? role.name() : "")
+                + ",\"isActive\":"
+                + isActive
+                + ",\"joinedAt\":"
+                + (joinedAt != null ? HttpResponses.jsonString(joinedAt.toString()) : "null")
                 + "}";
     }
 }

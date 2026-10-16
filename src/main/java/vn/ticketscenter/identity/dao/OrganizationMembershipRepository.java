@@ -13,18 +13,20 @@ import java.util.UUID;
 
 public class OrganizationMembershipRepository {
 
-    public Optional<OrganizationMembership> findByOrgAndUser(EntityManager em, UUID orgId, UUID userId) {
+    public Optional<OrganizationMembership> findByOrgAndUser(
+            EntityManager em, UUID orgId, UUID userId) {
         Objects.requireNonNull(em, "EntityManager must not be null.");
         if (orgId == null || userId == null) {
             return Optional.empty();
         }
-        List<OrganizationMembership> list = em.createQuery(
-                        "SELECT m FROM OrganizationMembership m "
-                                + "WHERE m.organization.id = :orgId AND m.user.id = :userId",
-                        OrganizationMembership.class)
-                .setParameter("orgId", orgId)
-                .setParameter("userId", userId)
-                .getResultList();
+        List<OrganizationMembership> list =
+                em.createQuery(
+                                "SELECT m FROM OrganizationMembership m "
+                                        + "WHERE m.organization.id = :orgId AND m.user.id = :userId",
+                                OrganizationMembership.class)
+                        .setParameter("orgId", orgId)
+                        .setParameter("userId", userId)
+                        .getResultList();
         return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
     }
 
@@ -71,13 +73,14 @@ public class OrganizationMembershipRepository {
         if (orgId == null) {
             return 0L;
         }
-        Long count = em.createQuery(
-                        "SELECT COUNT(m) FROM OrganizationMembership m WHERE m.organization.id = :orgId "
-                                + "AND m.role = vn.ticketscenter.identity.model.OrganizationRole.MANAGER "
-                                + "AND m.active = true",
-                        Long.class)
-                .setParameter("orgId", orgId)
-                .getSingleResult();
+        Long count =
+                em.createQuery(
+                                "SELECT COUNT(m) FROM OrganizationMembership m WHERE m.organization.id = :orgId "
+                                        + "AND m.role = vn.ticketscenter.identity.model.OrganizationRole.MANAGER "
+                                        + "AND m.active = true",
+                                Long.class)
+                        .setParameter("orgId", orgId)
+                        .getSingleResult();
         return count != null ? count : 0L;
     }
 
@@ -98,13 +101,16 @@ public class OrganizationMembershipRepository {
         if (userId == null) {
             return Optional.empty();
         }
-        return em.createQuery(
+        return em
+                .createQuery(
                         "SELECT m.role FROM OrganizationMembership m WHERE m.user.id = :uid AND m.active = true "
                                 + "ORDER BY CASE WHEN m.role = :mgr THEN 1 ELSE 2 END",
                         OrganizationRole.class)
                 .setParameter("uid", userId)
                 .setParameter("mgr", OrganizationRole.MANAGER)
                 .setMaxResults(1)
-                .getResultList().stream().findFirst();
+                .getResultList()
+                .stream()
+                .findFirst();
     }
 }

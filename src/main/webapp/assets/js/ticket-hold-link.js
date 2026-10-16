@@ -1,4 +1,4 @@
-(function () {
+(function() {
     "use strict";
     const id = new URLSearchParams(window.location.search).get("id");
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id || "") ||

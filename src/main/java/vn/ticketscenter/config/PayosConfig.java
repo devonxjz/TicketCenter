@@ -13,8 +13,13 @@ import java.util.Locale;
  * Khóa đọc qua {@link AppConfig}: System property, biến môi trường (PAYOS_CLIENT_ID, PAYOS_API_KEY,
  * PAYOS_CHECKSUM_KEY, ...) rồi tới application.properties.
  */
-public record PayosConfig(String clientId, String apiKey, String checksumKey,
-                          String returnUrl, String cancelUrl, String logLevel) {
+public record PayosConfig(
+        String clientId,
+        String apiKey,
+        String checksumKey,
+        String returnUrl,
+        String cancelUrl,
+        String logLevel) {
     public static final String RETURN_PATH = "/api/payments/payos/return";
     public static final String CANCEL_PATH = "/api/payments/payos/cancel";
     public static final String WEBHOOK_PATH = "/api/payments/payos/webhook";
@@ -25,7 +30,10 @@ public record PayosConfig(String clientId, String apiKey, String checksumKey,
         requireValue(checksumKey, AppConfig.Keys.PAYOS_CHECKSUM_KEY);
         requireValue(returnUrl, AppConfig.Keys.PAYOS_RETURN_URL);
         requireValue(cancelUrl, AppConfig.Keys.PAYOS_CANCEL_URL);
-        logLevel = logLevel == null || logLevel.isBlank() ? "NONE" : logLevel.trim().toUpperCase(Locale.ROOT);
+        logLevel =
+                logLevel == null || logLevel.isBlank()
+                        ? "NONE"
+                        : logLevel.trim().toUpperCase(Locale.ROOT);
     }
 
     public static PayosConfig fromEnvironment() {
@@ -34,8 +42,12 @@ public record PayosConfig(String clientId, String apiKey, String checksumKey,
                 AppConfig.get(AppConfig.Keys.PAYOS_CLIENT_ID),
                 AppConfig.get(AppConfig.Keys.PAYOS_API_KEY),
                 AppConfig.get(AppConfig.Keys.PAYOS_CHECKSUM_KEY),
-                AppConfig.get(AppConfig.Keys.PAYOS_RETURN_URL, baseUrl == null ? null : baseUrl + RETURN_PATH),
-                AppConfig.get(AppConfig.Keys.PAYOS_CANCEL_URL, baseUrl == null ? null : baseUrl + CANCEL_PATH),
+                AppConfig.get(
+                        AppConfig.Keys.PAYOS_RETURN_URL,
+                        baseUrl == null ? null : baseUrl + RETURN_PATH),
+                AppConfig.get(
+                        AppConfig.Keys.PAYOS_CANCEL_URL,
+                        baseUrl == null ? null : baseUrl + CANCEL_PATH),
                 AppConfig.get(AppConfig.Keys.PAYOS_LOG_LEVEL, "NONE"));
     }
 
@@ -52,12 +64,21 @@ public record PayosConfig(String clientId, String apiKey, String checksumKey,
      */
     public OkHttpClient httpClient() {
         Duration timeout = Duration.ofSeconds(15);
-        OkHttpClient.Builder builder = new OkHttpClient.Builder()
-                .connectTimeout(timeout).readTimeout(timeout).writeTimeout(timeout);
+        OkHttpClient.Builder builder =
+                new OkHttpClient.Builder()
+                        .connectTimeout(timeout)
+                        .readTimeout(timeout)
+                        .writeTimeout(timeout);
         if (!"NONE".equals(logLevel)) {
             HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
-            logging.setLevel("DEBUG".equals(logLevel) ? HttpLoggingInterceptor.Level.BODY : HttpLoggingInterceptor.Level.BASIC);
-            for (String secret : new String[]{"Authorization", "Cookie", "Set-Cookie", "x-client-id", "x-api-key"}) {
+            logging.setLevel(
+                    "DEBUG".equals(logLevel)
+                            ? HttpLoggingInterceptor.Level.BODY
+                            : HttpLoggingInterceptor.Level.BASIC);
+            for (String secret :
+                    new String[] {
+                        "Authorization", "Cookie", "Set-Cookie", "x-client-id", "x-api-key"
+                    }) {
                 logging.redactHeader(secret);
             }
             builder.addInterceptor(logging);
@@ -66,13 +87,14 @@ public record PayosConfig(String clientId, String apiKey, String checksumKey,
     }
 
     public PayOS client(OkHttpClient http) {
-        return new PayOS(ClientOptions.builder()
-                .clientId(clientId)
-                .apiKey(apiKey)
-                .checksumKey(checksumKey)
-                .logLevel(ClientOptions.LogLevel.valueOf(logLevel))
-                .httpClient(http)
-                .build());
+        return new PayOS(
+                ClientOptions.builder()
+                        .clientId(clientId)
+                        .apiKey(apiKey)
+                        .checksumKey(checksumKey)
+                        .logLevel(ClientOptions.LogLevel.valueOf(logLevel))
+                        .httpClient(http)
+                        .build());
     }
 
     private static boolean present(String value) {

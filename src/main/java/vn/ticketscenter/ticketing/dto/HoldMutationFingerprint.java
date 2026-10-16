@@ -8,20 +8,25 @@ import java.util.Objects;
 import java.util.UUID;
 
 public final class HoldMutationFingerprint {
-    private HoldMutationFingerprint() { }
+    private HoldMutationFingerprint() {}
 
     public static String create(CreateHoldRequest request) {
-        return hash("tc:hold:mutation:v1:CREATE\n" + Objects.requireNonNull(request).canonicalHash());
+        return hash(
+                "tc:hold:mutation:v1:CREATE\n" + Objects.requireNonNull(request).canonicalHash());
     }
 
     public static String cancel(UUID holdId) {
-        if (holdId == null || holdId.equals(new UUID(0, 0))) throw new IllegalArgumentException("holdId must be a nonzero UUID");
+        if (holdId == null || holdId.equals(new UUID(0, 0)))
+            throw new IllegalArgumentException("holdId must be a nonzero UUID");
         return hash("tc:hold:mutation:v1:CANCEL\n" + holdId);
     }
 
     private static String hash(String canonical) {
         try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(canonical.getBytes(StandardCharsets.UTF_8)));
+            return HexFormat.of()
+                    .formatHex(
+                            MessageDigest.getInstance("SHA-256")
+                                    .digest(canonical.getBytes(StandardCharsets.UTF_8)));
         } catch (NoSuchAlgorithmException impossible) {
             throw new IllegalStateException("SHA-256 is required by Java", impossible);
         }

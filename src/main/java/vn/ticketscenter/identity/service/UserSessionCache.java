@@ -23,7 +23,8 @@ public class UserSessionCache {
     /** The status name and auth version recorded for a user. */
     public record Entry(String status, int authVersion) {
         public boolean matches(int expectedAuthVersion) {
-            return UserStatus.ACTIVE.name().equalsIgnoreCase(status) && authVersion == expectedAuthVersion;
+            return UserStatus.ACTIVE.name().equalsIgnoreCase(status)
+                    && authVersion == expectedAuthVersion;
         }
     }
 
@@ -53,8 +54,10 @@ public class UserSessionCache {
             }
             return Optional.of(new Entry(parts[0], Integer.parseInt(parts[1])));
         } catch (Exception failure) {
-            LOGGER.log(Level.WARNING,
-                    "Không thể đọc Redis cache cho user session, fallback DB: " + failure.getMessage());
+            LOGGER.log(
+                    Level.WARNING,
+                    "Không thể đọc Redis cache cho user session, fallback DB: "
+                            + failure.getMessage());
             return Optional.empty();
         }
     }
@@ -66,7 +69,9 @@ public class UserSessionCache {
         try (Jedis jedis = redis.getResource()) {
             jedis.setex(key(userId), TTL_SECONDS, status.name() + ":" + authVersion);
         } catch (Exception failure) {
-            LOGGER.log(Level.WARNING, "Không thể ghi Redis cache cho user session: " + failure.getMessage());
+            LOGGER.log(
+                    Level.WARNING,
+                    "Không thể ghi Redis cache cho user session: " + failure.getMessage());
         }
     }
 

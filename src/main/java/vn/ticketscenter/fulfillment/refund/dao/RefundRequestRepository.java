@@ -199,8 +199,8 @@ public class RefundRequestRepository implements RefundRequestStore {
                             query(
                                     c,
                                     "SELECT * FROM dbo.v_refunds WHERE owner_id=? ORDER BY"
-                                        + " created_at DESC,refund_id OFFSET ? ROWS FETCH NEXT ?"
-                                        + " ROWS ONLY")) {
+                                            + " created_at DESC,refund_id OFFSET ? ROWS FETCH NEXT ?"
+                                            + " ROWS ONLY")) {
                         q.setString(1, actor.actorId().toString());
                         q.setInt(2, (page - 1) * size);
                         q.setInt(3, size);

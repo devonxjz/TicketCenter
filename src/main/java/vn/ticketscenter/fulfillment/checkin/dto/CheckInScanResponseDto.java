@@ -5,11 +5,23 @@ import java.util.UUID;
 
 import static vn.ticketscenter.config.web.HttpResponses.jsonString;
 
-public record CheckInScanResponseDto(String status, UUID ticketId, String ticketCode, String customerName,
-        String zoneName, String seatLabel, Instant checkedInAt, Instant scannedAt, UUID organizationId) {
-    public boolean success() { return status.equals("CHECKED_IN_SUCCESS"); }
+public record CheckInScanResponseDto(
+        String status,
+        UUID ticketId,
+        String ticketCode,
+        String customerName,
+        String zoneName,
+        String seatLabel,
+        Instant checkedInAt,
+        Instant scannedAt,
+        UUID organizationId) {
+    public boolean success() {
+        return status.equals("CHECKED_IN_SUCCESS");
+    }
 
-    public int httpStatus() { return success() ? 200 : status.equals("ALREADY_CHECKED_IN") ? 409 : 400; }
+    public int httpStatus() {
+        return success() ? 200 : status.equals("ALREADY_CHECKED_IN") ? 409 : 400;
+    }
 
     public String message() {
         return switch (status) {
@@ -27,12 +39,27 @@ public record CheckInScanResponseDto(String status, UUID ticketId, String ticket
     }
 
     public String toJson() {
-        return "{\"success\":" + success() + ",\"status\":" + jsonString(status)
-                + ",\"ticketId\":" + jsonString(ticketId == null ? null : ticketId.toString())
-                + ",\"ticketCode\":" + jsonString(ticketCode) + ",\"customerName\":" + jsonString(customerName)
-                + ",\"zoneName\":" + jsonString(zoneName) + ",\"seatLabel\":" + jsonString(seatLabel)
-                + ",\"checkedInAt\":" + jsonString(checkedInAt == null ? null : checkedInAt.toString())
-                + ",\"scannedAt\":" + jsonString(scannedAt.toString()) + ",\"message\":" + jsonString(message()) + "}";
+        return "{\"success\":"
+                + success()
+                + ",\"status\":"
+                + jsonString(status)
+                + ",\"ticketId\":"
+                + jsonString(ticketId == null ? null : ticketId.toString())
+                + ",\"ticketCode\":"
+                + jsonString(ticketCode)
+                + ",\"customerName\":"
+                + jsonString(customerName)
+                + ",\"zoneName\":"
+                + jsonString(zoneName)
+                + ",\"seatLabel\":"
+                + jsonString(seatLabel)
+                + ",\"checkedInAt\":"
+                + jsonString(checkedInAt == null ? null : checkedInAt.toString())
+                + ",\"scannedAt\":"
+                + jsonString(scannedAt.toString())
+                + ",\"message\":"
+                + jsonString(message())
+                + "}";
     }
 
     @Override

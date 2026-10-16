@@ -24,15 +24,16 @@ import vn.ticketscenter.identity.service.LoginService;
 import java.io.IOException;
 import java.net.URI;
 
-@WebServlet(name = "LoginServlet", urlPatterns = {"/api/auth/login", "/auth/login"})
+@WebServlet(
+        name = "LoginServlet",
+        urlPatterns = {"/api/auth/login", "/auth/login"})
 public class LoginServlet extends HttpServlet {
 
     private final LoginThrottle throttle = new LoginThrottle();
 
     private LoginService loginService;
 
-    public LoginServlet() {
-    }
+    public LoginServlet() {}
 
     public LoginServlet(LoginService loginService) {
         this.loginService = loginService;
@@ -47,7 +48,8 @@ public class LoginServlet extends HttpServlet {
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
         req.setAttribute("showDemoAccounts", ServerConfig.isDemoData());
         req.setAttribute("csrfToken", SecurityContext.getOrCreateCsrfToken(req));
         req.getRequestDispatcher("/WEB-INF/views/auth/login.jsp").forward(req, resp);
@@ -63,7 +65,7 @@ public class LoginServlet extends HttpServlet {
 
         String identifier;
         String password;
-        
+
         try {
             RequestFields fields = RequestFields.read(req);
             identifier = fields.first("identifier", "email", "userName", "username");
@@ -77,7 +79,10 @@ public class LoginServlet extends HttpServlet {
         long retryAfter = throttle.retryAfterSeconds(identifier, client);
         if (retryAfter > 0) {
             resp.setHeader("Retry-After", Long.toString(retryAfter));
-            HttpResponses.error(resp, 429, "LOGIN_THROTTLED",
+            HttpResponses.error(
+                    resp,
+                    429,
+                    "LOGIN_THROTTLED",
                     "Bạn đã đăng nhập sai quá nhiều lần. Vui lòng thử lại sau.");
             return;
         }
@@ -93,13 +98,16 @@ public class LoginServlet extends HttpServlet {
             resp.setHeader("X-CSRF-Token", SecurityContext.getOrCreateCsrfToken(req));
 
             String targetRedirect = redirectTarget(req, principal);
-            boolean isApiRequest = req.getRequestURI().contains("/api/") || RequestFields.isJson(req);
+            boolean isApiRequest =
+                    req.getRequestURI().contains("/api/") || RequestFields.isJson(req);
             if (isApiRequest) {
-                HttpResponses.data(resp, JsonObjectBuilder.object()
-                        .put("authenticated", true)
-                        .put("role", roleName(principal))
-                        .put("redirect", targetRedirect)
-                        .build());
+                HttpResponses.data(
+                        resp,
+                        JsonObjectBuilder.object()
+                                .put("authenticated", true)
+                                .put("role", roleName(principal))
+                                .put("redirect", targetRedirect)
+                                .build());
             } else {
                 resp.sendRedirect(targetRedirect);
             }
@@ -107,7 +115,8 @@ public class LoginServlet extends HttpServlet {
             throttle.recordFailure(identifier, client);
             IdentityErrorWriter.write(resp, rejected, null);
         } catch (RuntimeException failure) {
-            IdentityErrorWriter.serverError(resp, failure, "Đã xảy ra lỗi trong quá trình xử lý đăng nhập");
+            IdentityErrorWriter.serverError(
+                    resp, failure, "Đã xảy ra lỗi trong quá trình xử lý đăng nhập");
         }
     }
 
@@ -128,14 +137,16 @@ public class LoginServlet extends HttpServlet {
     private static String redirectTarget(HttpServletRequest req, UserPrincipal principal) {
         String contextPath = req.getContextPath();
         String requested = req.getParameter("redirect");
-        if (isLocalRedirect(requested, contextPath) && isRoleRedirectAllowed(principal, requested, contextPath)) {
+        if (isLocalRedirect(requested, contextPath)
+                && isRoleRedirectAllowed(principal, requested, contextPath)) {
             return requested;
         }
         return contextPath + "/";
     }
 
     /** Whether {@link RouteAccessPolicy} lets the user open the decoded route, excluding query values. */
-    static boolean isRoleRedirectAllowed(UserPrincipal principal, String target, String contextPath) {
+    static boolean isRoleRedirectAllowed(
+            UserPrincipal principal, String target, String contextPath) {
         String path;
         try {
             path = URI.create(target).getPath();
@@ -157,6 +168,9 @@ public class LoginServlet extends HttpServlet {
             if (Character.isISOControl(target.charAt(index))) return false;
         }
         String base = contextPath == null ? "" : contextPath;
-        return base.isEmpty() || target.equals(base) || target.startsWith(base + "/") || target.startsWith(base + "?");
+        return base.isEmpty()
+                || target.equals(base)
+                || target.startsWith(base + "/")
+                || target.startsWith(base + "?");
     }
 }

@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * the window, further attempts are refused until the window has passed. State is per application node.
  */
 public final class LoginThrottle {
-    private record Entry(int failures, Instant windowStart) { }
+    private record Entry(int failures, Instant windowStart) {}
 
     private static final int MAX_TRACKED = 100_000;
     private final ConcurrentHashMap<String, Entry> entries = new ConcurrentHashMap<>();
@@ -21,8 +21,10 @@ public final class LoginThrottle {
     private final Clock clock;
 
     public LoginThrottle() {
-        this(IdentityConfig.getLoginMaxFailures(),
-                Duration.ofMinutes(IdentityConfig.getLoginThrottleWindowMinutes()), Clock.systemUTC());
+        this(
+                IdentityConfig.getLoginMaxFailures(),
+                Duration.ofMinutes(IdentityConfig.getLoginThrottleWindowMinutes()),
+                Clock.systemUTC());
     }
 
     public LoginThrottle(int maxFailures, Duration window, Clock clock) {
@@ -54,10 +56,13 @@ public final class LoginThrottle {
         if (entries.size() >= MAX_TRACKED) {
             return;
         }
-        entries.merge(key(identifier, client), new Entry(1, now), (old, fresh) ->
-                now.isBefore(old.windowStart().plus(window))
-                        ? new Entry(old.failures() + 1, old.windowStart())
-                        : fresh);
+        entries.merge(
+                key(identifier, client),
+                new Entry(1, now),
+                (old, fresh) ->
+                        now.isBefore(old.windowStart().plus(window))
+                                ? new Entry(old.failures() + 1, old.windowStart())
+                                : fresh);
     }
 
     public void recordSuccess(String identifier, String client) {

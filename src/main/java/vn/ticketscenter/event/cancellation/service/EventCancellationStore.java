@@ -8,7 +8,8 @@ import vn.ticketscenter.identity.security.UserPrincipal;
 public interface EventCancellationStore {
     void requireAdmin(UserPrincipal actor);
 
-    CancellationProgressDto cancel(UserPrincipal actor, UUID eventId, EventCancelRequestDto request, UUID key);
+    CancellationProgressDto cancel(
+            UserPrincipal actor, UUID eventId, EventCancelRequestDto request, UUID key);
 
     CancellationProgressDto progress(UserPrincipal actor, UUID eventId);
 }

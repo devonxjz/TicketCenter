@@ -1,9 +1,6 @@
 package vn.ticketscenter.identity.dto;
 
-public record PasswordResetRequestDto(
-        String token,
-        String newPassword
-) {
+public record PasswordResetRequestDto(String token, String newPassword) {
     public PasswordResetRequestDto {
         if (token == null || token.isBlank()) {
             throw new IllegalArgumentException("Token không được để trống");

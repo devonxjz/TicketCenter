@@ -16,16 +16,17 @@ public final class ImageContentValidator {
     public static final long DEFAULT_MAX_PIXELS = 12_000_000;
     private static final Set<String> FORMATS = Set.of("png", "jpeg");
 
-    private ImageContentValidator() {
-    }
+    private ImageContentValidator() {}
 
     public static byte[] readAndValidate(InputStream content) throws IOException {
         return readAndValidate(content, DEFAULT_MAX_BYTES, DEFAULT_MAX_PIXELS);
     }
 
-    public static byte[] readAndValidate(InputStream content, long maxBytes, long maxPixels) throws IOException {
+    public static byte[] readAndValidate(InputStream content, long maxBytes, long maxPixels)
+            throws IOException {
         if (content == null) throw new IllegalArgumentException("image is required");
-        if (maxBytes <= 0 || maxPixels <= 0) throw new IllegalArgumentException("image limits must be positive");
+        if (maxBytes <= 0 || maxPixels <= 0)
+            throw new IllegalArgumentException("image limits must be positive");
 
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         byte[] buffer = new byte[8192];
@@ -39,7 +40,7 @@ public final class ImageContentValidator {
 
         byte[] bytes = output.toByteArray();
         if (WebpContentValidator.isWebp(bytes)) {
-            WebpContentValidator.inspect(bytes,maxPixels);
+            WebpContentValidator.inspect(bytes, maxPixels);
             return bytes;
         }
         inspect(bytes, maxPixels);
@@ -47,7 +48,8 @@ public final class ImageContentValidator {
     }
 
     private static void inspect(byte[] bytes, long maxPixels) throws IOException {
-        try (ImageInputStream stream = ImageIO.createImageInputStream(new ByteArrayInputStream(bytes))) {
+        try (ImageInputStream stream =
+                ImageIO.createImageInputStream(new ByteArrayInputStream(bytes))) {
             if (stream == null) throw new IllegalArgumentException("image format is invalid");
             Iterator<ImageReader> readers = ImageIO.getImageReaders(stream);
             if (!readers.hasNext()) throw new IllegalArgumentException("image format is invalid");
@@ -55,10 +57,14 @@ public final class ImageContentValidator {
             try {
                 reader.setInput(stream, true, true);
                 String format = reader.getFormatName().toLowerCase(Locale.ROOT);
-                if (!FORMATS.contains(format)) throw new IllegalArgumentException("image must be PNG or JPEG");
-                long pixels = Math.multiplyExact((long) reader.getWidth(0), (long) reader.getHeight(0));
-                if (pixels <= 0 || pixels > maxPixels) throw new IllegalArgumentException("image dimensions exceed limit");
-                if (reader.read(0) == null) throw new IllegalArgumentException("image cannot be decoded");
+                if (!FORMATS.contains(format))
+                    throw new IllegalArgumentException("image must be PNG or JPEG");
+                long pixels =
+                        Math.multiplyExact((long) reader.getWidth(0), (long) reader.getHeight(0));
+                if (pixels <= 0 || pixels > maxPixels)
+                    throw new IllegalArgumentException("image dimensions exceed limit");
+                if (reader.read(0) == null)
+                    throw new IllegalArgumentException("image cannot be decoded");
             } catch (ArithmeticException exception) {
                 throw new IllegalArgumentException("image dimensions exceed limit", exception);
             } finally {

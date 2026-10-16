@@ -6,7 +6,8 @@ package vn.ticketscenter.identity.integration.mail;
  */
 public final class OtpEmailTemplate {
 
-    private static final String TEMPLATE = """
+    private static final String TEMPLATE =
+            """
             <!DOCTYPE html>
             <html lang="vi">
             <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
@@ -45,9 +46,13 @@ public final class OtpEmailTemplate {
         // Utility class không cho phép khởi tạo instance
     }
 
-    public static String render(String title, String fullName, String purposeAction, String otpCode, int expiryMinutes) {
-        return TEMPLATE
-                .replace("{{TITLE}}", escape(title))
+    public static String render(
+            String title,
+            String fullName,
+            String purposeAction,
+            String otpCode,
+            int expiryMinutes) {
+        return TEMPLATE.replace("{{TITLE}}", escape(title))
                 .replace("{{ACTION}}", escape(purposeAction))
                 .replace("{{CODE}}", escape(otpCode))
                 .replace("{{MINUTES}}", String.valueOf(expiryMinutes))
@@ -56,6 +61,9 @@ public final class OtpEmailTemplate {
 
     private static String escape(String value) {
         if (value == null) return "";
-        return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
+        return value.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;");
     }
 }

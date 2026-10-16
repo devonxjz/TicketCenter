@@ -29,39 +29,52 @@ public class OrganizationRequestService {
     private final OrganizationDecisionRepository decisions;
     private final OrganizationRequestIdempotency idempotency;
 
-    public OrganizationRequestService(TransactionManager transactions,
-                                      OrganizationRepository organizationRepository,
-                                      UserRepository userRepository,
-                                      OrganizationDecisionRepository decisions,
-                                      OrganizationRequestIdempotency idempotency) {
+    public OrganizationRequestService(
+            TransactionManager transactions,
+            OrganizationRepository organizationRepository,
+            UserRepository userRepository,
+            OrganizationDecisionRepository decisions,
+            OrganizationRequestIdempotency idempotency) {
         this.transactions = Objects.requireNonNull(transactions, "transactions must not be null.");
         this.organizationRepository =
-                Objects.requireNonNull(organizationRepository, "organizationRepository must not be null.");
-        this.userRepository = Objects.requireNonNull(userRepository, "userRepository must not be null.");
+                Objects.requireNonNull(
+                        organizationRepository, "organizationRepository must not be null.");
+        this.userRepository =
+                Objects.requireNonNull(userRepository, "userRepository must not be null.");
         this.decisions = Objects.requireNonNull(decisions, "decisions must not be null.");
         this.idempotency = Objects.requireNonNull(idempotency, "idempotency must not be null.");
     }
 
-    public OrganizationRequestService(TransactionManager transactions,
-                                      OrganizationRepository organizationRepository,
-                                      UserRepository userRepository,
-                                      OrganizationDecisionRepository decisions) {
-        this(transactions, organizationRepository, userRepository, decisions,
+    public OrganizationRequestService(
+            TransactionManager transactions,
+            OrganizationRepository organizationRepository,
+            UserRepository userRepository,
+            OrganizationDecisionRepository decisions) {
+        this(
+                transactions,
+                organizationRepository,
+                userRepository,
+                decisions,
                 OrganizationRequestIdempotency.none());
     }
 
-    public OrganizationRequestService(TransactionManager transactions,
-                                      OrganizationRepository organizationRepository,
-                                      UserRepository userRepository) {
-        this(transactions, organizationRepository, userRepository, new OrganizationDecisionRepository());
+    public OrganizationRequestService(
+            TransactionManager transactions,
+            OrganizationRepository organizationRepository,
+            UserRepository userRepository) {
+        this(
+                transactions,
+                organizationRepository,
+                userRepository,
+                new OrganizationDecisionRepository());
     }
 
     /**
      * Submits a new organisation request. When an idempotency key is given, a retry with the same payload
      * returns the first result and a retry with a different payload is rejected.
      */
-    public OrganizationRequestDetailDto submitRequest(UUID actorId, OrganizationRequestCreateDto dto,
-                                                      String idempotencyKey) {
+    public OrganizationRequestDetailDto submitRequest(
+            UUID actorId, OrganizationRequestCreateDto dto, String idempotencyKey) {
         if (actorId == null) {
             throw new IllegalArgumentException("actorId must not be null.");
         }
@@ -80,12 +93,25 @@ public class OrganizationRequestService {
         }
 
         requireCanSubmit(actorId);
-        UUID organizationId = decisions.submit(transactions, actorId, dto.name().trim(),
-                dto.contactEmail().trim(), trimmedOrNull(dto.contactPhone()), EventScheduleTag.appendTo(dto));
-        OrganizationRequestDetailDto result = transactions.execute(DatabasePrincipal.AUTH, em ->
-                OrganizationRequestDetailDto.from(organizationRepository.findById(em, organizationId)
-                        .orElseThrow(() -> new NoSuchElementException(
-                                "ORGANIZATION_NOT_FOUND: Không tìm thấy hồ sơ yêu cầu"))));
+        UUID organizationId =
+                decisions.submit(
+                        transactions,
+                        actorId,
+                        dto.name().trim(),
+                        dto.contactEmail().trim(),
+                        trimmedOrNull(dto.contactPhone()),
+                        EventScheduleTag.appendTo(dto));
+        OrganizationRequestDetailDto result =
+                transactions.execute(
+                        DatabasePrincipal.AUTH,
+                        em ->
+                                OrganizationRequestDetailDto.from(
+                                        organizationRepository
+                                                .findById(em, organizationId)
+                                                .orElseThrow(
+                                                        () ->
+                                                                new NoSuchElementException(
+                                                                        "ORGANIZATION_NOT_FOUND: Không tìm thấy hồ sơ yêu cầu"))));
 
         if (cacheKey != null) {
             idempotency.remember(cacheKey, payloadHash, result);
@@ -95,19 +121,28 @@ public class OrganizationRequestService {
 
     /** Fails fast, before the stored procedure runs, for a suspended user or one with a pending request. */
     private void requireCanSubmit(UUID actorId) {
-        transactions.execute(DatabasePrincipal.AUTH, em -> {
-            User user = userRepository.findById(em, actorId)
-                    .orElseThrow(() -> new IllegalArgumentException("USER_NOT_FOUND: Người dùng không tồn tại"));
-            if (user.getStatus() != UserStatus.ACTIVE) {
-                throw new IdentityException(IdentityError.USER_SUSPENDED,
-                        "Tài khoản của bạn hiện không thể gửi yêu cầu");
-            }
-            if (organizationRepository.hasPendingRequest(em, actorId)) {
-                throw new IdentityException(IdentityError.ORGANIZATION_REQUEST_EXISTS,
-                        "Bạn đang có một yêu cầu tạo tổ chức đang chờ xét duyệt");
-            }
-            return null;
-        });
+        transactions.execute(
+                DatabasePrincipal.AUTH,
+                em -> {
+                    User user =
+                            userRepository
+                                    .findById(em, actorId)
+                                    .orElseThrow(
+                                            () ->
+                                                    new IllegalArgumentException(
+                                                            "USER_NOT_FOUND: Người dùng không tồn tại"));
+                    if (user.getStatus() != UserStatus.ACTIVE) {
+                        throw new IdentityException(
+                                IdentityError.USER_SUSPENDED,
+                                "Tài khoản của bạn hiện không thể gửi yêu cầu");
+                    }
+                    if (organizationRepository.hasPendingRequest(em, actorId)) {
+                        throw new IdentityException(
+                                IdentityError.ORGANIZATION_REQUEST_EXISTS,
+                                "Bạn đang có một yêu cầu tạo tổ chức đang chờ xét duyệt");
+                    }
+                    return null;
+                });
     }
 
     /** All requests the actor has submitted. */
@@ -115,11 +150,15 @@ public class OrganizationRequestService {
         if (actorId == null) {
             throw new IllegalArgumentException("actorId must not be null.");
         }
-        return transactions.execute(DatabasePrincipal.AUTH, em -> {
-            List<Organization> requests = organizationRepository.findByRequesterId(em, actorId);
-            return requests == null ? List.<OrganizationRequestSummaryDto>of()
-                    : requests.stream().map(OrganizationRequestSummaryDto::from).toList();
-        });
+        return transactions.execute(
+                DatabasePrincipal.AUTH,
+                em -> {
+                    List<Organization> requests =
+                            organizationRepository.findByRequesterId(em, actorId);
+                    return requests == null
+                            ? List.<OrganizationRequestSummaryDto>of()
+                            : requests.stream().map(OrganizationRequestSummaryDto::from).toList();
+                });
     }
 
     /**
@@ -127,22 +166,32 @@ public class OrganizationRequestService {
      *
      * @throws SecurityException when a non-admin asks for someone else's request
      */
-    public OrganizationRequestDetailDto getRequestDetail(UUID actorId, boolean isAdmin, UUID organizationId) {
+    public OrganizationRequestDetailDto getRequestDetail(
+            UUID actorId, boolean isAdmin, UUID organizationId) {
         if (actorId == null) {
             throw new IllegalArgumentException("actorId must not be null.");
         }
         if (organizationId == null) {
             throw new IllegalArgumentException("organizationId must not be null.");
         }
-        return transactions.execute(DatabasePrincipal.AUTH, em -> {
-            Organization org = organizationRepository.findById(em, organizationId)
-                    .orElseThrow(() -> new NoSuchElementException(
-                            "ORGANIZATION_NOT_FOUND: Không tìm thấy hồ sơ yêu cầu"));
-            if (!isAdmin && (org.getRequester() == null || !org.getRequester().getId().equals(actorId))) {
-                throw new SecurityException("FORBIDDEN: Bạn không có quyền truy cập hồ sơ này");
-            }
-            return OrganizationRequestDetailDto.from(org);
-        });
+        return transactions.execute(
+                DatabasePrincipal.AUTH,
+                em -> {
+                    Organization org =
+                            organizationRepository
+                                    .findById(em, organizationId)
+                                    .orElseThrow(
+                                            () ->
+                                                    new NoSuchElementException(
+                                                            "ORGANIZATION_NOT_FOUND: Không tìm thấy hồ sơ yêu cầu"));
+                    if (!isAdmin
+                            && (org.getRequester() == null
+                                    || !org.getRequester().getId().equals(actorId))) {
+                        throw new SecurityException(
+                                "FORBIDDEN: Bạn không có quyền truy cập hồ sơ này");
+                    }
+                    return OrganizationRequestDetailDto.from(org);
+                });
     }
 
     private static String trimmedOrNull(String value) {

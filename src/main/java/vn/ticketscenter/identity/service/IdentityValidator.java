@@ -8,27 +8,32 @@ public final class IdentityValidator {
 
     private static final int MAX_EMAIL_LENGTH = 320;
 
-    private IdentityValidator() {
-    }
+    private IdentityValidator() {}
 
     /** @param normalizedEmail the result of {@link EmailNormalizer#normalize(String)} */
     public static void requireEmail(String normalizedEmail) {
-        boolean wellFormed = !normalizedEmail.isBlank() && normalizedEmail.contains("@")
-                && normalizedEmail.length() <= MAX_EMAIL_LENGTH;
+        boolean wellFormed =
+                !normalizedEmail.isBlank()
+                        && normalizedEmail.contains("@")
+                        && normalizedEmail.length() <= MAX_EMAIL_LENGTH;
         if (!wellFormed) {
             throw new IllegalArgumentException("Email không đúng định dạng");
         }
     }
 
     public static void requireUserName(String userName) {
-        if (userName == null || userName.isBlank() || userName.length() < 3 || userName.length() > 100) {
+        if (userName == null
+                || userName.isBlank()
+                || userName.length() < 3
+                || userName.length() > 100) {
             throw new IllegalArgumentException("Tên đăng nhập phải từ 3 đến 100 ký tự");
         }
     }
 
     public static void requireFullName(String fullName) {
         if (fullName == null || fullName.isBlank() || fullName.length() > 200) {
-            throw new IllegalArgumentException("Họ và tên không được để trống hoặc vượt quá 200 ký tự");
+            throw new IllegalArgumentException(
+                    "Họ và tên không được để trống hoặc vượt quá 200 ký tự");
         }
     }
 

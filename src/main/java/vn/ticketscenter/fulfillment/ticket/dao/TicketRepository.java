@@ -40,22 +40,41 @@ public class TicketRepository {
             long paidAmount,
             String status,
             Instant issuedAt,
-            long version
-    ) {
+            long version) {
         public TicketDetailDto toDetailDto() {
             return new TicketDetailDto(
-                    id, orderId, orderCode, ticketCode, eventId, eventTitle,
-                    venueName, venueAddress, startTime, endTime, zoneName,
-                    seatLabel, paidAmount, status, issuedAt, version
-            );
+                    id,
+                    orderId,
+                    orderCode,
+                    ticketCode,
+                    eventId,
+                    eventTitle,
+                    venueName,
+                    venueAddress,
+                    startTime,
+                    endTime,
+                    zoneName,
+                    seatLabel,
+                    paidAmount,
+                    status,
+                    issuedAt,
+                    version);
         }
 
         public TicketSummaryDto toSummaryDto() {
             return new TicketSummaryDto(
-                    id, orderId, ticketCode, eventTitle, venueName,
-                    startTime, zoneName, seatLabel, paidAmount, status,
-                    issuedAt, version
-            );
+                    id,
+                    orderId,
+                    ticketCode,
+                    eventTitle,
+                    venueName,
+                    startTime,
+                    zoneName,
+                    seatLabel,
+                    paidAmount,
+                    status,
+                    issuedAt,
+                    version);
         }
     }
 
@@ -68,7 +87,8 @@ public class TicketRepository {
 
     public List<TicketSummaryDto> findTicketsByBuyerId(UUID buyerId, int authVersion) {
         Objects.requireNonNull(buyerId, "buyerId is required");
-        String sql = """
+        String sql =
+                """
                 SELECT id,ticket_code,paid_amount,status,issued_at,version,
                        order_id,zone_name_snapshot,seat_label_snapshot,event_title,venue_name,start_time
                 FROM dbo.vw_TicketRuntimeDetails WHERE buyer_id=? ORDER BY issued_at DESC
@@ -76,24 +96,34 @@ public class TicketRepository {
 
         List<TicketSummaryDto> result = new ArrayList<>();
         try (Connection conn = dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setObject(1, buyerId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    result.add(new TicketSummaryDto(
-                            UUID.fromString(rs.getString("id")),
-                            UUID.fromString(rs.getString("order_id")),
-                            rs.getString("ticket_code"),
-                            rs.getString("event_title"),
-                            rs.getString("venue_name"),
-                            toInstant(rs.getTimestamp("start_time", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
-                            rs.getString("zone_name_snapshot"),
-                            rs.getString("seat_label_snapshot"),
-                            rs.getLong("paid_amount"),
-                            rs.getString("status"),
-                            toInstant(rs.getTimestamp("issued_at", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
-                            rs.getLong("version")
-                    ));
+                    result.add(
+                            new TicketSummaryDto(
+                                    UUID.fromString(rs.getString("id")),
+                                    UUID.fromString(rs.getString("order_id")),
+                                    rs.getString("ticket_code"),
+                                    rs.getString("event_title"),
+                                    rs.getString("venue_name"),
+                                    toInstant(
+                                            rs.getTimestamp(
+                                                    "start_time",
+                                                    java.util.Calendar.getInstance(
+                                                            java.util.TimeZone.getTimeZone(
+                                                                    "UTC")))),
+                                    rs.getString("zone_name_snapshot"),
+                                    rs.getString("seat_label_snapshot"),
+                                    rs.getLong("paid_amount"),
+                                    rs.getString("status"),
+                                    toInstant(
+                                            rs.getTimestamp(
+                                                    "issued_at",
+                                                    java.util.Calendar.getInstance(
+                                                            java.util.TimeZone.getTimeZone(
+                                                                    "UTC")))),
+                                    rs.getLong("version")));
                 }
             }
         } catch (SQLException e) {
@@ -111,34 +141,50 @@ public class TicketRepository {
 
     public Optional<TicketRecord> findById(UUID ticketId, UUID buyerId, int authVersion) {
         Objects.requireNonNull(ticketId, "ticketId is required");
-        String sql = """
+        String sql =
+                """
                 SELECT * FROM dbo.vw_TicketRuntimeDetails WHERE id=?
                 """;
 
         try (Connection conn = dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setObject(1, ticketId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return Optional.of(new TicketRecord(
-                            UUID.fromString(rs.getString("id")),
-                            UUID.fromString(rs.getString("order_id")),
-                            UUID.fromString(rs.getString("buyer_id")),
-                            rs.getString("order_code"),
-                            rs.getString("ticket_code"),
-                            UUID.fromString(rs.getString("event_id")),
-                            rs.getString("event_title"),
-                            rs.getString("venue_name"),
-                            rs.getString("venue_address"),
-                            toInstant(rs.getTimestamp("start_time", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
-                            toInstant(rs.getTimestamp("end_time", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
-                            rs.getString("zone_name_snapshot"),
-                            rs.getString("seat_label_snapshot"),
-                            rs.getLong("paid_amount"),
-                            rs.getString("status"),
-                            toInstant(rs.getTimestamp("issued_at", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
-                            rs.getLong("version")
-                    ));
+                    return Optional.of(
+                            new TicketRecord(
+                                    UUID.fromString(rs.getString("id")),
+                                    UUID.fromString(rs.getString("order_id")),
+                                    UUID.fromString(rs.getString("buyer_id")),
+                                    rs.getString("order_code"),
+                                    rs.getString("ticket_code"),
+                                    UUID.fromString(rs.getString("event_id")),
+                                    rs.getString("event_title"),
+                                    rs.getString("venue_name"),
+                                    rs.getString("venue_address"),
+                                    toInstant(
+                                            rs.getTimestamp(
+                                                    "start_time",
+                                                    java.util.Calendar.getInstance(
+                                                            java.util.TimeZone.getTimeZone(
+                                                                    "UTC")))),
+                                    toInstant(
+                                            rs.getTimestamp(
+                                                    "end_time",
+                                                    java.util.Calendar.getInstance(
+                                                            java.util.TimeZone.getTimeZone(
+                                                                    "UTC")))),
+                                    rs.getString("zone_name_snapshot"),
+                                    rs.getString("seat_label_snapshot"),
+                                    rs.getLong("paid_amount"),
+                                    rs.getString("status"),
+                                    toInstant(
+                                            rs.getTimestamp(
+                                                    "issued_at",
+                                                    java.util.Calendar.getInstance(
+                                                            java.util.TimeZone.getTimeZone(
+                                                                    "UTC")))),
+                                    rs.getLong("version")));
                 }
             }
         } catch (SQLException e) {
@@ -184,35 +230,51 @@ public class TicketRepository {
 
     public List<TicketRecord> findTicketsByOrderId(UUID orderId, UUID buyerId, int authVersion) {
         Objects.requireNonNull(orderId, "orderId is required");
-        String sql = """
+        String sql =
+                """
                 SELECT * FROM dbo.vw_TicketRuntimeDetails WHERE order_id=? ORDER BY issued_at ASC
                 """;
 
         List<TicketRecord> result = new ArrayList<>();
         try (Connection conn = dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setObject(1, orderId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    result.add(new TicketRecord(
-                            UUID.fromString(rs.getString("id")),
-                            UUID.fromString(rs.getString("order_id")),
-                            UUID.fromString(rs.getString("buyer_id")),
-                            rs.getString("order_code"),
-                            rs.getString("ticket_code"),
-                            UUID.fromString(rs.getString("event_id")),
-                            rs.getString("event_title"),
-                            rs.getString("venue_name"),
-                            rs.getString("venue_address"),
-                            toInstant(rs.getTimestamp("start_time", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
-                            toInstant(rs.getTimestamp("end_time", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
-                            rs.getString("zone_name_snapshot"),
-                            rs.getString("seat_label_snapshot"),
-                            rs.getLong("paid_amount"),
-                            rs.getString("status"),
-                            toInstant(rs.getTimestamp("issued_at", java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")))),
-                            rs.getLong("version")
-                    ));
+                    result.add(
+                            new TicketRecord(
+                                    UUID.fromString(rs.getString("id")),
+                                    UUID.fromString(rs.getString("order_id")),
+                                    UUID.fromString(rs.getString("buyer_id")),
+                                    rs.getString("order_code"),
+                                    rs.getString("ticket_code"),
+                                    UUID.fromString(rs.getString("event_id")),
+                                    rs.getString("event_title"),
+                                    rs.getString("venue_name"),
+                                    rs.getString("venue_address"),
+                                    toInstant(
+                                            rs.getTimestamp(
+                                                    "start_time",
+                                                    java.util.Calendar.getInstance(
+                                                            java.util.TimeZone.getTimeZone(
+                                                                    "UTC")))),
+                                    toInstant(
+                                            rs.getTimestamp(
+                                                    "end_time",
+                                                    java.util.Calendar.getInstance(
+                                                            java.util.TimeZone.getTimeZone(
+                                                                    "UTC")))),
+                                    rs.getString("zone_name_snapshot"),
+                                    rs.getString("seat_label_snapshot"),
+                                    rs.getLong("paid_amount"),
+                                    rs.getString("status"),
+                                    toInstant(
+                                            rs.getTimestamp(
+                                                    "issued_at",
+                                                    java.util.Calendar.getInstance(
+                                                            java.util.TimeZone.getTimeZone(
+                                                                    "UTC")))),
+                                    rs.getLong("version")));
                 }
             }
         } catch (SQLException e) {

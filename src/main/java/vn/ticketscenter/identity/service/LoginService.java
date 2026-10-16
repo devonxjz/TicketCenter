@@ -29,17 +29,25 @@ public class LoginService {
     private final OrganizationMembershipRepository membershipRepository;
     private final PasswordHasher passwordHasher;
 
-    public LoginService(TransactionManager transactions, UserRepository userRepository,
-                        OrganizationMembershipRepository membershipRepository, PasswordHasher passwordHasher) {
+    public LoginService(
+            TransactionManager transactions,
+            UserRepository userRepository,
+            OrganizationMembershipRepository membershipRepository,
+            PasswordHasher passwordHasher) {
         this.transactions = Objects.requireNonNull(transactions, "transactions must not be null");
-        this.userRepository = Objects.requireNonNull(userRepository, "userRepository must not be null");
+        this.userRepository =
+                Objects.requireNonNull(userRepository, "userRepository must not be null");
         this.membershipRepository =
-                Objects.requireNonNull(membershipRepository, "membershipRepository must not be null");
-        this.passwordHasher = Objects.requireNonNull(passwordHasher, "passwordHasher must not be null");
+                Objects.requireNonNull(
+                        membershipRepository, "membershipRepository must not be null");
+        this.passwordHasher =
+                Objects.requireNonNull(passwordHasher, "passwordHasher must not be null");
     }
 
-    public LoginService(TransactionManager transactions, UserRepository userRepository,
-                        PasswordHasher passwordHasher) {
+    public LoginService(
+            TransactionManager transactions,
+            UserRepository userRepository,
+            PasswordHasher passwordHasher) {
         this(transactions, userRepository, new OrganizationMembershipRepository(), passwordHasher);
     }
 
@@ -58,17 +66,23 @@ public class LoginService {
 
     private User findByIdentifier(String identifier) {
         String email = EmailNormalizer.normalize(identifier);
-        return transactions.execute(DatabasePrincipal.AUTH, em -> {
-            User found = userRepository.findByNormalizedEmail(em, email).orElse(null);
-            if (found == null) {
-                found = userRepository.findByNormalizedUserName(em, identifier).orElse(null);
-            }
-            if (found == null && "admin".equalsIgnoreCase(identifier)) {
-                String adminEmail = EmailNormalizer.normalize(IdentityConfig.getAdminEmail());
-                found = userRepository.findAdminByAlias(em, adminEmail).orElse(null);
-            }
-            return found;
-        });
+        return transactions.execute(
+                DatabasePrincipal.AUTH,
+                em -> {
+                    User found = userRepository.findByNormalizedEmail(em, email).orElse(null);
+                    if (found == null) {
+                        found =
+                                userRepository
+                                        .findByNormalizedUserName(em, identifier)
+                                        .orElse(null);
+                    }
+                    if (found == null && "admin".equalsIgnoreCase(identifier)) {
+                        String adminEmail =
+                                EmailNormalizer.normalize(IdentityConfig.getAdminEmail());
+                        found = userRepository.findAdminByAlias(em, adminEmail).orElse(null);
+                    }
+                    return found;
+                });
     }
 
     private void verifyPasswordOrFail(User user, String password) {
@@ -83,7 +97,8 @@ public class LoginService {
 
     private static void requireActive(User user) {
         if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new IdentityException(IdentityError.ACCOUNT_DISABLED, "Tài khoản của bạn đã bị vô hiệu hóa");
+            throw new IdentityException(
+                    IdentityError.ACCOUNT_DISABLED, "Tài khoản của bạn đã bị vô hiệu hóa");
         }
     }
 
@@ -94,36 +109,49 @@ public class LoginService {
         }
         String upgraded = passwordHasher.hash(password);
         try {
-            transactions.execute(DatabasePrincipal.AUTH, em -> {
-                userRepository.findById(em, user.getId()).ifPresent(current -> {
-                    current.rehashPassword(upgraded);
-                    userRepository.save(em, current);
-                });
-                return null;
-            });
+            transactions.execute(
+                    DatabasePrincipal.AUTH,
+                    em -> {
+                        userRepository
+                                .findById(em, user.getId())
+                                .ifPresent(
+                                        current -> {
+                                            current.rehashPassword(upgraded);
+                                            userRepository.save(em, current);
+                                        });
+                        return null;
+                    });
         } catch (RuntimeException ignored) {
             // The login itself succeeded; the upgrade is retried on the next login.
         }
     }
 
     private OrganizationRole primaryRoleOf(User user) {
-        return transactions.execute(DatabasePrincipal.AUTH, em -> {
-            try {
-                return membershipRepository.findPrimaryRole(em, user.getId()).orElse(null);
-            } catch (RuntimeException unavailable) {
-                // A user without a readable membership simply signs in without an organisation role.
-                return null;
-            }
-        });
+        return transactions.execute(
+                DatabasePrincipal.AUTH,
+                em -> {
+                    try {
+                        return membershipRepository.findPrimaryRole(em, user.getId()).orElse(null);
+                    } catch (RuntimeException unavailable) {
+                        // A user without a readable membership simply signs in without an
+                        // organisation role.
+                        return null;
+                    }
+                });
     }
 
     private static UserPrincipal toPrincipal(User user, OrganizationRole organizationRole) {
-        return new UserPrincipal(user.getId(), user.getPlatformRole(), user.getAuthVersion(),
-                organizationRole, user.getEmail());
+        return new UserPrincipal(
+                user.getId(),
+                user.getPlatformRole(),
+                user.getAuthVersion(),
+                organizationRole,
+                user.getEmail());
     }
 
     private static IdentityException invalidCredentials() {
-        return new IdentityException(IdentityError.INVALID_CREDENTIALS, "Email hoặc mật khẩu không chính xác");
+        return new IdentityException(
+                IdentityError.INVALID_CREDENTIALS, "Email hoặc mật khẩu không chính xác");
     }
 
     private static boolean isBlank(String value) {

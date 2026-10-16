@@ -12,7 +12,8 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 
-@WebFilter(urlPatterns = {"/api/organizations/*", "/api/admin/organizations/*"},
+@WebFilter(
+        urlPatterns = {"/api/organizations/*", "/api/admin/organizations/*"},
         dispatcherTypes = DispatcherType.REQUEST)
 public final class CouponOrganizationRoutesFilter implements Filter {
     @Override

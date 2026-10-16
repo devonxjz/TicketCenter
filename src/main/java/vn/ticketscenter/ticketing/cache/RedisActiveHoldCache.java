@@ -29,12 +29,14 @@ import java.util.function.Supplier;
 public final class RedisActiveHoldCache {
     private static final int MAX_PAYLOAD_CHARS = 1024;
     private static final long MARKER_TTL_MILLIS = Duration.ofMinutes(10).toMillis();
-    private static final String REPLACE_MARKER = """
+    private static final String REPLACE_MARKER =
+            """
             if redis.call('GET', KEYS[1]) ~= ARGV[1] then return 0 end
             redis.call('PSETEX', KEYS[1], ARGV[3], ARGV[2])
             return 1
             """;
-    private static final String FILL = """
+    private static final String FILL =
+            """
             if redis.call('GET', KEYS[1]) ~= ARGV[1] then return 0 end
             local time = redis.call('TIME')
             local now = tonumber(time[1]) * 1000 + math.floor(tonumber(time[2]) / 1000)
@@ -55,13 +57,17 @@ public final class RedisActiveHoldCache {
         this(Objects.requireNonNull(pool)::getResource, clock);
     }
 
-    public record Lookup(Optional<ActiveHoldProjection> projection, Optional<FillToken> fillToken) { }
+    public record Lookup(
+            Optional<ActiveHoldProjection> projection, Optional<FillToken> fillToken) {}
 
     public static final class FillToken {
         private final UUID actorId;
         private final String marker;
 
-        private FillToken(UUID actorId, String marker) { this.actorId = actorId; this.marker = marker; }
+        private FillToken(UUID actorId, String marker) {
+            this.actorId = actorId;
+            this.marker = marker;
+        }
     }
 
     public Lookup lookup(UUID actorId) {
@@ -70,7 +76,8 @@ public final class RedisActiveHoldCache {
             String observed = jedis.get(key);
             if (observed != null && observed.startsWith("1|D|")) {
                 Optional<ActiveHoldProjection> projection = decode(observed.substring(4));
-                if (projection.isPresent() && projection.get().buyerId().equals(actorId)
+                if (projection.isPresent()
+                        && projection.get().buyerId().equals(actorId)
                         && clock.instant().isBefore(projection.get().expiresAt())) {
                     return new Lookup(projection, Optional.empty());
                 }
@@ -78,10 +85,25 @@ public final class RedisActiveHoldCache {
                 return miss(new FillToken(actorId, observed));
             }
             String marker = marker();
-            boolean seeded = observed == null
-                    ? "OK".equals(jedis.set(key, marker, SetParams.setParams().nx().px(MARKER_TTL_MILLIS)))
-                    : Long.valueOf(1).equals(jedis.eval(REPLACE_MARKER, List.of(key),
-                            List.of(observed, marker, Long.toString(MARKER_TTL_MILLIS))));
+            boolean seeded =
+                    observed == null
+                            ? "OK"
+                                    .equals(
+                                            jedis.set(
+                                                    key,
+                                                    marker,
+                                                    SetParams.setParams()
+                                                            .nx()
+                                                            .px(MARKER_TTL_MILLIS)))
+                            : Long.valueOf(1)
+                                    .equals(
+                                            jedis.eval(
+                                                    REPLACE_MARKER,
+                                                    List.of(key),
+                                                    List.of(
+                                                            observed,
+                                                            marker,
+                                                            Long.toString(MARKER_TTL_MILLIS))));
             return seeded ? miss(new FillToken(actorId, marker)) : miss(null);
         } catch (RuntimeException unavailable) {
             return miss(null);
@@ -93,11 +115,21 @@ public final class RedisActiveHoldCache {
         Objects.requireNonNull(projection);
         if (token == null || !token.actorId.equals(projection.buyerId())) return false;
         try (Jedis jedis = connections.get()) {
-            long ttl = Math.min(MARKER_TTL_MILLIS, Duration.between(clock.instant(), projection.expiresAt()).toMillis());
+            long ttl =
+                    Math.min(
+                            MARKER_TTL_MILLIS,
+                            Duration.between(clock.instant(), projection.expiresAt()).toMillis());
             if (ttl < 1) return false;
-            return Long.valueOf(1).equals(jedis.eval(FILL, List.of(redisKey(token.actorId)),
-                    List.of(token.marker, "1|D|" + encode(projection), Long.toString(ttl),
-                            Long.toString(projection.expiresAt().toEpochMilli()))));
+            return Long.valueOf(1)
+                    .equals(
+                            jedis.eval(
+                                    FILL,
+                                    List.of(redisKey(token.actorId)),
+                                    List.of(
+                                            token.marker,
+                                            "1|D|" + encode(projection),
+                                            Long.toString(ttl),
+                                            Long.toString(projection.expiresAt().toEpochMilli()))));
         } catch (RuntimeException unavailable) {
             return false;
         }
@@ -107,22 +139,32 @@ public final class RedisActiveHoldCache {
     public boolean invalidateAfterCommit(UUID actorId) {
         String key = redisKey(actorId);
         try (Jedis jedis = connections.get()) {
-            return "OK".equals(jedis.set(key, marker(), SetParams.setParams().px(MARKER_TTL_MILLIS)));
+            return "OK"
+                    .equals(jedis.set(key, marker(), SetParams.setParams().px(MARKER_TTL_MILLIS)));
         } catch (RuntimeException unavailable) {
             return false;
         }
     }
 
     public static String redisKey(UUID actorId) {
-        if (actorId == null || actorId.equals(new UUID(0, 0))) throw new IllegalArgumentException("actorId must be a nonzero UUID");
+        if (actorId == null || actorId.equals(new UUID(0, 0)))
+            throw new IllegalArgumentException("actorId must be a nonzero UUID");
         return "tc:user:active-hold:" + actorId;
     }
 
-    private static Lookup miss(FillToken token) { return new Lookup(Optional.empty(), Optional.ofNullable(token)); }
-    private static String marker() { return "1|M|" + UUID.randomUUID(); }
+    private static Lookup miss(FillToken token) {
+        return new Lookup(Optional.empty(), Optional.ofNullable(token));
+    }
+
+    private static String marker() {
+        return "1|M|" + UUID.randomUUID();
+    }
 
     private static boolean validMarker(String value) {
-        if (value == null || !value.matches("1\\|M\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")) return false;
+        if (value == null
+                || !value.matches(
+                        "1\\|M\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"))
+            return false;
         return !UUID.fromString(value.substring(4)).equals(new UUID(0, 0));
     }
 
@@ -155,7 +197,8 @@ public final class RedisActiveHoldCache {
         if (payload.length() > MAX_PAYLOAD_CHARS) return Optional.empty();
         try {
             byte[] bytes = Base64.getUrlDecoder().decode(payload);
-            if (!Base64.getUrlEncoder().withoutPadding().encodeToString(bytes).equals(payload)) return Optional.empty();
+            if (!Base64.getUrlEncoder().withoutPadding().encodeToString(bytes).equals(payload))
+                return Optional.empty();
             try (var input = new DataInputStream(new ByteArrayInputStream(bytes))) {
                 if (input.readUnsignedByte() != 2) return Optional.empty();
                 UUID id = readUuid(input);
@@ -176,7 +219,9 @@ public final class RedisActiveHoldCache {
                     int quantity = input.readUnsignedByte();
                     String price = input.readUTF();
                     if (!price.matches("0|[1-9][0-9]{0,18}")) return Optional.empty();
-                    items.add(new ActiveHoldProjection.Item(zone, seat, quantity, new BigDecimal(price)));
+                    items.add(
+                            new ActiveHoldProjection.Item(
+                                    zone, seat, quantity, new BigDecimal(price)));
                 }
                 if (input.available() != 0) return Optional.empty();
                 return Optional.of(new ActiveHoldProjection(id, buyer, event, expires, items));
@@ -191,5 +236,7 @@ public final class RedisActiveHoldCache {
         output.writeLong(id.getLeastSignificantBits());
     }
 
-    private static UUID readUuid(DataInputStream input) throws IOException { return new UUID(input.readLong(), input.readLong()); }
+    private static UUID readUuid(DataInputStream input) throws IOException {
+        return new UUID(input.readLong(), input.readLong());
+    }
 }

@@ -19,14 +19,18 @@ import vn.ticketscenter.identity.service.PasswordResetService;
 
 import java.io.IOException;
 
-@WebServlet(name = "ForgotPasswordServlet",
-        urlPatterns = {"/api/auth/password/forgot", "/auth/password/forgot", "/auth/forgot-password"})
+@WebServlet(
+        name = "ForgotPasswordServlet",
+        urlPatterns = {
+            "/api/auth/password/forgot",
+            "/auth/password/forgot",
+            "/auth/forgot-password"
+        })
 public class ForgotPasswordServlet extends HttpServlet {
 
     private PasswordResetService passwordResetService;
 
-    public ForgotPasswordServlet() {
-    }
+    public ForgotPasswordServlet() {}
 
     public ForgotPasswordServlet(PasswordResetService passwordResetService) {
         this.passwordResetService = passwordResetService;
@@ -41,7 +45,8 @@ public class ForgotPasswordServlet extends HttpServlet {
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
         req.setAttribute("csrfToken", SecurityContext.getOrCreateCsrfToken(req));
         req.getRequestDispatcher("/WEB-INF/views/auth/forgot-password.jsp").forward(req, resp);
     }
@@ -56,7 +61,8 @@ public class ForgotPasswordServlet extends HttpServlet {
         try {
             String email = RequestFields.read(req).get("email");
             if (email == null || email.isBlank()) {
-                throw new IdentityException(IdentityError.VALIDATION_FAILED, "Email không được để trống");
+                throw new IdentityException(
+                        IdentityError.VALIDATION_FAILED, "Email không được để trống");
             }
             String message = service.forgotPassword(new ForgotPasswordRequestDto(email));
             HttpResponses.data(resp, JsonObjectBuilder.object().put("message", message).build());

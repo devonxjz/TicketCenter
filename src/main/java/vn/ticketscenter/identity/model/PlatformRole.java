@@ -1,3 +1,6 @@
 package vn.ticketscenter.identity.model;
 
-public enum PlatformRole { CUSTOMER, ADMIN }
+public enum PlatformRole {
+    CUSTOMER,
+    ADMIN
+}

@@ -9,16 +9,20 @@ import vn.ticketscenter.report.controller.ReadsideHttp;
 import vn.ticketscenter.settlement.infrastructure.*;
 
 /** Admin pages have their own authorization boundary; manager reports remain separate. */
-@WebServlet(name="FinanceAdminReadsidePageServlet", urlPatterns={"/finance/audit", "/finance/overview"})
+@WebServlet(
+        name = "FinanceAdminReadsidePageServlet",
+        urlPatterns = {"/finance/audit", "/finance/overview"})
 public final class AdminReadsidePageServlet extends HttpServlet {
-    @Override protected void doGet(HttpServletRequest request, HttpServletResponse response)
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
-            String view = switch (request.getServletPath()) {
-                case "/finance/audit" -> "audit/audit.jsp";
-                case "/finance/overview" -> "dashboard/overview.jsp";
-                default -> throw new FinanceException("NOT_FOUND", 404);
-            };
+            String view =
+                    switch (request.getServletPath()) {
+                        case "/finance/audit" -> "audit/audit.jsp";
+                        case "/finance/overview" -> "dashboard/overview.jsp";
+                        default -> throw new FinanceException("NOT_FOUND", 404);
+                    };
             var actor = ReadsideHttp.actor(request);
             try (var db = FinanceRuntime.database(getServletContext()).open()) {
                 FinanceAuthorization.requireAdmin(db, actor);

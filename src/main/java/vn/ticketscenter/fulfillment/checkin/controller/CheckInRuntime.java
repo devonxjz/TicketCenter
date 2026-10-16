@@ -19,7 +19,7 @@ public final class CheckInRuntime {
     public static final String SERVICE_ATTRIBUTE = CheckInEventService.class.getName();
     private static final String SCANNER_ATTRIBUTE = TicketCheckInService.class.getName();
 
-    private CheckInRuntime() { }
+    private CheckInRuntime() {}
 
     public static TicketCheckInService resolveScanner(ServletContext context) {
         synchronized (context) {
@@ -27,8 +27,11 @@ public final class CheckInRuntime {
             if (existing instanceof TicketCheckInService service) return service;
 
             var registry = registry(context);
-            var service = new TicketCheckInService(new TicketCheckInRepository(registry.transactionManager()),
-                    SignedQrDecoder.configured(), new RedisCheckInScanCache());
+            var service =
+                    new TicketCheckInService(
+                            new TicketCheckInRepository(registry.transactionManager()),
+                            SignedQrDecoder.configured(),
+                            new RedisCheckInScanCache());
             context.setAttribute(SCANNER_ATTRIBUTE, service);
             return service;
         }
@@ -40,8 +43,11 @@ public final class CheckInRuntime {
             if (existing instanceof CheckInEventService service) return service;
 
             var registry = registry(context);
-            var service = new CheckInEventService(new CheckInEventRepository(registry.transactionManager()),
-                    new RedisCheckInEventCache(), Clock.systemUTC());
+            var service =
+                    new CheckInEventService(
+                            new CheckInEventRepository(registry.transactionManager()),
+                            new RedisCheckInEventCache(),
+                            Clock.systemUTC());
             context.setAttribute(SERVICE_ATTRIBUTE, service);
             return service;
         }
@@ -49,8 +55,10 @@ public final class CheckInRuntime {
 
     private static PersistenceRegistry registry(ServletContext context) {
         Object value = context.getAttribute(PersistenceListener.REGISTRY_ATTRIBUTE);
-        if (!(value instanceof PersistenceRegistry registry) || !registry.hasPrincipal(DatabasePrincipal.CHECK_IN)) {
-            throw new CheckInException(503, "DATABASE_UNAVAILABLE", "Hệ thống soát vé chưa sẵn sàng.");
+        if (!(value instanceof PersistenceRegistry registry)
+                || !registry.hasPrincipal(DatabasePrincipal.CHECK_IN)) {
+            throw new CheckInException(
+                    503, "DATABASE_UNAVAILABLE", "Hệ thống soát vé chưa sẵn sàng.");
         }
         return registry;
     }

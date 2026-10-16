@@ -11,14 +11,23 @@
     const pageSize = 6;
     const actions = ['request', 'approve', 'reject'];
     const requestStates = {
-        NONE: 'Chưa có yêu cầu hủy', PENDING: 'Đang chờ duyệt',
-        APPROVED: 'Đã duyệt hủy', REJECTED: 'Yêu cầu bị từ chối'
+        NONE: 'Chưa có yêu cầu hủy',
+        PENDING: 'Đang chờ duyệt',
+        APPROVED: 'Đã duyệt hủy',
+        REJECTED: 'Yêu cầu bị từ chối'
     };
     const eventStates = {
-        PUBLISHED: 'Đã công khai', CANCELLED: 'Đã hủy', DRAFT: 'Bản nháp',
-        PENDING_APPROVAL: 'Chờ duyệt', REJECTED: 'Bị từ chối'
+        PUBLISHED: 'Đã công khai',
+        CANCELLED: 'Đã hủy',
+        DRAFT: 'Bản nháp',
+        PENDING_APPROVAL: 'Chờ duyệt',
+        REJECTED: 'Bị từ chối'
     };
-    const queueStates = {PENDING: 'Chờ duyệt', APPROVED: 'Đã duyệt', REJECTED: 'Từ chối'};
+    const queueStates = {
+        PENDING: 'Chờ duyệt',
+        APPROVED: 'Đã duyệt',
+        REJECTED: 'Từ chối'
+    };
     let current = null;
     let busy = false;
     let pending = null;
@@ -30,8 +39,8 @@
 
     try {
         const value = JSON.parse(sessionStorage.getItem(storage));
-        if (value && typeof value.id === 'string' && typeof value.key === 'string'
-            && actions.includes(value.action) && typeof value.body === 'object') pending = value;
+        if (value && typeof value.id === 'string' && typeof value.key === 'string' &&
+            actions.includes(value.action) && typeof value.body === 'object') pending = value;
     } catch (_) {
         // Storage may be unavailable; the current page still works without it.
     }
@@ -63,8 +72,11 @@
 
     function pagination() {
         window.TicketUI?.renderPagination($('cancellation-picker-page'), {
-            page: pickerPage, total: pickerTotal, pageSize,
-            previous: $('cancellation-picker-previous'), next: $('cancellation-picker-next'),
+            page: pickerPage,
+            total: pickerTotal,
+            pageSize,
+            previous: $('cancellation-picker-previous'),
+            next: $('cancellation-picker-next'),
             disabled: busy,
             onPageChange: page => {
                 pickerPage = page;
@@ -77,7 +89,10 @@
         const response = await fetch(base + path, {
             ...options,
             credentials: 'same-origin',
-            headers: {Accept: 'application/json', ...options.headers}
+            headers: {
+                Accept: 'application/json',
+                ...options.headers
+            }
         });
         let result;
         try {
@@ -98,8 +113,8 @@
         $('cancellation-picker-previous').disabled = true;
         $('cancellation-picker-next').disabled = true;
         try {
-            const path = admin ? '/api/admin/event-cancellations'
-                : `/api/organizations/${$('cancellation-organization').value}/events`;
+            const path = admin ? '/api/admin/event-cancellations' :
+                `/api/organizations/${$('cancellation-organization').value}/events`;
             const query = `?page=${pickerPage}&pageSize=${pageSize}` + (admin ? '' : '&status=PUBLISHED');
             const result = await api(path + query, {}, !admin);
             if (rev !== pickerRevision) return;
@@ -110,7 +125,8 @@
             select.replaceChildren();
             appendOption(select, '', admin ? 'Chọn yêu cầu hủy' : 'Chọn sự kiện');
             for (const item of items) {
-                const state = item.requestStatus ? ' · ' + (queueStates[item.requestStatus] || item.requestStatus) : '';
+                const state = item.requestStatus ? ' · ' + (queueStates[item.requestStatus] || item
+                    .requestStatus) : '';
                 appendOption(select, item.eventId, item.title + state);
             }
             if (current) {
@@ -119,8 +135,8 @@
                 }
                 select.value = current.eventId;
             }
-            $('cancellation-picker-page').textContent = pickerTotal
-                ? `Trang ${pickerPage} / ${Math.ceil(pickerTotal / pageSize)}` : 'Không có sự kiện';
+            $('cancellation-picker-page').textContent = pickerTotal ?
+                `Trang ${pickerPage} / ${Math.ceil(pickerTotal / pageSize)}` : 'Không có sự kiện';
             $('cancellation-picker-previous').disabled = pickerPage <= 1;
             $('cancellation-picker-next').disabled = pickerPage * pageSize >= pickerTotal;
             pagination();
@@ -156,8 +172,8 @@
     function controls() {
         const waiting = current?.requestStatus === 'PENDING';
         const retry = !!pending && !!current && pending.id === current.eventId;
-        $('cancellation-request').hidden = !current || current.eventStatus !== 'PUBLISHED'
-            || !['NONE', 'REJECTED'].includes(current.requestStatus);
+        $('cancellation-request').hidden = !current || current.eventStatus !== 'PUBLISHED' ||
+            !['NONE', 'REJECTED'].includes(current.requestStatus);
         $('cancellation-approve').hidden = !admin || !waiting;
         $('cancellation-reject').hidden = !admin || !waiting;
         $('cancellation-retry').hidden = !retry;
@@ -176,8 +192,8 @@
         current = data;
         $('cancellation-detail').hidden = false;
         $('cancellation-title').textContent = data.title;
-        $('cancellation-state').textContent = `${requestStates[data.requestStatus] || data.requestStatus} · `
-            + (eventStates[data.eventStatus] || 'Đang đối chiếu');
+        $('cancellation-state').textContent = `${requestStates[data.requestStatus] || data.requestStatus} · ` +
+            (eventStates[data.eventStatus] || 'Đang đối chiếu');
         $('cancellation-request-reason').hidden = !data.reason;
         $('cancellation-request-reason').textContent = data.reason || '';
         $('cancellation-rejection').hidden = !data.rejectionReason;
@@ -188,10 +204,12 @@
             const total = Number(progress.totalOrders);
             const processed = Number(progress.processedOrders);
             $('cancellation-progress-bar').value = total === 0 ? 100 : processed / total * 100;
-            $('cancellation-progress-counts').textContent = `${processed}/${total} đơn đã tạo hoặc tiếp nhận nghĩa vụ hoàn vé.`;
-            $('cancellation-refund-counts').textContent = `Đã hoàn: ${progress.successfulRefunds}; đang xử lý: ${progress.pendingRefunds}; `
-                + `thất bại: ${progress.failedRefunds}; cần đối soát: ${progress.unknownRefunds}; `
-                + `vé đã check-in cần xem xét: ${progress.usedTicketExceptions}.`;
+            $('cancellation-progress-counts').textContent =
+                `${processed}/${total} đơn đã tạo hoặc tiếp nhận nghĩa vụ hoàn vé.`;
+            $('cancellation-refund-counts').textContent =
+                `Đã hoàn: ${progress.successfulRefunds}; đang xử lý: ${progress.pendingRefunds}; ` +
+                `thất bại: ${progress.failedRefunds}; cần đối soát: ${progress.unknownRefunds}; ` +
+                `vé đã check-in cần xem xét: ${progress.usedTicketExceptions}.`;
         }
         controls();
     }
@@ -205,11 +223,13 @@
             if (rev !== revision) return false;
             render(data);
             if (!quiet) {
-                message(pending ? 'Có một lệnh chưa rõ kết quả. Chọn đúng sự kiện và kiểm tra lại lệnh đã gửi.'
-                    : 'Đã tải trạng thái hiện tại.');
+                message(pending ?
+                    'Có một lệnh chưa rõ kết quả. Chọn đúng sự kiện và kiểm tra lại lệnh đã gửi.' :
+                    'Đã tải trạng thái hiện tại.');
             }
-            if (data.progress && (data.progress.status !== 'COMPLETED' || Number(data.progress.pendingRefunds) > 0)
-                && !document.hidden) timer = setTimeout(() => load(id, true), 5000);
+            if (data.progress && (data.progress.status !== 'COMPLETED' || Number(data.progress.pendingRefunds) >
+                    0) &&
+                !document.hidden) timer = setTimeout(() => load(id, true), 5000);
             return true;
         } catch (error) {
             if (rev !== revision) return false;
@@ -231,11 +251,20 @@
                     message('Nhập lý do từ 10 đến 500 ký tự.');
                     return;
                 }
-                body = {reason};
+                body = {
+                    reason
+                };
             }
-            if (action === 'approve'
-                && !window.confirm('Duyệt yêu cầu sẽ hủy sự kiện, dừng bán vé và chuẩn bị nghĩa vụ hoàn vé. Tiếp tục?')) return;
-            pending = {id: current.eventId, key: crypto.randomUUID(), action, body};
+            if (action === 'approve' &&
+                !window.confirm(
+                    'Duyệt yêu cầu sẽ hủy sự kiện, dừng bán vé và chuẩn bị nghĩa vụ hoàn vé. Tiếp tục?'))
+        return;
+            pending = {
+                id: current.eventId,
+                key: crypto.randomUUID(),
+                action,
+                body
+            };
             save();
         }
         if (pending.id !== current.eventId) {
@@ -251,19 +280,25 @@
         const id = pending.id;
         try {
             const csrf = await api('/api/auth/csrf');
-            const endpoint = pending.action === 'request' ? 'cancellation-request' : `cancellation-${pending.action}`;
+            const endpoint = pending.action === 'request' ? 'cancellation-request' :
+                `cancellation-${pending.action}`;
             // Retry the same command and key until the server confirms its outcome.
             await api(prefix + id + '/' + endpoint, {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf.token, 'Idempotency-Key': pending.key},
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrf.token,
+                    'Idempotency-Key': pending.key
+                },
                 body: JSON.stringify(pending.body)
             });
             pending = null;
             save();
             $('cancellation-reason').value = '';
             const refreshed = await load(id);
-            message(refreshed ? 'Đã ghi nhận yêu cầu. Trạng thái bên dưới được đọc từ hệ thống.'
-                : 'Đã ghi nhận yêu cầu, chưa tải được trạng thái mới. ' + $('cancellation-status').textContent);
+            message(refreshed ? 'Đã ghi nhận yêu cầu. Trạng thái bên dưới được đọc từ hệ thống.' :
+                'Đã ghi nhận yêu cầu, chưa tải được trạng thái mới. ' + $('cancellation-status').textContent
+                );
         } catch (error) {
             if ([400, 401, 403, 404, 409, 415].includes(error.status)) {
                 pending = null;

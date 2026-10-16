@@ -28,9 +28,10 @@ public class AuditLog extends BaseEntity {
     @Column(name = "metadata_json", length = 8000)
     private String metadataJson;
 
-    protected AuditLog() { }
+    protected AuditLog() {}
 
-    public AuditLog(User actor, String action, String entityType, String entityId, String metadataJson) {
+    public AuditLog(
+            User actor, String action, String entityType, String entityId, String metadataJson) {
         this.actor = actor;
         this.action = action;
         this.entityType = entityType;
@@ -38,9 +39,23 @@ public class AuditLog extends BaseEntity {
         this.metadataJson = metadataJson;
     }
 
-    public User getActor() { return actor; }
-    public String getAction() { return action; }
-    public String getEntityType() { return entityType; }
-    public String getEntityId() { return entityId; }
-    public String getMetadataJson() { return metadataJson; }
+    public User getActor() {
+        return actor;
+    }
+
+    public String getAction() {
+        return action;
+    }
+
+    public String getEntityType() {
+        return entityType;
+    }
+
+    public String getEntityId() {
+        return entityId;
+    }
+
+    public String getMetadataJson() {
+        return metadataJson;
+    }
 }

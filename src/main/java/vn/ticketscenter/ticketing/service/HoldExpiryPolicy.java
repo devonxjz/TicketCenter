@@ -7,7 +7,7 @@ import java.util.Objects;
 public final class HoldExpiryPolicy {
     public static final Duration LIFETIME = Duration.ofMinutes(10);
 
-    private HoldExpiryPolicy() { }
+    private HoldExpiryPolicy() {}
 
     public static Instant expiresAt(Instant serverCreatedAt) {
         return Objects.requireNonNull(serverCreatedAt).plus(LIFETIME);

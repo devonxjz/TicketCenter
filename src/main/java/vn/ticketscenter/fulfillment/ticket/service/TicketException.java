@@ -13,15 +13,21 @@ public final class TicketException extends AppException {
         super(httpStatus, Objects.requireNonNull(errorCode, "errorCode is required"), message);
     }
 
-    public int httpStatus() { return status(); }
-    public String errorCode() { return code(); }
+    public int httpStatus() {
+        return status();
+    }
+
+    public String errorCode() {
+        return code();
+    }
 
     public static TicketException unauthenticated() {
         return new TicketException(401, "UNAUTHENTICATED", "A current session is required.");
     }
 
     public static TicketException forbidden() {
-        return new TicketException(403, "FORBIDDEN", "You do not have permission to access this ticket.");
+        return new TicketException(
+                403, "FORBIDDEN", "You do not have permission to access this ticket.");
     }
 
     public static TicketException notFound() {
@@ -33,7 +39,8 @@ public final class TicketException extends AppException {
     }
 
     public static TicketException unavailable() {
-        return new TicketException(503, "SERVICE_UNAVAILABLE", "Ticket service is temporarily unavailable.");
+        return new TicketException(
+                503, "SERVICE_UNAVAILABLE", "Ticket service is temporarily unavailable.");
     }
 
     public String toJson() {

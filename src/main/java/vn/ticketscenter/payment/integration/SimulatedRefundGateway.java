@@ -34,18 +34,22 @@ public final class SimulatedRefundGateway implements RefundGateway {
     @Override
     public Result submit(UUID attempt, BigDecimal amount) throws Timeout {
         new RefundTransferRequest(attempt, attempt, amount);
-        Result result = locked(attempt, file -> {
-            String vnd = amount.toBigIntegerExact().toString();
-            if (Files.exists(file)) {
-                var lines = read(file);
-                if (!lines.getFirst().equals(vnd)) {
-                    throw new IllegalArgumentException("Attempt amount is immutable");
-                }
-                return new Result(Status.valueOf(lines.get(1)), "SIM-" + attempt);
-            }
-            write(file, vnd, outcome);
-            return new Result(outcome, "SIM-" + attempt);
-        });
+        Result result =
+                locked(
+                        attempt,
+                        file -> {
+                            String vnd = amount.toBigIntegerExact().toString();
+                            if (Files.exists(file)) {
+                                var lines = read(file);
+                                if (!lines.getFirst().equals(vnd)) {
+                                    throw new IllegalArgumentException(
+                                            "Attempt amount is immutable");
+                                }
+                                return new Result(Status.valueOf(lines.get(1)), "SIM-" + attempt);
+                            }
+                            write(file, vnd, outcome);
+                            return new Result(outcome, "SIM-" + attempt);
+                        });
         if (timeoutAfterSideEffect) throw new Timeout();
         return result;
     }
@@ -65,9 +69,13 @@ public final class SimulatedRefundGateway implements RefundGateway {
         if (ref != null && !ref.equals("SIM-" + attempt)) {
             return new RefundTransferResult(Status.UNKNOWN, ref);
         }
-        return locked(attempt, file -> Files.exists(file)
-                ? new RefundTransferResult(Status.valueOf(read(file).get(1)), "SIM-" + attempt)
-                : new RefundTransferResult(Status.UNKNOWN, null));
+        return locked(
+                attempt,
+                file ->
+                        Files.exists(file)
+                                ? new RefundTransferResult(
+                                        Status.valueOf(read(file).get(1)), "SIM-" + attempt)
+                                : new RefundTransferResult(Status.UNKNOWN, null));
     }
 
     /** Explicit simulator reconciliation; finalized receipts cannot change truth. */
@@ -75,15 +83,19 @@ public final class SimulatedRefundGateway implements RefundGateway {
         if (finalStatus != Status.SUCCEEDED && finalStatus != Status.FAILED) {
             throw new IllegalArgumentException("Final result required");
         }
-        locked(attempt, file -> {
-            var lines = read(file);
-            Status current = Status.valueOf(lines.get(1));
-            if (current != Status.UNKNOWN && current != Status.PENDING && current != finalStatus) {
-                throw new IllegalArgumentException("Final receipt is immutable");
-            }
-            write(file, lines.getFirst(), finalStatus);
-            return null;
-        });
+        locked(
+                attempt,
+                file -> {
+                    var lines = read(file);
+                    Status current = Status.valueOf(lines.get(1));
+                    if (current != Status.UNKNOWN
+                            && current != Status.PENDING
+                            && current != finalStatus) {
+                        throw new IllegalArgumentException("Final receipt is immutable");
+                    }
+                    write(file, lines.getFirst(), finalStatus);
+                    return null;
+                });
     }
 
     @FunctionalInterface
@@ -96,8 +108,10 @@ public final class SimulatedRefundGateway implements RefundGateway {
         synchronized (LOCKS.computeIfAbsent(lock, path -> new Object())) {
             try {
                 Files.createDirectories(directory);
-                try (var channel = FileChannel.open(lock, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-                     var guard = channel.lock()) {
+                try (var channel =
+                                FileChannel.open(
+                                        lock, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+                        var guard = channel.lock()) {
                     return work.run(directory.resolve(id + ".receipt"));
                 }
             } catch (IOException failure) {
@@ -113,12 +127,18 @@ public final class SimulatedRefundGateway implements RefundGateway {
     private static void write(Path file, String amount, Status status) throws IOException {
         Path temp = Files.createTempFile(file.getParent(), "refund-", ".tmp");
         try {
-            try (var channel = FileChannel.open(temp, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
+            try (var channel =
+                    FileChannel.open(
+                            temp, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
                 var buffer = StandardCharsets.UTF_8.encode(amount + "\n" + status.name() + "\n");
                 while (buffer.hasRemaining()) channel.write(buffer);
                 channel.force(true);
             }
-            Files.move(temp, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            Files.move(
+                    temp,
+                    file,
+                    StandardCopyOption.ATOMIC_MOVE,
+                    StandardCopyOption.REPLACE_EXISTING);
         } finally {
             Files.deleteIfExists(temp);
         }

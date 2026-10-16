@@ -5,8 +5,7 @@ import java.util.UUID;
 
 public final class InputParser {
 
-    private InputParser() {
-    }
+    private InputParser() {}
 
     public static UUID asUuid(Object value) {
         if (value == null) return null;

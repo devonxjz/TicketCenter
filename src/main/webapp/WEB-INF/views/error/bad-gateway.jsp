@@ -5,13 +5,14 @@
 <html lang="vi">
 <head>
     <title>${fn:escapeXml(errorTitle)} — TicketsCenter</title>
-<jsp:include page="/WEB-INF/views/layout/meta-head.jsp" />
+    <jsp:include page="/WEB-INF/views/layout/meta-head.jsp" />
 </head>
 <body class="tc-error-page">
     <nav class="navbar navbar-custom">
         <div class="container d-flex align-items-center justify-content-between">
             <a class="navbar-brand-custom" href="${pageContext.request.contextPath}/">TicketsCenter</a>
-            <a href="${pageContext.request.contextPath}/" class="small fw-semibold text-muted text-decoration-none"><i class="fa-solid fa-house me-1"></i> Trang chủ</a>
+            <a href="${pageContext.request.contextPath}/" class="small fw-semibold text-muted text-decoration-none"><i
+                    class="fa-solid fa-house me-1"></i> Trang chủ</a>
         </div>
     </nav>
     <main class="container tc-error-main">

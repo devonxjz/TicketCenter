@@ -21,11 +21,15 @@ public class RegistrationService {
     private final UserRepository userRepository;
     private final PasswordHasher passwordHasher;
 
-    public RegistrationService(TransactionManager transactions, UserRepository userRepository,
-                               PasswordHasher passwordHasher) {
+    public RegistrationService(
+            TransactionManager transactions,
+            UserRepository userRepository,
+            PasswordHasher passwordHasher) {
         this.transactions = Objects.requireNonNull(transactions, "transactions must not be null");
-        this.userRepository = Objects.requireNonNull(userRepository, "userRepository must not be null");
-        this.passwordHasher = Objects.requireNonNull(passwordHasher, "passwordHasher must not be null");
+        this.userRepository =
+                Objects.requireNonNull(userRepository, "userRepository must not be null");
+        this.passwordHasher =
+                Objects.requireNonNull(passwordHasher, "passwordHasher must not be null");
     }
 
     /**
@@ -50,22 +54,30 @@ public class RegistrationService {
         String passwordHash = passwordHasher.hash(request.password());
 
         try {
-            return Boolean.TRUE.equals(transactions.execute(DatabasePrincipal.AUTH, em -> {
-                if (userRepository.existsByNormalizedEmail(em, email)) {
-                    throw new IdentityException(IdentityError.EMAIL_ALREADY_EXISTS,
-                            "EMAIL_ALREADY_EXISTS: Email đã được sử dụng");
-                }
-                if (userRepository.existsByNormalizedUserName(em, userName)) {
-                    throw new IdentityException(IdentityError.USERNAME_ALREADY_EXISTS,
-                            "USERNAME_ALREADY_EXISTS: Tên đăng nhập đã được sử dụng");
-                }
-                userRepository.save(em, new User(email, userName, fullName, passwordHash));
-                return true;
-            }));
+            return Boolean.TRUE.equals(
+                    transactions.execute(
+                            DatabasePrincipal.AUTH,
+                            em -> {
+                                if (userRepository.existsByNormalizedEmail(em, email)) {
+                                    throw new IdentityException(
+                                            IdentityError.EMAIL_ALREADY_EXISTS,
+                                            "EMAIL_ALREADY_EXISTS: Email đã được sử dụng");
+                                }
+                                if (userRepository.existsByNormalizedUserName(em, userName)) {
+                                    throw new IdentityException(
+                                            IdentityError.USERNAME_ALREADY_EXISTS,
+                                            "USERNAME_ALREADY_EXISTS: Tên đăng nhập đã được sử dụng");
+                                }
+                                userRepository.save(
+                                        em, new User(email, userName, fullName, passwordHash));
+                                return true;
+                            }));
         } catch (PersistenceException conflict) {
             LOGGER.log(Level.WARNING, "Lỗi xung đột khi lưu tài khoản: " + conflict.getMessage());
-            throw new IdentityException(IdentityError.IDENTITY_CONFLICT,
-                    "IDENTITY_CONFLICT: Email hoặc tên đăng nhập đã tồn tại trong hệ thống", conflict);
+            throw new IdentityException(
+                    IdentityError.IDENTITY_CONFLICT,
+                    "IDENTITY_CONFLICT: Email hoặc tên đăng nhập đã tồn tại trong hệ thống",
+                    conflict);
         }
     }
 }

@@ -72,7 +72,8 @@ public final class TicketRuntime implements ServletContextListener {
     public void contextDestroyed(ServletContextEvent event) {
         synchronized (event.getServletContext()) {
             event.getServletContext().setAttribute(CLOSED_ATTRIBUTE, true);
-            if (event.getServletContext().getAttribute(POOL_ATTRIBUTE) instanceof HikariDataSource pool) {
+            if (event.getServletContext().getAttribute(POOL_ATTRIBUTE)
+                    instanceof HikariDataSource pool) {
                 pool.close();
             }
             event.getServletContext().removeAttribute(SERVICE_ATTRIBUTE);

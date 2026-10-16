@@ -82,12 +82,17 @@ public final class DatabaseConfig {
         }
         return String.format(
                 "jdbc:sqlserver://%s:%d;databaseName=%s;encrypt=%b;trustServerCertificate=%b;loginTimeout=%d;",
-                getHost(), getPort(), getDatabaseName(), isEncrypt(), isTrustServerCertificate(), getLoginTimeout()
-        );
+                getHost(),
+                getPort(),
+                getDatabaseName(),
+                isEncrypt(),
+                isTrustServerCertificate(),
+                getLoginTimeout());
     }
 
     public static int getMaximumPoolSize() {
-        return AppConfig.getInt("hikari.maximum-pool-size", AppConfig.getInt("db.pool.max-size", 20));
+        return AppConfig.getInt(
+                "hikari.maximum-pool-size", AppConfig.getInt("db.pool.max-size", 20));
     }
 
     public static int getMinimumIdle() {

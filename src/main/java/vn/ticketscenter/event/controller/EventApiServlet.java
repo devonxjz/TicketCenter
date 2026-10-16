@@ -15,7 +15,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @WebServlet(
-        name = "EventApiServlet", loadOnStartup=1,
+        name = "EventApiServlet",
+        loadOnStartup = 1,
         urlPatterns = {
             "/api/organizations/*",
             "/api/manager/events",
@@ -103,21 +104,48 @@ public class EventApiServlet extends HttpServlet {
                 throw new EventException(
                         413, "PAYLOAD_TOO_LARGE", "Multipart request exceeds its limit");
             } catch (ServletException | IOException e) {
-                throw new EventException(400, "MULTIPART_INVALID", "Multipart request cannot be read");
+                throw new EventException(
+                        400, "MULTIPART_INVALID", "Multipart request cannot be read");
             }
-            if(command.fields()!=null) {
-                EventFields f=command.fields();
-                EventCommand.input(kind==EventSave.Kind.CREATE?"CREATE":"EDIT",kind==EventSave.Kind.CREATE?target:null,kind==EventSave.Kind.EDIT?target:null,null,
-                    java.util.Map.of("title",f.title(),"description",f.description(),"categoryId",f.categoryId().toString(),"venueName",f.venueName(),"venueAddress",f.venueAddress(),
-                        "saleStartTime",f.saleStart().toString(),"saleEndTime",f.saleEnd().toString(),"startTime",f.startTime().toString(),"endTime",f.endTime().toString()),java.time.Clock.systemUTC());
+            if (command.fields() != null) {
+                EventFields f = command.fields();
+                EventCommand.input(
+                        kind == EventSave.Kind.CREATE ? "CREATE" : "EDIT",
+                        kind == EventSave.Kind.CREATE ? target : null,
+                        kind == EventSave.Kind.EDIT ? target : null,
+                        null,
+                        java.util.Map.of(
+                                "title",
+                                f.title(),
+                                "description",
+                                f.description(),
+                                "categoryId",
+                                f.categoryId().toString(),
+                                "venueName",
+                                f.venueName(),
+                                "venueAddress",
+                                f.venueAddress(),
+                                "saleStartTime",
+                                f.saleStart().toString(),
+                                "saleEndTime",
+                                f.saleEnd().toString(),
+                                "startTime",
+                                f.startTime().toString(),
+                                "endTime",
+                                f.endTime().toString()),
+                        java.time.Clock.systemUTC());
             }
-            EventDto saved=service(request).save(principal,command);
-            if(injected==null) {
+            EventDto saved = service(request).save(principal, command);
+            if (injected == null) {
                 try {
-                    EventCatalogRuntime.cache(request.getServletContext()).invalidateCommitted(saved.id(),saved.organizationId());
-                } catch(Exception e) {
+                    EventCatalogRuntime.cache(request.getServletContext())
+                            .invalidateCommitted(saved.id(), saved.organizationId());
+                } catch (Exception e) {
                     java.util.logging.Logger.getLogger(EventApiServlet.class.getName())
-                            .log(java.util.logging.Level.WARNING, "Event catalog cache invalidation skipped", e);
+                            .log(
+                                    java.util.logging.Level.WARNING,
+                                    "Event catalog cache invalidation skipped",
+                                    e);
                 }
             }
             HttpResponses.data(response, saved.toJson());
@@ -143,13 +171,16 @@ public class EventApiServlet extends HttpServlet {
             throws IOException {
         if (exception instanceof EventException e)
             HttpResponses.error(response, e.status(), e.code(), e.getMessage());
-        else if(exception instanceof EventProblem e)
-            HttpResponses.error(response,e.status(),e.code(),e.getMessage());
+        else if (exception instanceof EventProblem e)
+            HttpResponses.error(response, e.status(), e.code(), e.getMessage());
         else if (exception instanceof IllegalArgumentException)
             HttpResponses.error(response, 400, "EVENT_INPUT_INVALID", "Event input is invalid");
         else {
             java.util.logging.Logger.getLogger(EventApiServlet.class.getName())
-                    .log(java.util.logging.Level.SEVERE, "Unexpected event service error", exception);
+                    .log(
+                            java.util.logging.Level.SEVERE,
+                            "Unexpected event service error",
+                            exception);
             HttpResponses.error(
                     response, 503, "EVENT_UNAVAILABLE", "Event service is temporarily unavailable");
         }

@@ -32,10 +32,15 @@ public class SettlementItem extends BaseEntity {
     @Column(name = "net_amount", nullable = false)
     private long netAmount;
 
-    protected SettlementItem() { }
+    protected SettlementItem() {}
 
-    public SettlementItem(Settlement settlement, Order order, long grossAmount,
-                          long refundAmount, long commissionAmount, long netAmount) {
+    public SettlementItem(
+            Settlement settlement,
+            Order order,
+            long grossAmount,
+            long refundAmount,
+            long commissionAmount,
+            long netAmount) {
         this.settlement = settlement;
         this.order = order;
         this.grossAmount = grossAmount;
@@ -44,10 +49,27 @@ public class SettlementItem extends BaseEntity {
         this.netAmount = netAmount;
     }
 
-    public Settlement getSettlement() { return settlement; }
-    public Order getOrder() { return order; }
-    public long getGrossAmount() { return grossAmount; }
-    public long getRefundAmount() { return refundAmount; }
-    public long getCommissionAmount() { return commissionAmount; }
-    public long getNetAmount() { return netAmount; }
+    public Settlement getSettlement() {
+        return settlement;
+    }
+
+    public Order getOrder() {
+        return order;
+    }
+
+    public long getGrossAmount() {
+        return grossAmount;
+    }
+
+    public long getRefundAmount() {
+        return refundAmount;
+    }
+
+    public long getCommissionAmount() {
+        return commissionAmount;
+    }
+
+    public long getNetAmount() {
+        return netAmount;
+    }
 }

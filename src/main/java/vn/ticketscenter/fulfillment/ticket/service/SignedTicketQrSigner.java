@@ -64,7 +64,8 @@ public final class SignedTicketQrSigner {
         Objects.requireNonNull(payload, "payload is required");
         try {
             Mac mac = Mac.getInstance(HMAC_ALGORITHM);
-            SecretKeySpec keySpec = new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), HMAC_ALGORITHM);
+            SecretKeySpec keySpec =
+                    new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), HMAC_ALGORITHM);
             mac.init(keySpec);
             return mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
@@ -115,7 +116,8 @@ public final class SignedTicketQrSigner {
         // Kiểm tra chữ ký với MessageDigest.isEqual (chống Timing Attack)
         try {
             Mac mac = Mac.getInstance(HMAC_ALGORITHM);
-            SecretKeySpec keySpec = new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), HMAC_ALGORITHM);
+            SecretKeySpec keySpec =
+                    new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), HMAC_ALGORITHM);
             mac.init(keySpec);
             byte[] expectedSignature = mac.doFinal(payloadBytes);
 
@@ -158,7 +160,9 @@ public final class SignedTicketQrSigner {
             hints.put(EncodeHintType.MARGIN, 1);
 
             QRCodeWriter writer = new QRCodeWriter();
-            BitMatrix bitMatrix = writer.encode(envelope, BarcodeFormat.QR_CODE, targetWidth, targetHeight, hints);
+            BitMatrix bitMatrix =
+                    writer.encode(
+                            envelope, BarcodeFormat.QR_CODE, targetWidth, targetHeight, hints);
 
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             MatrixToImageWriter.writeToStream(bitMatrix, "PNG", outputStream);

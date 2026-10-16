@@ -28,7 +28,8 @@ public final class HoldRuntime implements ServletContextListener {
 
     public static HoldService resolve(ServletContext context) {
         synchronized (context) {
-            if (Boolean.TRUE.equals(context.getAttribute(CLOSED_ATTRIBUTE))) throw HoldException.unavailable();
+            if (Boolean.TRUE.equals(context.getAttribute(CLOSED_ATTRIBUTE)))
+                throw HoldException.unavailable();
             Object value = context.getAttribute(SERVICE_ATTRIBUTE);
             if (value instanceof HoldService service) return service;
             List<HikariDataSource> pools = new ArrayList<>();
@@ -38,9 +39,13 @@ public final class HoldRuntime implements ServletContextListener {
                 HikariDataSource worker = pool(DatabasePrincipal.WORKER);
                 pools.add(worker);
                 var redis = RedisClientProvider.getInstance();
-                HoldService service = new HoldService(new HoldRepository(ConnectionBudgets.wrap(buyer),
-                        ConnectionBudgets.wrap(worker)), new RedisActiveHoldCache(redis::getResource, Clock.systemUTC()),
-                        new RedisHoldIdempotency(redis::getResource));
+                HoldService service =
+                        new HoldService(
+                                new HoldRepository(
+                                        ConnectionBudgets.wrap(buyer),
+                                        ConnectionBudgets.wrap(worker)),
+                                new RedisActiveHoldCache(redis::getResource, Clock.systemUTC()),
+                                new RedisHoldIdempotency(redis::getResource));
                 context.setAttribute(POOLS_ATTRIBUTE, pools);
                 context.setAttribute(SERVICE_ATTRIBUTE, service);
                 return service;
@@ -55,7 +60,8 @@ public final class HoldRuntime implements ServletContextListener {
         String prefix = "db." + principal.name().toLowerCase(Locale.ROOT);
         String user = AppConfig.get(prefix + ".user");
         String password = AppConfig.get(prefix + ".password");
-        if (user == null || user.isBlank() || password == null || password.isBlank()) throw HoldException.unavailable();
+        if (user == null || user.isBlank() || password == null || password.isBlank())
+            throw HoldException.unavailable();
         HikariConfig config = new HikariConfig();
         config.setPoolName("hold-" + principal.name().toLowerCase(Locale.ROOT));
         config.setJdbcUrl(DatabaseConfig.getJdbcUrl());
@@ -72,12 +78,20 @@ public final class HoldRuntime implements ServletContextListener {
     @Override
     public void contextInitialized(ServletContextEvent event) {
         event.getServletContext().setAttribute(CLOSED_ATTRIBUTE, false);
-        expiry = Executors.newSingleThreadScheduledExecutor(
-                Thread.ofPlatform().daemon(true).name("hold-expiry").factory());
-        expiry.scheduleWithFixedDelay(() -> {
-            try { resolve(event.getServletContext()).expire(50); }
-            catch (RuntimeException failure) { LOG.warning("Hold expiry will retry"); }
-        }, 0, 5, TimeUnit.SECONDS);
+        expiry =
+                Executors.newSingleThreadScheduledExecutor(
+                        Thread.ofPlatform().daemon(true).name("hold-expiry").factory());
+        expiry.scheduleWithFixedDelay(
+                () -> {
+                    try {
+                        resolve(event.getServletContext()).expire(50);
+                    } catch (RuntimeException failure) {
+                        LOG.warning("Hold expiry will retry");
+                    }
+                },
+                0,
+                5,
+                TimeUnit.SECONDS);
     }
 
     @Override
@@ -87,7 +101,8 @@ public final class HoldRuntime implements ServletContextListener {
             event.getServletContext().setAttribute(CLOSED_ATTRIBUTE, true);
             Object value = event.getServletContext().getAttribute(POOLS_ATTRIBUTE);
             if (value instanceof List<?> pools)
-                for (Object pool : pools) if (pool instanceof HikariDataSource source) source.close();
+                for (Object pool : pools)
+                    if (pool instanceof HikariDataSource source) source.close();
             event.getServletContext().removeAttribute(SERVICE_ATTRIBUTE);
             event.getServletContext().removeAttribute(POOLS_ATTRIBUTE);
         }

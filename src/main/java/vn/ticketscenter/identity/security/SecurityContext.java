@@ -49,8 +49,8 @@ public final class SecurityContext {
      * Yêu cầu người dùng phải đăng nhập, ném IllegalArgumentException nếu chưa có phiên.
      */
     public static UserPrincipal requireCurrentUser(HttpServletRequest request) {
-        return getCurrentUser(request).orElseThrow(() ->
-                new IllegalArgumentException("Yêu cầu phiên đăng nhập"));
+        return getCurrentUser(request)
+                .orElseThrow(() -> new IllegalArgumentException("Yêu cầu phiên đăng nhập"));
     }
 
     /**
@@ -136,8 +136,7 @@ public final class SecurityContext {
 
             return MessageDigest.isEqual(
                     sessionToken.getBytes(StandardCharsets.UTF_8),
-                    requestToken.getBytes(StandardCharsets.UTF_8)
-            );
+                    requestToken.getBytes(StandardCharsets.UTF_8));
         } catch (IllegalStateException ignored) {
             return false;
         }

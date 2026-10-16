@@ -21,7 +21,8 @@ import java.util.function.Supplier;
  */
 public final class RedisHoldIdempotency {
     public static final Duration MAX_RESULT_RETENTION = Duration.ofMinutes(10);
-    private static final String COMPLETE = """
+    private static final String COMPLETE =
+            """
             if redis.call('GET', KEYS[1]) ~= ARGV[1] then return 0 end
             redis.call('PSETEX', KEYS[1], ARGV[3], ARGV[2])
             return 1
@@ -36,20 +37,33 @@ public final class RedisHoldIdempotency {
         this(Objects.requireNonNull(pool)::getResource);
     }
 
-    public sealed interface Result permits Acquired, InProgress, Replay, Conflict { }
-    public record Acquired(Claim claim) implements Result { }
-    public record InProgress() implements Result { }
-    public record Replay(CompletedResponse response) implements Result { }
-    public record Conflict() implements Result { }
+    public sealed interface Result permits Acquired, InProgress, Replay, Conflict {}
+
+    public record Acquired(Claim claim) implements Result {}
+
+    public record InProgress() implements Result {}
+
+    public record Replay(CompletedResponse response) implements Result {}
+
+    public record Conflict() implements Result {}
 
     public record CompletedResponse(int status, String contentType, String body) {
         public CompletedResponse {
-            if (status < 200 || status > 599 || contentType == null || contentType.isBlank() || body == null
-                    || contentType.chars().anyMatch(character -> character < 32 || character == 127)) {
-                throw new IllegalArgumentException("a completed response needs status, content type, and body");
+            if (status < 200
+                    || status > 599
+                    || contentType == null
+                    || contentType.isBlank()
+                    || body == null
+                    || contentType
+                            .chars()
+                            .anyMatch(character -> character < 32 || character == 127)) {
+                throw new IllegalArgumentException(
+                        "a completed response needs status, content type, and body");
             }
-            if (!new String(contentType.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8).equals(contentType)
-                    || !new String(body.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8).equals(body)) {
+            if (!new String(contentType.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8)
+                            .equals(contentType)
+                    || !new String(body.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8)
+                            .equals(body)) {
                 throw new IllegalArgumentException("a completed response must be valid UTF-8 text");
             }
         }
@@ -74,7 +88,14 @@ public final class RedisHoldIdempotency {
         }
         Claim claim = new Claim(redisKey, requestHash);
         try (Jedis jedis = connections.get()) {
-            if ("OK".equals(jedis.set(redisKey, claim.pendingValue, SetParams.setParams().nx().px(MAX_RESULT_RETENTION.toMillis())))) {
+            if ("OK"
+                    .equals(
+                            jedis.set(
+                                    redisKey,
+                                    claim.pendingValue,
+                                    SetParams.setParams()
+                                            .nx()
+                                            .px(MAX_RESULT_RETENTION.toMillis())))) {
                 return new Acquired(claim);
             }
             return readResult(jedis.get(redisKey), requestHash);
@@ -90,8 +111,11 @@ public final class RedisHoldIdempotency {
         long retentionMillis = retentionMillis(retention);
         String completed = completedValue(claim.requestHash, response);
         try (Jedis jedis = connections.get()) {
-            Object result = jedis.eval(COMPLETE, List.of(claim.redisKey),
-                    List.of(claim.pendingValue, completed, Long.toString(retentionMillis)));
+            Object result =
+                    jedis.eval(
+                            COMPLETE,
+                            List.of(claim.redisKey),
+                            List.of(claim.pendingValue, completed, Long.toString(retentionMillis)));
             if (Long.valueOf(1).equals(result)) {
                 return true;
             }
@@ -112,9 +136,12 @@ public final class RedisHoldIdempotency {
         if (actorId == null || actorId.equals(new UUID(0, 0))) {
             throw new IllegalArgumentException("actorId must be a nonzero UUID");
         }
-        if (key == null || key.isEmpty() || key.length() > 128
+        if (key == null
+                || key.isEmpty()
+                || key.length() > 128
                 || key.chars().anyMatch(character -> character < 33 || character > 126)) {
-            throw new IllegalArgumentException("Idempotency-Key must contain 1..128 visible ASCII characters");
+            throw new IllegalArgumentException(
+                    "Idempotency-Key must contain 1..128 visible ASCII characters");
         }
         return "tc:idem:hold:" + actorId + ":" + key;
     }
@@ -123,8 +150,12 @@ public final class RedisHoldIdempotency {
      * Caller must first confirm this exact actor, key, fingerprint and result in durable DB state.
      * This reconciles Redis only. False never authorizes retry, and absent entries remain absent.
      */
-    public boolean recoverConfirmedResult(UUID actorId, String key, String requestHash,
-                                          CompletedResponse response, Duration retention) {
+    public boolean recoverConfirmedResult(
+            UUID actorId,
+            String key,
+            String requestHash,
+            CompletedResponse response,
+            Duration retention) {
         String redisKey = redisKey(actorId, key);
         if (requestHash == null || !requestHash.matches("[0-9a-f]{64}")) {
             throw new IllegalArgumentException("requestHash must be a lowercase SHA-256 hash");
@@ -138,7 +169,11 @@ public final class RedisHoldIdempotency {
             Result state = readResult(observed, requestHash);
             if (state instanceof Replay replay) return replay.response().equals(response);
             if (!(state instanceof InProgress)) return false;
-            Object result = jedis.eval(COMPLETE, List.of(redisKey), List.of(observed, completed, Long.toString(millis)));
+            Object result =
+                    jedis.eval(
+                            COMPLETE,
+                            List.of(redisKey),
+                            List.of(observed, completed, Long.toString(millis)));
             if (Long.valueOf(1).equals(result)) return true;
             if (Long.valueOf(0).equals(result)) return false;
             throw new HoldIdempotencyUnavailableException();
@@ -177,20 +212,32 @@ public final class RedisHoldIdempotency {
     }
 
     private static long retentionMillis(Duration retention) {
-        if (retention == null || retention.isNegative() || retention.isZero()
-                || retention.compareTo(MAX_RESULT_RETENTION) > 0 || retention.getNano() % 1_000_000 != 0) {
-            throw new IllegalArgumentException("result retention must be 1 millisecond..600 seconds in whole milliseconds");
+        if (retention == null
+                || retention.isNegative()
+                || retention.isZero()
+                || retention.compareTo(MAX_RESULT_RETENTION) > 0
+                || retention.getNano() % 1_000_000 != 0) {
+            throw new IllegalArgumentException(
+                    "result retention must be 1 millisecond..600 seconds in whole milliseconds");
         }
         return retention.toMillis();
     }
 
     private static String completedValue(String requestHash, CompletedResponse response) {
-        return "1|C|" + requestHash + "|" + response.status()
-                + "|" + encode(response.contentType()) + "|" + encode(response.body());
+        return "1|C|"
+                + requestHash
+                + "|"
+                + response.status()
+                + "|"
+                + encode(response.contentType())
+                + "|"
+                + encode(response.body());
     }
 
     private static String encode(String value) {
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(value.getBytes(StandardCharsets.UTF_8));
+        return Base64.getUrlEncoder()
+                .withoutPadding()
+                .encodeToString(value.getBytes(StandardCharsets.UTF_8));
     }
 
     private static String decode(String value) {

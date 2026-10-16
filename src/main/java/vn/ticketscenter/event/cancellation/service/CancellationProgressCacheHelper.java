@@ -20,13 +20,37 @@ import vn.ticketscenter.fulfillment.checkin.cache.RedisCheckInEventCache;
 public class CancellationProgressCacheHelper {
     private static final String PROGRESS_PREFIX = "tc:event:cancel-progress:";
     private static final String PENDING_REFUNDS_KEY = "tc:admin:pending_refunds_count";
-    private static final Set<String> PROGRESS_FIELDS = Set.of("eventId", "status", "reason", "cancelledAt",
-            "totalOrders", "processedOrders", "progressPercentage", "updatedAt", "successfulRefunds",
-            "failedRefunds", "unknownRefunds", "pendingRefunds", "usedTicketExceptions");
-    private static final List<String> COUNT_FIELDS = List.of("totalOrders", "processedOrders", "successfulRefunds",
-            "failedRefunds", "unknownRefunds", "pendingRefunds", "usedTicketExceptions");
-    private static final List<String> TICKET_PROJECTIONS = List.of("tc:user:active-hold:*", "tc:order:summary:*",
-            "tc:ticket:detail:v1:*", "tc:ticket:qr:v1:*", "tc:user:tickets:v1:*");
+    private static final Set<String> PROGRESS_FIELDS =
+            Set.of(
+                    "eventId",
+                    "status",
+                    "reason",
+                    "cancelledAt",
+                    "totalOrders",
+                    "processedOrders",
+                    "progressPercentage",
+                    "updatedAt",
+                    "successfulRefunds",
+                    "failedRefunds",
+                    "unknownRefunds",
+                    "pendingRefunds",
+                    "usedTicketExceptions");
+    private static final List<String> COUNT_FIELDS =
+            List.of(
+                    "totalOrders",
+                    "processedOrders",
+                    "successfulRefunds",
+                    "failedRefunds",
+                    "unknownRefunds",
+                    "pendingRefunds",
+                    "usedTicketExceptions");
+    private static final List<String> TICKET_PROJECTIONS =
+            List.of(
+                    "tc:user:active-hold:*",
+                    "tc:order:summary:*",
+                    "tc:ticket:detail:v1:*",
+                    "tc:ticket:qr:v1:*",
+                    "tc:user:tickets:v1:*");
     private final Supplier<Jedis> connections;
 
     public CancellationProgressCacheHelper() {
@@ -50,13 +74,25 @@ public class CancellationProgressCacheHelper {
             var fields = JsonObjectParser.parse(new StringReader(json));
             if (!validFields(id, fields)) return Optional.empty();
 
-            var normalized = new CancellationProgressDto(id, null, fields.get("status"), fields.get("reason"),
-                    Instant.parse(fields.get("cancelledAt")), Long.parseLong(fields.get("totalOrders")),
-                    Long.parseLong(fields.get("processedOrders")), null, Instant.parse(fields.get("updatedAt")),
-                    Long.parseLong(fields.get("successfulRefunds")), Long.parseLong(fields.get("failedRefunds")),
-                    Long.parseLong(fields.get("unknownRefunds")), Long.parseLong(fields.get("pendingRefunds")),
-                    Long.parseLong(fields.get("usedTicketExceptions"))).json();
-            // Reject coerced number strings and percentages that differ from SQL's typed projection.
+            var normalized =
+                    new CancellationProgressDto(
+                                    id,
+                                    null,
+                                    fields.get("status"),
+                                    fields.get("reason"),
+                                    Instant.parse(fields.get("cancelledAt")),
+                                    Long.parseLong(fields.get("totalOrders")),
+                                    Long.parseLong(fields.get("processedOrders")),
+                                    null,
+                                    Instant.parse(fields.get("updatedAt")),
+                                    Long.parseLong(fields.get("successfulRefunds")),
+                                    Long.parseLong(fields.get("failedRefunds")),
+                                    Long.parseLong(fields.get("unknownRefunds")),
+                                    Long.parseLong(fields.get("pendingRefunds")),
+                                    Long.parseLong(fields.get("usedTicketExceptions")))
+                            .json();
+            // Reject coerced number strings and percentages that differ from SQL's typed
+            // projection.
             if (!normalized.equals(json)) return Optional.empty();
             return Optional.of(json); // A hit does not renew the ten-second TTL.
         } catch (Exception unavailable) {
@@ -72,8 +108,10 @@ public class CancellationProgressCacheHelper {
     }
 
     public void cancelled(CancellationProgressDto progress) {
-        new RedisEventCatalogCache(connections).invalidateCommitted(progress.eventId(), progress.organizationId());
-        new RedisCheckInEventCache(connections).invalidate(progress.eventId(), progress.organizationId());
+        new RedisEventCatalogCache(connections)
+                .invalidateCommitted(progress.eventId(), progress.organizationId());
+        new RedisCheckInEventCache(connections)
+                .invalidate(progress.eventId(), progress.organizationId());
         try (var redis = connections.get()) {
             // Remove stale purchase/refund actions; mutations still verify their authority in SQL.
             clearTicketProjections(redis);
@@ -84,13 +122,17 @@ public class CancellationProgressCacheHelper {
     private static boolean validFields(UUID id, Map<String, String> fields) {
         if (!fields.keySet().equals(PROGRESS_FIELDS)
                 || !id.toString().equals(fields.get("eventId"))
-                || !Set.of("PENDING", "IN_PROGRESS", "COMPLETED").contains(fields.get("status"))) return false;
+                || !Set.of("PENDING", "IN_PROGRESS", "COMPLETED").contains(fields.get("status")))
+            return false;
         for (String key : COUNT_FIELDS) {
-            if (!fields.get(key).matches("[0-9]+") || Long.parseLong(fields.get(key)) < 0) return false;
+            if (!fields.get(key).matches("[0-9]+") || Long.parseLong(fields.get(key)) < 0)
+                return false;
         }
-        if (Long.parseLong(fields.get("processedOrders")) > Long.parseLong(fields.get("totalOrders"))) return false;
+        if (Long.parseLong(fields.get("processedOrders"))
+                > Long.parseLong(fields.get("totalOrders"))) return false;
         var percentage = new BigDecimal(fields.get("progressPercentage"));
-        if (percentage.signum() < 0 || percentage.compareTo(BigDecimal.valueOf(100)) > 0) return false;
+        if (percentage.signum() < 0 || percentage.compareTo(BigDecimal.valueOf(100)) > 0)
+            return false;
         Instant.parse(fields.get("updatedAt"));
         Instant.parse(fields.get("cancelledAt"));
         return fields.get("reason") != null && fields.get("reason").length() <= 500;

@@ -22,12 +22,16 @@ public final class OrderRequests {
     private OrderRequests() {}
 
     public static final class BodyTooLargeException extends IllegalArgumentException {
-        public BodyTooLargeException() { super("Order body exceeds 16384 bytes"); }
+        public BodyTooLargeException() {
+            super("Order body exceeds 16384 bytes");
+        }
     }
 
     public static CreateOrderRequest create(InputStream body) throws IOException {
         String value = member(body, "holdId");
-        if (value == null || !value.matches("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")) {
+        if (value == null
+                || !value.matches(
+                        "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")) {
             throw invalid("holdId must be a UUID");
         }
         return new CreateOrderRequest(UUID.fromString(value));
@@ -35,7 +39,8 @@ public final class OrderRequests {
 
     public static CouponMutation coupon(UUID orderId, InputStream body) throws IOException {
         String value = member(body, "couponCode");
-        return value == null ? new CouponMutation.RemoveCoupon(orderId)
+        return value == null
+                ? new CouponMutation.RemoveCoupon(orderId)
                 : new CouponMutation.SetCoupon(orderId, value);
     }
 
@@ -49,8 +54,10 @@ public final class OrderRequests {
     public static String fingerprint(UUID actorId, CouponMutation mutation) {
         Objects.requireNonNull(mutation, "mutation");
         return switch (mutation) {
-            case CouponMutation.SetCoupon set -> fingerprint(actorId, 2, set.orderId(), set.couponCode());
-            case CouponMutation.RemoveCoupon remove -> fingerprint(actorId, 3, remove.orderId(), null);
+            case CouponMutation.SetCoupon set ->
+                    fingerprint(actorId, 2, set.orderId(), set.couponCode());
+            case CouponMutation.RemoveCoupon remove ->
+                    fingerprint(actorId, 3, remove.orderId(), null);
         };
     }
 
@@ -71,7 +78,8 @@ public final class OrderRequests {
                 data.writeInt(encoded.length);
                 data.write(encoded);
             }
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes.toByteArray()));
+            return HexFormat.of()
+                    .formatHex(MessageDigest.getInstance("SHA-256").digest(bytes.toByteArray()));
         } catch (IOException | NoSuchAlgorithmException e) {
             throw new IllegalStateException("Cannot fingerprint Order request", e);
         }
@@ -106,10 +114,13 @@ public final class OrderRequests {
         if (bytes.length > MAX_BODY_BYTES) throw new BodyTooLargeException();
         String json;
         try {
-            json = StandardCharsets.UTF_8.newDecoder()
-                    .onMalformedInput(CodingErrorAction.REPORT)
-                    .onUnmappableCharacter(CodingErrorAction.REPORT)
-                    .decode(ByteBuffer.wrap(bytes)).toString();
+            json =
+                    StandardCharsets.UTF_8
+                            .newDecoder()
+                            .onMalformedInput(CodingErrorAction.REPORT)
+                            .onUnmappableCharacter(CodingErrorAction.REPORT)
+                            .decode(ByteBuffer.wrap(bytes))
+                            .toString();
         } catch (CharacterCodingException e) {
             throw invalid("Malformed UTF-8");
         }
@@ -126,7 +137,9 @@ public final class OrderRequests {
         private final String json;
         private int position;
 
-        private Parser(String json) { this.json = json; }
+        private Parser(String json) {
+            this.json = json;
+        }
 
         private Map<String, String> object() {
             Map<String, String> fields = new HashMap<>();
@@ -167,16 +180,17 @@ public final class OrderRequests {
                 if (c == '\\') {
                     if (position == json.length()) throw invalid("Incomplete escape");
                     char escaped = json.charAt(position++);
-                    c = switch (escaped) {
-                        case '"', '\\', '/' -> escaped;
-                        case 'b' -> '\b';
-                        case 'f' -> '\f';
-                        case 'n' -> '\n';
-                        case 'r' -> '\r';
-                        case 't' -> '\t';
-                        case 'u' -> unicodeEscape();
-                        default -> throw invalid("Unsupported escape");
-                    };
+                    c =
+                            switch (escaped) {
+                                case '"', '\\', '/' -> escaped;
+                                case 'b' -> '\b';
+                                case 'f' -> '\f';
+                                case 'n' -> '\n';
+                                case 'r' -> '\r';
+                                case 't' -> '\t';
+                                case 'u' -> unicodeEscape();
+                                default -> throw invalid("Unsupported escape");
+                            };
                 }
                 value.append(c);
             }
@@ -188,9 +202,12 @@ public final class OrderRequests {
             int value = 0;
             for (int i = 0; i < 4; i++) {
                 char c = json.charAt(position++);
-                int digit = c >= '0' && c <= '9' ? c - '0'
-                        : c >= 'a' && c <= 'f' ? c - 'a' + 10
-                        : c >= 'A' && c <= 'F' ? c - 'A' + 10 : -1;
+                int digit =
+                        c >= '0' && c <= '9'
+                                ? c - '0'
+                                : c >= 'a' && c <= 'f'
+                                        ? c - 'a' + 10
+                                        : c >= 'A' && c <= 'F' ? c - 'A' + 10 : -1;
                 if (digit < 0) throw invalid("Invalid Unicode escape");
                 value = value * 16 + digit;
             }

@@ -19,7 +19,8 @@ public final class TransactionManager {
     public <T> T execute(DatabasePrincipal principal, Function<EntityManager, T> work) {
         EntityManagerFactory factory = factories.get(Objects.requireNonNull(principal));
         if (factory == null) {
-            throw new IllegalArgumentException("Database principal is not configured: " + principal);
+            throw new IllegalArgumentException(
+                    "Database principal is not configured: " + principal);
         }
         EntityManager entityManager = factory.createEntityManager();
         EntityTransaction transaction = entityManager.getTransaction();

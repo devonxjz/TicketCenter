@@ -1,30 +1,34 @@
 <!doctype html>
 <html lang="vi">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="referrer" content="same-origin">
-  <title>TicketsCenter · API</title>
-  <link rel="stylesheet" href="./vendor/swagger-ui.css">
-  <link rel="stylesheet" href="./swagger.css">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="referrer" content="same-origin">
+    <title>TicketsCenter · API</title>
+    <link rel="stylesheet" href="./vendor/swagger-ui.css">
+    <link rel="stylesheet" href="./swagger.css">
 </head>
 <body>
-  <header class="api-header">
-    <div class="api-header-inner">
-      <a class="brand" href="../">TicketsCenter <span>API</span></a>
-      <p>Tra cứu contract và kiểm thử các API đã triển khai.</p>
-    </div>
-  </header>
-  <main>
-    <section class="api-guide" aria-label="Hướng dẫn kiểm thử">
-      <p><strong>Bắt đầu:</strong> Mở Authentication → đăng nhập bằng tài khoản kiểm thử → gọi API cần kiểm tra. Cookie phiên do trình duyệt quản lý; CSRF được lấy tự động trước mỗi thao tác thay đổi dữ liệu.</p>
-      <p><strong>Idempotency:</strong> Nhập khóa riêng cho thao tác mới; giữ nguyên khóa và payload khi thử lại. API có nhãn “Chờ triển khai” hoặc “Legacy” chưa thể thực thi tại đây.</p>
-      <p id="load-status" role="status" aria-live="polite">Đang tải tài liệu API…</p>
-    </section>
-    <div id="swagger-ui"></div>
-    <noscript><p class="api-guide">Cần bật JavaScript để sử dụng Swagger UI.</p></noscript>
-  </main>
-  <script src="./vendor/swagger-ui-bundle.js"></script>
-  <script src="./swagger-initializer.js"></script>
+    <header class="api-header">
+        <div class="api-header-inner">
+            <a class="brand" href="../">TicketsCenter <span>API</span></a>
+            <p>Tra cứu contract và kiểm thử các API đã triển khai.</p>
+        </div>
+    </header>
+    <main>
+        <section class="api-guide" aria-label="Hướng dẫn kiểm thử">
+            <p><strong>Bắt đầu:</strong> Mở Authentication → đăng nhập bằng tài khoản kiểm thử → gọi API cần kiểm tra.
+                Cookie phiên do trình duyệt quản lý; CSRF được lấy tự động trước mỗi thao tác thay đổi dữ liệu.</p>
+            <p><strong>Idempotency:</strong> Nhập khóa riêng cho thao tác mới; giữ nguyên khóa và payload khi thử lại.
+                API có nhãn “Chờ triển khai” hoặc “Legacy” chưa thể thực thi tại đây.</p>
+            <p id="load-status" role="status" aria-live="polite">Đang tải tài liệu API…</p>
+        </section>
+        <div id="swagger-ui"></div>
+        <noscript>
+            <p class="api-guide">Cần bật JavaScript để sử dụng Swagger UI.</p>
+        </noscript>
+    </main>
+    <script src="./vendor/swagger-ui-bundle.js"></script>
+    <script src="./swagger-initializer.js"></script>
 </body>
 </html>

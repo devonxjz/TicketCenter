@@ -33,8 +33,8 @@ public class EventRepository {
     private static final UUID MAINTENANCE = new UUID(0, 0);
     private static final String COLUMNS =
             "e.id,e.organization_id,e.category_id,e.title,e.description,e.venue_name,"
-                + "e.venue_address,e.sale_start,e.sale_end,e.start_time,e.end_time,e.status,e.version,"
-                + "e.image_url,e.event_image_public_id";
+                    + "e.venue_address,e.sale_start,e.sale_end,e.start_time,e.end_time,e.status,e.version,"
+                    + "e.image_url,e.event_image_public_id";
     private final DataSource manager;
     private final DataSource buyer;
     private final DataSource worker;
@@ -161,9 +161,11 @@ public class EventRepository {
                 c -> {
                     String sql =
                             "SELECT TOP(100)"
-                                + " event_id,organization_id,category_id,title,description,venue_name,venue_address,sale_start,sale_end,start_time,end_time,'PUBLISHED',CAST(0"
-                                + " AS bigint),cover_image_url,CAST(NULL AS varchar(255)) FROM"
-                                + " dbo.vw_PublicEvents e WHERE " + RealEventVisibility.predicate("e") + " ORDER BY start_time,event_id";
+                                    + " event_id,organization_id,category_id,title,description,venue_name,venue_address,sale_start,sale_end,start_time,end_time,'PUBLISHED',CAST(0"
+                                    + " AS bigint),cover_image_url,CAST(NULL AS varchar(255)) FROM"
+                                    + " dbo.vw_PublicEvents e WHERE "
+                                    + RealEventVisibility.predicate("e")
+                                    + " ORDER BY start_time,event_id";
                     return events(c, sql);
                 });
     }
@@ -176,9 +178,10 @@ public class EventRepository {
                             events(
                                     c,
                                     "SELECT"
-                                        + " event_id,organization_id,category_id,title,description,venue_name,venue_address,sale_start,sale_end,start_time,end_time,'PUBLISHED',CAST(0"
-                                        + " AS bigint),cover_image_url,CAST(NULL AS varchar(255))"
-                                        + " FROM dbo.vw_PublicEvents e WHERE event_id=? AND " + RealEventVisibility.predicate("e"),
+                                            + " event_id,organization_id,category_id,title,description,venue_name,venue_address,sale_start,sale_end,start_time,end_time,'PUBLISHED',CAST(0"
+                                            + " AS bigint),cover_image_url,CAST(NULL AS varchar(255))"
+                                            + " FROM dbo.vw_PublicEvents e WHERE event_id=? AND "
+                                            + RealEventVisibility.predicate("e"),
                                     id);
                     if (rows.isEmpty())
                         throw failure(404, "EVENT_NOT_FOUND", "Event was not found");
@@ -221,7 +224,7 @@ public class EventRepository {
                                     query(
                                             c,
                                             "SELECT o.id,o.name FROM dbo.vw_ManagerOrganizations o"
-                                                + " WHERE o.user_id=? ORDER BY o.name",
+                                                    + " WHERE o.user_id=? ORDER BY o.name",
                                             actor.actorId());
                             ResultSet r = q.executeQuery()) {
                         while (r.next())

@@ -38,7 +38,7 @@ public class RefundTransferLog {
     @Column(name = "failure_reason", length = 2000)
     private String failureReason;
 
-    protected RefundTransferLog() { }
+    protected RefundTransferLog() {}
 
     public RefundTransferLog(Refund refund, UUID attemptId, int attemptNo, String result) {
         this.id = attemptId;
@@ -47,11 +47,31 @@ public class RefundTransferLog {
         this.result = result;
     }
 
-    public UUID getId() { return id; }
-    public Refund getRefund() { return refund; }
-    public int getAttemptNo() { return attemptNo; }
-    public String getResult() { return result; }
-    public String getProviderReference() { return providerReference; }
-    public Instant getProcessedAt() { return processedAt; }
-    public String getFailureReason() { return failureReason; }
+    public UUID getId() {
+        return id;
+    }
+
+    public Refund getRefund() {
+        return refund;
+    }
+
+    public int getAttemptNo() {
+        return attemptNo;
+    }
+
+    public String getResult() {
+        return result;
+    }
+
+    public String getProviderReference() {
+        return providerReference;
+    }
+
+    public Instant getProcessedAt() {
+        return processedAt;
+    }
+
+    public String getFailureReason() {
+        return failureReason;
+    }
 }
