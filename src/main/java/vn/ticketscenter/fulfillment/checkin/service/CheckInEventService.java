@@ -62,7 +62,7 @@ public class CheckInEventService {
         requireActor(actorId);
         Objects.requireNonNull(eventId, "eventId");
         EventInfo cached = cache.window(eventId).orElse(null);
-        // Cache never grants access: DB checks current membership/User/schedule on every hit.
+        // A cache hit still requires current database authorization.
         EventInfo current = cached != null && repository.isCachedWindowCurrent(actorId, eventId, cached)
                 ? cached : repository.accessibleEvent(actorId, eventId);
         if (!sameMetadata(current, cached)) {
