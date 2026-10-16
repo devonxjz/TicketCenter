@@ -45,7 +45,7 @@ jobs:
           $groups=@($report.SelectNodes('//testsuite'))
           if($cases.Count -ne 28 -or $groups.Count -ne 3 -or $report.SelectNodes('//failure|//error|//skipped').Count -ne 0){throw 'Expected 31 Node test nodes (28 leaf cases +3 parent groups), zero skips/failures'}
           'Native Windows guards: 31 Node test nodes (18 existing +13 SQL), 28 leaf cases, zero skips/failures.' >> $env:GITHUB_STEP_SUMMARY
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: windows-native-guard-reports
@@ -70,7 +70,7 @@ jobs:
       - name: Actual Java test totals
         if: always()
         run: node src/test/scripts/test-report-summary.cjs target/surefire-reports --summary="$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: surefire-safe-unit-reports
@@ -108,7 +108,7 @@ jobs:
       - name: Require the actual Redis case without skips
         if: always()
         run: node src/test/scripts/test-report-summary.cjs target/surefire-reports --require-no-skips --require-suite=vn.ticketscenter.settlement.service.FinanceRedisRuntimeTest --summary="$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: surefire-opt-in-redis-reports
@@ -254,13 +254,13 @@ jobs:
       - name: Require actual team-schema cases without skips
         if: always()
         run: node src/test/scripts/test-report-summary.cjs target/surefire-reports --require-no-skips --require-suite=vn.ticketscenter.settlement.dao.FinanceTeamSchemaIntegrationTest --summary="$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: surefire-opt-in-db-reports
           path: target/surefire-reports/
           retention-days: 7
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: finance-sql-assertions

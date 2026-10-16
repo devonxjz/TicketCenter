@@ -34,7 +34,7 @@ jobs:
         shell: pwsh
         run: |
           'Isolated Swagger HTTP boundary test step: ${{ steps.smoke.outcome }}. Full app, DB workflows and SMTP were not started.' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: isolated-http-smoke-logs

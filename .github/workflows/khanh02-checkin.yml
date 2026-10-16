@@ -77,7 +77,7 @@ jobs:
         run: mvn -B -DskipTests package
       - name: Accept full WAR HTTP routes on Tomcat
         run: python3 src/test/resources/checkin/khanh02/ci-web-acceptance.py
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: khanh02-checkin-acceptance

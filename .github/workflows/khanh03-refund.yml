@@ -71,7 +71,7 @@ jobs:
         run: mvn -B -DskipTests package
       - name: Accept the full production WAR on Tomcat
         run: python3 src/test/resources/refund/ci-web-acceptance.py
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: khanh03-refund-acceptance

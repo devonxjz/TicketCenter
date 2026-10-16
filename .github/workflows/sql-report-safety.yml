@@ -95,7 +95,7 @@ jobs:
       - name: Require actual Event execution without skips
         if: always()
         run: node src/test/scripts/test-report-summary.cjs target/failsafe-reports --require-no-skips --require-suite=vn.ticketscenter.event.integration.EventEpicSqlServerIT --require-suite=vn.ticketscenter.event.integration.EventCatalogSqlServerIT --require-suite=vn.ticketscenter.event.integration.EventSqlMigrationIT --summary="$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: sql-report-safety

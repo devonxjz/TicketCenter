@@ -84,7 +84,7 @@ jobs:
         run: mvn -B -DskipTests package
       - name: Real login, servlet, JSP, lost-response replay and desktop/mobile browser acceptance
         run: python3 src/test/resources/refund/khanh04/web-acceptance.py
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: khanh04-admin-refund-acceptance
