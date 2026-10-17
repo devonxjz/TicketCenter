@@ -87,7 +87,7 @@ public final class SecurityContext {
                 session.invalidate();
             }
         } catch (IllegalStateException ignored) {
-            // Đã invalidate trước đó
+
         }
     }
 

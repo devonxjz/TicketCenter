@@ -2,9 +2,6 @@ name: KHANH-03 refund acceptance
 on:
   push:
     branches: [feat/khanh/khanh-03-refund-request]
-  pull_request:
-    branches: [dev]
-    paths: ['pom.xml', 'src/main/java/vn/ticketscenter/fulfillment/refund/**', 'src/main/java/vn/ticketscenter/config/web/OrganizationApiRoutesFilter.java', 'src/main/webapp/WEB-INF/web.xml', 'src/main/webapp/WEB-INF/views/refund/**', 'src/test/**/refund/**', 'database/migrations/029_khanh03_refund_request.sql', '.github/workflows/khanh03-refund.yml']
   workflow_dispatch:
 permissions:
   contents: read

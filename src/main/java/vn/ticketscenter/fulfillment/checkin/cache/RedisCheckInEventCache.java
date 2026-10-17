@@ -118,7 +118,9 @@ public final class RedisCheckInEventCache implements CheckInEventCache {
                 + e.issued()
                 + "\",\"checkedIn\":\""
                 + e.checkedIn()
-                + "\"}";
+                + "\""
+                + (e.checkInOpenAt() == null ? "" : ",\"checkInOpenAt\":\"" + e.checkInOpenAt() + "\"")
+                + "}";
     }
 
     private static EventInfo decode(String value) {
@@ -133,7 +135,8 @@ public final class RedisCheckInEventCache implements CheckInEventCache {
                     Instant.parse(e.get("endTime")),
                     Objects.requireNonNull(e.get("status")),
                     Long.parseLong(e.get("issued")),
-                    Long.parseLong(e.get("checkedIn")));
+                    Long.parseLong(e.get("checkedIn")),
+                    e.get("checkInOpenAt") == null ? null : Instant.parse(e.get("checkInOpenAt")));
         } catch (Exception exception) {
             throw new IllegalArgumentException("Invalid check-in cache entry");
         }

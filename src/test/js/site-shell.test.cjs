@@ -71,3 +71,39 @@ test('formatPrice and formatEventTime format event metadata safely for UI', () =
     assert.ok(dateFormatted.includes('2026') || dateFormatted.includes('16'));
 });
 
+
+test('search dropdown escapes every untrusted event field', () => {
+    const { buildDropdownHtml } = require('../../main/webapp/assets/js/site-shell.js');
+    const payload = '<img src=x onerror=alert(1)>';
+    const html = buildDropdownHtml('/ticketscenter', 'Kết quả: "' + payload + '"', 1, [{
+        eventId: 'e1" onmouseover="alert(1)',
+        title: payload,
+        venueName: payload,
+        category: payload,
+        coverImageUrl: 'x" onerror="alert(1)',
+        startTime: '2026-11-01T12:00:00Z',
+        minPrice: '100000',
+    }]);
+    assert.ok(!html.includes('<img src=x'), 'raw markup from a field must not survive');
+    assert.ok(!/<[^>]*\son\w+\s*=/i.test(html), 'no real tag may carry an inline on* handler');
+    assert.ok(!html.includes('" onmouseover="'), 'attribute breakout must be escaped');
+    assert.ok(html.includes('&lt;img src=x onerror=alert(1)&gt;'));
+});
+
+test('search dropdown keeps javascript: and data: cover URLs out of img src', () => {
+    const { buildDropdownHtml } = require('../../main/webapp/assets/js/site-shell.js');
+    for (const url of ['javascript:alert(1)', 'data:text/html,<script>alert(1)</script>', ' JaVaScRiPt:alert(1)']) {
+        const html = buildDropdownHtml('', 't', 1, [{ eventId: 'e1', title: 'ok', coverImageUrl: url }]);
+        assert.ok(!/<img\b/i.test(html), 'unsafe scheme must not render an <img>: ' + url);
+    }
+    const ok = buildDropdownHtml('', 't', 1, [{ eventId: 'e1', title: 'ok', coverImageUrl: '/ticketscenter/media/a.jpg' }]);
+    assert.ok(ok.includes('src="/ticketscenter/media/a.jpg"'));
+});
+
+test('search dropdown shows the empty state and keeps plain text readable', () => {
+    const { buildDropdownHtml } = require('../../main/webapp/assets/js/site-shell.js');
+    assert.ok(buildDropdownHtml('', 't', 0, []).includes('Không tìm thấy sự kiện nào phù hợp.'));
+    const html = buildDropdownHtml('', 't', 1, [{ eventId: 'e1', title: 'Rock & Roll "Live"', venueName: "Nhà hát O'Neil" }]);
+    assert.ok(html.includes('Rock &amp; Roll &quot;Live&quot;'));
+    assert.ok(html.includes('Nhà hát O&#39;Neil'));
+});

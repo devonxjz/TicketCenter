@@ -33,8 +33,10 @@ public class OrganizationMembershipRepositoryTest {
         assertThrows(NullPointerException.class, () -> repository.findById(null, UUID.randomUUID()));
         assertThrows(NullPointerException.class, () -> repository.findMembersByOrgId(null, UUID.randomUUID()));
         assertThrows(NullPointerException.class, () -> repository.findMembershipsByUserId(null, UUID.randomUUID()));
-        assertThrows(NullPointerException.class, () -> repository.countActiveManagers(null, UUID.randomUUID()));
-        assertThrows(NullPointerException.class, () -> repository.save(null, null));
+        assertThrows(NullPointerException.class, () -> repository.addMember(null, UUID.randomUUID(),
+                UUID.randomUUID(), UUID.randomUUID(), OrganizationRole.MANAGER));
+        assertThrows(NullPointerException.class, () -> repository.changeMember(null, UUID.randomUUID(),
+                UUID.randomUUID(), UUID.randomUUID(), null, Boolean.TRUE));
     }
 
     @Test
@@ -71,7 +73,8 @@ public class OrganizationMembershipRepositoryTest {
 
             OrganizationMembership savedMembership = tm.execute(DatabasePrincipal.ADMIN, em -> {
                 OrganizationMembership membership = new OrganizationMembership(user, org, OrganizationRole.MANAGER);
-                return repository.save(em, membership);
+                em.persist(membership);
+                return membership;
             });
 
             assertNotNull(savedMembership.getId());
@@ -87,10 +90,6 @@ public class OrganizationMembershipRepositoryTest {
                 Optional<OrganizationMembership> foundByOrgUser = repository.findByOrgAndUser(em, org.getId(), user.getId());
                 assertTrue(foundByOrgUser.isPresent());
                 assertEquals(savedMembership.getId(), foundByOrgUser.get().getId());
-
-                // countActiveManagers
-                long managers = repository.countActiveManagers(em, org.getId());
-                assertEquals(1L, managers);
 
                 // findMembersByOrgId
                 List<OrganizationMemberDto> members = repository.findMembersByOrgId(em, org.getId());
@@ -119,24 +118,47 @@ public class OrganizationMembershipRepositoryTest {
                 assertEquals(OrganizationRole.MANAGER, summaryDto.role());
                 assertTrue(summaryDto.isActive());
 
-                // Test changeRole and save
-                OrganizationMembership membershipToUpdate = found.get();
-                membershipToUpdate.changeRole(OrganizationRole.CHECK_IN_STAFF);
-                repository.save(em, membershipToUpdate);
-
-                long managersAfterChange = repository.countActiveManagers(em, org.getId());
-                assertEquals(0L, managersAfterChange);
-
                 // Test null queries return empty / default
                 assertEquals(Optional.empty(), repository.findById(em, null));
                 assertEquals(Optional.empty(), repository.findByOrgAndUser(em, null, user.getId()));
                 assertEquals(Optional.empty(), repository.findByOrgAndUser(em, org.getId(), null));
                 assertTrue(repository.findMembersByOrgId(em, null).isEmpty());
                 assertTrue(repository.findMembershipsByUserId(em, null).isEmpty());
-                assertEquals(0L, repository.countActiveManagers(em, null));
 
                 return null;
             });
+            // Commands go through usp_AddMember / usp_ChangeMemberRole (migration 070).
+            UUID managerId = user.getId();
+            String staffSuffix = UUID.randomUUID().toString().substring(0, 8);
+            User staff = tm.execute(DatabasePrincipal.AUTH, em -> {
+                User u = new User("staff." + staffSuffix + "@ticketscenter.vn", "stf" + staffSuffix, "Staff " + staffSuffix, "hash12345678");
+                userRepository.save(em, u);
+                return u;
+            });
+
+            var added = tm.execute(DatabasePrincipal.MANAGER, em ->
+                    repository.addMember(em, org.getId(), managerId, staff.getId(), OrganizationRole.CHECK_IN_STAFF));
+            assertEquals(OrganizationRole.CHECK_IN_STAFF, added.role());
+            assertTrue(added.active());
+
+            var deactivated = tm.execute(DatabasePrincipal.MANAGER, em ->
+                    repository.changeMember(em, org.getId(), managerId, staff.getId(), null, Boolean.FALSE));
+            assertEquals(OrganizationRole.CHECK_IN_STAFF, deactivated.role(), "a null role keeps the current role");
+            assertFalse(deactivated.active());
+
+            var readded = tm.execute(DatabasePrincipal.MANAGER, em ->
+                    repository.addMember(em, org.getId(), managerId, staff.getId(), OrganizationRole.MANAGER));
+            assertEquals(added.membershipId(), readded.membershipId(), "re-adding reactivates the same row");
+            assertEquals(OrganizationRole.MANAGER, readded.role());
+
+            // Two managers now, so demoting one is allowed; demoting the last one is stopped by the trigger.
+            tm.execute(DatabasePrincipal.MANAGER, em ->
+                    repository.changeMember(em, org.getId(), managerId, staff.getId(), OrganizationRole.CHECK_IN_STAFF, null));
+            IllegalStateException lastManager = assertThrows(IllegalStateException.class, () ->
+                    tm.execute(DatabasePrincipal.MANAGER, em ->
+                            repository.changeMember(em, org.getId(), managerId, managerId, OrganizationRole.CHECK_IN_STAFF, null)));
+            assertTrue(lastManager.getMessage().contains("CANNOT_DEACTIVATE_LAST_MANAGER"));
         }
     }
 }
+

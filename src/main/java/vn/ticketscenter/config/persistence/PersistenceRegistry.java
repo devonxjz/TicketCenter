@@ -8,6 +8,8 @@ import vn.ticketscenter.config.DatabaseConfig;
 
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.Objects;
+import javax.sql.DataSource;
 
 public final class PersistenceRegistry implements AutoCloseable {
 
@@ -54,6 +56,14 @@ public final class PersistenceRegistry implements AutoCloseable {
 
     public TransactionManager transactionManager() {
         return new TransactionManager(factories);
+    }
+
+    public DataSource dataSource(DatabasePrincipal principal) {
+        HikariDataSource pool = pools.get(Objects.requireNonNull(principal, "principal must not be null"));
+        if (pool == null) {
+            throw new IllegalArgumentException("Database principal is not configured: " + principal);
+        }
+        return ConnectionBudgets.wrap(pool);
     }
 
     public boolean hasPrincipal(DatabasePrincipal principal) {

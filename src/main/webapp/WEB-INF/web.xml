@@ -56,9 +56,6 @@
         <url-pattern>/organizer/*</url-pattern>
     </filter-mapping>
 
-    <!-- Resolve the existing Organization wildcard collision through descriptor precedence.
-         EventApiServlet keeps /api/organizations/*; the reports subresource is forwarded by
-         OrganizationApiRoutesFilter. Both module implementations and other annotations remain intact. -->
     <servlet>
         <servlet-name>FinanceReportServlet</servlet-name>
         <servlet-class>vn.ticketscenter.report.controller.ReportServlet</servlet-class>

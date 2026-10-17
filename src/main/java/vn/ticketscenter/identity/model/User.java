@@ -130,8 +130,4 @@ public class User extends BaseEntity {
         this.passwordHash = newPasswordHash;
         this.authVersion++;
     }
-
-    public void changeUserName(String newUserName) {
-        this.userName = newUserName;
-    }
 }
