@@ -8,5 +8,4 @@ public final class CommissionRuleException extends AppException {
     public CommissionRuleException(String code, String message) {
         super(400, code, message);
     }
-
 }

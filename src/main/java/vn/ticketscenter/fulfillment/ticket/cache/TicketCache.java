@@ -10,9 +10,11 @@ import java.util.UUID;
  */
 public interface TicketCache {
     Optional<TicketDetailDto> getTicketDetail(UUID ticketId);
+
     void putTicketDetail(TicketDetailDto ticket);
 
     Optional<byte[]> getTicketQrPng(UUID ticketId, long version);
+
     void putTicketQrPng(UUID ticketId, long version, byte[] pngBytes);
 
     void invalidate(UUID ticketId);

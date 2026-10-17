@@ -24,8 +24,7 @@ public record CouponAdminDto(
         Instant validFrom,
         Instant validTo,
         boolean active,
-        long version
-) {
+        long version) {
     public CouponAdminDto {
         Objects.requireNonNull(id, "id is required");
         Objects.requireNonNull(organizationId, "organizationId is required");
@@ -34,26 +33,61 @@ public record CouponAdminDto(
     }
 
     public String toJson() {
-        return "{\"id\":\"" + id + "\","
-                + "\"organizationId\":\"" + organizationId + "\","
-                + "\"organizationName\":\"" + escape(organizationName != null ? organizationName : "") + "\","
-                + "\"code\":\"" + escape(code) + "\","
-                + "\"discountType\":\"" + escape(discountType) + "\","
-                + "\"percentageValue\":" + (percentageValue != null ? percentageValue : "null") + ","
-                + "\"fixedAmount\":" + (fixedAmount != null ? fixedAmount : "null") + ","
-                + "\"maxDiscountAmount\":" + (maxDiscountAmount != null ? maxDiscountAmount : "null") + ","
-                + "\"maxUses\":" + maxUses + ","
-                + "\"reservedUses\":" + reservedUses + ","
-                + "\"consumedUses\":" + consumedUses + ","
-                + "\"availableUses\":" + availableUses + ","
-                + "\"validFrom\":\"" + (validFrom != null ? validFrom.toString() : "") + "\","
-                + "\"validTo\":\"" + (validTo != null ? validTo.toString() : "") + "\","
-                + "\"active\":" + active + ","
-                + "\"version\":" + version + "}";
+        return "{\"id\":\""
+                + id
+                + "\","
+                + "\"organizationId\":\""
+                + organizationId
+                + "\","
+                + "\"organizationName\":\""
+                + escape(organizationName != null ? organizationName : "")
+                + "\","
+                + "\"code\":\""
+                + escape(code)
+                + "\","
+                + "\"discountType\":\""
+                + escape(discountType)
+                + "\","
+                + "\"percentageValue\":"
+                + (percentageValue != null ? percentageValue : "null")
+                + ","
+                + "\"fixedAmount\":"
+                + (fixedAmount != null ? fixedAmount : "null")
+                + ","
+                + "\"maxDiscountAmount\":"
+                + (maxDiscountAmount != null ? maxDiscountAmount : "null")
+                + ","
+                + "\"maxUses\":"
+                + maxUses
+                + ","
+                + "\"reservedUses\":"
+                + reservedUses
+                + ","
+                + "\"consumedUses\":"
+                + consumedUses
+                + ","
+                + "\"availableUses\":"
+                + availableUses
+                + ","
+                + "\"validFrom\":\""
+                + (validFrom != null ? validFrom.toString() : "")
+                + "\","
+                + "\"validTo\":\""
+                + (validTo != null ? validTo.toString() : "")
+                + "\","
+                + "\"active\":"
+                + active
+                + ","
+                + "\"version\":"
+                + version
+                + "}";
     }
 
     private static String escape(String s) {
         if (s == null) return "";
-        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r");
+        return s.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r");
     }
 }

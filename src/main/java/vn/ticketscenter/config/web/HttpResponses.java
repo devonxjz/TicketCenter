@@ -7,16 +7,23 @@ import java.util.UUID;
 
 public final class HttpResponses {
 
-    private HttpResponses() {
-    }
+    private HttpResponses() {}
 
-    public static void error(HttpServletResponse response, int status, String code, String message) throws IOException {
+    public static void error(HttpServletResponse response, int status, String code, String message)
+            throws IOException {
         response.setStatus(status);
         response.setContentType("application/json;charset=UTF-8");
         response.setCharacterEncoding("UTF-8");
         response.setHeader("Cache-Control", "no-store");
-        response.getWriter().write("{\"error\":{\"code\":" + jsonString(code) + ",\"message\":" + jsonString(message)
-                + ",\"correlationId\":\"" + UUID.randomUUID() + "\"}}");
+        response.getWriter()
+                .write(
+                        "{\"error\":{\"code\":"
+                                + jsonString(code)
+                                + ",\"message\":"
+                                + jsonString(message)
+                                + ",\"correlationId\":\""
+                                + UUID.randomUUID()
+                                + "\"}}");
     }
 
     public static void data(HttpServletResponse response, String jsonObject) throws IOException {
@@ -42,14 +49,16 @@ public final class HttpResponses {
         StringBuilder escaped = new StringBuilder("\"");
         for (int index = 0; index < value.length(); index++) {
             char current = value.charAt(index);
-            escaped.append(switch (current) {
-                case '"' -> "\\\"";
-                case '\\' -> "\\\\";
-                case '\n' -> "\\n";
-                case '\r' -> "\\r";
-                case '\t' -> "\\t";
-                default -> current < 0x20 ? String.format("\\u%04x", (int) current) : current;
-            });
+            escaped.append(
+                    switch (current) {
+                        case '"' -> "\\\"";
+                        case '\\' -> "\\\\";
+                        case '\n' -> "\\n";
+                        case '\r' -> "\\r";
+                        case '\t' -> "\\t";
+                        default ->
+                                current < 0x20 ? String.format("\\u%04x", (int) current) : current;
+                    });
         }
         return escaped.append('"').toString();
     }

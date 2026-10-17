@@ -10,7 +10,7 @@ import vn.ticketscenter.config.DatabaseConfig;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.settlement.infrastructure.*;
-import vn.ticketscenter.settlement.repository.FinanceJdbc;
+import vn.ticketscenter.settlement.dao.FinanceJdbc;
 import static org.junit.jupiter.api.Assertions.*;
 
 /** Actual financial ownership with compatible historical procedure audit payloads; rolled back. */

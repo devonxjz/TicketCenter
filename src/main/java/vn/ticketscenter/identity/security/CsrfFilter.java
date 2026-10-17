@@ -18,14 +18,14 @@ public final class CsrfFilter implements Filter {
 
     private static final Set<String> MUTATING_METHODS = Set.of("POST", "PUT", "PATCH", "DELETE");
 
-    private static final Set<String> PUBLIC_AUTH_APIS = Set.of(
-            "/api/auth/login",
-            "/api/auth/register",
-            "/api/auth/otp/send",
-            "/api/auth/otp/verify",
-            "/api/auth/password/forgot",
-            "/api/auth/password/reset"
-    );
+    private static final Set<String> PUBLIC_AUTH_APIS =
+            Set.of(
+                    "/api/auth/login",
+                    "/api/auth/register",
+                    "/api/auth/otp/send",
+                    "/api/auth/otp/verify",
+                    "/api/auth/password/forgot",
+                    "/api/auth/password/reset");
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
@@ -36,7 +36,8 @@ public final class CsrfFilter implements Filter {
         String method = httpRequest.getMethod();
 
         if (MUTATING_METHODS.contains(method)) {
-            String path = httpRequest.getRequestURI().substring(httpRequest.getContextPath().length());
+            String path =
+                    httpRequest.getRequestURI().substring(httpRequest.getContextPath().length());
 
             // Webhook payOS gọi server-to-server và được xác thực bằng chữ ký checksum riêng
             if (path.equals(vn.ticketscenter.config.PayosConfig.WEBHOOK_PATH)) {
@@ -50,15 +51,19 @@ public final class CsrfFilter implements Filter {
                 return;
             }
 
-            // Đăng xuất có tính idempotent: Nếu phiên đã bị hủy trước đó thì cho phép đi tiếp để trả về 200 OK
+            // Đăng xuất có tính idempotent: Nếu phiên đã bị hủy trước đó thì cho phép đi tiếp để
+            // trả về 200 OK
             if (path.equals("/api/auth/logout") && httpRequest.getSession(false) == null) {
                 chain.doFilter(request, response);
                 return;
             }
 
             if (!SecurityContext.validateCsrfToken(httpRequest)) {
-                HttpResponses.error(httpResponse, HttpServletResponse.SC_FORBIDDEN,
-                        "CSRF_TOKEN_INVALID", "Yêu cầu thiếu hoặc mã CSRF không hợp lệ");
+                HttpResponses.error(
+                        httpResponse,
+                        HttpServletResponse.SC_FORBIDDEN,
+                        "CSRF_TOKEN_INVALID",
+                        "Yêu cầu thiếu hoặc mã CSRF không hợp lệ");
                 return;
             }
         }

@@ -5,7 +5,7 @@ import vn.ticketscenter.fulfillment.refund.dto.CreateRefundRequestDto;
 import vn.ticketscenter.fulfillment.refund.service.RefundException;
 
 final class RefundRequestJson {
-    private RefundRequestJson() { }
+    private RefundRequestJson() {}
 
     static CreateRefundRequestDto parse(String source) {
         var reader = new RefundJsonReader(source, 500);

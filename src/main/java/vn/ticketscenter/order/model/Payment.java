@@ -35,7 +35,7 @@ public class Payment extends BaseEntity {
     @Column(name = "paid_at")
     private Instant paidAt;
 
-    protected Payment() { }
+    protected Payment() {}
 
     private Payment(Order order, String txnRef) {
         this.order = order;
@@ -43,11 +43,31 @@ public class Payment extends BaseEntity {
         this.txnRef = txnRef;
     }
 
-    public static Payment start(Order order, String txnRef) { return new Payment(order, txnRef); }
-    public Order getOrder() { return order; }
-    public long getAmount() { return amount; }
-    public PaymentStatus getStatus() { return status; }
-    public String getTxnRef() { return txnRef; }
-    public String getTransactionNo() { return transactionNo; }
-    public Instant getPaidAt() { return paidAt; }
+    public static Payment start(Order order, String txnRef) {
+        return new Payment(order, txnRef);
+    }
+
+    public Order getOrder() {
+        return order;
+    }
+
+    public long getAmount() {
+        return amount;
+    }
+
+    public PaymentStatus getStatus() {
+        return status;
+    }
+
+    public String getTxnRef() {
+        return txnRef;
+    }
+
+    public String getTransactionNo() {
+        return transactionNo;
+    }
+
+    public Instant getPaidAt() {
+        return paidAt;
+    }
 }

@@ -22,7 +22,9 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-@WebServlet(name = "RegisterServlet", urlPatterns = {"/api/auth/register", "/auth/register"})
+@WebServlet(
+        name = "RegisterServlet",
+        urlPatterns = {"/api/auth/register", "/auth/register"})
 public class RegisterServlet extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(RegisterServlet.class.getName());
@@ -30,8 +32,7 @@ public class RegisterServlet extends HttpServlet {
     private RegistrationService registrationService;
     private OtpService otpService;
 
-    public RegisterServlet() {
-    }
+    public RegisterServlet() {}
 
     public RegisterServlet(RegistrationService registrationService) {
         this.registrationService = registrationService;
@@ -65,15 +66,19 @@ public class RegisterServlet extends HttpServlet {
     private boolean sendVerificationOtp(ServletContext context, String email) {
         try {
             OtpService service = otpService(context);
-            return service != null && service.sendOtp(new OtpSendRequestDto(email, OtpPurpose.VERIFY_EMAIL));
+            return service != null
+                    && service.sendOtp(new OtpSendRequestDto(email, OtpPurpose.VERIFY_EMAIL));
         } catch (RuntimeException ex) {
-            LOGGER.log(Level.WARNING, "Không thể gửi OTP kích hoạt sau khi đăng ký: " + ex.getMessage());
+            LOGGER.log(
+                    Level.WARNING,
+                    "Không thể gửi OTP kích hoạt sau khi đăng ký: " + ex.getMessage());
             return false;
         }
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
         req.setAttribute("csrfToken", SecurityContext.getOrCreateCsrfToken(req));
         req.getRequestDispatcher("/WEB-INF/views/auth/register.jsp").forward(req, resp);
     }
@@ -88,13 +93,19 @@ public class RegisterServlet extends HttpServlet {
         try {
             RequestFields fields = RequestFields.read(req);
             String email = fields.get("email");
-            service.register(new RegisterRequestDto(
-                    fields.get("userName"), fields.get("fullName"), email, fields.get("password")));
+            service.register(
+                    new RegisterRequestDto(
+                            fields.get("userName"),
+                            fields.get("fullName"),
+                            email,
+                            fields.get("password")));
             boolean otpSent = sendVerificationOtp(req.getServletContext(), email);
-            HttpResponses.data(resp, JsonObjectBuilder.object()
-                    .put("registered", true)
-                    .put("otpSent", otpSent)
-                    .build());
+            HttpResponses.data(
+                    resp,
+                    JsonObjectBuilder.object()
+                            .put("registered", true)
+                            .put("otpSent", otpSent)
+                            .build());
         } catch (RuntimeException failure) {
             IdentityErrorWriter.write(resp, failure, "Đã xảy ra lỗi trong quá trình xử lý đăng ký");
         }

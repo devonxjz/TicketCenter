@@ -14,8 +14,7 @@ public record PaymentStatusResult(
         Optional<String> paymentStatus,
         BigDecimal amount,
         String currency,
-        Optional<Instant> paidAt
-) {
+        Optional<Instant> paidAt) {
     public String toJson() {
         JSONObject json = new JSONObject();
         json.put("orderId", orderId.toString());

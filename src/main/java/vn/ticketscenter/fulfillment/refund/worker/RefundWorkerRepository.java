@@ -60,7 +60,7 @@ public final class RefundWorkerRepository implements RefundWorkerStore {
             throw new IllegalArgumentException("Invalid batch");
         String query =
                 "SELECT TOP(?) refund_id,attempt_id FROM dbo.vw_RefundWorkerCandidates WHERE"
-                    + " work_kind=? ORDER BY created_at,attempt_id";
+                        + " work_kind=? ORDER BY created_at,attempt_id";
         return sql(
                 c -> {
                     try (var q = c.prepareStatement(query)) {

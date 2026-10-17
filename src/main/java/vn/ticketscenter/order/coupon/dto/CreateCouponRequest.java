@@ -17,8 +17,7 @@ public record CreateCouponRequest(
         BigDecimal maxDiscountAmount,
         int maxUses,
         Instant validFrom,
-        Instant validTo
-) {
+        Instant validTo) {
     public CreateCouponRequest {
         Objects.requireNonNull(code, "code is required");
         Objects.requireNonNull(discountType, "discountType is required");
@@ -31,17 +30,31 @@ public record CreateCouponRequest(
         String code = obj.getString("code").trim().toUpperCase();
         String discountType = obj.getString("discountType").trim().toUpperCase();
 
-        BigDecimal percentageValue = obj.has("percentageValue") && !obj.isNull("percentageValue")
-                ? obj.getBigDecimal("percentageValue") : null;
-        BigDecimal fixedAmount = obj.has("fixedAmount") && !obj.isNull("fixedAmount")
-                ? obj.getBigDecimal("fixedAmount") : null;
-        BigDecimal maxDiscountAmount = obj.has("maxDiscountAmount") && !obj.isNull("maxDiscountAmount")
-                ? obj.getBigDecimal("maxDiscountAmount") : null;
+        BigDecimal percentageValue =
+                obj.has("percentageValue") && !obj.isNull("percentageValue")
+                        ? obj.getBigDecimal("percentageValue")
+                        : null;
+        BigDecimal fixedAmount =
+                obj.has("fixedAmount") && !obj.isNull("fixedAmount")
+                        ? obj.getBigDecimal("fixedAmount")
+                        : null;
+        BigDecimal maxDiscountAmount =
+                obj.has("maxDiscountAmount") && !obj.isNull("maxDiscountAmount")
+                        ? obj.getBigDecimal("maxDiscountAmount")
+                        : null;
 
         int maxUses = obj.getInt("maxUses");
         Instant validFrom = Instant.parse(obj.getString("validFrom"));
         Instant validTo = Instant.parse(obj.getString("validTo"));
 
-        return new CreateCouponRequest(code, discountType, percentageValue, fixedAmount, maxDiscountAmount, maxUses, validFrom, validTo);
+        return new CreateCouponRequest(
+                code,
+                discountType,
+                percentageValue,
+                fixedAmount,
+                maxDiscountAmount,
+                maxUses,
+                validFrom,
+                validTo);
     }
 }

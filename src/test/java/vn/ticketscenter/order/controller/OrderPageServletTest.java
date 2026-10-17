@@ -10,7 +10,7 @@ import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.order.dto.OrderDetailDto;
 import vn.ticketscenter.order.dto.OrderHistoryItemDto;
-import vn.ticketscenter.order.repository.OrderRepository;
+import vn.ticketscenter.order.dao.OrderRepository;
 import vn.ticketscenter.order.service.OrderService;
 
 import java.lang.reflect.Proxy;

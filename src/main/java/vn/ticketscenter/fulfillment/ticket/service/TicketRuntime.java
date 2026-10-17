@@ -11,7 +11,7 @@ import vn.ticketscenter.config.DatabaseConfig;
 import vn.ticketscenter.config.persistence.ConnectionBudgets;
 import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.fulfillment.ticket.cache.RedisTicketCache;
-import vn.ticketscenter.fulfillment.ticket.repository.TicketRepository;
+import vn.ticketscenter.fulfillment.ticket.dao.TicketRepository;
 
 @WebListener
 public final class TicketRuntime implements ServletContextListener {
@@ -72,7 +72,8 @@ public final class TicketRuntime implements ServletContextListener {
     public void contextDestroyed(ServletContextEvent event) {
         synchronized (event.getServletContext()) {
             event.getServletContext().setAttribute(CLOSED_ATTRIBUTE, true);
-            if (event.getServletContext().getAttribute(POOL_ATTRIBUTE) instanceof HikariDataSource pool) {
+            if (event.getServletContext().getAttribute(POOL_ATTRIBUTE)
+                    instanceof HikariDataSource pool) {
                 pool.close();
             }
             event.getServletContext().removeAttribute(SERVICE_ATTRIBUTE);

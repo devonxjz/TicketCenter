@@ -1,3 +1,6 @@
 package vn.ticketscenter.event.model;
 
-public enum ZoneType { SEATED, STANDING }
+public enum ZoneType {
+    SEATED,
+    STANDING
+}

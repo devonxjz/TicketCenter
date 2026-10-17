@@ -8,9 +8,9 @@ import vn.ticketscenter.payment.dto.PayosWebhookResult;
 import vn.ticketscenter.payment.integration.PayosGateway;
 import vn.ticketscenter.payment.integration.PayosGateway.Outcome;
 import vn.ticketscenter.payment.integration.PayosOrderCodes;
-import vn.ticketscenter.payment.repository.PaymentRepository;
-import vn.ticketscenter.payment.repository.PaymentRepository.PaymentIntent;
-import vn.ticketscenter.payment.repository.PaymentRepository.PaymentRecord;
+import vn.ticketscenter.payment.dao.PaymentRepository;
+import vn.ticketscenter.payment.dao.PaymentRepository.PaymentIntent;
+import vn.ticketscenter.payment.dao.PaymentRepository.PaymentRecord;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -37,9 +37,11 @@ public class PaymentService {
     private static final Duration ZERO_ORDER_REPLAY_TTL = Duration.ofMinutes(10);
 
     private static final String SUCCESS = "Giao dịch thanh toán thành công.";
-    private static final String CONFIRMING = "Giao dịch thanh toán thành công. Hệ thống đang xác nhận, vé sẽ xuất hiện sau ít phút.";
+    private static final String CONFIRMING =
+            "Giao dịch thanh toán thành công. Hệ thống đang xác nhận, vé sẽ xuất hiện sau ít phút.";
     private static final String FAILED = "Giao dịch không thành công hoặc bị người dùng hủy.";
-    private static final String PENDING = "Giao dịch chưa hoàn tất. Hệ thống sẽ tự đối soát với payOS.";
+    private static final String PENDING =
+            "Giao dịch chưa hoàn tất. Hệ thống sẽ tự đối soát với payOS.";
 
     private final PaymentRepository repository;
     private final PayosGateway payos;
@@ -54,7 +56,11 @@ public class PaymentService {
         this.clock = Clock.systemUTC();
     }
 
-    public PaymentService(PaymentRepository repository, PayosGateway payos, RedisPaymentIdempotency idempotency, Clock clock) {
+    public PaymentService(
+            PaymentRepository repository,
+            PayosGateway payos,
+            RedisPaymentIdempotency idempotency,
+            Clock clock) {
         this.repository = Objects.requireNonNull(repository, "repository is required");
         this.payos = Objects.requireNonNull(payos, "payos is required");
         this.idempotency = Objects.requireNonNull(idempotency, "idempotency is required");
@@ -68,23 +74,31 @@ public class PaymentService {
         Objects.requireNonNull(orderId, "orderId is required");
         Objects.requireNonNull(idempotencyKey, "idempotencyKey is required");
 
-        // The key may only ever be used for this buyer + this order ('|' is the cache's own separator).
+        // The key may only ever be used for this buyer + this order ('|' is the cache's own
+        // separator).
         String fingerprint = actorId + ":" + orderId;
         RedisPaymentIdempotency.Claim claim;
         switch (claimKey(actorId, idempotencyKey, fingerprint)) {
             case RedisPaymentIdempotency.Replay replay -> {
                 return PaymentInitiationResult.replay(replay.cachedBody());
             }
-            case RedisPaymentIdempotency.Conflict conflict -> throw PaymentException.idempotencyConflict();
-            case RedisPaymentIdempotency.InProgress inProgress -> throw new PaymentException(
-                    409, "PAYMENT_IN_PROGRESS", "Payment initiation is in progress, please retry shortly.");
+            case RedisPaymentIdempotency.Conflict conflict ->
+                    throw PaymentException.idempotencyConflict();
+            case RedisPaymentIdempotency.InProgress inProgress ->
+                    throw new PaymentException(
+                            409,
+                            "PAYMENT_IN_PROGRESS",
+                            "Payment initiation is in progress, please retry shortly.");
             case RedisPaymentIdempotency.Acquired acquired -> claim = acquired.claim();
         }
 
         try (AutoCloseable orderLock = idempotency.acquireOrderLock(orderId)) {
             if (orderLock == null) {
                 claim.cancel();
-                throw new PaymentException(409, "CONCURRENT_REQUEST", "Another request is modifying this order, please retry.");
+                throw new PaymentException(
+                        409,
+                        "CONCURRENT_REQUEST",
+                        "Another request is modifying this order, please retry.");
             }
             return startPayment(actorId, orderId, claim);
         } catch (PaymentException failure) {
@@ -137,17 +151,24 @@ public class PaymentService {
      */
     public PaymentReturnResult processReturn(Map<String, String> params) {
         Optional<Long> orderCode = parseOrderCode(params == null ? null : params.get("orderCode"));
-        if (orderCode.isEmpty()) return PaymentReturnResult.invalid("Tham số giao dịch không hợp lệ.");
+        if (orderCode.isEmpty())
+            return PaymentReturnResult.invalid("Tham số giao dịch không hợp lệ.");
 
         Optional<PaymentRecord> found = findByOrderCode(orderCode.get());
         if (found.isEmpty()) return PaymentReturnResult.invalid("Không tìm thấy giao dịch.");
         PaymentRecord payment = found.get();
 
-        if ("CAPTURED".equals(payment.paymentStatus())) return returned(payment, true, Outcome.CAPTURED, SUCCESS);
+        if ("CAPTURED".equals(payment.paymentStatus()))
+            return returned(payment, true, Outcome.CAPTURED, SUCCESS);
 
         PayosGateway.Result verified = payos.query(payment.txnRef(), payment.amount(), false);
         return switch (verified.outcome()) {
-            case CAPTURED -> returned(payment, true, Outcome.CAPTURED, applyQuietly(payment, verified) ? SUCCESS : CONFIRMING);
+            case CAPTURED ->
+                    returned(
+                            payment,
+                            true,
+                            Outcome.CAPTURED,
+                            applyQuietly(payment, verified) ? SUCCESS : CONFIRMING);
             case FAILED -> {
                 applyQuietly(payment, verified);
                 yield returned(payment, true, Outcome.FAILED, FAILED);
@@ -161,7 +182,9 @@ public class PaymentService {
     public PaymentStatusResult getOrderPaymentStatus(UUID actorId, UUID orderId) {
         Objects.requireNonNull(actorId, "actorId is required");
         Objects.requireNonNull(orderId, "orderId is required");
-        return repository.getOrderPaymentStatus(orderId, actorId).orElseThrow(PaymentException::orderNotFound);
+        return repository
+                .getOrderPaymentStatus(orderId, actorId)
+                .orElseThrow(PaymentException::orderNotFound);
     }
 
     // ---------------------------------------------------------------- Helpers: initiate
@@ -175,11 +198,14 @@ public class PaymentService {
     }
 
     /** Runs under the order lock: open (or reuse) the DB payment, then its payOS link; cache the answer. */
-    private PaymentInitiationResult startPayment(UUID actorId, UUID orderId, RedisPaymentIdempotency.Claim claim) {
+    private PaymentInitiationResult startPayment(
+            UUID actorId, UUID orderId, RedisPaymentIdempotency.Claim claim) {
         try {
             PaymentIntent intent = repository.beginOrderPayment(orderId, actorId);
             String checkoutUrl = createCheckoutLink(intent);
-            PaymentInitiationResult result = PaymentInitiationResult.redirect(intent.paymentId(), intent.txnRef(), intent.amount(), checkoutUrl);
+            PaymentInitiationResult result =
+                    PaymentInitiationResult.redirect(
+                            intent.paymentId(), intent.txnRef(), intent.amount(), checkoutUrl);
             claim.complete(result.body(), intent.holdRemaining());
             return result;
         } catch (PaymentRepository.ZeroOrderDetectedException zeroOrder) {
@@ -197,10 +223,17 @@ public class PaymentService {
     private String createCheckoutLink(PaymentIntent intent) {
         try {
             long orderCode = PayosOrderCodes.fromTxnRef(intent.txnRef());
-            return payos.createLink(orderCode, intent.amount().longValueExact(), "TC" + orderCode,
-                    clock.instant().plus(intent.holdRemaining())).checkoutUrl();
+            return payos.createLink(
+                            orderCode,
+                            intent.amount().longValueExact(),
+                            "TC" + orderCode,
+                            clock.instant().plus(intent.holdRemaining()))
+                    .checkoutUrl();
         } catch (RuntimeException payosFailure) {
-            LOGGER.log(Level.WARNING, "payOS link could not be created for payment " + intent.paymentId(), payosFailure);
+            LOGGER.log(
+                    Level.WARNING,
+                    "payOS link could not be created for payment " + intent.paymentId(),
+                    payosFailure);
             throw PaymentException.unavailable();
         }
     }
@@ -218,7 +251,11 @@ public class PaymentService {
     /** The procedure locks its rows itself; the Redis order lock only keeps concurrent writers apart. */
     private void apply(PaymentRecord payment, PayosGateway.Result result) {
         try (AutoCloseable orderLock = idempotency.acquireOrderLock(payment.orderId())) {
-            repository.applyPaymentResult(payment.orderId(), payment.paymentId(), result.outcome().name(), result.providerReference());
+            repository.applyPaymentResult(
+                    payment.orderId(),
+                    payment.paymentId(),
+                    result.outcome().name(),
+                    result.providerReference());
         } catch (PaymentException failure) {
             throw failure;
         } catch (Exception failure) {
@@ -231,7 +268,10 @@ public class PaymentService {
             apply(payment, result);
             return true;
         } catch (RuntimeException failure) {
-            LOGGER.log(Level.WARNING, "Payment " + payment.paymentId() + " will be settled by webhook/reconciliation", failure);
+            LOGGER.log(
+                    Level.WARNING,
+                    "Payment " + payment.paymentId() + " will be settled by webhook/reconciliation",
+                    failure);
             return false;
         }
     }
@@ -241,8 +281,15 @@ public class PaymentService {
         return Optional.of(Long.parseLong(raw.trim()));
     }
 
-    private static PaymentReturnResult returned(PaymentRecord payment, boolean verified, Outcome outcome, String message) {
-        return new PaymentReturnResult(verified, outcome == Outcome.CAPTURED, outcome.name(),
-                payment.txnRef(), Optional.of(payment.orderId()), payment.amount(), message);
+    private static PaymentReturnResult returned(
+            PaymentRecord payment, boolean verified, Outcome outcome, String message) {
+        return new PaymentReturnResult(
+                verified,
+                outcome == Outcome.CAPTURED,
+                outcome.name(),
+                payment.txnRef(),
+                Optional.of(payment.orderId()),
+                payment.amount(),
+                message);
     }
 }

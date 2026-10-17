@@ -2,8 +2,8 @@ package vn.ticketscenter.event.service;
 import org.junit.jupiter.api.Test;
 import vn.ticketscenter.event.cache.*;
 import vn.ticketscenter.event.dto.EventCommand;
-import vn.ticketscenter.event.repository.*;
-import vn.ticketscenter.event.repository.EventManagementRepository.*;
+import vn.ticketscenter.event.dao.*;
+import vn.ticketscenter.event.dao.EventManagementRepository.*;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 

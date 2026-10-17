@@ -10,14 +10,15 @@ public final class EventScheduleTag {
 
     /** Prefix that marks a description as already carrying a schedule. */
     public static final String MARKER = "[Event:";
+
     private static final String OPENING = "[Event: ";
     private static final int MAX_DESCRIPTION_LENGTH = 2000;
 
     /** Values read from a tag; any of them may be {@code null}. */
-    public record Schedule(String title, String date, String startTime, String endTime, String venue) { }
+    public record Schedule(
+            String title, String date, String startTime, String endTime, String venue) {}
 
-    private EventScheduleTag() {
-    }
+    private EventScheduleTag() {}
 
     /**
      * The request description with the schedule tag appended. A request without an event title keeps its plain
@@ -90,7 +91,7 @@ public final class EventScheduleTag {
                 case "date" -> date = value;
                 case "start", "starttime" -> start = value;
                 case "end", "endtime" -> end = value;
-                default -> { }
+                default -> {}
             }
         }
         return new Schedule(title, date, start, end, venue);

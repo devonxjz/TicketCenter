@@ -38,12 +38,17 @@ public final class RoleAuthorizationFilter implements Filter {
         Decision decision = RouteAccessPolicy.decide(user.get(), path);
         switch (decision) {
             case ALLOW -> chain.doFilter(request, response);
-            case DENY_ADMIN_AREA -> httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,
-                    "Bạn không có quyền truy cập vào Trung tâm Quản trị Admin");
-            case DENY_ORGANIZER_AREA -> httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,
-                    "Khách hàng mua vé không có quyền truy cập kênh ban tổ chức hoặc soát vé");
+            case DENY_ADMIN_AREA ->
+                    httpResponse.sendError(
+                            HttpServletResponse.SC_FORBIDDEN,
+                            "Bạn không có quyền truy cập vào Trung tâm Quản trị Admin");
+            case DENY_ORGANIZER_AREA ->
+                    httpResponse.sendError(
+                            HttpServletResponse.SC_FORBIDDEN,
+                            "Khách hàng mua vé không có quyền truy cập kênh ban tổ chức hoặc soát vé");
             case REDIRECT_TO_CHECK_IN ->
-                    httpResponse.sendRedirect(httpRequest.getContextPath() + RouteAccessPolicy.CHECK_IN_HOME);
+                    httpResponse.sendRedirect(
+                            httpRequest.getContextPath() + RouteAccessPolicy.CHECK_IN_HOME);
         }
     }
 
@@ -53,7 +58,9 @@ public final class RoleAuthorizationFilter implements Filter {
         if (request.getQueryString() != null && !request.getQueryString().isBlank()) {
             target += "?" + request.getQueryString();
         }
-        response.sendRedirect(request.getContextPath() + "/auth/login?redirect="
-                + URLEncoder.encode(target, StandardCharsets.UTF_8));
+        response.sendRedirect(
+                request.getContextPath()
+                        + "/auth/login?redirect="
+                        + URLEncoder.encode(target, StandardCharsets.UTF_8));
     }
 }

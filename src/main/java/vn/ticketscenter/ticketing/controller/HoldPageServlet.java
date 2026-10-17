@@ -11,8 +11,10 @@ import java.io.IOException;
 @WebServlet(name = "HoldPageServlet", urlPatterns = "/select-tickets")
 public class HoldPageServlet extends HttpServlet {
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
         response.setHeader("Cache-Control", "no-store");
-        request.getRequestDispatcher("/WEB-INF/views/public/select-tickets.jsp").forward(request, response);
+        request.getRequestDispatcher("/WEB-INF/views/public/select-tickets.jsp")
+                .forward(request, response);
     }
 }

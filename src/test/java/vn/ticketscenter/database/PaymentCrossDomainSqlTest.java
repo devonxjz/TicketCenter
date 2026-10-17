@@ -3,7 +3,7 @@ package vn.ticketscenter.database;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import vn.ticketscenter.fulfillment.checkin.integration.ScanFixture;
-import vn.ticketscenter.payment.repository.PaymentRepository;
+import vn.ticketscenter.payment.dao.PaymentRepository;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.UUID;
@@ -28,7 +28,7 @@ class PaymentCrossDomainSqlTest {
         }
         int version=Integer.parseInt(ScanFixture.scalar("SELECT auth_version FROM dbo.tc_users WHERE id=?",f.user()));
         var buyer=source("buyer",f.user());var worker=source("worker",null);
-        var holds=new vn.ticketscenter.ticketing.repository.HoldRepository(buyer,worker);
+        var holds=new vn.ticketscenter.ticketing.dao.HoldRepository(buyer,worker);
         var command=new vn.ticketscenter.ticketing.dto.HoldCommand.Create(UUID.randomUUID(),
                 new vn.ticketscenter.ticketing.dto.CreateHoldRequest(f.event(),java.util.List.of(
                         new vn.ticketscenter.ticketing.dto.HoldSelection(f.zone(),null,1))));
@@ -36,14 +36,14 @@ class PaymentCrossDomainSqlTest {
         var receipt=holds.mutate(actor,command);
         assertEquals(receipt.body(),holds.mutate(actor,command).body());
         var hold=holds.current(actor).projection().orElseThrow();
-        var order=new vn.ticketscenter.order.repository.OrderRepository(buyer).mutate(
+        var order=new vn.ticketscenter.order.dao.OrderRepository(buyer).mutate(
                 new vn.ticketscenter.order.dto.OrderActor(f.user(),version),
                 new vn.ticketscenter.order.dto.OrderCommand.Create(UUID.randomUUID(),new vn.ticketscenter.order.dto.CreateOrderRequest(hold.id())));
         var payments=new PaymentRepository(buyer,worker);
         var intent=payments.beginOrderPayment(order.orderId(),f.user());
         payments.applyPaymentResult(order.orderId(),intent.paymentId(),"CAPTURED",intent.txnRef());
         assertEquals("PAID",ScanFixture.scalar("SELECT status FROM dbo.tc_orders WHERE id=?",order.orderId()));
-        assertEquals(1,new vn.ticketscenter.fulfillment.ticket.repository.TicketRepository(buyer).findTicketsByOrderId(order.orderId()).size());
+        assertEquals(1,new vn.ticketscenter.fulfillment.ticket.dao.TicketRepository(buyer).findTicketsByOrderId(order.orderId()).size());
     }
     static javax.sql.DataSource source(String role,UUID actor) {
         return (javax.sql.DataSource)java.lang.reflect.Proxy.newProxyInstance(
@@ -87,7 +87,7 @@ class PaymentCrossDomainSqlTest {
         var f=SqlReportSafetyIT.fixture();
         new PaymentRepository(source("buyer",f.user()),source("worker",null))
                 .applyPaymentResult(f.order(),f.payment(),"CAPTURED",f.payment().toString());
-        var tickets=new vn.ticketscenter.fulfillment.ticket.repository.TicketRepository(source("buyer",f.user()))
+        var tickets=new vn.ticketscenter.fulfillment.ticket.dao.TicketRepository(source("buyer",f.user()))
                 .findTicketsByOrderId(f.order());
         assertEquals(1,tickets.size());
         try(var c=source("buyer",f.user()).getConnection()) {
@@ -127,10 +127,10 @@ class PaymentCrossDomainSqlTest {
         var f=SqlReportSafetyIT.fixture();
         new PaymentRepository(source("buyer",f.user()),source("worker",null))
                 .applyPaymentResult(f.order(),f.payment(),"CAPTURED",f.payment().toString());
-        var own=new vn.ticketscenter.fulfillment.ticket.repository.TicketRepository(source("buyer",f.user()));
+        var own=new vn.ticketscenter.fulfillment.ticket.dao.TicketRepository(source("buyer",f.user()));
         var ticket=own.findTicketsByOrderId(f.order()).getFirst();
         assertTrue(own.findById(ticket.id()).isPresent());
-        var other=new vn.ticketscenter.fulfillment.ticket.repository.TicketRepository(source("buyer",UUID.randomUUID()));
+        var other=new vn.ticketscenter.fulfillment.ticket.dao.TicketRepository(source("buyer",UUID.randomUUID()));
         assertTrue(other.findById(ticket.id()).isEmpty());
         assertTrue(other.findTicketsByOrderId(f.order()).isEmpty());
         try(var c=source("buyer",f.user()).getConnection()) {
@@ -154,7 +154,7 @@ class PaymentCrossDomainSqlTest {
         new PaymentRepository(source("buyer",f.user()),source("worker",null))
                 .applyPaymentResult(f.order(),f.payment(),"CAPTURED",f.payment().toString());
 
-        var own=new vn.ticketscenter.order.repository.OrderRepository(source("buyer",f.user()));
+        var own=new vn.ticketscenter.order.dao.OrderRepository(source("buyer",f.user()));
         var history=own.findOrdersByBuyerId(f.user(),0,1,20,null);
         assertEquals(1,history.total());
         assertEquals(f.order(),history.orders().getFirst().id());
@@ -165,7 +165,7 @@ class PaymentCrossDomainSqlTest {
         assertEquals(1,detail.tickets().size());
 
         var foreignId=UUID.randomUUID();
-        var foreign=new vn.ticketscenter.order.repository.OrderRepository(source("buyer",foreignId));
+        var foreign=new vn.ticketscenter.order.dao.OrderRepository(source("buyer",foreignId));
         assertEquals(0,foreign.findOrdersByBuyerId(f.user(),0,1,20,null).total());
         assertTrue(foreign.findOrderDetail(f.order(),foreignId,0).isEmpty());
         try(var c=source("buyer",f.user()).getConnection()) {
@@ -178,11 +178,11 @@ class PaymentCrossDomainSqlTest {
         new PaymentRepository(source("buyer",f.user()),source("worker",null))
                 .applyPaymentResult(f.order(),f.payment(),"CAPTURED",f.payment().toString());
 
-        var ownTicketRepo = new vn.ticketscenter.fulfillment.ticket.repository.TicketRepository(source("buyer",f.user()));
+        var ownTicketRepo = new vn.ticketscenter.fulfillment.ticket.dao.TicketRepository(source("buyer",f.user()));
         var ticket = ownTicketRepo.findTicketsByOrderId(f.order()).getFirst();
 
         var foreignId = UUID.randomUUID();
-        var foreignOrderRepo = new vn.ticketscenter.order.repository.OrderRepository(source("buyer",foreignId));
+        var foreignOrderRepo = new vn.ticketscenter.order.dao.OrderRepository(source("buyer",foreignId));
         var foreignOrderService = new vn.ticketscenter.order.service.OrderService(foreignOrderRepo, new vn.ticketscenter.order.cache.RedisOrderCache(()->null, java.time.Clock.systemUTC()));
 
         var exOrder403 = assertThrows(vn.ticketscenter.order.service.OrderException.class,
@@ -195,7 +195,7 @@ class PaymentCrossDomainSqlTest {
         assertEquals(404, exOrder404.status());
         assertEquals("ORDER_NOT_FOUND", exOrder404.code());
 
-        var foreignTicketRepo = new vn.ticketscenter.fulfillment.ticket.repository.TicketRepository(source("buyer",foreignId));
+        var foreignTicketRepo = new vn.ticketscenter.fulfillment.ticket.dao.TicketRepository(source("buyer",foreignId));
         var foreignTicketService = new vn.ticketscenter.fulfillment.ticket.service.TicketService(foreignTicketRepo, vn.ticketscenter.fulfillment.ticket.service.SignedTicketQrSigner.configured(), new vn.ticketscenter.fulfillment.ticket.cache.RedisTicketCache(()->null));
 
         var exTicket403 = assertThrows(vn.ticketscenter.fulfillment.ticket.service.TicketException.class,
@@ -214,13 +214,13 @@ class PaymentCrossDomainSqlTest {
                 () -> foreignTicketService.getTicketQrPng(foreignId, 1, UUID.randomUUID(), 300, 300));
         assertEquals(404, exQr404.httpStatus());
 
-        var unauthenticatedOrderRepo = new vn.ticketscenter.order.repository.OrderRepository(source("buyer", null));
+        var unauthenticatedOrderRepo = new vn.ticketscenter.order.dao.OrderRepository(source("buyer", null));
         var unauthenticatedOrderService = new vn.ticketscenter.order.service.OrderService(unauthenticatedOrderRepo, new vn.ticketscenter.order.cache.RedisOrderCache(()->null, java.time.Clock.systemUTC()));
         var exUnauthOrder = assertThrows(vn.ticketscenter.order.service.OrderException.class,
                 () -> unauthenticatedOrderService.orderDetail(new vn.ticketscenter.order.dto.OrderActor(UUID.randomUUID(), 1), f.order()));
         assertEquals(403, exUnauthOrder.status());
 
-        var unauthenticatedTicketRepo = new vn.ticketscenter.fulfillment.ticket.repository.TicketRepository(source("buyer", null));
+        var unauthenticatedTicketRepo = new vn.ticketscenter.fulfillment.ticket.dao.TicketRepository(source("buyer", null));
         var unauthenticatedTicketService = new vn.ticketscenter.fulfillment.ticket.service.TicketService(unauthenticatedTicketRepo, vn.ticketscenter.fulfillment.ticket.service.SignedTicketQrSigner.configured(), new vn.ticketscenter.fulfillment.ticket.cache.RedisTicketCache(()->null));
         var exUnauthTicket = assertThrows(vn.ticketscenter.fulfillment.ticket.service.TicketException.class,
                 () -> unauthenticatedTicketService.getTicketDetail(UUID.randomUUID(), 1, ticket.id()));

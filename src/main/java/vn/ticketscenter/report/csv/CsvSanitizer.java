@@ -4,8 +4,7 @@ package vn.ticketscenter.report.csv;
 public final class CsvSanitizer {
     private static final String FORMULA_STARTERS = "=+-@＝＋－＠";
 
-    private CsvSanitizer() {
-    }
+    private CsvSanitizer() {}
 
     /**
      * Returns a fully quoted field. Risky prefixes receive an actual leading tab;
@@ -35,11 +34,13 @@ public final class CsvSanitizer {
 
     private static boolean needsNeutralizing(String value) {
         boolean controlPrefix = false;
-        for (int offset = 0; offset < value.length();) {
+        for (int offset = 0; offset < value.length(); ) {
             int codePoint = value.codePointAt(offset);
             int type = Character.getType(codePoint);
             boolean controlOrFormat = type == Character.CONTROL || type == Character.FORMAT;
-            if (controlOrFormat || Character.isWhitespace(codePoint) || Character.isSpaceChar(codePoint)) {
+            if (controlOrFormat
+                    || Character.isWhitespace(codePoint)
+                    || Character.isSpaceChar(codePoint)) {
                 controlPrefix |= controlOrFormat;
                 offset += Character.charCount(codePoint);
             } else {

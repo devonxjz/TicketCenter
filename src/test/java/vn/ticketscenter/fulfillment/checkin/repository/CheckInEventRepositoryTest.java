@@ -6,6 +6,8 @@ import org.hibernate.jdbc.ReturningWork;
 import org.junit.jupiter.api.Test;
 import vn.ticketscenter.config.persistence.*;
 import vn.ticketscenter.fulfillment.checkin.CheckInException;
+import vn.ticketscenter.fulfillment.checkin.dao.CheckInEventRepository;
+
 import java.lang.reflect.Proxy;
 import java.sql.*;
 import java.time.*;

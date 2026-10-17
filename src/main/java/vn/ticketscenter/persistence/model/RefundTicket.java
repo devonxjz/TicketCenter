@@ -14,8 +14,13 @@ import vn.ticketscenter.fulfillment.model.Ticket;
 import java.util.UUID;
 
 @Entity
-@Table(name = "tc_refund_tickets", schema = "dbo",
-        uniqueConstraints = @UniqueConstraint(name = "uq_refund_ticket", columnNames = {"refund_id", "ticket_id"}))
+@Table(
+        name = "tc_refund_tickets",
+        schema = "dbo",
+        uniqueConstraints =
+                @UniqueConstraint(
+                        name = "uq_refund_ticket",
+                        columnNames = {"refund_id", "ticket_id"}))
 public class RefundTicket {
     @Id
     @Column(nullable = false)
@@ -32,7 +37,7 @@ public class RefundTicket {
     @Column(name = "is_open", nullable = false)
     private boolean open = true;
 
-    protected RefundTicket() { }
+    protected RefundTicket() {}
 
     public RefundTicket(Refund refund, Ticket ticket) {
         this.id = UUID.randomUUID();
@@ -40,8 +45,19 @@ public class RefundTicket {
         this.ticket = ticket;
     }
 
-    public UUID getId() { return id; }
-    public Refund getRefund() { return refund; }
-    public Ticket getTicket() { return ticket; }
-    public boolean isOpen() { return open; }
+    public UUID getId() {
+        return id;
+    }
+
+    public Refund getRefund() {
+        return refund;
+    }
+
+    public Ticket getTicket() {
+        return ticket;
+    }
+
+    public boolean isOpen() {
+        return open;
+    }
 }

@@ -10,18 +10,19 @@ import java.util.List;
 
 /** Writes raw logical cells as UTF-8 CSV without closing the caller's stream. */
 public final class StreamingCsvExporter {
-    private StreamingCsvExporter() {
-    }
+    private StreamingCsvExporter() {}
 
     /**
      * Writes a BOM, quoted header and rows with CRLF record endings.
      * The caller owns the output and row source, including cleanup on failure.
      * A failure after the header can leave partial output and is propagated.
      */
-    public static void write(OutputStream output, List<String> headers,
-                             Iterable<? extends List<String>> rows) throws IOException {
+    public static void write(
+            OutputStream output, List<String> headers, Iterable<? extends List<String>> rows)
+            throws IOException {
         if (output == null || headers == null || headers.isEmpty() || rows == null) {
-            throw new IllegalArgumentException("CSV output, nonempty headers and rows are required.");
+            throw new IllegalArgumentException(
+                    "CSV output, nonempty headers and rows are required.");
         }
         var escapedHeaders = new ArrayList<String>(headers.size());
         for (String header : headers) {

@@ -18,8 +18,8 @@ public record UserPrincipal(
         PlatformRole platformRole,
         int authVersion,
         OrganizationRole organizationRole,
-        String email
-) implements Serializable {
+        String email)
+        implements Serializable {
 
     public UserPrincipal {
         Objects.requireNonNull(actorId, "actorId must not be null");
@@ -30,7 +30,11 @@ public record UserPrincipal(
         this(actorId, platformRole, authVersion, null, null);
     }
 
-    public UserPrincipal(UUID actorId, PlatformRole platformRole, int authVersion, OrganizationRole organizationRole) {
+    public UserPrincipal(
+            UUID actorId,
+            PlatformRole platformRole,
+            int authVersion,
+            OrganizationRole organizationRole) {
         this(actorId, platformRole, authVersion, organizationRole, null);
     }
 

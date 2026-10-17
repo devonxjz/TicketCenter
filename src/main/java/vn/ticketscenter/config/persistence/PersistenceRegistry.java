@@ -11,8 +11,10 @@ import java.util.Map;
 
 public final class PersistenceRegistry implements AutoCloseable {
 
-    private final Map<DatabasePrincipal, EntityManagerFactory> factories = new EnumMap<>(DatabasePrincipal.class);
-    private final Map<DatabasePrincipal, HikariDataSource> pools = new EnumMap<>(DatabasePrincipal.class);
+    private final Map<DatabasePrincipal, EntityManagerFactory> factories =
+            new EnumMap<>(DatabasePrincipal.class);
+    private final Map<DatabasePrincipal, HikariDataSource> pools =
+            new EnumMap<>(DatabasePrincipal.class);
 
     public void initialize() {
         for (DatabasePrincipal principal : DatabasePrincipal.values()) {
@@ -35,8 +37,13 @@ public final class PersistenceRegistry implements AutoCloseable {
             pool.setAutoCommit(false);
             HikariDataSource dataSource = new HikariDataSource(pool);
             try {
-                factories.put(principal, Persistence.createEntityManagerFactory("ticketscenter", Map.of(
-                        "jakarta.persistence.nonJtaDataSource", new ConnectionBudgetDataSource(dataSource))));
+                factories.put(
+                        principal,
+                        Persistence.createEntityManagerFactory(
+                                "ticketscenter",
+                                Map.of(
+                                        "jakarta.persistence.nonJtaDataSource",
+                                        new ConnectionBudgetDataSource(dataSource))));
                 pools.put(principal, dataSource);
             } catch (RuntimeException exception) {
                 dataSource.close();

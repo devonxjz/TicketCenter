@@ -9,7 +9,7 @@ import vn.ticketscenter.config.worker.EventCancellationJob;
 import vn.ticketscenter.config.worker.OutboxEmailJob;
 import vn.ticketscenter.config.worker.OutboxWorker;
 import vn.ticketscenter.config.worker.RefundJob;
-import vn.ticketscenter.event.repository.EventCancellationRepository;
+import vn.ticketscenter.event.dao.EventCancellationRepository;
 import vn.ticketscenter.payment.integration.RefundGateway;
 import vn.ticketscenter.payment.integration.SimulatedRefundGateway;
 import java.util.concurrent.Executors;
@@ -38,36 +38,66 @@ public final class PersistenceListener implements ServletContextListener {
         event.getServletContext().setAttribute(REGISTRY_ATTRIBUTE, registry);
         if (registry.hasPrincipal(DatabasePrincipal.BUYER)) {
             try {
-                vn.ticketscenter.event.controller.EventCatalogRuntime.resolve(event.getServletContext()).warmAsync();
+                vn.ticketscenter.event.controller.EventCatalogRuntime.resolve(
+                                event.getServletContext())
+                        .warmAsync();
             } catch (Exception ex) {
-                LOGGER.log(Level.WARNING, "Không thể khởi động warm-up Redis cho event catalog", ex);
+                LOGGER.log(
+                        Level.WARNING, "Không thể khởi động warm-up Redis cho event catalog", ex);
             }
         }
         if (registry.hasPrincipal(DatabasePrincipal.WORKER)) {
-            EventCancellationJob job = new EventCancellationJob(
-                    registry.transactionManager(), new EventCancellationRepository(), 50);
-            cancellationWorker = Executors.newSingleThreadScheduledExecutor(
-                    Thread.ofPlatform().name("event-cancellation-worker").daemon(true).factory());
-            cancellationWorker.scheduleWithFixedDelay(() -> runCancellation(job), 0, 5, TimeUnit.SECONDS);
-            // payOS has no refund API: refunds go through the simulated gateway (receipts stored on disk).
+            EventCancellationJob job =
+                    new EventCancellationJob(
+                            registry.transactionManager(), new EventCancellationRepository(), 50);
+            cancellationWorker =
+                    Executors.newSingleThreadScheduledExecutor(
+                            Thread.ofPlatform()
+                                    .name("event-cancellation-worker")
+                                    .daemon(true)
+                                    .factory());
+            cancellationWorker.scheduleWithFixedDelay(
+                    () -> runCancellation(job), 0, 5, TimeUnit.SECONDS);
+            // payOS has no refund API: refunds go through the simulated gateway (receipts stored on
+            // disk).
             if (AppConfig.getBoolean("refund.worker.enabled", false)) {
                 try {
-                    RefundJob refundJob = new RefundJob(registry.transactionManager(), simulatedRefundGateway(), 50);
-                    refundWorker = Executors.newSingleThreadScheduledExecutor(
-                            Thread.ofPlatform().name("refund-worker").daemon(true).factory());
-                    refundWorker.scheduleWithFixedDelay(() -> runRefund(refundJob), 0, 5, TimeUnit.SECONDS);
+                    RefundJob refundJob =
+                            new RefundJob(
+                                    registry.transactionManager(), simulatedRefundGateway(), 50);
+                    refundWorker =
+                            Executors.newSingleThreadScheduledExecutor(
+                                    Thread.ofPlatform()
+                                            .name("refund-worker")
+                                            .daemon(true)
+                                            .factory());
+                    refundWorker.scheduleWithFixedDelay(
+                            () -> runRefund(refundJob), 0, 5, TimeUnit.SECONDS);
                 } catch (RuntimeException unavailable) {
-                    LOGGER.warning("Simulated refund worker configuration is invalid; refunds require reconciliation");
+                    LOGGER.warning(
+                            "Simulated refund worker configuration is invalid; refunds require reconciliation");
                 }
             }
-            if (ServerConfig.isDemoData() && !"false".equalsIgnoreCase(String.valueOf(AppConfig.get("outbox.worker.enabled")).trim())) {
+            if (ServerConfig.isDemoData()
+                    && !"false"
+                            .equalsIgnoreCase(
+                                    String.valueOf(AppConfig.get("outbox.worker.enabled"))
+                                            .trim())) {
                 String owner = hostname() + "-" + java.util.UUID.randomUUID();
-                OutboxWorker outbox = new OutboxWorker(registry.transactionManager(),
-                        new OutboxEmailJob(OutboxEmailJob.databaseLoader(registry.transactionManager()),
-                                new vn.ticketscenter.identity.integration.mail.SmtpEmailSender()), owner);
-                outboxExecutor = Executors.newSingleThreadScheduledExecutor(
-                        Thread.ofPlatform().name("outbox-worker").daemon(true).factory());
-                outboxExecutor.scheduleWithFixedDelay(() -> runOutbox(outbox), 10, 10, TimeUnit.SECONDS);
+                OutboxWorker outbox =
+                        new OutboxWorker(
+                                registry.transactionManager(),
+                                new OutboxEmailJob(
+                                        OutboxEmailJob.databaseLoader(
+                                                registry.transactionManager()),
+                                        new vn.ticketscenter.identity.integration.mail
+                                                .SmtpEmailSender()),
+                                owner);
+                outboxExecutor =
+                        Executors.newSingleThreadScheduledExecutor(
+                                Thread.ofPlatform().name("outbox-worker").daemon(true).factory());
+                outboxExecutor.scheduleWithFixedDelay(
+                        () -> runOutbox(outbox), 10, 10, TimeUnit.SECONDS);
             }
         }
     }
@@ -89,8 +119,11 @@ public final class PersistenceListener implements ServletContextListener {
 
     private static RefundGateway simulatedRefundGateway() {
         return new SimulatedRefundGateway(
-                java.nio.file.Path.of(AppConfig.get(AppConfig.Keys.REFUND_STATE_DIRECTORY, "data/refund-gateway")),
-                RefundGateway.Status.valueOf(AppConfig.get(AppConfig.Keys.REFUND_SIMULATED_OUTCOME, "SUCCEEDED")),
+                java.nio.file.Path.of(
+                        AppConfig.get(
+                                AppConfig.Keys.REFUND_STATE_DIRECTORY, "data/refund-gateway")),
+                RefundGateway.Status.valueOf(
+                        AppConfig.get(AppConfig.Keys.REFUND_SIMULATED_OUTCOME, "SUCCEEDED")),
                 AppConfig.getBoolean(AppConfig.Keys.REFUND_TIMEOUT_AFTER_SIDE_EFFECT, false));
     }
 
@@ -98,7 +131,10 @@ public final class PersistenceListener implements ServletContextListener {
         try {
             job.runOnce();
         } catch (RuntimeException exception) {
-            LOGGER.log(Level.WARNING, "Event cancellation batch failed; it will be retried", exception);
+            LOGGER.log(
+                    Level.WARNING,
+                    "Event cancellation batch failed; it will be retried",
+                    exception);
         }
     }
 

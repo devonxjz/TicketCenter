@@ -3,7 +3,7 @@ package vn.ticketscenter.event.service;
 import vn.ticketscenter.event.EventException;
 import vn.ticketscenter.event.dto.*;
 import vn.ticketscenter.event.image.EventImagePlaceholders;
-import vn.ticketscenter.event.repository.EventRepository;
+import vn.ticketscenter.event.dao.EventRepository;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.storage.*;
 
@@ -23,15 +23,21 @@ public class EventService {
         this(repository, storage, false);
     }
 
-    public EventService(EventRepository repository,StorageService storage,vn.ticketscenter.event.cache.EventIdempotencyStore redisLeases) {
-        this.repository=Objects.requireNonNull(repository);this.storage=Objects.requireNonNull(storage);this.maintenance=false;this.redisLeases=redisLeases;
+    public EventService(
+            EventRepository repository,
+            StorageService storage,
+            vn.ticketscenter.event.cache.EventIdempotencyStore redisLeases) {
+        this.repository = Objects.requireNonNull(repository);
+        this.storage = Objects.requireNonNull(storage);
+        this.maintenance = false;
+        this.redisLeases = redisLeases;
     }
 
     private EventService(EventRepository repository, StorageService storage, boolean maintenance) {
         this.repository = Objects.requireNonNull(repository);
         this.storage = Objects.requireNonNull(storage);
         this.maintenance = maintenance;
-        this.redisLeases=null;
+        this.redisLeases = null;
     }
 
     public static EventService maintenance(EventRepository repository, StorageService storage) {
@@ -77,48 +83,75 @@ public class EventService {
                         image != null || defaultImage,
                         maintenanceCall);
         if (claim.replay() != null) return claim.replay();
-        vn.ticketscenter.event.cache.EventIdempotencyStore.Lease redisLease=null;
-        if(redisLeases!=null) {
-            try { redisLease=redisLeases.acquire("tc:idem:event-image:"+actor.actorId()+":"+command.requestId(),fingerprint); }
-            catch(RuntimeException e) {release(claim,false);throw e;}
-        }
-        try {
-        StoredAsset asset = null;
-        if (image != null || defaultImage) {
+        vn.ticketscenter.event.cache.EventIdempotencyStore.Lease redisLease = null;
+        if (redisLeases != null) {
             try {
-                if (defaultImage) {
-                    asset = storage.find(claim.publicId()).orElse(null);
-                    if (asset == null)
-                        image =
-                                EventImagePlaceholders.png(
-                                        repository.categorySlug(command.fields().categoryId()));
-                }
-                if (asset == null)
-                    asset = storage.ensure(new ByteArrayInputStream(image), claim.publicId());
-            } catch (EventException e) {
-                release(claim, e.status() < 500);
-                throw e;
-            } catch (IOException | RuntimeException e) {
+                redisLease =
+                        redisLeases.acquire(
+                                "tc:idem:event-image:"
+                                        + actor.actorId()
+                                        + ":"
+                                        + command.requestId(),
+                                fingerprint);
+            } catch (RuntimeException e) {
                 release(claim, false);
-                throw new EventException(
-                        502,
-                        "IMAGE_UPLOAD_FAILED",
-                        "Image upload did not complete; retry with the same request key");
+                throw e;
             }
         }
         try {
-            EventDto saved=repository.finalizeSave(actor, command, claim, asset, maintenanceCall);
-            if(redisLease!=null) {
-                try {redisLeases.completed(redisLease,fingerprint,new vn.ticketscenter.event.repository.EventManagementRepository.Result(200,"{\"data\":"+saved.toJson()+"}",saved.organizationId(),saved.id()));}
-                catch(RuntimeException ignored) { }
+            StoredAsset asset = null;
+            if (image != null || defaultImage) {
+                try {
+                    if (defaultImage) {
+                        asset = storage.find(claim.publicId()).orElse(null);
+                        if (asset == null)
+                            image =
+                                    EventImagePlaceholders.png(
+                                            repository.categorySlug(command.fields().categoryId()));
+                    }
+                    if (asset == null)
+                        asset = storage.ensure(new ByteArrayInputStream(image), claim.publicId());
+                } catch (EventException e) {
+                    release(claim, e.status() < 500);
+                    throw e;
+                } catch (IOException | RuntimeException e) {
+                    release(claim, false);
+                    throw new EventException(
+                            502,
+                            "IMAGE_UPLOAD_FAILED",
+                            "Image upload did not complete; retry with the same request key");
+                }
             }
-            return saved;
-        } catch (EventException e) {
-            if (e.status() < 500 && !e.code().equals("STALE_REQUEST")) release(claim, true);
-            else release(claim, false);
-            throw e;
+            try {
+                EventDto saved =
+                        repository.finalizeSave(actor, command, claim, asset, maintenanceCall);
+                if (redisLease != null) {
+                    try {
+                        redisLeases.completed(
+                                redisLease,
+                                fingerprint,
+                                new vn.ticketscenter.event.dao.EventManagementRepository.Result(
+                                        200,
+                                        "{\"data\":" + saved.toJson() + "}",
+                                        saved.organizationId(),
+                                        saved.id()));
+                    } catch (RuntimeException ignored) {
+                    }
+                }
+                return saved;
+            } catch (EventException e) {
+                if (e.status() < 500 && !e.code().equals("STALE_REQUEST")) release(claim, true);
+                else release(claim, false);
+                throw e;
+            }
+        } finally {
+            if (redisLease != null) {
+                try {
+                    redisLeases.release(redisLease);
+                } catch (RuntimeException ignored) {
+                }
+            }
         }
-        } finally { if(redisLease!=null) {try {redisLeases.release(redisLease);} catch(RuntimeException ignored) { }} }
     }
 
     private void release(EventRepository.Claim claim, boolean abort) {

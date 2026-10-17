@@ -44,8 +44,12 @@ public class TicketPageServlet extends HttpServlet {
         var currentUserOpt = SecurityContext.getCurrentUser(request);
         if (currentUserOpt.isEmpty()) {
             String target = request.getRequestURI();
-            if (request.getQueryString() != null && !request.getQueryString().isBlank()) target += "?" + request.getQueryString();
-            response.sendRedirect(request.getContextPath() + "/auth/login?redirect=" + URLEncoder.encode(target, StandardCharsets.UTF_8));
+            if (request.getQueryString() != null && !request.getQueryString().isBlank())
+                target += "?" + request.getQueryString();
+            response.sendRedirect(
+                    request.getContextPath()
+                            + "/auth/login?redirect="
+                            + URLEncoder.encode(target, StandardCharsets.UTF_8));
             return;
         }
 
@@ -56,12 +60,14 @@ public class TicketPageServlet extends HttpServlet {
             if ("/me/tickets".equals(path)) {
                 List<TicketSummaryDto> tickets = service().getMyTickets(actorId);
                 request.setAttribute("tickets", tickets);
-                request.getRequestDispatcher("/WEB-INF/views/ticket/my-tickets.jsp").forward(request, response);
+                request.getRequestDispatcher("/WEB-INF/views/ticket/my-tickets.jsp")
+                        .forward(request, response);
             } else if (path.matches("^/tickets/[^/]+$")) {
                 UUID ticketId = UUID.fromString(path.split("/")[2]);
                 TicketDetailDto ticket = service().getTicketDetail(actorId, ticketId);
                 request.setAttribute("ticket", ticket);
-                request.getRequestDispatcher("/WEB-INF/views/ticket/ticket-detail.jsp").forward(request, response);
+                request.getRequestDispatcher("/WEB-INF/views/ticket/ticket-detail.jsp")
+                        .forward(request, response);
             } else {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
             }
@@ -73,6 +79,8 @@ public class TicketPageServlet extends HttpServlet {
     }
 
     private TicketService service() {
-        return suppliedService != null ? suppliedService : TicketRuntime.resolve(getServletContext());
+        return suppliedService != null
+                ? suppliedService
+                : TicketRuntime.resolve(getServletContext());
     }
 }

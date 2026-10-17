@@ -41,13 +41,18 @@ public class Organization extends BaseEntity {
     @Column(name = "submitted_at")
     private Instant submittedAt;
 
-    protected Organization() { }
+    protected Organization() {}
 
     public Organization(String name, String contactEmail, User requester) {
         this(name, contactEmail, null, null, requester);
     }
 
-    public Organization(String name, String contactEmail, String contactPhone, String description, User requester) {
+    public Organization(
+            String name,
+            String contactEmail,
+            String contactPhone,
+            String description,
+            User requester) {
         this.name = name;
         this.contactEmail = contactEmail;
         this.contactPhone = contactPhone;
@@ -55,20 +60,48 @@ public class Organization extends BaseEntity {
         this.requester = requester;
     }
 
-    public String getName() { return name; }
-    public String getContactEmail() { return contactEmail; }
-    public String getContactPhone() { return contactPhone; }
-    public String getDescription() { return description; }
-    public User getRequester() { return requester; }
-    public OrganizationStatus getStatus() { return status; }
-    public String getRejectionReason() { return rejectionReason; }
-    public Instant getSubmittedAt() { return submittedAt; }
+    public String getName() {
+        return name;
+    }
+
+    public String getContactEmail() {
+        return contactEmail;
+    }
+
+    public String getContactPhone() {
+        return contactPhone;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public User getRequester() {
+        return requester;
+    }
+
+    public OrganizationStatus getStatus() {
+        return status;
+    }
+
+    public String getRejectionReason() {
+        return rejectionReason;
+    }
+
+    public Instant getSubmittedAt() {
+        return submittedAt;
+    }
 
     public void submitForApproval() {
         this.status = OrganizationStatus.PENDING_APPROVAL;
         this.submittedAt = Instant.now();
     }
-    public void approve() { status = OrganizationStatus.APPROVED; rejectionReason = null; }
+
+    public void approve() {
+        status = OrganizationStatus.APPROVED;
+        rejectionReason = null;
+    }
+
     public void reject(String reason) {
         status = OrganizationStatus.REJECTED;
         rejectionReason = reason;

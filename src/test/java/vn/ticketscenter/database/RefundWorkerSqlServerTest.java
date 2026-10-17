@@ -35,7 +35,7 @@ public class RefundWorkerSqlServerTest {
   }
   if(zero){
    sql("UPDATE dbo.tc_order_items SET unit_price=0 WHERE id=?;UPDATE dbo.tc_orders SET subtotal_amount=0,total_amount=0 WHERE id=?;UPDATE dbo.tc_payments SET status='FAILED' WHERE id=?",f.item(),f.order(),f.payment());
-   new vn.ticketscenter.payment.repository.PaymentRepository(PaymentCrossDomainSqlTest.source("buyer",f.user()),PaymentCrossDomainSqlTest.source("worker",null)).completeZeroOrder(f.order(),f.user());
+   new vn.ticketscenter.payment.dao.PaymentRepository(PaymentCrossDomainSqlTest.source("buyer",f.user()),PaymentCrossDomainSqlTest.source("worker",null)).completeZeroOrder(f.order(),f.user());
   }else SqlReportSafetyIT.capture(f,f.payment(),f.payment().toString());
   String ticket=value("SELECT CONVERT(varchar(36),id) FROM dbo.tc_tickets WHERE order_item_id=?",f.item());
   int version=Integer.parseInt(value("SELECT auth_version FROM dbo.tc_users WHERE id=?",f.user()));

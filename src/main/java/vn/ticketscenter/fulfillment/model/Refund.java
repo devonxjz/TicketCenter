@@ -79,10 +79,15 @@ public class Refund extends BaseEntity {
     @OneToMany(mappedBy = "refund")
     private List<RefundTransferLog> transferLogs = new ArrayList<>();
 
-    protected Refund() { }
+    protected Refund() {}
 
-    public Refund(Order order, Payment payment, long amount, RefundPurpose purpose,
-                  RefundReason reasonType, String reason) {
+    public Refund(
+            Order order,
+            Payment payment,
+            long amount,
+            RefundPurpose purpose,
+            RefundReason reasonType,
+            String reason) {
         this.order = order;
         this.payment = payment;
         this.amount = amount;
@@ -91,19 +96,63 @@ public class Refund extends BaseEntity {
         this.reason = reason;
     }
 
-    public vn.ticketscenter.identity.model.User getRequester() { return requester; }
-    public vn.ticketscenter.identity.model.User getReviewer() { return reviewer; }
-    public Instant getDecidedAt() { return decidedAt; }
-    public Order getOrder() { return order; }
-    public Payment getPayment() { return payment; }
-    public long getAmount() { return amount; }
-    public RefundPurpose getPurpose() { return purpose; }
-    public RefundReason getReasonType() { return reasonType; }
-    public String getReason() { return reason; }
-    public String getRejectionReason() { return rejectionReason; }
-    public RefundStatus getStatus() { return status; }
-    public UUID getCurrentAttemptId() { return currentAttemptId; }
-    public String getProviderReference() { return providerReference; }
-    public Instant getProcessedAt() { return processedAt; }
-    public List<RefundTicket> getTickets() { return List.copyOf(tickets); }
+    public vn.ticketscenter.identity.model.User getRequester() {
+        return requester;
+    }
+
+    public vn.ticketscenter.identity.model.User getReviewer() {
+        return reviewer;
+    }
+
+    public Instant getDecidedAt() {
+        return decidedAt;
+    }
+
+    public Order getOrder() {
+        return order;
+    }
+
+    public Payment getPayment() {
+        return payment;
+    }
+
+    public long getAmount() {
+        return amount;
+    }
+
+    public RefundPurpose getPurpose() {
+        return purpose;
+    }
+
+    public RefundReason getReasonType() {
+        return reasonType;
+    }
+
+    public String getReason() {
+        return reason;
+    }
+
+    public String getRejectionReason() {
+        return rejectionReason;
+    }
+
+    public RefundStatus getStatus() {
+        return status;
+    }
+
+    public UUID getCurrentAttemptId() {
+        return currentAttemptId;
+    }
+
+    public String getProviderReference() {
+        return providerReference;
+    }
+
+    public Instant getProcessedAt() {
+        return processedAt;
+    }
+
+    public List<RefundTicket> getTickets() {
+        return List.copyOf(tickets);
+    }
 }

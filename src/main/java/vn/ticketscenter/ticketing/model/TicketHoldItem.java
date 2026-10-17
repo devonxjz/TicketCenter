@@ -31,9 +31,10 @@ public class TicketHoldItem extends BaseEntity {
     @Column(name = "unit_price", nullable = false)
     private long unitPrice;
 
-    protected TicketHoldItem() { }
+    protected TicketHoldItem() {}
 
-    public TicketHoldItem(TicketHold ticketHold, Zone zone, Seat seat, int quantity, long unitPrice) {
+    public TicketHoldItem(
+            TicketHold ticketHold, Zone zone, Seat seat, int quantity, long unitPrice) {
         this.ticketHold = ticketHold;
         this.zone = zone;
         this.seat = seat;
@@ -41,9 +42,23 @@ public class TicketHoldItem extends BaseEntity {
         this.unitPrice = unitPrice;
     }
 
-    public TicketHold getTicketHold() { return ticketHold; }
-    public Zone getZone() { return zone; }
-    public Seat getSeat() { return seat; }
-    public int getQuantity() { return quantity; }
-    public long getUnitPrice() { return unitPrice; }
+    public TicketHold getTicketHold() {
+        return ticketHold;
+    }
+
+    public Zone getZone() {
+        return zone;
+    }
+
+    public Seat getSeat() {
+        return seat;
+    }
+
+    public int getQuantity() {
+        return quantity;
+    }
+
+    public long getUnitPrice() {
+        return unitPrice;
+    }
 }

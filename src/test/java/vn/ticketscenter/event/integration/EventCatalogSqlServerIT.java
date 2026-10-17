@@ -5,7 +5,7 @@ import vn.ticketscenter.config.AppConfig;
 import vn.ticketscenter.config.DatabaseConfig;
 import vn.ticketscenter.event.cache.EventCatalogCache;
 import vn.ticketscenter.event.dto.EventFilter;
-import vn.ticketscenter.event.repository.EventRepositoryFixture;
+import vn.ticketscenter.event.dao.EventRepositoryFixture;
 import vn.ticketscenter.event.service.EventCatalogService;
 import java.lang.reflect.*;
 import java.sql.*;

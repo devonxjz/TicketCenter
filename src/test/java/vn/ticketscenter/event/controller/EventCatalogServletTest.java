@@ -4,7 +4,7 @@ import jakarta.servlet.http.*;
 import org.junit.jupiter.api.Test;
 import vn.ticketscenter.event.cache.EventCatalogCache;
 import vn.ticketscenter.event.dto.*;
-import vn.ticketscenter.event.repository.EventCatalogRepository;
+import vn.ticketscenter.event.dao.EventCatalogRepository;
 import vn.ticketscenter.event.service.EventCatalogService;
 import java.io.*;
 import java.lang.reflect.Proxy;

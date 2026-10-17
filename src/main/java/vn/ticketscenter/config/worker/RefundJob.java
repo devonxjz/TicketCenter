@@ -14,8 +14,12 @@ public final class RefundJob {
     private final RefundReconciliationJob reconciliation;
 
     public RefundJob(TransactionManager transactions, RefundGateway gateway, int batchSize) {
-        this(new RefundProcessingWorker(
-                new RefundWorkerRepository(transactions), gateway, new RedisRefundLease(), batchSize));
+        this(
+                new RefundProcessingWorker(
+                        new RefundWorkerRepository(transactions),
+                        gateway,
+                        new RedisRefundLease(),
+                        batchSize));
     }
 
     public RefundJob(RefundProcessingWorker processing) {

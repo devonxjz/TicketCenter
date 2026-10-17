@@ -54,9 +54,14 @@ public class Otp {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    protected Otp() { }
+    protected Otp() {}
 
-    public Otp(User user, String emailNormalized, OtpPurpose purpose, byte[] secretHash, Instant expiresAt) {
+    public Otp(
+            User user,
+            String emailNormalized,
+            OtpPurpose purpose,
+            byte[] secretHash,
+            Instant expiresAt) {
         this.user = user;
         this.emailNormalized = emailNormalized;
         this.purpose = purpose;
@@ -77,26 +82,70 @@ public class Otp {
         }
     }
 
-    public UUID getId() { return id; }
-    public User getUser() { return user; }
-    public String getEmailNormalized() { return emailNormalized; }
-    public OtpPurpose getPurpose() { return purpose; }
-    public byte[] getSecretHash() { return secretHash; }
-    public Instant getExpiresAt() { return expiresAt; }
-    public int getFailedAttempts() { return failedAttempts; }
-    public Instant getConsumedAt() { return consumedAt; }
-    public Instant getInvalidatedAt() { return invalidatedAt; }
-    public Instant getCreatedAt() { return createdAt; }
+    public UUID getId() {
+        return id;
+    }
 
-    public boolean isConsumed() { return consumedAt != null; }
-    public boolean isInvalidated() { return invalidatedAt != null; }
-    public boolean isExpired(Instant now) { return now.isAfter(expiresAt); }
+    public User getUser() {
+        return user;
+    }
+
+    public String getEmailNormalized() {
+        return emailNormalized;
+    }
+
+    public OtpPurpose getPurpose() {
+        return purpose;
+    }
+
+    public byte[] getSecretHash() {
+        return secretHash;
+    }
+
+    public Instant getExpiresAt() {
+        return expiresAt;
+    }
+
+    public int getFailedAttempts() {
+        return failedAttempts;
+    }
+
+    public Instant getConsumedAt() {
+        return consumedAt;
+    }
+
+    public Instant getInvalidatedAt() {
+        return invalidatedAt;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public boolean isConsumed() {
+        return consumedAt != null;
+    }
+
+    public boolean isInvalidated() {
+        return invalidatedAt != null;
+    }
+
+    public boolean isExpired(Instant now) {
+        return now.isAfter(expiresAt);
+    }
+
     public boolean isValid(Instant now) {
         return !isConsumed() && !isInvalidated() && !isExpired(now) && failedAttempts < 5;
     }
 
-    public void consume(Instant now) { this.consumedAt = now; }
-    public void invalidate(Instant now) { this.invalidatedAt = now; }
+    public void consume(Instant now) {
+        this.consumedAt = now;
+    }
+
+    public void invalidate(Instant now) {
+        this.invalidatedAt = now;
+    }
+
     public void incrementFailedAttempts(Instant now) {
         this.failedAttempts++;
         if (this.failedAttempts >= 5) {

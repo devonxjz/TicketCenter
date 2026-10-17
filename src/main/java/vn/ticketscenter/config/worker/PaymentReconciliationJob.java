@@ -1,7 +1,7 @@
 package vn.ticketscenter.config.worker;
 
 import vn.ticketscenter.payment.integration.PayosGateway;
-import vn.ticketscenter.payment.repository.PaymentRepository.ReconcileCandidate;
+import vn.ticketscenter.payment.dao.PaymentRepository.ReconcileCandidate;
 
 import java.util.List;
 import java.util.logging.Level;
@@ -14,17 +14,29 @@ import java.util.logging.Logger;
 public final class PaymentReconciliationJob {
     private static final Logger LOGGER = Logger.getLogger(PaymentReconciliationJob.class.getName());
 
-    public interface Source { List<ReconcileCandidate> findBatch(int limit); }
-    public interface Gateway { PayosGateway.Result query(ReconcileCandidate candidate); }
-    public interface Applier { void apply(ReconcileCandidate candidate, String status, String providerReference); }
-    public interface OrderLocks { AutoCloseable acquire(java.util.UUID orderId) throws Exception; }
+    public interface Source {
+        List<ReconcileCandidate> findBatch(int limit);
+    }
+
+    public interface Gateway {
+        PayosGateway.Result query(ReconcileCandidate candidate);
+    }
+
+    public interface Applier {
+        void apply(ReconcileCandidate candidate, String status, String providerReference);
+    }
+
+    public interface OrderLocks {
+        AutoCloseable acquire(java.util.UUID orderId) throws Exception;
+    }
 
     /** Rows read per run: wide enough that payments still waiting on a retry cannot hide newer ones. */
     private static final int FETCH_FACTOR = 25;
+
     private static final long FIRST_RETRY_NANOS = java.util.concurrent.TimeUnit.MINUTES.toNanos(2);
     private static final long MAX_RETRY_NANOS = java.util.concurrent.TimeUnit.MINUTES.toNanos(30);
 
-    private record Retry(int attempts, long notBeforeNanos) { }
+    private record Retry(int attempts, long notBeforeNanos) {}
 
     private final Source source;
     private final Gateway gateway;
@@ -32,15 +44,22 @@ public final class PaymentReconciliationJob {
     private final OrderLocks locks;
     private final int batchSize;
     private final java.util.function.LongSupplier nanoClock;
+
     /** In-memory only: a restart simply asks the gateway again. */
     private final java.util.Map<java.util.UUID, Retry> retries = new java.util.HashMap<>();
 
-    public PaymentReconciliationJob(Source source, Gateway gateway, Applier applier, OrderLocks locks, int batchSize) {
+    public PaymentReconciliationJob(
+            Source source, Gateway gateway, Applier applier, OrderLocks locks, int batchSize) {
         this(source, gateway, applier, locks, batchSize, System::nanoTime);
     }
 
-    PaymentReconciliationJob(Source source, Gateway gateway, Applier applier, OrderLocks locks, int batchSize,
-                             java.util.function.LongSupplier nanoClock) {
+    PaymentReconciliationJob(
+            Source source,
+            Gateway gateway,
+            Applier applier,
+            OrderLocks locks,
+            int batchSize,
+            java.util.function.LongSupplier nanoClock) {
         this.source = source;
         this.gateway = gateway;
         this.applier = applier;
@@ -75,7 +94,12 @@ public final class PaymentReconciliationJob {
                 }
             } catch (Exception failure) {
                 defer(candidate, retry);
-                LOGGER.log(Level.WARNING, "Payment reconciliation failed for payment " + candidate.paymentId() + "; will retry", failure);
+                LOGGER.log(
+                        Level.WARNING,
+                        "Payment reconciliation failed for payment "
+                                + candidate.paymentId()
+                                + "; will retry",
+                        failure);
             }
         }
         return settled;

@@ -17,10 +17,10 @@ public record PaymentReturnResult(
         String txnRef,
         Optional<UUID> orderId,
         BigDecimal amount,
-        String message
-) {
+        String message) {
     public static PaymentReturnResult invalid(String message) {
-        return new PaymentReturnResult(false, false, "", "", Optional.empty(), BigDecimal.ZERO, message);
+        return new PaymentReturnResult(
+                false, false, "", "", Optional.empty(), BigDecimal.ZERO, message);
     }
 
     public String toJson() {

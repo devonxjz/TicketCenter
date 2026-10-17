@@ -40,9 +40,15 @@ public record CreateHoldRequest(UUID eventId, List<HoldSelection> selections) {
                 normalized.add(selection);
             }
         }
-        standing.forEach((zone, quantity) -> normalized.add(new HoldSelection(zone, null, quantity)));
-        normalized.sort(Comparator.comparing((HoldSelection selection) -> selection.zoneId().toString())
-                .thenComparing(selection -> selection.seatId() == null ? "" : selection.seatId().toString()));
+        standing.forEach(
+                (zone, quantity) -> normalized.add(new HoldSelection(zone, null, quantity)));
+        normalized.sort(
+                Comparator.comparing((HoldSelection selection) -> selection.zoneId().toString())
+                        .thenComparing(
+                                selection ->
+                                        selection.seatId() == null
+                                                ? ""
+                                                : selection.seatId().toString()));
         selections = List.copyOf(normalized);
     }
 

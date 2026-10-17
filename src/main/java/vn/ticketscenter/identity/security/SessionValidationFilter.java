@@ -25,15 +25,16 @@ public final class SessionValidationFilter implements Filter {
 
     private SessionValidator sessionValidator;
 
-    public SessionValidationFilter() {
-    }
+    public SessionValidationFilter() {}
 
     public SessionValidationFilter(SessionValidator sessionValidator) {
         this.sessionValidator = sessionValidator;
     }
 
     private SessionValidator sessionValidator(ServletContext context) {
-        return sessionValidator != null ? sessionValidator : IdentityServices.sessionValidator(context);
+        return sessionValidator != null
+                ? sessionValidator
+                : IdentityServices.sessionValidator(context);
     }
 
     @Override
@@ -48,10 +49,14 @@ public final class SessionValidationFilter implements Filter {
             UserPrincipal principal = principalOpt.get();
             SessionValidator validator = sessionValidator(request.getServletContext());
 
-            if (validator != null && !validator.isSessionValid(principal.actorId(), principal.authVersion())) {
+            if (validator != null
+                    && !validator.isSessionValid(principal.actorId(), principal.authVersion())) {
                 SecurityContext.clearSession(httpRequest);
-                HttpResponses.error(httpResponse, HttpServletResponse.SC_UNAUTHORIZED,
-                        "SESSION_EXPIRED", "Phiên làm việc đã hết hạn hoặc tài khoản đã bị khóa");
+                HttpResponses.error(
+                        httpResponse,
+                        HttpServletResponse.SC_UNAUTHORIZED,
+                        "SESSION_EXPIRED",
+                        "Phiên làm việc đã hết hạn hoặc tài khoản đã bị khóa");
                 return;
             }
         }

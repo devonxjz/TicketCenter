@@ -5,7 +5,7 @@ import vn.ticketscenter.fulfillment.checkin.cache.CheckInScanCache;
 import vn.ticketscenter.fulfillment.checkin.dto.CheckInScanRequestDto;
 import vn.ticketscenter.fulfillment.checkin.dto.CheckInScanResponseDto;
 import vn.ticketscenter.fulfillment.checkin.dto.RecentCheckInLogDto;
-import vn.ticketscenter.fulfillment.checkin.repository.TicketCheckInRepository;
+import vn.ticketscenter.fulfillment.checkin.dao.TicketCheckInRepository;
 import vn.ticketscenter.fulfillment.checkin.security.SignedQrDecoder;
 
 import java.nio.charset.StandardCharsets;
@@ -21,7 +21,8 @@ public class TicketCheckInService {
     private final SignedQrDecoder decoder;
     private final CheckInScanCache cache;
 
-    public TicketCheckInService(TicketCheckInRepository repository, SignedQrDecoder decoder, CheckInScanCache cache) {
+    public TicketCheckInService(
+            TicketCheckInRepository repository, SignedQrDecoder decoder, CheckInScanCache cache) {
         this.repository = Objects.requireNonNull(repository);
         this.decoder = Objects.requireNonNull(decoder);
         this.cache = Objects.requireNonNull(cache);
@@ -30,7 +31,8 @@ public class TicketCheckInService {
     public CheckInScanResponseDto scan(UUID actor, UUID key, CheckInScanRequestDto request) {
         requireActor(actor);
         if (key == null) {
-            throw new CheckInException(400, "IDEMPOTENCY_REQUIRED", "Cần mã yêu cầu để soát vé an toàn.");
+            throw new CheckInException(
+                    400, "IDEMPOTENCY_REQUIRED", "Cần mã yêu cầu để soát vé an toàn.");
         }
 
         UUID ticket = null;
@@ -50,8 +52,16 @@ public class TicketCheckInService {
         String fingerprint = fingerprint(request);
         // Redis reduces contention; SQL owns locking and durable request replay.
         try (var lease = cache.lock(ticket)) {
-            var result = repository.scan(actor, key, request.eventId(), ticket, request.ticketCode(), name,
-                    fingerprint, invalidSignature);
+            var result =
+                    repository.scan(
+                            actor,
+                            key,
+                            request.eventId(),
+                            ticket,
+                            request.ticketCode(),
+                            name,
+                            fingerprint,
+                            invalidSignature);
             cache.completed(actor, key, result);
             return result;
         }
@@ -60,16 +70,23 @@ public class TicketCheckInService {
     public List<RecentCheckInLogDto> recent(UUID actor, UUID event, int limit) {
         requireActor(actor);
         if (limit < 1 || limit > 100) {
-            throw new CheckInException(400, "INVALID_PAGE_SIZE", "Số dòng nhật ký phải từ 1 đến 100.");
+            throw new CheckInException(
+                    400, "INVALID_PAGE_SIZE", "Số dòng nhật ký phải từ 1 đến 100.");
         }
         return repository.recent(actor, event, limit);
     }
 
     private static String fingerprint(CheckInScanRequestDto request) {
-        String input = request.eventId() + "\n" + (request.qrContent() != null
-                ? "QR\n" + request.qrContent() : "CODE\n" + request.ticketCode());
+        String input =
+                request.eventId()
+                        + "\n"
+                        + (request.qrContent() != null
+                                ? "QR\n" + request.qrContent()
+                                : "CODE\n" + request.ticketCode());
         try {
-            byte[] digest = MessageDigest.getInstance("SHA-256").digest(input.getBytes(StandardCharsets.UTF_8));
+            byte[] digest =
+                    MessageDigest.getInstance("SHA-256")
+                            .digest(input.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(digest);
         } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException(exception);
@@ -77,6 +94,7 @@ public class TicketCheckInService {
     }
 
     private static void requireActor(UUID actor) {
-        if (actor == null) throw new CheckInException(401, "UNAUTHENTICATED", "Bạn chưa đăng nhập.");
+        if (actor == null)
+            throw new CheckInException(401, "UNAUTHENTICATED", "Bạn chưa đăng nhập.");
     }
 }

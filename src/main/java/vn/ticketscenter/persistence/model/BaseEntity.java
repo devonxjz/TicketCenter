@@ -36,7 +36,15 @@ public abstract class BaseEntity {
         updatedAt = Instant.now();
     }
 
-    public UUID getId() { return id; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
+    public UUID getId() {
+        return id;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
 }

@@ -29,7 +29,8 @@ import java.util.stream.Stream;
  */
 public class OrganizationRequestIdempotency {
 
-    private static final Logger LOGGER = Logger.getLogger(OrganizationRequestIdempotency.class.getName());
+    private static final Logger LOGGER =
+            Logger.getLogger(OrganizationRequestIdempotency.class.getName());
     private static final int TTL_SECONDS = 86400;
 
     /** The slice of Redis this cache needs. */
@@ -54,21 +55,22 @@ public class OrganizationRequestIdempotency {
         if (provider == null) {
             return none();
         }
-        return new OrganizationRequestIdempotency(new Store() {
-            @Override
-            public String get(String key) {
-                try (var jedis = provider.getResource()) {
-                    return jedis.get(key);
-                }
-            }
+        return new OrganizationRequestIdempotency(
+                new Store() {
+                    @Override
+                    public String get(String key) {
+                        try (var jedis = provider.getResource()) {
+                            return jedis.get(key);
+                        }
+                    }
 
-            @Override
-            public void setex(String key, int seconds, String value) {
-                try (var jedis = provider.getResource()) {
-                    jedis.setex(key, seconds, value);
-                }
-            }
-        });
+                    @Override
+                    public void setex(String key, int seconds, String value) {
+                        try (var jedis = provider.getResource()) {
+                            jedis.setex(key, seconds, value);
+                        }
+                    }
+                });
     }
 
     static OrganizationRequestIdempotency withStore(Store store) {
@@ -97,7 +99,8 @@ public class OrganizationRequestIdempotency {
             Map<String, String> fields = JsonObjectParser.parse(new StringReader(cached));
             String cachedHash = fields.get("payloadHash");
             if (cachedHash != null && !cachedHash.equals(payloadHash)) {
-                throw new IdentityException(IdentityError.IDEMPOTENCY_CONFLICT,
+                throw new IdentityException(
+                        IdentityError.IDEMPOTENCY_CONFLICT,
                         "Idempotency-Key đã được sử dụng với nội dung khác");
             }
             return Optional.ofNullable(deserialize(fields));
@@ -111,22 +114,39 @@ public class OrganizationRequestIdempotency {
 
     public void remember(String key, String payloadHash, OrganizationRequestDetailDto result) {
         try {
-            String entry = "{\"payloadHash\":" + HttpResponses.jsonString(payloadHash) + ","
-                    + result.toJson().substring(1);
+            String entry =
+                    "{\"payloadHash\":"
+                            + HttpResponses.jsonString(payloadHash)
+                            + ","
+                            + result.toJson().substring(1);
             store.setex(key, TTL_SECONDS, entry);
         } catch (Exception failure) {
-            LOGGER.log(Level.WARNING, "Failed to cache idempotency result: " + failure.getMessage());
+            LOGGER.log(
+                    Level.WARNING, "Failed to cache idempotency result: " + failure.getMessage());
         }
     }
 
     /** Identifies a submission by its trimmed content, so only an identical retry replays the result. */
     public static String payloadHash(OrganizationRequestCreateDto dto) {
         try {
-            String normalized = String.join("\n", Stream.of(
-                    dto.name(), dto.contactEmail(), dto.contactPhone(), dto.description(),
-                    dto.eventTitle(), dto.eventDate(), dto.eventStartTime(), dto.eventEndTime(), dto.eventVenue()
-            ).map(value -> value == null ? "" : value.trim()).toList());
-            byte[] hash = MessageDigest.getInstance("SHA-256").digest(normalized.getBytes(StandardCharsets.UTF_8));
+            String normalized =
+                    String.join(
+                            "\n",
+                            Stream.of(
+                                            dto.name(),
+                                            dto.contactEmail(),
+                                            dto.contactPhone(),
+                                            dto.description(),
+                                            dto.eventTitle(),
+                                            dto.eventDate(),
+                                            dto.eventStartTime(),
+                                            dto.eventEndTime(),
+                                            dto.eventVenue())
+                                    .map(value -> value == null ? "" : value.trim())
+                                    .toList());
+            byte[] hash =
+                    MessageDigest.getInstance("SHA-256")
+                            .digest(normalized.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(hash);
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException("SHA-256 algorithm not available", e);
@@ -141,9 +161,13 @@ public class OrganizationRequestIdempotency {
                     fields.get("contactEmail"),
                     nullIfBlank(fields.get("contactPhone")),
                     nullIfBlank(fields.get("description")),
-                    isBlank(fields.get("status")) ? null : OrganizationStatus.valueOf(fields.get("status")),
+                    isBlank(fields.get("status"))
+                            ? null
+                            : OrganizationStatus.valueOf(fields.get("status")),
                     uuid(fields.get("requesterId")),
-                    isBlank(fields.get("submittedAt")) ? null : Instant.parse(fields.get("submittedAt")),
+                    isBlank(fields.get("submittedAt"))
+                            ? null
+                            : Instant.parse(fields.get("submittedAt")),
                     nullIfBlank(fields.get("rejectionReason")));
         } catch (RuntimeException e) {
             LOGGER.log(Level.WARNING, "Failed to deserialize cached detail: " + e.getMessage());

@@ -3,7 +3,7 @@ package vn.ticketscenter.identity.service;
 import jakarta.persistence.EntityManager;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.model.User;
-import vn.ticketscenter.identity.repository.UserRepository;
+import vn.ticketscenter.identity.dao.UserRepository;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -14,7 +14,8 @@ public class AdminGuard {
     private final UserRepository userRepository;
 
     public AdminGuard(UserRepository userRepository) {
-        this.userRepository = Objects.requireNonNull(userRepository, "userRepository must not be null.");
+        this.userRepository =
+                Objects.requireNonNull(userRepository, "userRepository must not be null.");
     }
 
     /**
@@ -23,8 +24,13 @@ public class AdminGuard {
      * @throws SecurityException when the user is not an admin
      */
     public void requireAdmin(EntityManager em, UUID userId, String action) {
-        User user = userRepository.findById(em, userId)
-                .orElseThrow(() -> new IllegalArgumentException("USER_NOT_FOUND: Người dùng không tồn tại"));
+        User user =
+                userRepository
+                        .findById(em, userId)
+                        .orElseThrow(
+                                () ->
+                                        new IllegalArgumentException(
+                                                "USER_NOT_FOUND: Người dùng không tồn tại"));
         if (user.getPlatformRole() != PlatformRole.ADMIN) {
             throw new SecurityException("FORBIDDEN: Chỉ quản trị viên mới có quyền " + action);
         }

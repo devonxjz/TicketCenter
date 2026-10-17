@@ -34,8 +34,7 @@ public final class RouteAccessPolicy {
     private static final String ORGANIZER_APPLICATION = "/organizer/request";
     private static final String CHECK_IN_PREFIX = "/organizer/checkin";
 
-    private RouteAccessPolicy() {
-    }
+    private RouteAccessPolicy() {}
 
     /** @param path the request path relative to the application context, without query string */
     public static Decision decide(UserPrincipal user, String path) {
@@ -62,7 +61,8 @@ public final class RouteAccessPolicy {
         if (user.isCustomerOnly()) {
             return Decision.DENY_ORGANIZER_AREA;
         }
-        if (user.organizationRole() == OrganizationRole.CHECK_IN_STAFF && !path.startsWith(CHECK_IN_PREFIX)) {
+        if (user.organizationRole() == OrganizationRole.CHECK_IN_STAFF
+                && !path.startsWith(CHECK_IN_PREFIX)) {
             return Decision.REDIRECT_TO_CHECK_IN;
         }
         return Decision.ALLOW;

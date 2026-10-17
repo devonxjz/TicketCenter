@@ -7,8 +7,7 @@ import java.util.UUID;
 /** Helpers for UUIDs that appear in a request path. */
 public final class PathIds {
 
-    private PathIds() {
-    }
+    private PathIds() {}
 
     /** The request path relative to the application context. */
     public static String path(HttpServletRequest request) {

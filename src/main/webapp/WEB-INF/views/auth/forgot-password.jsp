@@ -7,8 +7,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quên mật khẩu — TicketsCenter</title>
 
-<jsp:include page="/WEB-INF/views/layout/meta-head.jsp" />
-<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/buyer-ui.css">
+    <jsp:include page="/WEB-INF/views/layout/meta-head.jsp" />
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/buyer-ui.css">
 </head>
 <body class="buyer-page bg-light min-h-screen d-flex flex-column justify-content-between">
     <!-- Header -->
@@ -28,7 +28,8 @@
         <div class="auth-container shadow-sm">
             <!-- Auth Switcher Tabs -->
             <div class="auth-tabs">
-                <a href="${pageContext.request.contextPath}/auth/login" class="auth-tab-btn"><i class="fa-solid fa-arrow-left me-1"></i> Đăng nhập</a>
+                <a href="${pageContext.request.contextPath}/auth/login" class="auth-tab-btn"><i
+                        class="fa-solid fa-arrow-left me-1"></i> Đăng nhập</a>
                 <span class="auth-tab-btn active">Quên mật khẩu</span>
             </div>
 
@@ -48,9 +49,12 @@
                     <div id="stepSend">
                         <div class="mb-3">
                             <label class="filter-label" for="emailInput">Email tài khoản</label>
-                            <input type="email" id="emailInput" class="form-control rounded-0 border-secondary-subtle py-2" placeholder="name@example.com" required autofocus>
+                            <input type="email" id="emailInput"
+                                class="form-control rounded-0 border-secondary-subtle py-2"
+                                placeholder="name@example.com" required autofocus>
                         </div>
-                        <button type="button" id="btnSendOtp" class="btn-primary-custom w-100 py-3 mb-3 fs-6" onclick="handleSendOtp()">
+                        <button type="button" id="btnSendOtp" class="btn-primary-custom w-100 py-3 mb-3 fs-6"
+                            onclick="handleSendOtp()">
                             Gửi mã OTP
                         </button>
                     </div>
@@ -59,20 +63,26 @@
                     <div id="stepVerify" class="d-none mt-4">
                         <div class="mb-3">
                             <label class="filter-label" for="otpCodeInput">Mã OTP (6 chữ số)</label>
-                            <input type="text" id="otpCodeInput" class="form-control rounded-0 border-secondary-subtle py-2 otp-input" maxlength="6" placeholder="000000">
+                            <input type="text" id="otpCodeInput"
+                                class="form-control rounded-0 border-secondary-subtle py-2 otp-input" maxlength="6"
+                                placeholder="000000">
                             <div class="form-text text-muted mt-2">
                                 Không nhận được mã? <span id="cooldownText" class="text-secondary"></span>
-                                <button type="button" id="btnResendOtp" class="btn btn-link btn-sm p-0 text-danger text-decoration-none d-none" onclick="handleSendOtp()">Gửi lại mã</button>
+                                <button type="button" id="btnResendOtp"
+                                    class="btn btn-link btn-sm p-0 text-danger text-decoration-none d-none"
+                                    onclick="handleSendOtp()">Gửi lại mã</button>
                             </div>
                         </div>
-                        <button type="button" id="btnVerifyOtp" class="btn-primary-custom w-100 py-3 mb-3 fs-6" onclick="handleVerifyOtp()">
+                        <button type="button" id="btnVerifyOtp" class="btn-primary-custom w-100 py-3 mb-3 fs-6"
+                            onclick="handleVerifyOtp()">
                             Xác thực mã OTP <i class="fa-solid fa-check ms-1"></i>
                         </button>
                     </div>
                 </form>
 
                 <div class="mt-4 text-center">
-                    <a href="${pageContext.request.contextPath}/auth/login" class="small text-decoration-none text-muted">&larr; Quay lại đăng nhập</a>
+                    <a href="${pageContext.request.contextPath}/auth/login"
+                        class="small text-decoration-none text-muted">&larr; Quay lại đăng nhập</a>
                 </div>
             </div>
         </div>
@@ -103,7 +113,6 @@
             const resendBtn = document.getElementById('btnResendOtp');
             const cooldownText = document.getElementById('cooldownText');
             resendBtn.classList.add('d-none');
-
             if (cooldownTimer) clearInterval(cooldownTimer);
             cooldownTimer = setInterval(() => {
                 if (remainingCooldown <= 0) {
@@ -116,18 +125,15 @@
                 }
             }, 1000);
         }
-
         async function handleSendOtp() {
             const email = document.getElementById('emailInput').value.trim();
             if (!email) {
                 showAlert('danger', 'Vui lòng nhập địa chỉ email hợp lệ.');
                 return;
             }
-
             const btnSend = document.getElementById('btnSendOtp');
             btnSend.disabled = true;
             btnSend.innerText = 'Đang gửi...';
-
             try {
                 const resp = await fetch(contextPath + '/api/auth/otp/send', {
                     method: 'POST',
@@ -135,12 +141,15 @@
                         'Content-Type': 'application/json',
                         'X-CSRF-Token': csrfToken
                     },
-                    body: JSON.stringify({ email: email, purpose: 'RESET_PASSWORD' })
+                    body: JSON.stringify({
+                        email: email,
+                        purpose: 'RESET_PASSWORD'
+                    })
                 });
                 const data = await resp.json();
-
                 if (resp.ok) {
-                    showAlert('success', 'Mã OTP đã được gửi đến email (nếu tài khoản tồn tại). Vui lòng kiểm tra hộp thư.');
+                    showAlert('success',
+                    'Mã OTP đã được gửi đến email (nếu tài khoản tồn tại). Vui lòng kiểm tra hộp thư.');
                     document.getElementById('stepVerify').classList.remove('d-none');
                     startCooldown(60);
                 } else {
@@ -153,7 +162,6 @@
                 btnSend.innerText = 'Gửi mã OTP';
             }
         }
-
         async function handleVerifyOtp() {
             const email = document.getElementById('emailInput').value.trim();
             const code = document.getElementById('otpCodeInput').value.trim();
@@ -161,11 +169,9 @@
                 showAlert('danger', 'Vui lòng nhập đúng 6 chữ số OTP.');
                 return;
             }
-
             const btnVerify = document.getElementById('btnVerifyOtp');
             btnVerify.disabled = true;
             btnVerify.innerText = 'Đang xác thực...';
-
             try {
                 const resp = await fetch(contextPath + '/api/auth/otp/verify', {
                     method: 'POST',
@@ -173,14 +179,18 @@
                         'Content-Type': 'application/json',
                         'X-CSRF-Token': csrfToken
                     },
-                    body: JSON.stringify({ email: email, purpose: 'RESET_PASSWORD', code: code })
+                    body: JSON.stringify({
+                        email: email,
+                        purpose: 'RESET_PASSWORD',
+                        code: code
+                    })
                 });
                 const res = await resp.json();
-
                 if (resp.ok && res.data && res.data.resetToken) {
                     showAlert('success', 'Xác thực OTP thành công! Đang chuyển hướng đặt lại mật khẩu...');
                     setTimeout(() => {
-                        window.location.href = contextPath + '/auth/reset-password?token=' + encodeURIComponent(res.data.resetToken);
+                        window.location.href = contextPath + '/auth/reset-password?token=' + encodeURIComponent(res
+                            .data.resetToken);
                     }, 1000);
                 } else {
                     showAlert('danger', (res.error && res.error.message) || 'Mã OTP không hợp lệ hoặc đã hết hạn.');

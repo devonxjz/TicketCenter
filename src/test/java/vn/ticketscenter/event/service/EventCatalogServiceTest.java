@@ -3,7 +3,7 @@ package vn.ticketscenter.event.service;
 import org.junit.jupiter.api.Test;
 import vn.ticketscenter.event.cache.EventCatalogCache;
 import vn.ticketscenter.event.dto.*;
-import vn.ticketscenter.event.repository.EventCatalogRepository;
+import vn.ticketscenter.event.dao.EventCatalogRepository;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.*;

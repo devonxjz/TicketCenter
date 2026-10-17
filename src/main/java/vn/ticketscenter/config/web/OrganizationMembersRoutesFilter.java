@@ -11,7 +11,8 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import java.io.IOException;
 
-@WebFilter(filterName = "OrganizationMembersRoutesFilter",
+@WebFilter(
+        filterName = "OrganizationMembersRoutesFilter",
         urlPatterns = "/api/organizations/*",
         dispatcherTypes = DispatcherType.REQUEST)
 public final class OrganizationMembersRoutesFilter implements Filter {
@@ -23,7 +24,8 @@ public final class OrganizationMembersRoutesFilter implements Filter {
         String path = http.getRequestURI().substring(http.getContextPath().length());
 
         if (path.matches("^/api/organizations/[^/]+/members(?:/.*)?$")) {
-            var dispatcher = request.getServletContext().getNamedDispatcher("OrganizationMembersServlet");
+            var dispatcher =
+                    request.getServletContext().getNamedDispatcher("OrganizationMembersServlet");
             if (dispatcher != null) {
                 dispatcher.forward(request, response);
                 return;

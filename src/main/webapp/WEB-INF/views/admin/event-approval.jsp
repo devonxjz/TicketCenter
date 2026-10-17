@@ -1,10 +1,103 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<!DOCTYPE html><html lang="vi"><head><title>Thẩm định sự kiện | TicketsCenter</title><jsp:include page="/WEB-INF/views/layout/meta-head.jsp" /><style>[hidden]{display:none!important}#review{scroll-margin-top:100px}</style><link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/admin-ui.css"></head>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <title>Thẩm định sự kiện | TicketsCenter</title>
+    <jsp:include page="/WEB-INF/views/layout/meta-head.jsp" />
+    <style>
+        [hidden] {
+            display: none !important
+        }
+
+        #review {
+            scroll-margin-top: 100px
+        }
+    </style>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/admin-ui.css">
+</head>
 <body class="admin-workspace" data-context="${pageContext.request.contextPath}" data-dong-page="review">
-<a class="portal-skip" href="#main-content">Đến nội dung chính</a><jsp:include page="/WEB-INF/views/layout/admin-navbar.jsp" />
-<div class="dashboard-layout"><jsp:include page="/WEB-INF/views/layout/admin-sidebar.jsp"><jsp:param name="active" value="event-approval" /></jsp:include>
-<main class="dashboard-content" id="main-content"><div class="page-heading"><h1 class="h2 fw-bold">Thẩm định sự kiện</h1><p class="text-muted">Kiểm tra hồ sơ, ảnh, lịch và tồn kho trước khi công khai.</p></div><form id="filters" method="post" class="d-flex flex-wrap align-items-end gap-3 mb-4"><div><label for="filter-status" class="form-label">Trạng thái</label><select id="filter-status" class="form-select"><option value="PENDING_APPROVAL">Chờ duyệt</option><option value="PUBLISHED">Đã công khai</option><option value="REJECTED">Bị từ chối</option><option value="DRAFT">Bản nháp</option><option value="CANCELLED">Đã hủy</option></select></div><button class="btn btn-dark">Lọc hồ sơ</button></form><p id="status" role="status" aria-live="polite">Đang tải…</p>
-<div class="table-responsive"><table class="table align-middle"><thead><tr><th>Sự kiện</th><th>Tổ chức</th><th>Trạng thái</th><th>Thời gian</th><th>Thao tác</th></tr></thead><tbody id="events"></tbody></table></div><nav class="d-flex justify-content-center align-items-center gap-3 my-4" aria-label="Phân trang"><button id="previous" class="btn btn-outline-dark" disabled>Trang trước</button><span id="page-label"></span><button id="next" class="btn btn-outline-dark" disabled>Trang sau</button></nav>
-<section id="review" class="border rounded p-4" aria-labelledby="review-title" aria-busy="false" hidden><div class="d-flex justify-content-between align-items-start gap-3 mb-3"><h2 id="review-title" class="h3 mb-0" tabindex="-1"></h2><button id="review-close" type="button" class="btn btn-outline-dark btn-sm">Đóng hồ sơ</button></div><p id="review-notice" role="status" aria-live="polite"></p><button id="review-retry" type="button" class="btn btn-outline-dark mb-3" hidden>Thử lại</button><div id="review-content" hidden><p id="review-summary" class="text-muted"></p><p id="review-schedule" style="white-space:pre-wrap"></p><img id="review-cover" alt="Ảnh sự kiện cần duyệt" class="mb-3" style="max-width:100%;max-height:260px" hidden><p id="review-description" style="white-space:pre-wrap"></p><p id="review-rejection" class="text-danger"></p><h3 class="h5">Tồn kho và sơ đồ ghế</h3><div id="review-zones"></div>
-<div class="row g-4 border-top pt-4"><div class="col-md-6"><label for="rule" class="form-label fw-bold">Chính sách hoa hồng</label><select id="rule" class="form-select"></select><p id="rule-note" class="small text-muted mt-2"></p><button type="button" id="publish" class="btn btn-dark" disabled>Phê duyệt và công khai</button></div><div class="col-md-6"><label for="reason" class="form-label fw-bold">Lý do từ chối</label><textarea id="reason" class="form-control mb-3" minlength="10" maxlength="500" rows="3" placeholder="Nêu rõ nội dung cần bổ sung (10–500 ký tự)"></textarea><button type="button" id="reject" class="btn btn-outline-danger" disabled>Từ chối hồ sơ</button></div></div>
-</div></section></main></div><jsp:include page="/WEB-INF/views/layout/footer.jsp" /><script defer src="${pageContext.request.contextPath}/assets/js/admin-notifications.js"></script><script defer src="${pageContext.request.contextPath}/assets/js/dong-events.js?v=review-opening-20261014"></script></body></html>
+    <a class="portal-skip" href="#main-content">Đến nội dung chính</a>
+    <jsp:include page="/WEB-INF/views/layout/admin-navbar.jsp" />
+    <div class="dashboard-layout">
+        <jsp:include page="/WEB-INF/views/layout/admin-sidebar.jsp">
+            <jsp:param name="active" value="event-approval" />
+        </jsp:include>
+        <main class="dashboard-content" id="main-content">
+            <div class="page-heading">
+                <h1 class="h2 fw-bold">Thẩm định sự kiện</h1>
+                <p class="text-muted">Kiểm tra hồ sơ, ảnh, lịch và tồn kho trước khi công khai.</p>
+            </div>
+            <form id="filters" method="post" class="d-flex flex-wrap align-items-end gap-3 mb-4">
+                <div>
+                    <label for="filter-status" class="form-label">Trạng thái</label>
+                    <select id="filter-status" class="form-select">
+                        <option value="PENDING_APPROVAL">Chờ duyệt</option>
+                        <option value="PUBLISHED">Đã công khai</option>
+                        <option value="REJECTED">Bị từ chối</option>
+                        <option value="DRAFT">Bản nháp</option>
+                        <option value="CANCELLED">Đã hủy</option>
+                    </select>
+                </div>
+                <button class="btn btn-dark">Lọc hồ sơ</button>
+            </form>
+            <p id="status" role="status" aria-live="polite">Đang tải…</p>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Sự kiện</th>
+                            <th>Tổ chức</th>
+                            <th>Trạng thái</th>
+                            <th>Thời gian</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="events"></tbody>
+                </table>
+            </div>
+            <nav class="d-flex justify-content-center align-items-center gap-3 my-4" aria-label="Phân trang">
+                <button id="previous" class="btn btn-outline-dark" disabled>Trang trước</button>
+                <span id="page-label"></span>
+                <button id="next" class="btn btn-outline-dark" disabled>Trang sau</button>
+            </nav>
+            <section id="review" class="border rounded p-4" aria-labelledby="review-title" aria-busy="false" hidden>
+                <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                    <h2 id="review-title" class="h3 mb-0" tabindex="-1"></h2>
+                    <button id="review-close" type="button" class="btn btn-outline-dark btn-sm">Đóng hồ sơ</button>
+                </div>
+                <p id="review-notice" role="status" aria-live="polite"></p>
+                <button id="review-retry" type="button" class="btn btn-outline-dark mb-3" hidden>Thử lại</button>
+                <div id="review-content" hidden>
+                    <p id="review-summary" class="text-muted"></p>
+                    <p id="review-schedule" style="white-space:pre-wrap"></p>
+                    <img id="review-cover" alt="Ảnh sự kiện cần duyệt" class="mb-3"
+                        style="max-width:100%;max-height:260px" hidden>
+                    <p id="review-description" style="white-space:pre-wrap"></p>
+                    <p id="review-rejection" class="text-danger"></p>
+                    <h3 class="h5">Tồn kho và sơ đồ ghế</h3>
+                    <div id="review-zones"></div>
+                    <div class="row g-4 border-top pt-4">
+                        <div class="col-md-6">
+                            <label for="rule" class="form-label fw-bold">Chính sách hoa hồng</label>
+                            <select id="rule" class="form-select"></select>
+                            <p id="rule-note" class="small text-muted mt-2"></p>
+                            <button type="button" id="publish" class="btn btn-dark" disabled>Phê duyệt và công
+                                khai</button>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="reason" class="form-label fw-bold">Lý do từ chối</label>
+                            <textarea id="reason" class="form-control mb-3" minlength="10" maxlength="500" rows="3"
+                                placeholder="Nêu rõ nội dung cần bổ sung (10–500 ký tự)"></textarea><button
+                                type="button" id="reject" class="btn btn-outline-danger" disabled>Từ chối hồ sơ</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <jsp:include page="/WEB-INF/views/layout/footer.jsp" />
+    <script defer src="${pageContext.request.contextPath}/assets/js/admin-notifications.js"></script>
+    <script defer
+        src="${pageContext.request.contextPath}/assets/js/dong-events.js?v=review-opening-20261014"></script>
+</body>
+</html>

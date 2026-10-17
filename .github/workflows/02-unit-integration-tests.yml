@@ -211,7 +211,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -f src/test/java/vn/ticketscenter/settlement/repository/FinanceRepositoryIntegrationTest.java
+          test -f src/test/java/vn/ticketscenter/settlement/dao/FinanceRepositoryIntegrationTest.java
           test -f src/test/java/vn/ticketscenter/report/integration/ReadsideDatabaseIntegrationTest.java
           test -f src/test/java/vn/ticketscenter/audit/repository/AuditDatabaseScopeIntegrationTest.java
           database="TC_Vuong_Test_CI_${GITHUB_RUN_ID}"
@@ -225,7 +225,7 @@ jobs:
             -Dtest='FinanceRepositoryIntegrationTest,ReadsideDatabaseIntegrationTest,AuditDatabaseScopeIntegrationTest'
       - name: Require actual executed DB cases without skips
         if: always()
-        run: node src/test/scripts/test-report-summary.cjs target/surefire-reports --require-no-skips --require-suite=vn.ticketscenter.settlement.repository.FinanceRepositoryIntegrationTest --require-suite=vn.ticketscenter.report.integration.ReadsideDatabaseIntegrationTest --require-suite=vn.ticketscenter.audit.repository.AuditDatabaseScopeIntegrationTest --summary="$GITHUB_STEP_SUMMARY"
+        run: node src/test/scripts/test-report-summary.cjs target/surefire-reports --require-no-skips --require-suite=vn.ticketscenter.settlement.dao.FinanceRepositoryIntegrationTest --require-suite=vn.ticketscenter.report.integration.ReadsideDatabaseIntegrationTest --require-suite=vn.ticketscenter.audit.repository.AuditDatabaseScopeIntegrationTest --summary="$GITHUB_STEP_SUMMARY"
       - name: Initialize schema-only team snapshot in a second disposable database
         shell: bash
         run: |
@@ -253,7 +253,7 @@ jobs:
             -Dtest=FinanceTeamSchemaIntegrationTest
       - name: Require actual team-schema cases without skips
         if: always()
-        run: node src/test/scripts/test-report-summary.cjs target/surefire-reports --require-no-skips --require-suite=vn.ticketscenter.settlement.repository.FinanceTeamSchemaIntegrationTest --summary="$GITHUB_STEP_SUMMARY"
+        run: node src/test/scripts/test-report-summary.cjs target/surefire-reports --require-no-skips --require-suite=vn.ticketscenter.settlement.dao.FinanceTeamSchemaIntegrationTest --summary="$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

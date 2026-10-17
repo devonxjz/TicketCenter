@@ -1,3 +1,6 @@
 package vn.ticketscenter.identity.model;
 
-public enum UserStatus { ACTIVE, DISABLED }
+public enum UserStatus {
+    ACTIVE,
+    DISABLED
+}

@@ -2,9 +2,7 @@ package vn.ticketscenter.identity.dto;
 
 import vn.ticketscenter.identity.model.OrganizationRole;
 
-public record ChangeMemberRoleRequestDto(
-        OrganizationRole role
-) {
+public record ChangeMemberRoleRequestDto(OrganizationRole role) {
     public void validate() {
         if (role == null) {
             throw new IllegalArgumentException(

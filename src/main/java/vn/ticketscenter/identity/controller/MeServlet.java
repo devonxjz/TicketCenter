@@ -37,8 +37,11 @@ public class MeServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         Optional<UserPrincipal> principalOpt = SecurityContext.getCurrentUser(req);
         if (principalOpt.isEmpty()) {
-            HttpResponses.error(resp, HttpServletResponse.SC_UNAUTHORIZED,
-                    "UNAUTHENTICATED", "Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn");
+            HttpResponses.error(
+                    resp,
+                    HttpServletResponse.SC_UNAUTHORIZED,
+                    "UNAUTHENTICATED",
+                    "Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn");
             return;
         }
 
@@ -51,8 +54,11 @@ public class MeServlet extends HttpServlet {
         CurrentUserDto user = service.getCurrentUser(principalOpt.get().actorId());
         if (user == null) {
             SecurityContext.clearSession(req);
-            HttpResponses.error(resp, HttpServletResponse.SC_UNAUTHORIZED,
-                    "UNAUTHENTICATED", "Tài khoản không tồn tại hoặc đã bị xóa");
+            HttpResponses.error(
+                    resp,
+                    HttpServletResponse.SC_UNAUTHORIZED,
+                    "UNAUTHENTICATED",
+                    "Tài khoản không tồn tại hoặc đã bị xóa");
             return;
         }
 

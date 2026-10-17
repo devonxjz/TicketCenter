@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 import vn.ticketscenter.event.*;
 import vn.ticketscenter.event.dto.*;
 import vn.ticketscenter.event.image.EventImagePlaceholders;
-import vn.ticketscenter.event.repository.EventRepository;
+import vn.ticketscenter.event.dao.EventRepository;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.storage.*;
@@ -386,7 +386,7 @@ class EventServiceTest {
         var repository=new Repository();var storage=new Storage();
         var leases=new vn.ticketscenter.event.cache.EventIdempotencyStore(){
             public Lease acquire(String key,String hash){throw EventProblem.unavailable();}
-            public void completed(Lease lease,String hash,vn.ticketscenter.event.repository.EventManagementRepository.Result result){fail();}
+            public void completed(Lease lease,String hash,vn.ticketscenter.event.dao.EventManagementRepository.Result result){fail();}
             public void release(Lease lease){fail();}
         };
         assertEquals(503,assertThrows(EventProblem.class,()->new EventService(repository,storage,leases).save(ACTOR,new EventSave(UUID.randomUUID(),EventSave.Kind.EDIT,EVENT,0,FIELDS,null))).status());
@@ -396,7 +396,7 @@ class EventServiceTest {
         var repository=new Repository();var storage=new Storage();var calls=new ArrayList<String>();
         var leases=new vn.ticketscenter.event.cache.EventIdempotencyStore(){
             public Lease acquire(String key,String hash){calls.add("acquire");return new Lease(key,"lease");}
-            public void completed(Lease lease,String hash,vn.ticketscenter.event.repository.EventManagementRepository.Result result){assertEquals(1,repository.finalizes);calls.add("completed");throw new IllegalStateException("Redis lost after commit");}
+            public void completed(Lease lease,String hash,vn.ticketscenter.event.dao.EventManagementRepository.Result result){assertEquals(1,repository.finalizes);calls.add("completed");throw new IllegalStateException("Redis lost after commit");}
             public void release(Lease lease){calls.add("release");}
         };
         assertEquals(repository.saved,new EventService(repository,storage,leases).save(ACTOR,new EventSave(UUID.randomUUID(),EventSave.Kind.EDIT,EVENT,0,FIELDS,null)));

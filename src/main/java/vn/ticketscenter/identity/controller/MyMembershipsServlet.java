@@ -44,33 +44,53 @@ public class MyMembershipsServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         Optional<UserPrincipal> principalOpt = SecurityContext.getCurrentUser(req);
         if (principalOpt.isEmpty()) {
-            HttpResponses.error(resp, HttpServletResponse.SC_UNAUTHORIZED,
-                    "UNAUTHENTICATED", "Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn");
+            HttpResponses.error(
+                    resp,
+                    HttpServletResponse.SC_UNAUTHORIZED,
+                    "UNAUTHENTICATED",
+                    "Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn");
             return;
         }
 
         OrganizationMembershipService service = getService(req.getServletContext());
         if (service == null) {
-            HttpResponses.error(resp, HttpServletResponse.SC_SERVICE_UNAVAILABLE,
-                    "DATABASE_UNAVAILABLE", "Hệ thống cơ sở dữ liệu chưa sẵn sàng");
+            HttpResponses.error(
+                    resp,
+                    HttpServletResponse.SC_SERVICE_UNAVAILABLE,
+                    "DATABASE_UNAVAILABLE",
+                    "Hệ thống cơ sở dữ liệu chưa sẵn sàng");
             return;
         }
 
         try {
-            List<MembershipSummaryDto> memberships = service.getMyMemberships(principalOpt.get().actorId());
-            String json = memberships.stream()
-                    .map(m -> "{\"organizationId\":" + HttpResponses.jsonString(m.organizationId().toString())
-                            + ",\"organizationName\":" + HttpResponses.jsonString(m.organizationName())
-                            + ",\"role\":" + HttpResponses.jsonString(m.role().name())
-                            + ",\"isActive\":" + m.isActive() + "}")
-                    .collect(Collectors.joining(",", "[", "]"));
+            List<MembershipSummaryDto> memberships =
+                    service.getMyMemberships(principalOpt.get().actorId());
+            String json =
+                    memberships.stream()
+                            .map(
+                                    m ->
+                                            "{\"organizationId\":"
+                                                    + HttpResponses.jsonString(
+                                                            m.organizationId().toString())
+                                                    + ",\"organizationName\":"
+                                                    + HttpResponses.jsonString(m.organizationName())
+                                                    + ",\"role\":"
+                                                    + HttpResponses.jsonString(m.role().name())
+                                                    + ",\"isActive\":"
+                                                    + m.isActive()
+                                                    + "}")
+                            .collect(Collectors.joining(",", "[", "]"));
             HttpResponses.data(resp, json);
         } catch (IllegalArgumentException ex) {
-            HttpResponses.error(resp, HttpServletResponse.SC_BAD_REQUEST, "BAD_REQUEST", ex.getMessage());
+            HttpResponses.error(
+                    resp, HttpServletResponse.SC_BAD_REQUEST, "BAD_REQUEST", ex.getMessage());
         } catch (Exception ex) {
             LOGGER.log(Level.SEVERE, "Membership request failed", ex);
-            HttpResponses.error(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    "SERVER_ERROR", "Đã xảy ra lỗi hệ thống.");
+            HttpResponses.error(
+                    resp,
+                    HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "SERVER_ERROR",
+                    "Đã xảy ra lỗi hệ thống.");
         }
     }
 }

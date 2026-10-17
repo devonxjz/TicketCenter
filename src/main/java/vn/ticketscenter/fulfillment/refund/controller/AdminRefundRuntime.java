@@ -2,7 +2,7 @@ package vn.ticketscenter.fulfillment.refund.controller;
 
 import jakarta.servlet.ServletContext;
 import vn.ticketscenter.config.persistence.*;
-import vn.ticketscenter.fulfillment.refund.repository.AdminRefundRepository;
+import vn.ticketscenter.fulfillment.refund.dao.AdminRefundRepository;
 import vn.ticketscenter.fulfillment.refund.service.*;
 
 public final class AdminRefundRuntime {

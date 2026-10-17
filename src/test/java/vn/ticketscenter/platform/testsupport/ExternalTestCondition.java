@@ -12,7 +12,7 @@ import java.util.function.Function;
 public final class ExternalTestCondition implements ExecutionCondition {
     private static final String IDENTITY = "vn.ticketscenter.identity.";
     private static final Set<String> DB_CLASSES = Set.of(
-            IDENTITY + "repository.OtpRepositoryTest",
+            IDENTITY + "dao.OtpRepositoryTest",
             IDENTITY + "service.OtpServiceTest",
             IDENTITY + "service.PasswordResetServiceTest");
 
@@ -22,7 +22,7 @@ public final class ExternalTestCondition implements ExecutionCondition {
         String method = context.getTestMethod().map(java.lang.reflect.Method::getName).orElse("");
         boolean db = context.getTags().contains("db") || DB_CLASSES.contains(className)
                 || className.endsWith("IT")
-                || (className.equals(IDENTITY + "repository.OrganizationRepositoryTest") && method.equals("testRepositoryIntegration"))
+                || (className.equals(IDENTITY + "dao.OrganizationRepositoryTest") && method.equals("testRepositoryIntegration"))
                 || (className.equals(IDENTITY + "service.AuthFlowTest") && method.equals("testFullAuthFlowWithDatabase"))
                 || (className.equals("vn.ticketscenter.config.persistence.JpaConnectionTest")
                     && Set.of("testDatabaseConnectivity", "testPersistenceRegistry").contains(method));

@@ -18,18 +18,26 @@ public record OrganizationRequestSummaryDto(
         String contactPhone,
         UUID requesterId,
         String requesterName,
-        String description
-) {
+        String description) {
     public OrganizationRequestSummaryDto(
             UUID organizationId,
             String name,
             String contactEmail,
             OrganizationStatus status,
             Instant submittedAt,
-            String rejectionReason
-    ) {
-        this(organizationId, name, contactEmail, status, submittedAt, rejectionReason, contactEmail,
-                null, null, null, null);
+            String rejectionReason) {
+        this(
+                organizationId,
+                name,
+                contactEmail,
+                status,
+                submittedAt,
+                rejectionReason,
+                contactEmail,
+                null,
+                null,
+                null,
+                null);
     }
 
     public OrganizationRequestSummaryDto(
@@ -39,21 +47,35 @@ public record OrganizationRequestSummaryDto(
             OrganizationStatus status,
             Instant submittedAt,
             String rejectionReason,
-            String requesterEmail
-    ) {
-        this(organizationId, name, contactEmail, status, submittedAt, rejectionReason, requesterEmail,
-                null, null, null, null);
+            String requesterEmail) {
+        this(
+                organizationId,
+                name,
+                contactEmail,
+                status,
+                submittedAt,
+                rejectionReason,
+                requesterEmail,
+                null,
+                null,
+                null,
+                null);
     }
 
     public static OrganizationRequestSummaryDto from(Organization organization) {
         if (organization == null) {
             return null;
         }
-        String reqEmail = organization.getRequester() != null
-                ? organization.getRequester().getEmail()
-                : organization.getContactEmail();
-        UUID reqId = organization.getRequester() != null ? organization.getRequester().getId() : null;
-        String reqName = organization.getRequester() != null ? organization.getRequester().getFullName() : null;
+        String reqEmail =
+                organization.getRequester() != null
+                        ? organization.getRequester().getEmail()
+                        : organization.getContactEmail();
+        UUID reqId =
+                organization.getRequester() != null ? organization.getRequester().getId() : null;
+        String reqName =
+                organization.getRequester() != null
+                        ? organization.getRequester().getFullName()
+                        : null;
         return new OrganizationRequestSummaryDto(
                 organization.getId(),
                 organization.getName(),
@@ -65,31 +87,49 @@ public record OrganizationRequestSummaryDto(
                 organization.getContactPhone(),
                 reqId,
                 reqName,
-                organization.getDescription()
-        );
+                organization.getDescription());
     }
 
-    public String eventTitle() { return OrganizationRequestDetailDto.parseTag(description, "Event"); }
-    public String eventDate() { return OrganizationRequestDetailDto.parseTag(description, "Date"); }
-    public String eventVenue() { return OrganizationRequestDetailDto.parseTag(description, "Venue"); }
+    public String eventTitle() {
+        return OrganizationRequestDetailDto.parseTag(description, "Event");
+    }
+
+    public String eventDate() {
+        return OrganizationRequestDetailDto.parseTag(description, "Date");
+    }
+
+    public String eventVenue() {
+        return OrganizationRequestDetailDto.parseTag(description, "Venue");
+    }
 
     public String toJson() {
         StringBuilder sb = new StringBuilder("{");
-        sb.append("\"organizationId\":").append(json(organizationId))
-          .append(",\"name\":").append(json(name))
-          .append(",\"contactEmail\":").append(json(contactEmail))
-          .append(",\"contactPhone\":").append(json(contactPhone))
-          .append(",\"requesterEmail\":").append(json(requesterEmail));
+        sb.append("\"organizationId\":")
+                .append(json(organizationId))
+                .append(",\"name\":")
+                .append(json(name))
+                .append(",\"contactEmail\":")
+                .append(json(contactEmail))
+                .append(",\"contactPhone\":")
+                .append(json(contactPhone))
+                .append(",\"requesterEmail\":")
+                .append(json(requesterEmail));
         if (requesterId != null || requesterName != null || requesterEmail != null) {
             sb.append(",\"requester\":{")
-              .append("\"userId\":").append(json(requesterId))
-              .append(",\"fullName\":").append(json(requesterName))
-              .append(",\"email\":").append(json(requesterEmail))
-              .append("}");
+                    .append("\"userId\":")
+                    .append(json(requesterId))
+                    .append(",\"fullName\":")
+                    .append(json(requesterName))
+                    .append(",\"email\":")
+                    .append(json(requesterEmail))
+                    .append("}");
         }
-        sb.append(",\"status\":").append(json(status))
-          .append(",\"submittedAt\":").append(json(submittedAt))
-          .append(",\"rejectionReason\":").append(json(rejectionReason));
+        sb.append(",\"status\":")
+                .append(json(status))
+                .append(",\"submittedAt\":")
+                .append(json(submittedAt))
+                .append(",\"rejectionReason\":")
+                .append(json(rejectionReason));
         if (description != null) {
             sb.append(",\"description\":").append(HttpResponses.jsonString(description));
         }

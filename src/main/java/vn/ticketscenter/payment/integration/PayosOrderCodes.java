@@ -12,18 +12,23 @@ public final class PayosOrderCodes {
     private static final String PREFIX = "PAY-";
     private static final int HEX_DIGITS = 13;
 
-    private PayosOrderCodes() { }
+    private PayosOrderCodes() {}
 
     public static long fromTxnRef(String txnRef) {
-        if (txnRef == null || !txnRef.startsWith(PREFIX) || txnRef.length() < PREFIX.length() + HEX_DIGITS) {
-            throw new IllegalArgumentException("txnRef is not a payOS-compatible payment reference");
+        if (txnRef == null
+                || !txnRef.startsWith(PREFIX)
+                || txnRef.length() < PREFIX.length() + HEX_DIGITS) {
+            throw new IllegalArgumentException(
+                    "txnRef is not a payOS-compatible payment reference");
         }
         String hex = txnRef.substring(PREFIX.length(), PREFIX.length() + HEX_DIGITS);
         if (!hex.matches("[0-9A-Fa-f]{" + HEX_DIGITS + "}")) {
-            throw new IllegalArgumentException("txnRef is not a payOS-compatible payment reference");
+            throw new IllegalArgumentException(
+                    "txnRef is not a payOS-compatible payment reference");
         }
         long code = Long.parseLong(hex, 16);
-        if (code <= 0) throw new IllegalArgumentException("txnRef maps to an invalid payOS order code");
+        if (code <= 0)
+            throw new IllegalArgumentException("txnRef maps to an invalid payOS order code");
         return code;
     }
 

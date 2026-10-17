@@ -14,7 +14,13 @@ public final class RedisPaymentIdempotency {
     public static final Duration DEFAULT_RETENTION = Duration.ofMinutes(10);
     public static final Duration LOCK_TIMEOUT = Duration.ofSeconds(5);
 
-    private static final String COMPLETE_LUA = """
+    // KEYS[1]: key Redis cần cập nhật.
+    // ARGV[1]: mã đánh dấu yêu cầu đang xử lý, tức pendingMarker.
+    // ARGV[2]: kết quả muốn lưu.
+    // ARGV[3]: thời gian tồn tại của kết quả, tính bằng mili giây.
+
+    private static final String COMPLETE_LUA =
+            """
             if redis.call('GET', KEYS[1]) ~= ARGV[1] then return 0 end
             redis.call('PSETEX', KEYS[1], ARGV[3], ARGV[2])
             return 1
@@ -52,11 +58,15 @@ public final class RedisPaymentIdempotency {
         return new RedisPaymentIdempotency();
     }
 
-    public sealed interface Result permits Acquired, InProgress, Replay, Conflict { }
-    public record Acquired(Claim claim) implements Result { }
-    public record InProgress() implements Result { }
-    public record Replay(String cachedBody) implements Result { }
-    public record Conflict() implements Result { }
+    public sealed interface Result permits Acquired, InProgress, Replay, Conflict {}
+
+    public record Acquired(Claim claim) implements Result {}
+
+    public record InProgress() implements Result {}
+
+    public record Replay(String cachedBody) implements Result {}
+
+    public record Conflict() implements Result {}
 
     public static final class Claim {
         private final String redisKey;
@@ -65,8 +75,12 @@ public final class RedisPaymentIdempotency {
         private final Supplier<Jedis> connections;
         private final ConcurrentMap<String, MemoryRecord> memoryStore;
 
-        private Claim(String redisKey, String requestHash, String pendingMarker,
-                      Supplier<Jedis> connections, ConcurrentMap<String, MemoryRecord> memoryStore) {
+        private Claim(
+                String redisKey,
+                String requestHash,
+                String pendingMarker,
+                Supplier<Jedis> connections,
+                ConcurrentMap<String, MemoryRecord> memoryStore) {
             this.redisKey = redisKey;
             this.requestHash = requestHash;
             this.pendingMarker = pendingMarker;
@@ -76,34 +90,48 @@ public final class RedisPaymentIdempotency {
 
         public boolean complete(String responseBody, Duration retention) {
             Objects.requireNonNull(responseBody, "responseBody is required");
-            long ttlMs = Math.max(1000, (retention != null ? retention : DEFAULT_RETENTION).toMillis());
+            long ttlMs =
+                    Math.max(1000, (retention != null ? retention : DEFAULT_RETENTION).toMillis());
             String storedValue = "COMPLETED|" + requestHash + "|" + responseBody;
             if (connections == null) {
                 long now = System.currentTimeMillis();
                 boolean[] completed = new boolean[1];
-                memoryStore.compute(redisKey, (k, existing) -> {
-                    if (existing != null && !existing.isExpired(now) && pendingMarker.equals(existing.value())) {
-                        completed[0] = true;
-                        return new MemoryRecord(storedValue, now + ttlMs);
-                    }
-                    return existing;
-                });
+                memoryStore.compute(
+                        redisKey,
+                        (k, existing) -> {
+                            if (existing != null
+                                    && !existing.isExpired(now)
+                                    && pendingMarker.equals(existing.value())) {
+                                completed[0] = true;
+                                return new MemoryRecord(storedValue, now + ttlMs);
+                            }
+                            return existing;
+                        });
                 return completed[0];
             }
             try (Jedis client = connections.get()) {
-                Object result = client.eval(COMPLETE_LUA, 1, redisKey, pendingMarker, storedValue, String.valueOf(ttlMs));
+                Object result =
+                        client.eval(
+                                COMPLETE_LUA,
+                                1,
+                                redisKey,
+                                pendingMarker,
+                                storedValue,
+                                String.valueOf(ttlMs));
                 return Long.valueOf(1).equals(result);
             }
         }
 
         public void cancel() {
             if (connections == null) {
-                memoryStore.computeIfPresent(redisKey, (k, existing) -> {
-                    if (pendingMarker.equals(existing.value())) {
-                        return null;
-                    }
-                    return existing;
-                });
+                memoryStore.computeIfPresent(
+                        redisKey,
+                        (k, existing) -> {
+                            if (pendingMarker.equals(existing.value())) {
+                                return null;
+                            }
+                            return existing;
+                        });
                 return;
             }
             try (Jedis client = connections.get()) {
@@ -115,7 +143,8 @@ public final class RedisPaymentIdempotency {
         }
     }
 
-    public Result checkOrClaim(UUID actorId, UUID idempotencyKey, String requestHash, Duration ttl) {
+    public Result checkOrClaim(
+            UUID actorId, UUID idempotencyKey, String requestHash, Duration ttl) {
         Objects.requireNonNull(actorId, "actorId is required");
         Objects.requireNonNull(idempotencyKey, "idempotencyKey is required");
         Objects.requireNonNull(requestHash, "requestHash is required");
@@ -127,29 +156,38 @@ public final class RedisPaymentIdempotency {
         if (connections == null) {
             long now = System.currentTimeMillis();
             Result[] outcome = new Result[1];
-            memoryStore.compute(redisKey, (k, existing) -> {
-                if (existing == null || existing.isExpired(now)) {
-                    outcome[0] = new Acquired(new Claim(redisKey, requestHash, pendingMarker, null, memoryStore));
-                    return new MemoryRecord(pendingMarker, now + ttlMs);
-                }
-                String[] parts = existing.value().split("\\|", 3);
-                if (parts.length < 2) {
-                    outcome[0] = new Conflict();
-                    return existing;
-                }
-                String state = parts[0];
-                String savedHash = parts[1];
-                if (!requestHash.equals(savedHash)) {
-                    outcome[0] = new Conflict();
-                    return existing;
-                }
-                if ("COMPLETED".equals(state) && parts.length == 3) {
-                    outcome[0] = new Replay(parts[2]);
-                    return existing;
-                }
-                outcome[0] = new InProgress();
-                return existing;
-            });
+            memoryStore.compute(
+                    redisKey,
+                    (k, existing) -> {
+                        if (existing == null || existing.isExpired(now)) {
+                            outcome[0] =
+                                    new Acquired(
+                                            new Claim(
+                                                    redisKey,
+                                                    requestHash,
+                                                    pendingMarker,
+                                                    null,
+                                                    memoryStore));
+                            return new MemoryRecord(pendingMarker, now + ttlMs);
+                        }
+                        String[] parts = existing.value().split("\\|", 3);
+                        if (parts.length < 2) {
+                            outcome[0] = new Conflict();
+                            return existing;
+                        }
+                        String state = parts[0];
+                        String savedHash = parts[1];
+                        if (!requestHash.equals(savedHash)) {
+                            outcome[0] = new Conflict();
+                            return existing;
+                        }
+                        if ("COMPLETED".equals(state) && parts.length == 3) {
+                            outcome[0] = new Replay(parts[2]);
+                            return existing;
+                        }
+                        outcome[0] = new InProgress();
+                        return existing;
+                    });
             return outcome[0];
         }
 
@@ -157,7 +195,8 @@ public final class RedisPaymentIdempotency {
             SetParams params = SetParams.setParams().nx().px(ttlMs);
             String setRes = client.set(redisKey, pendingMarker, params);
             if ("OK".equals(setRes)) {
-                return new Acquired(new Claim(redisKey, requestHash, pendingMarker, connections, memoryStore));
+                return new Acquired(
+                        new Claim(redisKey, requestHash, pendingMarker, connections, memoryStore));
             }
 
             String existing = client.get(redisKey);
@@ -165,7 +204,13 @@ public final class RedisPaymentIdempotency {
                 // Key expired between SET and GET, retry once
                 setRes = client.set(redisKey, pendingMarker, params);
                 if ("OK".equals(setRes)) {
-                    return new Acquired(new Claim(redisKey, requestHash, pendingMarker, connections, memoryStore));
+                    return new Acquired(
+                            new Claim(
+                                    redisKey,
+                                    requestHash,
+                                    pendingMarker,
+                                    connections,
+                                    memoryStore));
                 }
                 existing = client.get(redisKey);
             }
@@ -200,21 +245,27 @@ public final class RedisPaymentIdempotency {
             long now = System.currentTimeMillis();
             String lockVal = UUID.randomUUID().toString();
             long lockExpires = now + LOCK_TIMEOUT.toMillis();
-            LockRecord rec = memoryLocks.compute(orderId, (k, existing) -> {
-                if (existing == null || existing.isExpired(now)) {
-                    return new LockRecord(lockVal, lockExpires);
-                }
-                return existing;
-            });
+            LockRecord rec =
+                    memoryLocks.compute(
+                            orderId,
+                            (k, existing) -> {
+                                if (existing == null || existing.isExpired(now)) {
+                                    return new LockRecord(lockVal, lockExpires);
+                                }
+                                return existing;
+                            });
             if (!lockVal.equals(rec.lockVal())) {
                 return null;
             }
-            return () -> memoryLocks.computeIfPresent(orderId, (k, existing) -> {
-                if (lockVal.equals(existing.lockVal())) {
-                    return null;
-                }
-                return existing;
-            });
+            return () ->
+                    memoryLocks.computeIfPresent(
+                            orderId,
+                            (k, existing) -> {
+                                if (lockVal.equals(existing.lockVal())) {
+                                    return null;
+                                }
+                                return existing;
+                            });
         }
 
         String lockKey = "tc:lock:order-payment:" + orderId;
@@ -266,7 +317,8 @@ public final class RedisPaymentIdempotency {
         String key = webhookKey(txnRef, providerReference);
         if (connections == null) {
             long now = System.currentTimeMillis();
-            memoryStore.put(key, new MemoryRecord(responseJson, now + WEBHOOK_RETENTION.toMillis()));
+            memoryStore.put(
+                    key, new MemoryRecord(responseJson, now + WEBHOOK_RETENTION.toMillis()));
             return;
         }
         try (Jedis client = connections.get()) {

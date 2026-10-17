@@ -9,7 +9,7 @@ import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.order.dto.OrderActor;
 import vn.ticketscenter.order.dto.OrderDetailDto;
-import vn.ticketscenter.order.repository.OrderRepository;
+import vn.ticketscenter.order.dao.OrderRepository;
 import vn.ticketscenter.order.service.OrderException;
 import vn.ticketscenter.order.service.OrderRuntime;
 import vn.ticketscenter.order.service.OrderService;
@@ -45,8 +45,12 @@ public class OrderPageServlet extends HttpServlet {
         var userOpt = SecurityContext.getCurrentUser(request);
         if (userOpt.isEmpty()) {
             String target = request.getRequestURI();
-            if (request.getQueryString() != null && !request.getQueryString().isBlank()) target += "?" + request.getQueryString();
-            response.sendRedirect(request.getContextPath() + "/auth/login?redirect=" + URLEncoder.encode(target, StandardCharsets.UTF_8));
+            if (request.getQueryString() != null && !request.getQueryString().isBlank())
+                target += "?" + request.getQueryString();
+            response.sendRedirect(
+                    request.getContextPath()
+                            + "/auth/login?redirect="
+                            + URLEncoder.encode(target, StandardCharsets.UTF_8));
             return;
         }
 
@@ -59,15 +63,18 @@ public class OrderPageServlet extends HttpServlet {
                 int size = parsePositiveInt(request.getParameter("size"), 10);
                 String status = request.getParameter("status");
 
-                OrderRepository.OrderHistoryPage historyPage = service().orderHistory(actor, page, size, status);
+                OrderRepository.OrderHistoryPage historyPage =
+                        service().orderHistory(actor, page, size, status);
                 request.setAttribute("historyPage", historyPage);
                 request.setAttribute("currentStatus", status);
-                request.getRequestDispatcher("/WEB-INF/views/order/my-orders.jsp").forward(request, response);
+                request.getRequestDispatcher("/WEB-INF/views/order/my-orders.jsp")
+                        .forward(request, response);
             } else if (path.matches("^/orders/[^/]+$")) {
                 UUID orderId = UUID.fromString(path.split("/")[2]);
                 OrderDetailDto order = service().orderDetail(actor, orderId);
                 request.setAttribute("order", order);
-                request.getRequestDispatcher("/WEB-INF/views/order/order-detail.jsp").forward(request, response);
+                request.getRequestDispatcher("/WEB-INF/views/order/order-detail.jsp")
+                        .forward(request, response);
             } else {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
             }
@@ -79,7 +86,9 @@ public class OrderPageServlet extends HttpServlet {
     }
 
     private OrderService service() {
-        return suppliedService != null ? suppliedService : OrderRuntime.resolve(getServletContext());
+        return suppliedService != null
+                ? suppliedService
+                : OrderRuntime.resolve(getServletContext());
     }
 
     private static int parsePositiveInt(String val, int def) {

@@ -22,8 +22,7 @@ public record OrderHistoryItemDto(
         Instant createdAt,
         Instant paidAt,
         String couponCode,
-        long ticketCount
-) {
+        long ticketCount) {
     public OrderHistoryItemDto {
         Objects.requireNonNull(id, "id is required");
         Objects.requireNonNull(orderCode, "orderCode is required");
@@ -31,24 +30,55 @@ public record OrderHistoryItemDto(
     }
 
     public String toJson() {
-        return "{\"id\":\"" + id + "\","
-                + "\"orderCode\":\"" + escape(orderCode) + "\","
-                + "\"eventId\":\"" + (eventId != null ? eventId.toString() : "") + "\","
-                + "\"eventTitle\":\"" + escape(eventTitle != null ? eventTitle : "") + "\","
-                + "\"venueName\":\"" + escape(venueName != null ? venueName : "") + "\","
-                + "\"startTime\":\"" + (startTime != null ? startTime.toString() : "") + "\","
-                + "\"subtotalAmount\":" + (subtotalAmount != null ? subtotalAmount : BigDecimal.ZERO) + ","
-                + "\"discountAmount\":" + (discountAmount != null ? discountAmount : BigDecimal.ZERO) + ","
-                + "\"totalAmount\":" + (totalAmount != null ? totalAmount : BigDecimal.ZERO) + ","
-                + "\"status\":\"" + escape(status) + "\","
-                + "\"createdAt\":\"" + (createdAt != null ? createdAt.toString() : "") + "\","
-                + "\"paidAt\":\"" + (paidAt != null ? paidAt.toString() : "") + "\","
-                + "\"couponCode\":" + (couponCode != null ? "\"" + escape(couponCode) + "\"" : "null") + ","
-                + "\"ticketCount\":" + ticketCount + "}";
+        return "{\"id\":\""
+                + id
+                + "\","
+                + "\"orderCode\":\""
+                + escape(orderCode)
+                + "\","
+                + "\"eventId\":\""
+                + (eventId != null ? eventId.toString() : "")
+                + "\","
+                + "\"eventTitle\":\""
+                + escape(eventTitle != null ? eventTitle : "")
+                + "\","
+                + "\"venueName\":\""
+                + escape(venueName != null ? venueName : "")
+                + "\","
+                + "\"startTime\":\""
+                + (startTime != null ? startTime.toString() : "")
+                + "\","
+                + "\"subtotalAmount\":"
+                + (subtotalAmount != null ? subtotalAmount : BigDecimal.ZERO)
+                + ","
+                + "\"discountAmount\":"
+                + (discountAmount != null ? discountAmount : BigDecimal.ZERO)
+                + ","
+                + "\"totalAmount\":"
+                + (totalAmount != null ? totalAmount : BigDecimal.ZERO)
+                + ","
+                + "\"status\":\""
+                + escape(status)
+                + "\","
+                + "\"createdAt\":\""
+                + (createdAt != null ? createdAt.toString() : "")
+                + "\","
+                + "\"paidAt\":\""
+                + (paidAt != null ? paidAt.toString() : "")
+                + "\","
+                + "\"couponCode\":"
+                + (couponCode != null ? "\"" + escape(couponCode) + "\"" : "null")
+                + ","
+                + "\"ticketCount\":"
+                + ticketCount
+                + "}";
     }
 
     private static String escape(String s) {
         if (s == null) return "";
-        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r");
+        return s.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r");
     }
 }

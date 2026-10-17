@@ -2,7 +2,7 @@ package vn.ticketscenter.identity.service;
 
 import vn.ticketscenter.config.ServerConfig;
 import vn.ticketscenter.identity.model.Organization;
-import vn.ticketscenter.identity.repository.OrganizationDecisionRepository.InitialEvent;
+import vn.ticketscenter.identity.dao.OrganizationDecisionRepository.InitialEvent;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -55,20 +55,25 @@ public class DemoInitialEventFactory {
         try {
             if (schedule.date().contains("T")) {
                 Instant start = Instant.parse(schedule.date());
-                return new Instant[]{start, start.plus(DEFAULT_LENGTH)};
+                return new Instant[] {start, start.plus(DEFAULT_LENGTH)};
             }
             LocalDate day = LocalDate.parse(schedule.date());
-            Instant start = day.atTime(timeOrDefault(schedule.startTime(), LocalTime.of(9, 0)))
-                    .atZone(LOCAL_ZONE).toInstant();
+            Instant start =
+                    day.atTime(timeOrDefault(schedule.startTime(), LocalTime.of(9, 0)))
+                            .atZone(LOCAL_ZONE)
+                            .toInstant();
             Instant end = start.plus(DEFAULT_LENGTH);
             if (schedule.endTime() != null) {
                 try {
-                    end = day.atTime(LocalTime.parse(schedule.endTime())).atZone(LOCAL_ZONE).toInstant();
+                    end =
+                            day.atTime(LocalTime.parse(schedule.endTime()))
+                                    .atZone(LOCAL_ZONE)
+                                    .toInstant();
                 } catch (RuntimeException unparsable) {
                     end = start.plus(DEFAULT_LENGTH);
                 }
             }
-            return new Instant[]{start, end};
+            return new Instant[] {start, end};
         } catch (RuntimeException unparsable) {
             return null;
         }

@@ -1,7 +1,7 @@
 package vn.ticketscenter.identity.dto;
 
 import vn.ticketscenter.config.web.JsonObjectParser;
-import vn.ticketscenter.identity.repository.OrganizationDecisionRepository.CommissionPolicy;
+import vn.ticketscenter.identity.dao.OrganizationDecisionRepository.CommissionPolicy;
 
 import java.io.StringReader;
 import java.math.BigDecimal;
@@ -17,8 +17,8 @@ import java.util.Map;
  * arrive nested under {@code initialPolicy}. Missing values default to 5 %, a 10 000 VND fixed fee and
  * "effective now for ten years".
  */
-public record ApproveOrganizationRequestDto(BigDecimal ratePercent, long fixedFee,
-                                            Instant effectiveFrom, Instant effectiveTo) {
+public record ApproveOrganizationRequestDto(
+        BigDecimal ratePercent, long fixedFee, Instant effectiveFrom, Instant effectiveTo) {
 
     private static final BigDecimal DEFAULT_RATE = new BigDecimal("5.0");
     private static final long DEFAULT_FIXED_FEE = 10_000L;
@@ -28,12 +28,19 @@ public record ApproveOrganizationRequestDto(BigDecimal ratePercent, long fixedFe
     /** @throws IllegalArgumentException with the client-facing message when a field is invalid */
     public static ApproveOrganizationRequestDto from(Map<String, String> body) {
         Map<String, String> fields = withNestedPolicy(body);
-        ApproveOrganizationRequestDto dto = new ApproveOrganizationRequestDto(
-                rate(fields.get("ratePercent")),
-                fixedFee(fields.get("fixedFee")),
-                instant(firstNonBlank(fields.get("effectiveFrom"), fields.get("effectiveDate")),
-                        "Ngày hiệu lực không hợp lệ", Instant.now()),
-                instant(fields.get("effectiveTo"), "Ngày kết thúc hiệu lực không hợp lệ", null));
+        ApproveOrganizationRequestDto dto =
+                new ApproveOrganizationRequestDto(
+                        rate(fields.get("ratePercent")),
+                        fixedFee(fields.get("fixedFee")),
+                        instant(
+                                firstNonBlank(
+                                        fields.get("effectiveFrom"), fields.get("effectiveDate")),
+                                "Ngày hiệu lực không hợp lệ",
+                                Instant.now()),
+                        instant(
+                                fields.get("effectiveTo"),
+                                "Ngày kết thúc hiệu lực không hợp lệ",
+                                null));
         dto.validate();
         return dto;
     }

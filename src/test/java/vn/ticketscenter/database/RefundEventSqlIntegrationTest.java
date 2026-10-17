@@ -5,14 +5,14 @@ import java.util.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
-import vn.ticketscenter.event.repository.*;
+import vn.ticketscenter.event.dao.*;
 import vn.ticketscenter.fulfillment.checkin.integration.ScanFixture;
 import vn.ticketscenter.fulfillment.refund.dto.AdminRefundDecisionRequestDto;
-import vn.ticketscenter.fulfillment.refund.repository.AdminRefundRepository;
+import vn.ticketscenter.fulfillment.refund.dao.AdminRefundRepository;
 import vn.ticketscenter.fulfillment.refund.service.AdminRefundDecisionService;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.security.UserPrincipal;
-import vn.ticketscenter.payment.repository.PaymentRepository;
+import vn.ticketscenter.payment.dao.PaymentRepository;
 import static org.junit.jupiter.api.Assertions.*;
 
 /** Actual combined contracts in the dedicated loopback fixture; no gateway/provider transfer. */
@@ -51,19 +51,19 @@ class RefundEventSqlIntegrationTest {
 
         var buyer=PaymentCrossDomainSqlTest.source("buyer",f.user());
         var worker=PaymentCrossDomainSqlTest.source("worker",null);
-        var holds=new vn.ticketscenter.ticketing.repository.HoldRepository(buyer,worker);
+        var holds=new vn.ticketscenter.ticketing.dao.HoldRepository(buyer,worker);
         var holdActor=new vn.ticketscenter.ticketing.dto.HoldActor(f.user(),version);
         var holdCommand=new vn.ticketscenter.ticketing.dto.HoldCommand.Create(UUID.randomUUID(),
                 new vn.ticketscenter.ticketing.dto.CreateHoldRequest(f.event(),List.of(new vn.ticketscenter.ticketing.dto.HoldSelection(f.zone(),null,1))));
         assertEquals(holds.mutate(holdActor,holdCommand).body(),holds.mutate(holdActor,holdCommand).body());
         var hold=holds.current(holdActor).projection().orElseThrow();
-        var order=new vn.ticketscenter.order.repository.OrderRepository(buyer).mutate(
+        var order=new vn.ticketscenter.order.dao.OrderRepository(buyer).mutate(
                 new vn.ticketscenter.order.dto.OrderActor(f.user(),version),
                 new vn.ticketscenter.order.dto.OrderCommand.Create(UUID.randomUUID(),new vn.ticketscenter.order.dto.CreateOrderRequest(hold.id())));
         var payments=new PaymentRepository(buyer,worker);
         var intent=payments.beginOrderPayment(order.orderId(),f.user());
         payments.applyPaymentResult(order.orderId(),intent.paymentId(),"CAPTURED",intent.txnRef());
-        var tickets=new vn.ticketscenter.fulfillment.ticket.repository.TicketRepository(buyer).findTicketsByOrderId(order.orderId());
+        var tickets=new vn.ticketscenter.fulfillment.ticket.dao.TicketRepository(buyer).findTicketsByOrderId(order.orderId());
         assertEquals(1,tickets.size());
         try(var c=buyer.getConnection()) {
             ScanFixture.execute(c,"DECLARE @id uniqueidentifier; EXEC dbo.sp_refund_request_for_tickets ?,?,?,?,@id OUTPUT,?,?",order.orderId(),f.user(),tickets.getFirst().id().toString(),"Combined owner refund request",UUID.randomUUID(),version);

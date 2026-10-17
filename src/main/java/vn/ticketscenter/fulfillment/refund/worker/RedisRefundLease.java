@@ -36,7 +36,7 @@ public final class RedisRefundLease implements RefundLease {
                     try (var r = connections.get()) {
                         r.eval(
                                 "if redis.call('get',KEYS[1]) == ARGV[1] then return"
-                                    + " redis.call('del',KEYS[1]) else return 0 end",
+                                        + " redis.call('del',KEYS[1]) else return 0 end",
                                 List.of(key),
                                 List.of(token));
                     } catch (RuntimeException ignored) {

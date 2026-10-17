@@ -11,7 +11,7 @@ import vn.ticketscenter.order.controller.OrderApiServlet;
 import vn.ticketscenter.order.dto.OrderActor;
 import vn.ticketscenter.order.dto.OrderDetailDto;
 import vn.ticketscenter.order.dto.OrderHistoryItemDto;
-import vn.ticketscenter.order.repository.OrderRepository;
+import vn.ticketscenter.order.dao.OrderRepository;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;

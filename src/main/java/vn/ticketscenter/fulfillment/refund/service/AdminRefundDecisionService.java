@@ -2,12 +2,19 @@ package vn.ticketscenter.fulfillment.refund.service;
 
 import java.util.*;
 import vn.ticketscenter.fulfillment.refund.dto.*;
-import vn.ticketscenter.fulfillment.refund.repository.AdminRefundStore;
+import vn.ticketscenter.fulfillment.refund.dao.AdminRefundStore;
 import vn.ticketscenter.identity.security.UserPrincipal;
 
 public final class AdminRefundDecisionService {
-    private static final Set<String> STATES = Set.of(
-            "REQUESTED", "APPROVED", "PROCESSING", "COMPLETED", "REJECTED", "RETRYABLE", "NEEDS_RECONCILIATION");
+    private static final Set<String> STATES =
+            Set.of(
+                    "REQUESTED",
+                    "APPROVED",
+                    "PROCESSING",
+                    "COMPLETED",
+                    "REJECTED",
+                    "RETRYABLE",
+                    "NEEDS_RECONCILIATION");
 
     private final AdminRefundStore store;
     private final AdminRefundCache cache;
@@ -29,22 +36,26 @@ public final class AdminRefundDecisionService {
         return store.detail(id);
     }
 
-    public AdminRefundMutationDto decide(UserPrincipal actor, UUID id, AdminRefundDecisionRequestDto request, UUID key) {
+    public AdminRefundMutationDto decide(
+            UserPrincipal actor, UUID id, AdminRefundDecisionRequestDto request, UUID key) {
         authorize(actor);
         if (id == null || request == null || key == null) throw RefundException.invalid();
         return committed(actor, key, store.decide(actor, id, request, key));
     }
 
-    public AdminRefundMutationDto retry(UserPrincipal actor, UUID id, AdminRefundRetryRequestDto request) {
+    public AdminRefundMutationDto retry(
+            UserPrincipal actor, UUID id, AdminRefundRetryRequestDto request) {
         authorize(actor);
         if (id == null || request == null) throw RefundException.invalid();
-        return committed(actor, request.idempotencyKey(), store.retry(actor, id, request.idempotencyKey()));
+        return committed(
+                actor, request.idempotencyKey(), store.retry(actor, id, request.idempotencyKey()));
     }
 
     private void authorize(UserPrincipal actor) {
         if (actor == null) throw new RefundException(401, "UNAUTHENTICATED", "Bạn cần đăng nhập.");
         if (!actor.isAdmin()) {
-            throw new RefundException(403, "ADMIN_REQUIRED", "Chỉ quản trị viên được phép xử lý hoàn tiền.");
+            throw new RefundException(
+                    403, "ADMIN_REQUIRED", "Chỉ quản trị viên được phép xử lý hoàn tiền.");
         }
         // Recheck the current status, authVersion and role in SQL.
         store.requireAdmin(actor);
@@ -52,16 +63,18 @@ public final class AdminRefundDecisionService {
 
     private static String canonicalStatus(String status) {
         if (status == null || status.isBlank()) return null;
-        status = switch (status) {
-            case "FAILED" -> "RETRYABLE";
-            case "UNKNOWN" -> "NEEDS_RECONCILIATION";
-            default -> status;
-        };
+        status =
+                switch (status) {
+                    case "FAILED" -> "RETRYABLE";
+                    case "UNKNOWN" -> "NEEDS_RECONCILIATION";
+                    default -> status;
+                };
         if (!STATES.contains(status)) throw RefundException.invalid();
         return status;
     }
 
-    private AdminRefundMutationDto committed(UserPrincipal actor, UUID key, AdminRefundMutationDto result) {
+    private AdminRefundMutationDto committed(
+            UserPrincipal actor, UUID key, AdminRefundMutationDto result) {
         try {
             cache.committed(actor.actorId(), key, result);
         } catch (RuntimeException ignored) {

@@ -4,7 +4,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
-public record HoldMutationReceipt(int httpStatus, String body, boolean replayed, List<Change> changes) {
+public record HoldMutationReceipt(
+        int httpStatus, String body, boolean replayed, List<Change> changes) {
     public HoldMutationReceipt {
         Objects.requireNonNull(body);
         changes = List.copyOf(changes);

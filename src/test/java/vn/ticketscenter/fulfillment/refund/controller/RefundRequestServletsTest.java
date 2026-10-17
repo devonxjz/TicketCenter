@@ -10,12 +10,12 @@ import org.junit.jupiter.api.Test;
 import vn.ticketscenter.identity.config.IdentityServices;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.fulfillment.refund.dto.*;
-import vn.ticketscenter.fulfillment.refund.repository.RefundRequestStore;
+import vn.ticketscenter.fulfillment.refund.dao.RefundRequestStore;
 import vn.ticketscenter.fulfillment.refund.service.*;
 import vn.ticketscenter.identity.security.*;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.service.*;
-import vn.ticketscenter.identity.repository.UserRepository;
+import vn.ticketscenter.identity.dao.UserRepository;
 import static org.junit.jupiter.api.Assertions.*;
 
 class RefundRequestServletsTest {

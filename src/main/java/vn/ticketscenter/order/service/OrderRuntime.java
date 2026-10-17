@@ -9,7 +9,7 @@ import vn.ticketscenter.config.DatabaseConfig;
 import vn.ticketscenter.config.persistence.ConnectionBudgets;
 import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.order.cache.RedisOrderCache;
-import vn.ticketscenter.order.repository.OrderRepository;
+import vn.ticketscenter.order.dao.OrderRepository;
 
 import java.time.Clock;
 
@@ -21,20 +21,34 @@ public final class OrderRuntime implements ServletContextListener {
 
     public static OrderService resolve(ServletContext context) {
         synchronized (context) {
-            if (Boolean.TRUE.equals(context.getAttribute(CLOSED_ATTRIBUTE))) throw OrderException.unavailable();
-            if (context.getAttribute(SERVICE_ATTRIBUTE) instanceof OrderService service) return service;
+            if (Boolean.TRUE.equals(context.getAttribute(CLOSED_ATTRIBUTE)))
+                throw OrderException.unavailable();
+            if (context.getAttribute(SERVICE_ATTRIBUTE) instanceof OrderService service)
+                return service;
             HikariDataSource pool = null;
             try {
-                String user = AppConfig.get("db.buyer.user"), password = AppConfig.get("db.buyer.password");
-                if (user == null || user.isBlank() || password == null || password.isBlank()) throw OrderException.unavailable();
+                String user = AppConfig.get("db.buyer.user"),
+                        password = AppConfig.get("db.buyer.password");
+                if (user == null || user.isBlank() || password == null || password.isBlank())
+                    throw OrderException.unavailable();
                 HikariConfig config = new HikariConfig();
-                config.setPoolName("order-buyer"); config.setJdbcUrl(DatabaseConfig.getJdbcUrl());
-                config.setUsername(user); config.setPassword(password); config.setMaximumPoolSize(1); config.setMinimumIdle(0);
-                config.setInitializationFailTimeout(-1); config.setConnectionTimeout(10_000); config.setAutoCommit(true);
+                config.setPoolName("order-buyer");
+                config.setJdbcUrl(DatabaseConfig.getJdbcUrl());
+                config.setUsername(user);
+                config.setPassword(password);
+                config.setMaximumPoolSize(1);
+                config.setMinimumIdle(0);
+                config.setInitializationFailTimeout(-1);
+                config.setConnectionTimeout(10_000);
+                config.setAutoCommit(true);
                 pool = new HikariDataSource(config);
                 var redis = RedisClientProvider.getInstance();
-                OrderService service = new OrderService(new OrderRepository(ConnectionBudgets.wrap(pool)), new RedisOrderCache(redis::getResource, Clock.systemUTC()));
-                context.setAttribute(POOL_ATTRIBUTE, pool); context.setAttribute(SERVICE_ATTRIBUTE, service);
+                OrderService service =
+                        new OrderService(
+                                new OrderRepository(ConnectionBudgets.wrap(pool)),
+                                new RedisOrderCache(redis::getResource, Clock.systemUTC()));
+                context.setAttribute(POOL_ATTRIBUTE, pool);
+                context.setAttribute(SERVICE_ATTRIBUTE, service);
                 return service;
             } catch (RuntimeException failure) {
                 if (pool != null) pool.close();
@@ -42,12 +56,20 @@ public final class OrderRuntime implements ServletContextListener {
             }
         }
     }
-    @Override public void contextInitialized(ServletContextEvent event) { event.getServletContext().setAttribute(CLOSED_ATTRIBUTE, false); }
-    @Override public void contextDestroyed(ServletContextEvent event) {
+
+    @Override
+    public void contextInitialized(ServletContextEvent event) {
+        event.getServletContext().setAttribute(CLOSED_ATTRIBUTE, false);
+    }
+
+    @Override
+    public void contextDestroyed(ServletContextEvent event) {
         synchronized (event.getServletContext()) {
             event.getServletContext().setAttribute(CLOSED_ATTRIBUTE, true);
-            if (event.getServletContext().getAttribute(POOL_ATTRIBUTE) instanceof HikariDataSource pool) pool.close();
-            event.getServletContext().removeAttribute(SERVICE_ATTRIBUTE); event.getServletContext().removeAttribute(POOL_ATTRIBUTE);
+            if (event.getServletContext().getAttribute(POOL_ATTRIBUTE)
+                    instanceof HikariDataSource pool) pool.close();
+            event.getServletContext().removeAttribute(SERVICE_ATTRIBUTE);
+            event.getServletContext().removeAttribute(POOL_ATTRIBUTE);
         }
     }
 }

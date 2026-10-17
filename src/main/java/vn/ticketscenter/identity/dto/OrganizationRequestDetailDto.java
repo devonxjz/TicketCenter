@@ -17,8 +17,7 @@ public record OrganizationRequestDetailDto(
         UUID requesterId,
         Instant submittedAt,
         String rejectionReason,
-        UUID commissionRuleId
-) {
+        UUID commissionRuleId) {
     public OrganizationRequestDetailDto(
             UUID organizationId,
             String name,
@@ -28,17 +27,26 @@ public record OrganizationRequestDetailDto(
             OrganizationStatus status,
             UUID requesterId,
             Instant submittedAt,
-            String rejectionReason
-    ) {
-        this(organizationId, name, contactEmail, contactPhone, description, status, requesterId, submittedAt,
-                rejectionReason, null);
+            String rejectionReason) {
+        this(
+                organizationId,
+                name,
+                contactEmail,
+                contactPhone,
+                description,
+                status,
+                requesterId,
+                submittedAt,
+                rejectionReason,
+                null);
     }
 
     public static OrganizationRequestDetailDto from(Organization organization) {
         if (organization == null) {
             return null;
         }
-        UUID reqId = organization.getRequester() != null ? organization.getRequester().getId() : null;
+        UUID reqId =
+                organization.getRequester() != null ? organization.getRequester().getId() : null;
         return new OrganizationRequestDetailDto(
                 organization.getId(),
                 organization.getName(),
@@ -49,15 +57,29 @@ public record OrganizationRequestDetailDto(
                 reqId,
                 organization.getSubmittedAt(),
                 organization.getRejectionReason(),
-                null
-        );
+                null);
     }
 
-    public String eventTitle() { return parseTag(description, "Event"); }
-    public String eventDate() { return parseTag(description, "Date"); }
-    public String eventStartTime() { return parseTag(description, "Start"); }
-    public String eventEndTime() { return parseTag(description, "End"); }
-    public String eventVenue() { return parseTag(description, "Venue"); }
+    public String eventTitle() {
+        return parseTag(description, "Event");
+    }
+
+    public String eventDate() {
+        return parseTag(description, "Date");
+    }
+
+    public String eventStartTime() {
+        return parseTag(description, "Start");
+    }
+
+    public String eventEndTime() {
+        return parseTag(description, "End");
+    }
+
+    public String eventVenue() {
+        return parseTag(description, "Venue");
+    }
+
     public String cleanDescription() {
         if (description == null) return null;
         int idx = description.indexOf("[Event:");
@@ -74,7 +96,10 @@ public record OrganizationRequestDetailDto(
         int start = description.indexOf("[Event: ");
         if (start != -1) {
             int end = description.indexOf("]", start);
-            String content = end != -1 ? description.substring(start + 8, end) : description.substring(start + 8);
+            String content =
+                    end != -1
+                            ? description.substring(start + 8, end)
+                            : description.substring(start + 8);
             String[] parts = content.split("\\|");
             for (String part : parts) {
                 String p = part.trim();
@@ -91,9 +116,12 @@ public record OrganizationRequestDetailDto(
             String[] parts = content.split("\\|");
             for (String part : parts) {
                 String p = part.trim();
-                if (key.equalsIgnoreCase("Event") && p.startsWith("Sự kiện ")) return p.substring(8).trim();
-                if (key.equalsIgnoreCase("Date") && p.startsWith("Ngày ")) return p.substring(5).trim();
-                if (key.equalsIgnoreCase("Venue") && p.startsWith("Địa điểm ")) return p.substring(9).trim();
+                if (key.equalsIgnoreCase("Event") && p.startsWith("Sự kiện "))
+                    return p.substring(8).trim();
+                if (key.equalsIgnoreCase("Date") && p.startsWith("Ngày "))
+                    return p.substring(5).trim();
+                if (key.equalsIgnoreCase("Venue") && p.startsWith("Địa điểm "))
+                    return p.substring(9).trim();
             }
         }
         return null;
@@ -101,15 +129,24 @@ public record OrganizationRequestDetailDto(
 
     public String toJson() {
         StringBuilder sb = new StringBuilder("{");
-        sb.append("\"organizationId\":").append(json(organizationId))
-          .append(",\"name\":").append(json(name))
-          .append(",\"contactEmail\":").append(json(contactEmail))
-          .append(",\"contactPhone\":").append(json(contactPhone))
-          .append(",\"description\":").append(json(description))
-          .append(",\"status\":").append(json(status))
-          .append(",\"requesterId\":").append(json(requesterId))
-          .append(",\"submittedAt\":").append(json(submittedAt))
-          .append(",\"rejectionReason\":").append(json(rejectionReason));
+        sb.append("\"organizationId\":")
+                .append(json(organizationId))
+                .append(",\"name\":")
+                .append(json(name))
+                .append(",\"contactEmail\":")
+                .append(json(contactEmail))
+                .append(",\"contactPhone\":")
+                .append(json(contactPhone))
+                .append(",\"description\":")
+                .append(json(description))
+                .append(",\"status\":")
+                .append(json(status))
+                .append(",\"requesterId\":")
+                .append(json(requesterId))
+                .append(",\"submittedAt\":")
+                .append(json(submittedAt))
+                .append(",\"rejectionReason\":")
+                .append(json(rejectionReason));
         if (commissionRuleId != null) {
             sb.append(",\"commissionRuleId\":").append(json(commissionRuleId));
         }

@@ -11,7 +11,9 @@ import java.io.IOException;
  * Health check endpoint phục vụ kiểm tra liveness của ứng dụng.
  * Hợp đồng: GET /health/live -> HTTP 200 {"data":{"status":"UP"}}
  */
-@WebServlet(name = "HealthServlet", urlPatterns = {"/health/live"})
+@WebServlet(
+        name = "HealthServlet",
+        urlPatterns = {"/health/live"})
 public class HealthServlet extends HttpServlet {
 
     private static final String RESPONSE_JSON = "{\"data\":{\"status\":\"UP\"}}";

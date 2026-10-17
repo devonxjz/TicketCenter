@@ -16,8 +16,13 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 @Entity
-@Table(name = "tc_coupons", schema = "dbo",
-        uniqueConstraints = @UniqueConstraint(name = "uq_coupon_org_code", columnNames = {"organization_id", "code"}))
+@Table(
+        name = "tc_coupons",
+        schema = "dbo",
+        uniqueConstraints =
+                @UniqueConstraint(
+                        name = "uq_coupon_org_code",
+                        columnNames = {"organization_id", "code"}))
 public class Coupon extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "organization_id", nullable = false)
@@ -51,11 +56,17 @@ public class Coupon extends BaseEntity {
     @Column(name = "used_count", nullable = false)
     private int usedCount;
 
-    protected Coupon() { }
+    protected Coupon() {}
 
-    public Coupon(Organization organization, String code, DiscountType discountType,
-                  Long fixedAmount, BigDecimal percentage, Instant validFrom,
-                  Instant validTo, int maxUses) {
+    public Coupon(
+            Organization organization,
+            String code,
+            DiscountType discountType,
+            Long fixedAmount,
+            BigDecimal percentage,
+            Instant validFrom,
+            Instant validTo,
+            int maxUses) {
         this.organization = organization;
         this.code = code;
         this.discountType = discountType;
@@ -66,14 +77,43 @@ public class Coupon extends BaseEntity {
         this.maxUses = maxUses;
     }
 
-    public Organization getOrganization() { return organization; }
-    public String getCode() { return code; }
-    public DiscountType getDiscountType() { return discountType; }
-    public Long getFixedAmount() { return fixedAmount; }
-    public BigDecimal getPercentage() { return percentage; }
-    public Instant getValidFrom() { return validFrom; }
-    public Instant getValidTo() { return validTo; }
-    public boolean isActive() { return active; }
-    public int getMaxUses() { return maxUses; }
-    public int getUsedCount() { return usedCount; }
+    public Organization getOrganization() {
+        return organization;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public DiscountType getDiscountType() {
+        return discountType;
+    }
+
+    public Long getFixedAmount() {
+        return fixedAmount;
+    }
+
+    public BigDecimal getPercentage() {
+        return percentage;
+    }
+
+    public Instant getValidFrom() {
+        return validFrom;
+    }
+
+    public Instant getValidTo() {
+        return validTo;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public int getMaxUses() {
+        return maxUses;
+    }
+
+    public int getUsedCount() {
+        return usedCount;
+    }
 }

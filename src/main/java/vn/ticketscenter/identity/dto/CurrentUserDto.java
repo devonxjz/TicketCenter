@@ -11,14 +11,20 @@ public record CurrentUserDto(
         String userName,
         String fullName,
         PlatformRole platformRole,
-        boolean admin
-) {
+        boolean admin) {
     public String toJson() {
-        return "{\"id\":" + HttpResponses.jsonString(String.valueOf(id))
-                + ",\"email\":" + HttpResponses.jsonString(email)
-                + ",\"userName\":" + HttpResponses.jsonString(userName)
-                + ",\"fullName\":" + HttpResponses.jsonString(fullName)
-                + ",\"platformRole\":" + HttpResponses.jsonString(String.valueOf(platformRole))
-                + ",\"admin\":" + admin + "}";
+        return "{\"id\":"
+                + HttpResponses.jsonString(String.valueOf(id))
+                + ",\"email\":"
+                + HttpResponses.jsonString(email)
+                + ",\"userName\":"
+                + HttpResponses.jsonString(userName)
+                + ",\"fullName\":"
+                + HttpResponses.jsonString(fullName)
+                + ",\"platformRole\":"
+                + HttpResponses.jsonString(String.valueOf(platformRole))
+                + ",\"admin\":"
+                + admin
+                + "}";
     }
 }

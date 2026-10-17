@@ -7,11 +7,11 @@ import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.identity.integration.mail.EmailSender;
 import vn.ticketscenter.identity.integration.mail.SmtpEmailSender;
-import vn.ticketscenter.identity.repository.OrganizationDecisionRepository;
-import vn.ticketscenter.identity.repository.OrganizationMembershipRepository;
-import vn.ticketscenter.identity.repository.OrganizationRepository;
-import vn.ticketscenter.identity.repository.OtpRepository;
-import vn.ticketscenter.identity.repository.UserRepository;
+import vn.ticketscenter.identity.dao.OrganizationDecisionRepository;
+import vn.ticketscenter.identity.dao.OrganizationMembershipRepository;
+import vn.ticketscenter.identity.dao.OrganizationRepository;
+import vn.ticketscenter.identity.dao.OtpRepository;
+import vn.ticketscenter.identity.dao.UserRepository;
 import vn.ticketscenter.identity.service.DemoInitialEventFactory;
 import vn.ticketscenter.identity.service.LoginService;
 import vn.ticketscenter.identity.service.OrganizationApprovalService;
@@ -40,7 +40,8 @@ public final class IdentityServices {
     public static final String ATTRIBUTE = "vn.ticketscenter.identity.SERVICES";
 
     /** Context attribute that, when it holds a {@link SessionValidator}, replaces the built one. */
-    public static final String SESSION_VALIDATOR_ATTRIBUTE = "vn.ticketscenter.identity.SESSION_VALIDATOR";
+    public static final String SESSION_VALIDATOR_ATTRIBUTE =
+            "vn.ticketscenter.identity.SESSION_VALIDATOR";
 
     private final RegistrationService registrationService;
     private final LoginService loginService;
@@ -52,7 +53,8 @@ public final class IdentityServices {
     private final OrganizationApprovalService organizationApprovalService;
     private final OrganizationMembershipService organizationMembershipService;
 
-    public IdentityServices(TransactionManager transactions, RedisClientProvider redis, EmailSender emailSender) {
+    public IdentityServices(
+            TransactionManager transactions, RedisClientProvider redis, EmailSender emailSender) {
         Objects.requireNonNull(transactions, "transactions must not be null");
         UserRepository users = new UserRepository();
         PasswordHasher hasher = new PasswordHasher();
@@ -66,17 +68,35 @@ public final class IdentityServices {
         this.loginService = new LoginService(transactions, users, memberships, hasher);
         this.sessionValidator = new SessionValidator(transactions, users, sessionCache);
         this.profileService = new ProfileService(transactions, users);
-        this.otpService = new OtpService(
-                transactions, new OtpRepository(), users, otpHasher, resetTokens, emailSender);
+        this.otpService =
+                new OtpService(
+                        transactions,
+                        new OtpRepository(),
+                        users,
+                        otpHasher,
+                        resetTokens,
+                        emailSender);
         this.passwordResetService =
-                new PasswordResetService(transactions, users, otpService, resetTokens, hasher, sessionCache);
+                new PasswordResetService(
+                        transactions, users, otpService, resetTokens, hasher, sessionCache);
         OrganizationRepository organizations = new OrganizationRepository();
         OrganizationDecisionRepository decisions = new OrganizationDecisionRepository();
-        this.organizationRequestService = new OrganizationRequestService(
-                transactions, organizations, users, decisions, OrganizationRequestIdempotency.redis(redis));
-        this.organizationApprovalService = new OrganizationApprovalService(
-                transactions, organizations, users, decisions, new DemoInitialEventFactory());
-        this.organizationMembershipService = new OrganizationMembershipService(transactions, memberships, users);
+        this.organizationRequestService =
+                new OrganizationRequestService(
+                        transactions,
+                        organizations,
+                        users,
+                        decisions,
+                        OrganizationRequestIdempotency.redis(redis));
+        this.organizationApprovalService =
+                new OrganizationApprovalService(
+                        transactions,
+                        organizations,
+                        users,
+                        decisions,
+                        new DemoInitialEventFactory());
+        this.organizationMembershipService =
+                new OrganizationMembershipService(transactions, memberships, users);
     }
 
     /**
@@ -99,8 +119,11 @@ public final class IdentityServices {
             }
             Object registry = context.getAttribute(PersistenceListener.REGISTRY_ATTRIBUTE);
             if (registry instanceof PersistenceRegistry ready && ready.isReady()) {
-                IdentityServices services = new IdentityServices(
-                        ready.transactionManager(), RedisClientProvider.getInstance(), new SmtpEmailSender());
+                IdentityServices services =
+                        new IdentityServices(
+                                ready.transactionManager(),
+                                RedisClientProvider.getInstance(),
+                                new SmtpEmailSender());
                 context.setAttribute(ATTRIBUTE, services);
                 return services;
             }
@@ -116,7 +139,8 @@ public final class IdentityServices {
         if (context == null) {
             return null;
         }
-        if (context.getAttribute(SESSION_VALIDATOR_ATTRIBUTE) instanceof SessionValidator override) {
+        if (context.getAttribute(SESSION_VALIDATOR_ATTRIBUTE)
+                instanceof SessionValidator override) {
             return override;
         }
         IdentityServices services = from(context);

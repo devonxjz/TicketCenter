@@ -39,7 +39,7 @@ public class TicketHold extends BaseEntity {
     @OneToMany(mappedBy = "ticketHold", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TicketHoldItem> items = new ArrayList<>();
 
-    protected TicketHold() { }
+    protected TicketHold() {}
 
     public TicketHold(User buyer, Event event, Instant expiresAt) {
         this.buyer = buyer;
@@ -47,9 +47,23 @@ public class TicketHold extends BaseEntity {
         this.expiresAt = expiresAt;
     }
 
-    public User getBuyer() { return buyer; }
-    public Event getEvent() { return event; }
-    public Instant getExpiresAt() { return expiresAt; }
-    public HoldStatus getStatus() { return status; }
-    public List<TicketHoldItem> getItems() { return List.copyOf(items); }
+    public User getBuyer() {
+        return buyer;
+    }
+
+    public Event getEvent() {
+        return event;
+    }
+
+    public Instant getExpiresAt() {
+        return expiresAt;
+    }
+
+    public HoldStatus getStatus() {
+        return status;
+    }
+
+    public List<TicketHoldItem> getItems() {
+        return List.copyOf(items);
+    }
 }

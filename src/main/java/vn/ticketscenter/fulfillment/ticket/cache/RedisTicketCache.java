@@ -88,7 +88,8 @@ public final class RedisTicketCache implements TicketCache {
             redis.del(detailKey(ticketId));
             // Xóa tất cả version của QR thuộc vé này
             String cursor = "0";
-            ScanParams params = new ScanParams().match("tc:ticket:qr:v1:" + ticketId + ":*").count(50);
+            ScanParams params =
+                    new ScanParams().match("tc:ticket:qr:v1:" + ticketId + ":*").count(50);
             do {
                 var scanResult = redis.scan(cursor, params);
                 var keys = scanResult.getResult();
@@ -109,18 +110,25 @@ public final class RedisTicketCache implements TicketCache {
                 UUID.fromString(obj.getString("orderId")),
                 obj.optString("orderCode", ""),
                 obj.getString("ticketCode"),
-                obj.has("eventId") && !obj.getString("eventId").isBlank() ? UUID.fromString(obj.getString("eventId")) : null,
+                obj.has("eventId") && !obj.getString("eventId").isBlank()
+                        ? UUID.fromString(obj.getString("eventId"))
+                        : null,
                 obj.getString("eventTitle"),
                 obj.optString("venueName", ""),
                 obj.optString("venueAddress", ""),
-                obj.has("startTime") && !obj.getString("startTime").isBlank() ? Instant.parse(obj.getString("startTime")) : null,
-                obj.has("endTime") && !obj.getString("endTime").isBlank() ? Instant.parse(obj.getString("endTime")) : null,
+                obj.has("startTime") && !obj.getString("startTime").isBlank()
+                        ? Instant.parse(obj.getString("startTime"))
+                        : null,
+                obj.has("endTime") && !obj.getString("endTime").isBlank()
+                        ? Instant.parse(obj.getString("endTime"))
+                        : null,
                 obj.optString("zoneName", ""),
                 obj.optString("seatLabel", ""),
                 obj.getLong("paidAmount"),
                 obj.getString("status"),
-                obj.has("issuedAt") && !obj.getString("issuedAt").isBlank() ? Instant.parse(obj.getString("issuedAt")) : null,
-                obj.optLong("version", 0)
-        );
+                obj.has("issuedAt") && !obj.getString("issuedAt").isBlank()
+                        ? Instant.parse(obj.getString("issuedAt"))
+                        : null,
+                obj.optLong("version", 0));
     }
 }

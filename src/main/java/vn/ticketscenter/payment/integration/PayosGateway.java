@@ -12,22 +12,32 @@ public interface PayosGateway extends AutoCloseable {
     /** Past this age an unpaid link has expired (links expire with the seat hold), so "never created" is final. */
     Duration PAYMENT_WINDOW = Duration.ofMinutes(30);
 
-    enum Outcome { CAPTURED, FAILED, UNKNOWN }
-
-    record Result(Outcome outcome, String providerReference) {
-        public static Result unknown() { return new Result(Outcome.UNKNOWN, null); }
+    enum Outcome {
+        CAPTURED,
+        FAILED,
+        UNKNOWN
     }
 
-    record CheckoutLink(long orderCode, String paymentLinkId, String checkoutUrl) { }
+    record Result(Outcome outcome, String providerReference) {
+        public static Result unknown() {
+            return new Result(Outcome.UNKNOWN, null);
+        }
+    }
+
+    record CheckoutLink(long orderCode, String paymentLinkId, String checkoutUrl) {}
 
     /** payOS statuses: PENDING, PROCESSING, UNDERPAID, PAID, CANCELLED, EXPIRED, FAILED. */
-    record LinkStatus(long orderCode, String paymentLinkId, String status, long amount, long amountPaid) { }
+    record LinkStatus(
+            long orderCode, String paymentLinkId, String status, long amount, long amountPaid) {}
 
     /** Signature-verified webhook data. */
-    record WebhookEvent(long orderCode, long amount, String code, String reference, String paymentLinkId) { }
+    record WebhookEvent(
+            long orderCode, long amount, String code, String reference, String paymentLinkId) {}
 
     class InvalidWebhook extends AppException {
-        public InvalidWebhook(String message, Throwable cause) { super(400, "INVALID_WEBHOOK", message, cause); }
+        public InvalidWebhook(String message, Throwable cause) {
+            super(400, "INVALID_WEBHOOK", message, cause);
+        }
     }
 
     /** payOS only accepts each orderCode once; a second create for the same code returns the existing link. */
@@ -40,7 +50,7 @@ public interface PayosGateway extends AutoCloseable {
 
     /** Releases HTTP resources; never throws. */
     @Override
-    default void close() { }
+    default void close() {}
 
     /** Ask payOS what really happened; never throws (transport problems are {@link Outcome#UNKNOWN}). */
     default Result query(String txnRef, BigDecimal amount, boolean windowClosed) {
@@ -55,8 +65,10 @@ public interface PayosGateway extends AutoCloseable {
      * @param windowClosed the payment link has expired, so a link payOS never saw is a final failure
      *                     rather than "maybe still being created"
      */
-    static Result interpret(Optional<LinkStatus> maybeLink, BigDecimal amount, boolean windowClosed) {
-        if (maybeLink.isEmpty()) return windowClosed ? new Result(Outcome.FAILED, null) : Result.unknown();
+    static Result interpret(
+            Optional<LinkStatus> maybeLink, BigDecimal amount, boolean windowClosed) {
+        if (maybeLink.isEmpty())
+            return windowClosed ? new Result(Outcome.FAILED, null) : Result.unknown();
         LinkStatus link = maybeLink.get();
         String status = link.status() == null ? "" : link.status();
         return switch (status) {
@@ -69,7 +81,8 @@ public interface PayosGateway extends AutoCloseable {
                 }
                 boolean exact = link.amount() == expected && link.amountPaid() == expected;
                 yield exact && link.paymentLinkId() != null && !link.paymentLinkId().isBlank()
-                        ? new Result(Outcome.CAPTURED, link.paymentLinkId()) : Result.unknown();
+                        ? new Result(Outcome.CAPTURED, link.paymentLinkId())
+                        : Result.unknown();
             }
             case "CANCELLED", "EXPIRED", "FAILED" -> new Result(Outcome.FAILED, null);
             default -> Result.unknown();

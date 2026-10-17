@@ -10,16 +10,26 @@ import vn.ticketscenter.identity.security.UserPrincipal;
 public final class PayoutExecutionService {
     private final PayoutStore store;
     private final PayoutAdapter adapter;
-    public PayoutExecutionService(PayoutStore store,PayoutAdapter adapter) { this.store=Objects.requireNonNull(store); this.adapter=Objects.requireNonNull(adapter); }
-    public Map<String,Object> execute(UserPrincipal actor,UUID settlementId,UUID payoutId,PayoutRequestDto request) throws SQLException {
-        var existing=store.existing(actor,settlementId,payoutId,request);
-        if(existing!=null) return existing;
+
+    public PayoutExecutionService(PayoutStore store, PayoutAdapter adapter) {
+        this.store = Objects.requireNonNull(store);
+        this.adapter = Objects.requireNonNull(adapter);
+    }
+
+    public Map<String, Object> execute(
+            UserPrincipal actor, UUID settlementId, UUID payoutId, PayoutRequestDto request)
+            throws SQLException {
+        var existing = store.existing(actor, settlementId, payoutId, request);
+        if (existing != null) return existing;
         adapter.requireAvailable();
-        var reserved=store.reserve(actor,settlementId,payoutId,request);
-        if(Boolean.TRUE.equals(reserved.get("isReplay"))) return reserved;
+        var reserved = store.reserve(actor, settlementId, payoutId, request);
+        if (Boolean.TRUE.equals(reserved.get("isReplay"))) return reserved;
         PayoutAdapter.Result result;
-        try { result=Objects.requireNonNull(adapter.transfer(payoutId,request)); }
-        catch(Exception unavailable) { result=new PayoutAdapter.Result("UNKNOWN",null); }
-        return store.record(actor,settlementId,payoutId,request,result);
+        try {
+            result = Objects.requireNonNull(adapter.transfer(payoutId, request));
+        } catch (Exception unavailable) {
+            result = new PayoutAdapter.Result("UNKNOWN", null);
+        }
+        return store.record(actor, settlementId, payoutId, request, result);
     }
 }

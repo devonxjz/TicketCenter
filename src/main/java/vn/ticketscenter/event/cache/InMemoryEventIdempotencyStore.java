@@ -1,7 +1,7 @@
 package vn.ticketscenter.event.cache;
 
 import vn.ticketscenter.config.web.HttpResponses;
-import vn.ticketscenter.event.repository.EventManagementRepository.Result;
+import vn.ticketscenter.event.dao.EventManagementRepository.Result;
 import vn.ticketscenter.event.service.EventProblem;
 
 import java.util.Objects;
@@ -13,22 +13,31 @@ import java.util.concurrent.ConcurrentHashMap;
  * Maintains atomicity and lease lifecycle in local memory.
  */
 public final class InMemoryEventIdempotencyStore implements EventIdempotencyStore {
-    private record Entry(String hash, String value, String status, long expiresAt) { }
+    private record Entry(String hash, String value, String status, long expiresAt) {}
+
     private final ConcurrentHashMap<String, Entry> store = new ConcurrentHashMap<>();
 
     @Override
     public Lease acquire(String key, String hash) {
         long now = System.currentTimeMillis();
         String token = UUID.randomUUID().toString();
-        String value = "{\"status\":\"PROCESSING\",\"hash\":" + HttpResponses.jsonString(hash) + ",\"token\":" + HttpResponses.jsonString(token) + "}";
+        String value =
+                "{\"status\":\"PROCESSING\",\"hash\":"
+                        + HttpResponses.jsonString(hash)
+                        + ",\"token\":"
+                        + HttpResponses.jsonString(token)
+                        + "}";
         Entry created = new Entry(hash, value, "PROCESSING", now + 120_000);
 
-        Entry existing = store.compute(key, (k, current) -> {
-            if (current == null || current.expiresAt() <= now) {
-                return created;
-            }
-            return current;
-        });
+        Entry existing =
+                store.compute(
+                        key,
+                        (k, current) -> {
+                            if (current == null || current.expiresAt() <= now) {
+                                return created;
+                            }
+                            return current;
+                        });
 
         if (existing == created) {
             return new Lease(key, value);
@@ -41,23 +50,34 @@ public final class InMemoryEventIdempotencyStore implements EventIdempotencyStor
 
     @Override
     public void completed(Lease lease, String hash, Result response) {
-        String value = "{\"status\":\"COMPLETED\",\"hash\":" + HttpResponses.jsonString(hash)
-            + ",\"statusCode\":" + HttpResponses.jsonString(Integer.toString(response.status())) + ",\"response\":" + HttpResponses.jsonString(response.json()) + "}";
-        store.computeIfPresent(lease.key(), (k, current) -> {
-            if (Objects.equals(current.value(), lease.value())) {
-                return new Entry(hash, value, "COMPLETED", System.currentTimeMillis() + 86_400_000);
-            }
-            return current;
-        });
+        String value =
+                "{\"status\":\"COMPLETED\",\"hash\":"
+                        + HttpResponses.jsonString(hash)
+                        + ",\"statusCode\":"
+                        + HttpResponses.jsonString(Integer.toString(response.status()))
+                        + ",\"response\":"
+                        + HttpResponses.jsonString(response.json())
+                        + "}";
+        store.computeIfPresent(
+                lease.key(),
+                (k, current) -> {
+                    if (Objects.equals(current.value(), lease.value())) {
+                        return new Entry(
+                                hash, value, "COMPLETED", System.currentTimeMillis() + 86_400_000);
+                    }
+                    return current;
+                });
     }
 
     @Override
     public void release(Lease lease) {
-        store.computeIfPresent(lease.key(), (k, current) -> {
-            if (Objects.equals(current.value(), lease.value())) {
-                return null;
-            }
-            return current;
-        });
+        store.computeIfPresent(
+                lease.key(),
+                (k, current) -> {
+                    if (Objects.equals(current.value(), lease.value())) {
+                        return null;
+                    }
+                    return current;
+                });
     }
 }

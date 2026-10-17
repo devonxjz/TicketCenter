@@ -11,12 +11,14 @@ public final class EventCancellationService {
     private final EventCancellationStore store;
     private final CancellationProgressCacheHelper cache;
 
-    public EventCancellationService(EventCancellationStore store, CancellationProgressCacheHelper cache) {
+    public EventCancellationService(
+            EventCancellationStore store, CancellationProgressCacheHelper cache) {
         this.store = Objects.requireNonNull(store);
         this.cache = Objects.requireNonNull(cache);
     }
 
-    public EventCancelResponseDto cancel(UserPrincipal actor, UUID id, EventCancelRequestDto request, UUID key) {
+    public EventCancelResponseDto cancel(
+            UserPrincipal actor, UUID id, EventCancelRequestDto request, UUID key) {
         authorize(actor);
         if (id == null || request == null || key == null) throw invalid();
         var result = store.cancel(actor, id, request, key);
@@ -25,7 +27,8 @@ public final class EventCancellationService {
         } catch (RuntimeException ignored) {
             // Cancellation has committed; cache availability cannot change its result.
         }
-        return new EventCancelResponseDto(result.eventId(), result.cancelledAt(), result.totalOrders());
+        return new EventCancelResponseDto(
+                result.eventId(), result.cancelledAt(), result.totalOrders());
     }
 
     public String progress(UserPrincipal actor, UUID id) {
@@ -47,11 +50,13 @@ public final class EventCancellationService {
 
     private void authorize(UserPrincipal actor) {
         if (actor == null) throw new RefundException(401, "UNAUTHENTICATED", "Bạn cần đăng nhập.");
-        if (!actor.isAdmin()) throw new RefundException(403, "ADMIN_REQUIRED", "Chỉ quản trị viên được hủy sự kiện.");
+        if (!actor.isAdmin())
+            throw new RefundException(403, "ADMIN_REQUIRED", "Chỉ quản trị viên được hủy sự kiện.");
         store.requireAdmin(actor);
     }
 
     private static RefundException invalid() {
-        return new RefundException(400, "CANCELLATION_INVALID", "Thông tin hủy sự kiện không hợp lệ.");
+        return new RefundException(
+                400, "CANCELLATION_INVALID", "Thông tin hủy sự kiện không hợp lệ.");
     }
 }

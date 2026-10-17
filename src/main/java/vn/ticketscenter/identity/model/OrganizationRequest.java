@@ -30,7 +30,7 @@ public class OrganizationRequest extends BaseEntity {
     @Column(length = 2000)
     private String rejectionReason;
 
-    protected OrganizationRequest() { }
+    protected OrganizationRequest() {}
 
     public OrganizationRequest(Organization organization, User requester) {
         this.organization = organization;
@@ -38,9 +38,23 @@ public class OrganizationRequest extends BaseEntity {
         this.submittedAt = Instant.now();
     }
 
-    public Organization getOrganization() { return organization; }
-    public User getRequester() { return requester; }
-    public Instant getSubmittedAt() { return submittedAt; }
-    public Instant getResolvedAt() { return resolvedAt; }
-    public String getRejectionReason() { return rejectionReason; }
+    public Organization getOrganization() {
+        return organization;
+    }
+
+    public User getRequester() {
+        return requester;
+    }
+
+    public Instant getSubmittedAt() {
+        return submittedAt;
+    }
+
+    public Instant getResolvedAt() {
+        return resolvedAt;
+    }
+
+    public String getRejectionReason() {
+        return rejectionReason;
+    }
 }

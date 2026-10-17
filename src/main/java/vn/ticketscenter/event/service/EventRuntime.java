@@ -8,7 +8,7 @@ import jakarta.servlet.annotation.WebListener;
 
 import vn.ticketscenter.config.DatabaseConfig;
 import vn.ticketscenter.config.persistence.*;
-import vn.ticketscenter.event.repository.EventRepository;
+import vn.ticketscenter.event.dao.EventRepository;
 import vn.ticketscenter.storage.StorageService;
 
 import java.util.*;

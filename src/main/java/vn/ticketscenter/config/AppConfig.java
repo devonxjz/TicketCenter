@@ -59,10 +59,12 @@ public final class AppConfig {
         public static final String EVENT_IMAGE_DIRECTORY = "event.image.directory";
         public static final String REFUND_STATE_DIRECTORY = "refund.simulated.state.directory";
         public static final String REFUND_SIMULATED_OUTCOME = "refund.simulated.outcome";
-        public static final String REFUND_TIMEOUT_AFTER_SIDE_EFFECT = "refund.simulated.timeoutAfterSideEffect";
+        public static final String REFUND_TIMEOUT_AFTER_SIDE_EFFECT =
+                "refund.simulated.timeoutAfterSideEffect";
         public static final String PAYOUT_STATE_DIRECTORY = "payout.simulated.state.directory";
         public static final String PAYOUT_SIMULATED_OUTCOME = "payout.simulated.outcome";
-        public static final String PAYOUT_TIMEOUT_AFTER_SIDE_EFFECT = "payout.simulated.timeoutAfterSideEffect";
+        public static final String PAYOUT_TIMEOUT_AFTER_SIDE_EFFECT =
+                "payout.simulated.timeoutAfterSideEffect";
 
         // 3. Cổng Thanh Toán payOS (biến môi trường tương ứng: PAYOS_CLIENT_ID, PAYOS_API_KEY, ...)
         public static final String PAYOS_CLIENT_ID = "payos.client.id";
@@ -90,11 +92,15 @@ public final class AppConfig {
         public static final String ADMIN_EMAIL = "admin.email";
         public static final String IDENTITY_OTP_EXPIRY_MINUTES = "identity.otp.expiry.minutes";
         public static final String IDENTITY_OTP_COOLDOWN_SECONDS = "identity.otp.cooldown.seconds";
-        public static final String IDENTITY_OTP_MAX_FAILED_ATTEMPTS = "identity.otp.max.failed.attempts";
-        public static final String IDENTITY_RESET_TOKEN_EXPIRY_MINUTES = "identity.reset.token.expiry.minutes";
+        public static final String IDENTITY_OTP_MAX_FAILED_ATTEMPTS =
+                "identity.otp.max.failed.attempts";
+        public static final String IDENTITY_RESET_TOKEN_EXPIRY_MINUTES =
+                "identity.reset.token.expiry.minutes";
         public static final String IDENTITY_LOGIN_MAX_FAILURES = "identity.login.max.failures";
-        public static final String IDENTITY_LOGIN_THROTTLE_WINDOW_MINUTES = "identity.login.throttle.window.minutes";
-        public static final String IDENTITY_SESSION_CACHE_TTL_SECONDS = "identity.session.cache.ttl.seconds";
+        public static final String IDENTITY_LOGIN_THROTTLE_WINDOW_MINUTES =
+                "identity.login.throttle.window.minutes";
+        public static final String IDENTITY_SESSION_CACHE_TTL_SECONDS =
+                "identity.session.cache.ttl.seconds";
 
         // 6. Cấu hình Connection Pool (HikariCP)
         public static final String HIKARI_MAX_POOL_SIZE = "hikari.maximum-pool-size";
@@ -128,7 +134,8 @@ public final class AppConfig {
                 PROPERTIES.load(input);
                 return;
             } catch (IOException failure) {
-                throw new IllegalStateException("Private application configuration could not be loaded");
+                throw new IllegalStateException(
+                        "Private application configuration could not be loaded");
             }
         }
 
@@ -142,13 +149,16 @@ public final class AppConfig {
             LOGGER.log(Level.SEVERE, "Lỗi khi đọc file " + PROPERTIES_FILE, e);
         }
 
-        // 2. Fallback nạp từ application.properties.example nếu chưa có file cấu hình cục bộ (dành cho CI và Test runner)
+        // 2. Fallback nạp từ application.properties.example nếu chưa có file cấu hình cục bộ (dành
+        // cho CI và Test runner)
         try (InputStream is = classLoader.getResourceAsStream(PROPERTIES_EXAMPLE_FILE)) {
             if (is != null) {
                 PROPERTIES.load(is);
             } else {
-                LOGGER.log(Level.WARNING, "Không tìm thấy file {0} hoặc {1} trong classpath",
-                        new Object[]{PROPERTIES_FILE, PROPERTIES_EXAMPLE_FILE});
+                LOGGER.log(
+                        Level.WARNING,
+                        "Không tìm thấy file {0} hoặc {1} trong classpath",
+                        new Object[] {PROPERTIES_FILE, PROPERTIES_EXAMPLE_FILE});
             }
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "Lỗi khi đọc file " + PROPERTIES_EXAMPLE_FILE, e);
@@ -184,7 +194,8 @@ public final class AppConfig {
             return normalizedEnvVal.trim();
         }
 
-        // 3. Fallback cho Railway: các biến môi trường không có dấu gạch dưới (REDISHOST, REDISPORT, REDISPASSWORD, REDISURL)
+        // 3. Fallback cho Railway: các biến môi trường không có dấu gạch dưới (REDISHOST,
+        // REDISPORT, REDISPASSWORD, REDISURL)
         String compactEnvKey = key.replace(".", "").toUpperCase();
         String compactEnvVal = System.getenv(compactEnvKey);
         if (compactEnvVal != null && !compactEnvVal.isBlank()) {

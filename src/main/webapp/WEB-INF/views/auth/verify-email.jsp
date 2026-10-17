@@ -7,8 +7,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Xác minh Email — TicketsCenter</title>
 
-<jsp:include page="/WEB-INF/views/layout/meta-head.jsp" />
-<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/buyer-ui.css">
+    <jsp:include page="/WEB-INF/views/layout/meta-head.jsp" />
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/buyer-ui.css">
 </head>
 <body class="buyer-page bg-light min-h-screen d-flex flex-column justify-content-between">
     <!-- Header -->
@@ -30,7 +30,8 @@
             <div class="auth-tabs">
                 <a href="${pageContext.request.contextPath}/auth/login" class="auth-tab-btn">Đăng nhập</a>
                 <a href="${pageContext.request.contextPath}/auth/register" class="auth-tab-btn">Đăng ký</a>
-                <a href="${pageContext.request.contextPath}/auth/verify-email" class="auth-tab-btn active">Xác thực OTP</a>
+                <a href="${pageContext.request.contextPath}/auth/verify-email" class="auth-tab-btn active">Xác thực
+                    OTP</a>
             </div>
 
             <!-- Verify Email Form -->
@@ -48,8 +49,11 @@
                     <div class="mb-3">
                         <label class="filter-label" for="emailInput">Email tài khoản *</label>
                         <div class="input-group">
-                            <input type="email" id="emailInput" class="form-control rounded-0 border-secondary-subtle py-2" placeholder="name@example.com" required autofocus>
-                            <button type="button" id="btnSendOtp" class="btn btn-dark rounded-0 px-3 fw-bold" onclick="handleSendOtp()">
+                            <input type="email" id="emailInput"
+                                class="form-control rounded-0 border-secondary-subtle py-2"
+                                placeholder="name@example.com" required autofocus>
+                            <button type="button" id="btnSendOtp" class="btn btn-dark rounded-0 px-3 fw-bold"
+                                onclick="handleSendOtp()">
                                 Gửi OTP
                             </button>
                         </div>
@@ -60,8 +64,11 @@
 
                     <div class="mb-4">
                         <label class="filter-label" for="otpCodeInput">Mã OTP (6 chữ số) *</label>
-                        <input type="text" id="otpCodeInput" class="form-control rounded-0 border-secondary-subtle py-2 otp-input" maxlength="6" placeholder="000000" required>
-                        <span class="small text-muted mt-1 d-block">Mã OTP có hiệu lực 5 phút; nhập sai quá 5 lần sẽ bị hủy.</span>
+                        <input type="text" id="otpCodeInput"
+                            class="form-control rounded-0 border-secondary-subtle py-2 otp-input" maxlength="6"
+                            placeholder="000000" required>
+                        <span class="small text-muted mt-1 d-block">Mã OTP có hiệu lực 5 phút; nhập sai quá 5 lần sẽ bị
+                            hủy.</span>
                     </div>
 
                     <button type="submit" id="btnVerifyOtp" class="btn-primary-custom w-100 py-3 mb-3 fs-6">
@@ -70,7 +77,8 @@
                 </form>
 
                 <div class="mt-4 text-center">
-                    <a href="${pageContext.request.contextPath}/auth/login" class="small text-decoration-none text-muted">&larr; Quay lại đăng nhập</a>
+                    <a href="${pageContext.request.contextPath}/auth/login"
+                        class="small text-decoration-none text-muted">&larr; Quay lại đăng nhập</a>
                 </div>
             </div>
         </div>
@@ -88,7 +96,6 @@
         const csrfToken = '${csrfToken != null ? csrfToken : sessionScope.TC_CSRF_TOKEN}';
         let cooldownTimer = null;
         let remainingCooldown = 0;
-
         // Tự động điền email nếu có trên query URL
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
@@ -110,7 +117,6 @@
             const btnSend = document.getElementById('btnSendOtp');
             const cooldownText = document.getElementById('cooldownText');
             btnSend.disabled = true;
-
             if (cooldownTimer) clearInterval(cooldownTimer);
             cooldownTimer = setInterval(() => {
                 if (remainingCooldown <= 0) {
@@ -124,14 +130,12 @@
                 }
             }, 1000);
         }
-
         async function handleSendOtp() {
             const email = document.getElementById('emailInput').value.trim();
             if (!email) {
                 showAlert('danger', 'Vui lòng nhập địa chỉ email hợp lệ.');
                 return;
             }
-
             try {
                 const resp = await fetch(contextPath + '/api/auth/otp/send', {
                     method: 'POST',
@@ -139,10 +143,12 @@
                         'Content-Type': 'application/json',
                         'X-CSRF-Token': csrfToken
                     },
-                    body: JSON.stringify({ email: email, purpose: 'VERIFY_EMAIL' })
+                    body: JSON.stringify({
+                        email: email,
+                        purpose: 'VERIFY_EMAIL'
+                    })
                 });
                 const data = await resp.json();
-
                 if (resp.ok) {
                     showAlert('success', 'Mã xác thực OTP đã được gửi đến email của bạn.');
                     startCooldown(60);
@@ -153,20 +159,16 @@
                 showAlert('danger', 'Lỗi kết nối khi gửi mã OTP.');
             }
         }
-
         async function handleVerifyOtp() {
             const email = document.getElementById('emailInput').value.trim();
             const code = document.getElementById('otpCodeInput').value.trim();
-
             if (!email || !code || code.length !== 6) {
                 showAlert('danger', 'Vui lòng nhập đầy đủ email và 6 chữ số OTP.');
                 return;
             }
-
             const btnVerify = document.getElementById('btnVerifyOtp');
             btnVerify.disabled = true;
             btnVerify.innerText = 'Đang xác minh...';
-
             try {
                 const resp = await fetch(contextPath + '/api/auth/otp/verify', {
                     method: 'POST',
@@ -174,10 +176,13 @@
                         'Content-Type': 'application/json',
                         'X-CSRF-Token': csrfToken
                     },
-                    body: JSON.stringify({ email: email, purpose: 'VERIFY_EMAIL', code: code })
+                    body: JSON.stringify({
+                        email: email,
+                        purpose: 'VERIFY_EMAIL',
+                        code: code
+                    })
                 });
                 const data = await resp.json();
-
                 if (resp.ok) {
                     showAlert('success', 'Xác minh email thành công! Đang chuyển hướng đến đăng nhập...');
                     const urlParams = new URLSearchParams(window.location.search);

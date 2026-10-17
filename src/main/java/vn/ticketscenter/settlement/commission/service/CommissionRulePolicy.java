@@ -5,12 +5,12 @@ import vn.ticketscenter.settlement.commission.CommissionRuleException;
 
 /** Guards using the authenticated principal and backend-provided event count. */
 public final class CommissionRulePolicy {
-    private CommissionRulePolicy() {
-    }
+    private CommissionRulePolicy() {}
 
     public static void requireAdmin(UserPrincipal actor) {
         if (actor == null) {
-            throw new CommissionRuleException("AUTHENTICATION_REQUIRED", "Authentication is required.");
+            throw new CommissionRuleException(
+                    "AUTHENTICATION_REQUIRED", "Authentication is required.");
         }
         if (!actor.isAdmin()) {
             throw new CommissionRuleException("ADMIN_REQUIRED", "Platform ADMIN role is required.");
@@ -24,7 +24,8 @@ public final class CommissionRulePolicy {
             throw new IllegalStateException("Associated event count must be nonnegative.");
         }
         if (associatedEventsCount > 0) {
-            throw new CommissionRuleException("RULE_ALREADY_ATTACHED_TO_EVENTS",
+            throw new CommissionRuleException(
+                    "RULE_ALREADY_ATTACHED_TO_EVENTS",
                     "A rule attached to events cannot be edited.");
         }
     }

@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import vn.ticketscenter.fulfillment.checkin.integration.ScanFixture;
 import vn.ticketscenter.fulfillment.refund.dto.*;
-import vn.ticketscenter.fulfillment.refund.repository.AdminRefundRepository;
+import vn.ticketscenter.fulfillment.refund.dao.AdminRefundRepository;
 import vn.ticketscenter.fulfillment.refund.service.*;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.security.UserPrincipal;

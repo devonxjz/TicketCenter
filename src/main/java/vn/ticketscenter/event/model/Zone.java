@@ -16,8 +16,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "tc_zones", schema = "dbo",
-        uniqueConstraints = @UniqueConstraint(name = "uq_zone_event_name", columnNames = {"event_id", "name"}))
+@Table(
+        name = "tc_zones",
+        schema = "dbo",
+        uniqueConstraints =
+                @UniqueConstraint(
+                        name = "uq_zone_event_name",
+                        columnNames = {"event_id", "name"}))
 public class Zone extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "event_id", nullable = false)
@@ -45,7 +50,7 @@ public class Zone extends BaseEntity {
     @OneToMany(mappedBy = "zone")
     private List<Seat> seats = new ArrayList<>();
 
-    protected Zone() { }
+    protected Zone() {}
 
     public Zone(Event event, String name, ZoneType type, long price) {
         this.event = event;
@@ -54,12 +59,35 @@ public class Zone extends BaseEntity {
         this.price = price;
     }
 
-    public Event getEvent() { return event; }
-    public String getName() { return name; }
-    public ZoneType getType() { return type; }
-    public long getPrice() { return price; }
-    public Integer getStandingCapacity() { return standingCapacity; }
-    public int getStandingHeld() { return standingHeld; }
-    public int getStandingSold() { return standingSold; }
-    public List<Seat> getSeats() { return List.copyOf(seats); }
+    public Event getEvent() {
+        return event;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public ZoneType getType() {
+        return type;
+    }
+
+    public long getPrice() {
+        return price;
+    }
+
+    public Integer getStandingCapacity() {
+        return standingCapacity;
+    }
+
+    public int getStandingHeld() {
+        return standingHeld;
+    }
+
+    public int getStandingSold() {
+        return standingSold;
+    }
+
+    public List<Seat> getSeats() {
+        return List.copyOf(seats);
+    }
 }

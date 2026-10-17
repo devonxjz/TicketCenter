@@ -25,19 +25,28 @@ public final class RequestValidationFilter implements Filter {
         boolean imageUpload = isImageUpload(httpRequest);
         long limit = imageUpload ? MAX_COVER_BODY_BYTES : MAX_BODY_BYTES;
         if (httpRequest.getContentLengthLong() > limit) {
-            HttpResponses.error(httpResponse, HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE,
-                    "PAYLOAD_TOO_LARGE", "Request payload is too large");
+            HttpResponses.error(
+                    httpResponse,
+                    HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE,
+                    "PAYLOAD_TOO_LARGE",
+                    "Request payload is too large");
             return;
         }
         if (BODY_METHODS.contains(httpRequest.getMethod())) {
-            String path = httpRequest.getRequestURI().substring(httpRequest.getContextPath().length());
+            String path =
+                    httpRequest.getRequestURI().substring(httpRequest.getContextPath().length());
             if (!"/api/auth/logout".equals(path)) {
                 String contentType = httpRequest.getContentType();
-                if (contentType == null || !(contentType.startsWith("application/json")
-                        || contentType.startsWith("application/x-www-form-urlencoded")
-                        || (imageUpload && contentType.startsWith("multipart/form-data")))) {
-                    HttpResponses.error(httpResponse, HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE,
-                            "CONTENT_TYPE_INVALID", "Unsupported content type");
+                if (contentType == null
+                        || !(contentType.startsWith("application/json")
+                                || contentType.startsWith("application/x-www-form-urlencoded")
+                                || (imageUpload
+                                        && contentType.startsWith("multipart/form-data")))) {
+                    HttpResponses.error(
+                            httpResponse,
+                            HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE,
+                            "CONTENT_TYPE_INVALID",
+                            "Unsupported content type");
                     return;
                 }
             }

@@ -8,6 +8,9 @@ public final class HoldException extends AppException {
     }
 
     public static HoldException unavailable() {
-        return new HoldException(503, "HOLD_UNAVAILABLE", "Hold storage is unavailable. Retry with the same request key.");
+        return new HoldException(
+                503,
+                "HOLD_UNAVAILABLE",
+                "Hold storage is unavailable. Retry with the same request key.");
     }
 }

@@ -9,9 +9,9 @@ import vn.ticketscenter.identity.model.Organization;
 import vn.ticketscenter.identity.model.OrganizationStatus;
 import vn.ticketscenter.identity.model.User;
 import vn.ticketscenter.identity.model.UserStatus;
-import vn.ticketscenter.identity.repository.OrganizationDecisionRepository;
-import vn.ticketscenter.identity.repository.OrganizationRepository;
-import vn.ticketscenter.identity.repository.UserRepository;
+import vn.ticketscenter.identity.dao.OrganizationDecisionRepository;
+import vn.ticketscenter.identity.dao.OrganizationRepository;
+import vn.ticketscenter.identity.dao.UserRepository;
 import vn.ticketscenter.persistence.model.BaseEntity;
 
 import java.lang.reflect.Field;

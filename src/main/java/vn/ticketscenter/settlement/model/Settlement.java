@@ -46,21 +46,56 @@ public class Settlement extends BaseEntity {
     private List<SettlementItem> items = new ArrayList<>();
 
     @OneToMany(mappedBy = "settlement")
-    private List<vn.ticketscenter.persistence.model.SettlementTransferLog> payouts = new ArrayList<>();
+    private List<vn.ticketscenter.persistence.model.SettlementTransferLog> payouts =
+            new ArrayList<>();
 
-    protected Settlement() { }
+    protected Settlement() {}
 
-    public Settlement(Event event) { this.event = event; }
+    public Settlement(Event event) {
+        this.event = event;
+    }
 
-    public Event getEvent() { return event; }
-    public SettlementStatus getStatus() { return status; }
-    public long getGrossRevenue() { return grossRevenue; }
-    public long getTotalRefund() { return totalRefund; }
-    public long getTotalCommission() { return totalCommission; }
-    public long getPaidAmount() { return paidAmount; }
-    public long getPendingAmount() { return pendingAmount; }
-    public long getNetPayable() { return grossRevenue - totalRefund - totalCommission; }
-    public long getAvailableToPay() { return getNetPayable() - paidAmount - pendingAmount; }
-    public List<SettlementItem> getItems() { return List.copyOf(items); }
-    public List<vn.ticketscenter.persistence.model.SettlementTransferLog> getPayouts() { return List.copyOf(payouts); }
+    public Event getEvent() {
+        return event;
+    }
+
+    public SettlementStatus getStatus() {
+        return status;
+    }
+
+    public long getGrossRevenue() {
+        return grossRevenue;
+    }
+
+    public long getTotalRefund() {
+        return totalRefund;
+    }
+
+    public long getTotalCommission() {
+        return totalCommission;
+    }
+
+    public long getPaidAmount() {
+        return paidAmount;
+    }
+
+    public long getPendingAmount() {
+        return pendingAmount;
+    }
+
+    public long getNetPayable() {
+        return grossRevenue - totalRefund - totalCommission;
+    }
+
+    public long getAvailableToPay() {
+        return getNetPayable() - paidAmount - pendingAmount;
+    }
+
+    public List<SettlementItem> getItems() {
+        return List.copyOf(items);
+    }
+
+    public List<vn.ticketscenter.persistence.model.SettlementTransferLog> getPayouts() {
+        return List.copyOf(payouts);
+    }
 }

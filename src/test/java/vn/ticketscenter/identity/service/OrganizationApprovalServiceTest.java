@@ -9,7 +9,7 @@ import vn.ticketscenter.identity.dto.OrganizationRequestSummaryDto;
 import vn.ticketscenter.identity.model.Organization;
 import vn.ticketscenter.identity.model.OrganizationStatus;
 import vn.ticketscenter.identity.model.User;
-import vn.ticketscenter.identity.repository.OrganizationDecisionRepository.CommissionPolicy;
+import vn.ticketscenter.identity.dao.OrganizationDecisionRepository.CommissionPolicy;
 import vn.ticketscenter.identity.service.OrganizationFakes.FakeDecisionRepository;
 import vn.ticketscenter.identity.service.OrganizationFakes.FakeOrganizationRepository;
 import vn.ticketscenter.identity.service.OrganizationFakes.FakeUserRepository;
