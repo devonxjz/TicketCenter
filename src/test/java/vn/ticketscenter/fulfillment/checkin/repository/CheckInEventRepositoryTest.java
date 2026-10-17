@@ -76,7 +76,7 @@ class CheckInEventRepositoryTest {
         Query query=queries.getFirst();assertEquals(1,queries.size());
         assertEquals(ACTOR.toString(),query.bindings.get(1));assertEquals(ORG.toString(),query.bindings.get(2));
         assertEquals(LocalDateTime.ofInstant(cached.startTime(),ZoneOffset.UTC),query.bindings.get(3));
-        assertEquals(EVENT.toString(),query.bindings.get(6));
+        assertEquals(EVENT.toString(),query.bindings.get(7));
         assertTrue(query.sql.contains("dbo.vw_CheckInStaffOrganizations"));assertFalse(query.sql.contains("dbo.tc_"));
         assertFalse(query.sql.contains("e.title"));assertFalse(query.sql.contains("price"));
     }
@@ -93,7 +93,7 @@ class CheckInEventRepositoryTest {
         results.add(Collections.singletonList(data));results.add(Collections.singletonList(new Object[]{1}));
         assertEquals(Instant.parse("2026-10-09T19:00:00Z"),repository.accessibleEvent(ACTOR,EVENT).startTime());
     }
-    private Object[] eventRow(){return new Object[]{EVENT.toString(),ORG.toString(),"Đêm nhạc","Nhà hát",LocalDateTime.parse("2026-10-09T19:00:00"),LocalDateTime.parse("2026-10-09T22:00:00"),"PUBLISHED"};}
+    private Object[] eventRow(){return new Object[]{EVENT.toString(),ORG.toString(),"Đêm nhạc","Nhà hát",LocalDateTime.parse("2026-10-09T19:00:00"),LocalDateTime.parse("2026-10-09T22:00:00"),"PUBLISHED",null};}
     private TransactionManager transactions(){
         EntityTransaction transaction=proxy(EntityTransaction.class,(m,a)->m.equals("isActive")?true:null);
         Session session=proxy(Session.class,(m,a)->m.equals("doReturningWork")?((ReturningWork<?>)a[0]).execute(connection):null);

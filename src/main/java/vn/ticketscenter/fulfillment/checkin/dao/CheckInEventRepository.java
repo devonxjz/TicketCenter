@@ -24,9 +24,24 @@ public class CheckInEventRepository {
             Instant endTime,
             String status,
             long issued,
-            long checkedIn) {
+            long checkedIn,
+            Instant checkInOpenAt) {
+        public EventInfo(
+                UUID eventId,
+                UUID organizationId,
+                String title,
+                String venue,
+                Instant startTime,
+                Instant endTime,
+                String status,
+                long issued,
+                long checkedIn) {
+            this(eventId, organizationId, title, venue, startTime, endTime, status, issued, checkedIn, null);
+        }
+
+        /** Per-event override when set, otherwise one hour before the start. */
         public Instant windowStart() {
-            return startTime.minusSeconds(3600);
+            return checkInOpenAt != null ? checkInOpenAt : startTime.minusSeconds(3600);
         }
 
         public boolean isOpen(Instant now) {
@@ -51,7 +66,7 @@ public class CheckInEventRepository {
 
     private static final String EVENT_COLUMNS =
             """
-            SELECT e.id,e.organization_id,e.title,e.venue_name,e.start_time,e.end_time,e.status
+            SELECT e.id,e.organization_id,e.title,e.venue_name,e.start_time,e.end_time,e.status,e.checkin_open_at
             FROM dbo.vw_CheckInEvents e
             """;
 
@@ -147,7 +162,8 @@ public class CheckInEventRepository {
                                     event.endTime(),
                                     event.status(),
                                     rows.getLong(1),
-                                    rows.getLong(2));
+                                    rows.getLong(2),
+                                    event.checkInOpenAt());
                         }
                     }
                 });
@@ -161,7 +177,8 @@ public class CheckInEventRepository {
                             "SELECT CASE WHEN EXISTS (SELECT 1 "
                                     + MEMBERSHIP
                                     + " AND m.organization_id=e.organization_id) THEN 1 ELSE 0 END,"
-                                    + " CASE WHEN e.organization_id=? AND e.start_time=? AND e.end_time=? AND e.status=? THEN 1 ELSE 0 END"
+                                    + " CASE WHEN e.organization_id=? AND e.start_time=? AND e.end_time=? AND e.status=?"
+                                    + " AND ISNULL(e.checkin_open_at,'1900-01-01')=? THEN 1 ELSE 0 END"
                                     + " FROM dbo.vw_CheckInEvents e WHERE e.id=?";
                     try (PreparedStatement query = prepare(connection, sql)) {
                         query.setString(1, actorId.toString());
@@ -169,7 +186,13 @@ public class CheckInEventRepository {
                         utc(query, 3, cached.startTime());
                         utc(query, 4, cached.endTime());
                         query.setString(5, cached.status());
-                        query.setString(6, eventId.toString());
+                        utc(
+                                query,
+                                6,
+                                cached.checkInOpenAt() == null
+                                        ? Instant.parse("1900-01-01T00:00:00Z")
+                                        : cached.checkInOpenAt());
+                        query.setString(7, eventId.toString());
                         try (ResultSet rows = query.executeQuery()) {
                             if (!rows.next())
                                 throw new CheckInException(
@@ -229,7 +252,8 @@ public class CheckInEventRepository {
                 instant(row, 6),
                 row.getString(7),
                 0,
-                0);
+                0,
+                row.getObject(8) == null ? null : instant(row, 8));
     }
 
     private static Instant instant(ResultSet row, int index) throws SQLException {
