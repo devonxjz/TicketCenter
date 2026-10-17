@@ -1,7 +1,7 @@
 name: KHANH-02 signed QR check-in acceptance
 on:
   push:
-    branches: [feat/khanh/khanh-02-qr-checkin]
+    branches: [dev]
   pull_request:
     branches: [dev]
     paths: ['pom.xml', 'src/main/java/vn/ticketscenter/fulfillment/checkin/**', 'src/main/java/vn/ticketscenter/config/web/OrganizationApiRoutesFilter.java', 'src/main/webapp/WEB-INF/web.xml', 'src/main/webapp/WEB-INF/views/checkin/**', 'src/main/webapp/assets/checkin/**', 'src/test/**/checkin/**', 'src/test/js/checkin-scanner.test.cjs', 'database/migrations/030_khanh02_signed_checkin.sql', '.github/workflows/khanh02-checkin.yml']

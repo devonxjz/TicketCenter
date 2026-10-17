@@ -1,7 +1,7 @@
 name: KHANH-05 refund worker acceptance
 on:
   push:
-    branches: [dev, feat/khanh/khanh-05-refund-worker]
+    branches: [dev]
   pull_request:
     branches: [dev]
     paths: ['src/main/java/vn/ticketscenter/fulfillment/**', 'src/main/java/vn/ticketscenter/payment/integration/*RefundGateway.java', 'src/main/java/vn/ticketscenter/config/worker/RefundJob.java', 'src/test/java/vn/ticketscenter/database/**', 'src/test/java/vn/ticketscenter/fulfillment/refund/worker/**', 'database/migrations/**', 'src/test/resources/refund/khanh05/**', '.github/workflows/khanh05-refund-worker.yml']
