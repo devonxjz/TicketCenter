@@ -174,4 +174,73 @@ class SqlCallTest {
         assertEquals(500, thrown.status());
         assertEquals("DATABASE_ERROR", thrown.code());
     }
+
+    @Test
+    void queriesListAndMapsMultipleRows() {
+        AtomicInteger cursor = new AtomicInteger(-1);
+        List<String> mockData = List.of("alpha", "beta", "gamma");
+
+        ResultSet resultSet = (ResultSet) Proxy.newProxyInstance(
+                getClass().getClassLoader(),
+                new Class<?>[]{ResultSet.class},
+                (proxy, method, args) -> {
+                    if ("next".equals(method.getName())) {
+                        return cursor.incrementAndGet() < mockData.size();
+                    }
+                    if ("getString".equals(method.getName())) {
+                        return mockData.get(cursor.get());
+                    }
+                    if ("close".equals(method.getName())) return null;
+                    return null;
+                });
+
+        PreparedStatement statement = (PreparedStatement) Proxy.newProxyInstance(
+                getClass().getClassLoader(),
+                new Class<?>[]{PreparedStatement.class},
+                (proxy, method, args) -> {
+                    if ("execute".equals(method.getName())) return true;
+                    if ("getResultSet".equals(method.getName())) return resultSet;
+                    if ("getMoreResults".equals(method.getName())) return false;
+                    if ("getUpdateCount".equals(method.getName())) return -1;
+                    if ("close".equals(method.getName())) return null;
+                    return null;
+                });
+
+        Connection connection = (Connection) Proxy.newProxyInstance(
+                getClass().getClassLoader(),
+                new Class<?>[]{Connection.class},
+                (proxy, method, args) -> statement);
+
+        List<String> items = SqlCall.queryList(connection, "SELECT name FROM tbl", rs -> rs.getString(1), null);
+
+        assertEquals(List.of("alpha", "beta", "gamma"), items);
+    }
+
+    @Test
+    void usesFallbackWhenSpecified() {
+        SQLException sqlException = new SQLException("Connection timed out", "08001", 50000);
+
+        PreparedStatement statement = (PreparedStatement) Proxy.newProxyInstance(
+                getClass().getClassLoader(),
+                new Class<?>[]{PreparedStatement.class},
+                (proxy, method, args) -> {
+                    if ("execute".equals(method.getName())) throw sqlException;
+                    if ("close".equals(method.getName())) return null;
+                    return null;
+                });
+
+        Connection connection = (Connection) Proxy.newProxyInstance(
+                getClass().getClassLoader(),
+                new Class<?>[]{Connection.class},
+                (proxy, method, args) -> statement);
+
+        SqlCall.ErrorTable errors = SqlCall.ErrorTable.of()
+                .fallback((code, msg) -> new AppException(503, "DB_DOWN", "Database unavailable"));
+
+        AppException thrown = assertThrows(AppException.class, () ->
+                SqlCall.execute(connection, "SELECT 1", errors));
+
+        assertEquals(503, thrown.status());
+        assertEquals("DB_DOWN", thrown.code());
+    }
 }
