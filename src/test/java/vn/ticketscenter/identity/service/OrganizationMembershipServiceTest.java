@@ -5,6 +5,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
+import vn.ticketscenter.identity.dao.OrganizationMembershipRepository;
+import vn.ticketscenter.identity.dao.OrganizationMembershipRepository.MembershipRow;
+import vn.ticketscenter.identity.dao.UserRepository;
 import vn.ticketscenter.identity.dto.AddMemberRequestDto;
 import vn.ticketscenter.identity.dto.ChangeMemberRoleRequestDto;
 import vn.ticketscenter.identity.dto.MembershipSummaryDto;
@@ -13,15 +16,29 @@ import vn.ticketscenter.identity.model.Organization;
 import vn.ticketscenter.identity.model.OrganizationMembership;
 import vn.ticketscenter.identity.model.OrganizationRole;
 import vn.ticketscenter.identity.model.User;
-import vn.ticketscenter.identity.dao.OrganizationMembershipRepository;
-import vn.ticketscenter.identity.dao.UserRepository;
+import vn.ticketscenter.identity.model.UserStatus;
 
 import java.lang.reflect.Field;
-import java.util.*;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * The membership rules (who may manage, the last-manager guard, reactivation, audit) live in
+ * usp_AddMember / usp_ChangeMemberRole and are exercised against SQL Server. These tests cover what the service
+ * still owns: handing the command to the procedure under the right principal, building the response and passing
+ * the translated failures through.
+ */
 class OrganizationMembershipServiceTest {
+
+    private record Write(String command, UUID orgId, UUID actorId, UUID userId, OrganizationRole role, Boolean active) { }
 
     private UUID actorManagerId;
     private UUID targetUserId;
@@ -34,7 +51,11 @@ class OrganizationMembershipServiceTest {
     private Map<String, OrganizationMembership> membershipsByOrgAndUser;
     private Map<UUID, User> usersById;
     private Map<String, User> usersByUsername;
-    private Map<UUID, Organization> orgsById;
+
+    private final List<Write> writes = new ArrayList<>();
+    private final List<DatabasePrincipal> principals = new ArrayList<>();
+    private RuntimeException procedureFailure;
+    private final Instant joinedAt = Instant.parse("2026-10-01T08:00:00Z");
 
     private OrganizationMembershipService service;
 
@@ -43,32 +64,28 @@ class OrganizationMembershipServiceTest {
         actorManagerId = UUID.randomUUID();
         targetUserId = UUID.randomUUID();
         orgId = UUID.randomUUID();
+        writes.clear();
+        principals.clear();
+        procedureFailure = null;
 
         actorManager = new User("manager@vwm.vn", "manager_vwm", "Manager User", "hash");
         setId(actorManager, actorManagerId);
-
         targetUser = new User("staff@vwm.vn", "staff1", "Staff User", "hash");
         setId(targetUser, targetUserId);
-
         organization = new Organization("Bảo tàng Phụ nữ VN", "contact@vwm.vn", actorManager);
         setId(organization, orgId);
 
         actorMembership = new OrganizationMembership(actorManager, organization, OrganizationRole.MANAGER);
         setMembershipId(actorMembership, UUID.randomUUID());
-
         membershipsByOrgAndUser = new HashMap<>();
         membershipsByOrgAndUser.put(orgId + "_" + actorManagerId, actorMembership);
 
         usersById = new HashMap<>();
         usersById.put(actorManagerId, actorManager);
         usersById.put(targetUserId, targetUser);
-
         usersByUsername = new HashMap<>();
         usersByUsername.put("manager_vwm", actorManager);
         usersByUsername.put("staff1", targetUser);
-
-        orgsById = new HashMap<>();
-        orgsById.put(orgId, organization);
 
         OrganizationMembershipRepository repo = new OrganizationMembershipRepository() {
             @Override
@@ -77,52 +94,31 @@ class OrganizationMembershipServiceTest {
             }
 
             @Override
-            public List<OrganizationMemberDto> findMembersByOrgId(EntityManager em, UUID oId) {
-                List<OrganizationMemberDto> list = new ArrayList<>();
-                for (OrganizationMembership m : membershipsByOrgAndUser.values()) {
-                    if (m.getOrganization().getId().equals(oId)) {
-                        list.add(new OrganizationMemberDto(
-                                m.getId(), m.getUser().getId(), m.getUser().getUserName(),
-                                m.getUser().getFullName(), m.getUser().getEmail(),
-                                m.getRole(), m.isActive(), m.getJoinedAt()
-                        ));
-                    }
-                }
-                return list;
-            }
-
-            @Override
             public List<MembershipSummaryDto> findMembershipsByUserId(EntityManager em, UUID uId) {
                 List<MembershipSummaryDto> list = new ArrayList<>();
                 for (OrganizationMembership m : membershipsByOrgAndUser.values()) {
                     if (m.getUser().getId().equals(uId)) {
                         list.add(new MembershipSummaryDto(
-                                m.getOrganization().getId(), m.getOrganization().getName(),
-                                m.getRole(), m.isActive()
-                        ));
+                                m.getOrganization().getId(), m.getOrganization().getName(), m.getRole(), m.isActive()));
                     }
                 }
                 return list;
             }
 
             @Override
-            public long countActiveManagers(EntityManager em, UUID oId) {
-                return membershipsByOrgAndUser.values().stream()
-                        .filter(m -> m.getOrganization().getId().equals(oId)
-                                && m.getRole() == OrganizationRole.MANAGER
-                                && m.isActive())
-                        .count();
+            public MembershipRow addMember(EntityManager em, UUID oId, UUID actor, UUID uId, OrganizationRole role) {
+                writes.add(new Write("add", oId, actor, uId, role, null));
+                if (procedureFailure != null) throw procedureFailure;
+                return new MembershipRow(UUID.randomUUID(), uId, role, true, joinedAt);
             }
 
             @Override
-            public OrganizationMembership save(EntityManager em, OrganizationMembership m) {
-                if (m.getId() == null) {
-                    try {
-                        setMembershipId(m, UUID.randomUUID());
-                    } catch (Exception ignored) {}
-                }
-                membershipsByOrgAndUser.put(m.getOrganization().getId() + "_" + m.getUser().getId(), m);
-                return m;
+            public MembershipRow changeMember(EntityManager em, UUID oId, UUID actor, UUID uId,
+                                              OrganizationRole role, Boolean active) {
+                writes.add(new Write("change", oId, actor, uId, role, active));
+                if (procedureFailure != null) throw procedureFailure;
+                return new MembershipRow(UUID.randomUUID(), uId,
+                        role != null ? role : OrganizationRole.CHECK_IN_STAFF, active == null || active, joinedAt);
             }
         };
 
@@ -134,6 +130,12 @@ class OrganizationMembershipServiceTest {
             }
 
             @Override
+            public Optional<User> findByNormalizedEmail(EntityManager em, String email) {
+                return usersById.values().stream()
+                        .filter(u -> u.getEmail().equalsIgnoreCase(email)).findFirst();
+            }
+
+            @Override
             public Optional<User> findById(EntityManager em, UUID id) {
                 return Optional.ofNullable(usersById.get(id));
             }
@@ -142,19 +144,16 @@ class OrganizationMembershipServiceTest {
         OrganizationMembershipService.TransactionExecutor tx = new OrganizationMembershipService.TransactionExecutor() {
             @Override
             public <T> T execute(DatabasePrincipal principal, java.util.function.Function<EntityManager, T> work) {
+                principals.add(principal);
                 EntityManager emStub = (EntityManager) java.lang.reflect.Proxy.newProxyInstance(
                         EntityManager.class.getClassLoader(),
                         new Class<?>[]{EntityManager.class},
                         (proxy, method, args) -> {
-                            if ("find".equals(method.getName())) {
-                                Class<?> entityClass = (Class<?>) args[0];
-                                UUID id = (UUID) args[1];
-                                if (entityClass == User.class) return usersById.get(id);
-                                if (entityClass == Organization.class) return orgsById.get(id);
+                            if ("find".equals(method.getName()) && args[0] == User.class) {
+                                return usersById.get((UUID) args[1]);
                             }
                             return null;
-                        }
-                );
+                        });
                 return work.apply(emStub);
             }
         };
@@ -168,6 +167,12 @@ class OrganizationMembershipServiceTest {
         field.set(entity, id);
     }
 
+    private static void setStatus(User user, UserStatus status) throws Exception {
+        Field field = User.class.getDeclaredField("status");
+        field.setAccessible(true);
+        field.set(user, status);
+    }
+
     private static void setMembershipId(OrganizationMembership membership, UUID id) throws Exception {
         Field field = OrganizationMembership.class.getDeclaredField("id");
         field.setAccessible(true);
@@ -175,56 +180,122 @@ class OrganizationMembershipServiceTest {
     }
 
     @Test
-    @DisplayName("MEM-01: Thêm thành viên mới thành công (201 Created)")
-    void testAddMember_SuccessNewMember() {
-        AddMemberRequestDto dto = new AddMemberRequestDto("staff1", OrganizationRole.CHECK_IN_STAFF);
+    @DisplayName("MEM-01: thêm thành viên gọi procedure một lần và dựng response từ dòng procedure trả về")
+    void addMemberDelegatesToProcedure() {
+        OrganizationMemberDto result = service.addMember(actorManagerId, orgId,
+                new AddMemberRequestDto("staff1", OrganizationRole.CHECK_IN_STAFF));
 
-        OrganizationMemberDto result = service.addMember(actorManagerId, orgId, dto);
-
-        assertNotNull(result);
+        assertEquals(List.of(new Write("add", orgId, actorManagerId, targetUserId, OrganizationRole.CHECK_IN_STAFF, null)),
+                writes);
         assertEquals(targetUserId, result.userId());
         assertEquals("staff1", result.userName());
+        assertEquals("staff@vwm.vn", result.email());
         assertEquals(OrganizationRole.CHECK_IN_STAFF, result.role());
         assertTrue(result.isActive());
-
-        OrganizationMembership saved = membershipsByOrgAndUser.get(orgId + "_" + targetUserId);
-        assertNotNull(saved);
-        assertEquals(OrganizationRole.CHECK_IN_STAFF, saved.getRole());
-        assertTrue(saved.isActive());
+        assertEquals(joinedAt, result.joinedAt());
     }
 
     @Test
-    @DisplayName("MEM-02: Thêm thành viên đã tồn tại nhưng bị inactive -> Tái kích hoạt active=1")
-    void testAddMember_ReactivateExistingInactiveMember() throws Exception {
-        OrganizationMembership oldMembership = new OrganizationMembership(targetUser, organization, OrganizationRole.CHECK_IN_STAFF);
-        oldMembership.setActive(false);
-        setMembershipId(oldMembership, UUID.randomUUID());
-        membershipsByOrgAndUser.put(orgId + "_" + targetUserId, oldMembership);
+    @DisplayName("Đọc dưới AUTH, ghi dưới MANAGER: procedure mới là nơi cấp quyền ghi")
+    void writesRunAsManagerPrincipal() {
+        service.addMember(actorManagerId, orgId, new AddMemberRequestDto("staff1", OrganizationRole.MANAGER));
+        assertEquals(List.of(DatabasePrincipal.AUTH, DatabasePrincipal.MANAGER), principals);
 
-        AddMemberRequestDto dto = new AddMemberRequestDto("staff1", OrganizationRole.MANAGER);
-        OrganizationMemberDto result = service.addMember(actorManagerId, orgId, dto);
-
-        assertNotNull(result);
-        assertEquals(targetUserId, result.userId());
-        assertTrue(result.isActive());
-        assertEquals(OrganizationRole.MANAGER, result.role());
-        assertTrue(oldMembership.isActive());
-        assertEquals(OrganizationRole.MANAGER, oldMembership.getRole());
+        principals.clear();
+        service.deactivateMember(actorManagerId, orgId, targetUserId);
+        assertEquals(List.of(DatabasePrincipal.MANAGER, DatabasePrincipal.AUTH), principals);
     }
 
     @Test
-    @DisplayName("MEM-01 Conflict: Thêm thành viên đã active trong tổ chức -> ném lỗi MEMBER_ALREADY_EXISTS")
-    void testAddMember_AlreadyActiveThrowsConflict() throws Exception {
-        OrganizationMembership activeMembership = new OrganizationMembership(targetUser, organization, OrganizationRole.CHECK_IN_STAFF);
-        activeMembership.setActive(true);
-        setMembershipId(activeMembership, UUID.randomUUID());
-        membershipsByOrgAndUser.put(orgId + "_" + targetUserId, activeMembership);
+    @DisplayName("MEM-01: tài khoản không tồn tại -> lỗi, không gọi procedure")
+    void addMemberUnknownUserNeverWrites() {
+        assertThrows(IllegalArgumentException.class, () -> service.addMember(actorManagerId, orgId,
+                new AddMemberRequestDto("ghost", OrganizationRole.CHECK_IN_STAFF)));
+        assertTrue(writes.isEmpty());
+    }
 
-        AddMemberRequestDto dto = new AddMemberRequestDto("staff1", OrganizationRole.CHECK_IN_STAFF);
+    @Test
+    @DisplayName("Tài khoản không ACTIVE -> lỗi, không gọi procedure")
+    void addMemberInactiveUserNeverWrites() throws Exception {
+        setStatus(targetUser, UserStatus.DISABLED);
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> service.addMember(actorManagerId, orgId,
+                new AddMemberRequestDto("staff1", OrganizationRole.CHECK_IN_STAFF)));
+        assertTrue(ex.getMessage().contains("không ở trạng thái hoạt động"));
+        assertTrue(writes.isEmpty());
+    }
 
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
-                service.addMember(actorManagerId, orgId, dto));
+    @Test
+    @DisplayName("Người ngoài tổ chức không dò được tài khoản nào tồn tại (403 trước khi tra user)")
+    void addMemberByOutsiderIsForbiddenBeforeUserLookup() throws Exception {
+        UUID outsiderId = UUID.randomUUID();
+        User outsider = new User("outsider@gmail.com", "outsider", "Outsider User", "hash");
+        setId(outsider, outsiderId);
+        usersById.put(outsiderId, outsider);
+
+        assertThrows(SecurityException.class, () -> service.addMember(outsiderId, orgId,
+                new AddMemberRequestDto("ghost-or-real", OrganizationRole.CHECK_IN_STAFF)));
+        assertTrue(writes.isEmpty());
+    }
+
+    @Test
+    @DisplayName("MEM-01 Conflict: lỗi MEMBER_ALREADY_EXISTS từ procedure được giữ nguyên")
+    void addMemberPropagatesConflict() {
+        procedureFailure = new IllegalStateException("MEMBER_ALREADY_EXISTS: đã hoạt động");
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> service.addMember(actorManagerId, orgId,
+                new AddMemberRequestDto("staff1", OrganizationRole.CHECK_IN_STAFF)));
         assertTrue(ex.getMessage().contains("MEMBER_ALREADY_EXISTS"));
+    }
+
+    @Test
+    @DisplayName("Đổi role gửi role mới và giữ nguyên active (null)")
+    void changeRoleSendsRoleOnly() {
+        OrganizationMemberDto result = service.changeRole(actorManagerId, orgId, targetUserId,
+                new ChangeMemberRoleRequestDto(OrganizationRole.MANAGER));
+
+        assertEquals(List.of(new Write("change", orgId, actorManagerId, targetUserId, OrganizationRole.MANAGER, null)),
+                writes);
+        assertEquals(OrganizationRole.MANAGER, result.role());
+    }
+
+    @Test
+    @DisplayName("Vô hiệu hóa gửi active=false và giữ nguyên role (null)")
+    void deactivateSendsActiveFalseOnly() {
+        OrganizationMemberDto result = service.deactivateMember(actorManagerId, orgId, targetUserId);
+
+        assertEquals(List.of(new Write("change", orgId, actorManagerId, targetUserId, null, false)), writes);
+        assertFalse(result.isActive());
+    }
+
+    @Test
+    @DisplayName("Kích hoạt gửi active=true và giữ nguyên role (null)")
+    void activateSendsActiveTrueOnly() {
+        OrganizationMemberDto result = service.activateMember(actorManagerId, orgId, targetUserId);
+
+        assertEquals(List.of(new Write("change", orgId, actorManagerId, targetUserId, null, true)), writes);
+        assertTrue(result.isActive());
+    }
+
+    @Test
+    @DisplayName("MEM-04/05: lỗi 'Quản lý cuối cùng' do trigger ném được giữ nguyên, không dựng response")
+    void lastManagerFailurePropagates() {
+        procedureFailure = new IllegalStateException("CANNOT_DEACTIVATE_LAST_MANAGER: không thể");
+
+        IllegalStateException deactivate = assertThrows(IllegalStateException.class,
+                () -> service.deactivateMember(actorManagerId, orgId, actorManagerId));
+        IllegalStateException demote = assertThrows(IllegalStateException.class,
+                () -> service.changeRole(actorManagerId, orgId, actorManagerId,
+                        new ChangeMemberRoleRequestDto(OrganizationRole.CHECK_IN_STAFF)));
+        assertTrue(deactivate.getMessage().contains("CANNOT_DEACTIVATE_LAST_MANAGER"));
+        assertTrue(demote.getMessage().contains("CANNOT_DEACTIVATE_LAST_MANAGER"));
+    }
+
+    @Test
+    @DisplayName("403 từ procedure -> không tra thêm user (không lộ thông tin cho người không có quyền)")
+    void forbiddenFromProcedureSkipsUserRead() {
+        procedureFailure = new SecurityException("FORBIDDEN: chỉ quản lý");
+        assertThrows(SecurityException.class, () -> service.changeRole(UUID.randomUUID(), orgId, targetUserId,
+                new ChangeMemberRoleRequestDto(OrganizationRole.MANAGER)));
+        assertEquals(List.of(DatabasePrincipal.MANAGER), principals, "only the write transaction may have run");
     }
 
     @Test
@@ -241,44 +312,13 @@ class OrganizationMembershipServiceTest {
     }
 
     @Test
-    @DisplayName("MEM-04: Vô hiệu hóa Manager cuối cùng -> chặn lại, ném CANNOT_DEACTIVATE_LAST_MANAGER")
-    void testDeactivateMember_LastActiveManagerThrowsException() {
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
-                service.deactivateMember(actorManagerId, orgId, actorManagerId));
-
-        assertTrue(ex.getMessage().contains("CANNOT_DEACTIVATE_LAST_MANAGER"));
-        assertTrue(actorMembership.isActive(), "Trạng thái Manager phải được giữ nguyên là active");
-    }
-
-    @Test
-    @DisplayName("MEM-05: Đổi role sang CHECK_IN_STAFF của Manager cuối -> chặn lại, ném CANNOT_DEACTIVATE_LAST_MANAGER")
-    void testChangeRole_DemoteLastActiveManagerThrowsException() {
-        ChangeMemberRoleRequestDto dto = new ChangeMemberRoleRequestDto(OrganizationRole.CHECK_IN_STAFF);
-
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
-                service.changeRole(actorManagerId, orgId, actorManagerId, dto));
-
-        assertTrue(ex.getMessage().contains("CANNOT_DEACTIVATE_LAST_MANAGER"));
-        assertEquals(OrganizationRole.MANAGER, actorMembership.getRole(), "Role phải được giữ nguyên là MANAGER");
-    }
-
-    @Test
-    @DisplayName("Deactivate Manager thành công khi tổ chức còn Quản lý khác (count > 1)")
-    void testDeactivateMember_SuccessWhenMultipleManagersExist() throws Exception {
-        UUID secondManagerId = UUID.randomUUID();
-        User secondManagerUser = new User("m2@vwm.vn", "manager2", "Second Manager", "hash");
-        setId(secondManagerUser, secondManagerId);
-        usersById.put(secondManagerId, secondManagerUser);
-
-        OrganizationMembership secondMembership = new OrganizationMembership(secondManagerUser, organization, OrganizationRole.MANAGER);
-        setMembershipId(secondMembership, UUID.randomUUID());
-        membershipsByOrgAndUser.put(orgId + "_" + secondManagerId, secondMembership);
-
-        OrganizationMemberDto result = service.deactivateMember(actorManagerId, orgId, actorManagerId);
-
-        assertNotNull(result);
-        assertFalse(result.isActive());
-        assertFalse(actorMembership.isActive());
+    @DisplayName("Tham số null bị từ chối trước khi mở transaction")
+    void nullArgumentsAreRejectedBeforeAnyTransaction() {
+        assertThrows(IllegalArgumentException.class, () -> service.deactivateMember(null, orgId, targetUserId));
+        assertThrows(IllegalArgumentException.class, () -> service.activateMember(actorManagerId, null, targetUserId));
+        assertThrows(IllegalArgumentException.class, () -> service.changeRole(actorManagerId, orgId, null, null));
+        assertThrows(IllegalArgumentException.class, () -> service.addMember(actorManagerId, orgId, null));
+        assertTrue(principals.isEmpty());
     }
 
     @Test

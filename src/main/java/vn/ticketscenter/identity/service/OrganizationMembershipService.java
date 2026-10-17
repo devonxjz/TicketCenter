@@ -7,13 +7,12 @@ import vn.ticketscenter.identity.dto.AddMemberRequestDto;
 import vn.ticketscenter.identity.dto.ChangeMemberRoleRequestDto;
 import vn.ticketscenter.identity.dto.MembershipSummaryDto;
 import vn.ticketscenter.identity.dto.OrganizationMemberDto;
-import vn.ticketscenter.identity.model.Organization;
-import vn.ticketscenter.identity.model.OrganizationMembership;
 import vn.ticketscenter.identity.model.OrganizationRole;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.model.User;
 import vn.ticketscenter.identity.model.UserStatus;
 import vn.ticketscenter.identity.dao.OrganizationMembershipRepository;
+import vn.ticketscenter.identity.dao.OrganizationMembershipRepository.MembershipRow;
 import vn.ticketscenter.identity.dao.UserRepository;
 
 import java.util.List;
@@ -27,6 +26,9 @@ public class OrganizationMembershipService {
     public interface TransactionExecutor {
         <T> T execute(DatabasePrincipal principal, Function<EntityManager, T> work);
     }
+
+    /** Membership commands run as the manager role; the procedures authorize the actor themselves. */
+    private static final DatabasePrincipal WRITE_PRINCIPAL = DatabasePrincipal.MANAGER;
 
     private final TransactionExecutor transactions;
     private final OrganizationMembershipRepository membershipRepository;
@@ -99,40 +101,21 @@ public class OrganizationMembershipService {
         }
         dto.validate();
 
-        return transactions.execute(databasePrincipal, em -> {
+        // The guard keeps a non-manager from learning which accounts exist; the procedure re-checks on write.
+        User targetUser = transactions.execute(databasePrincipal, em -> {
             assertManagerAccess(em, actorId, orgId);
-
-            User targetUser = userRepository.findByNormalizedUserName(em, dto.userName())
+            return userRepository.findByNormalizedUserName(em, dto.userName())
                     .or(() -> userRepository.findByNormalizedEmail(em, dto.userName()))
                     .orElseThrow(() ->
                             new IllegalArgumentException("Tài khoản người dùng không tồn tại: " + dto.userName()));
-
-            if (targetUser.getStatus() != UserStatus.ACTIVE) {
-                throw new IllegalStateException("Tài khoản người dùng không ở trạng thái hoạt động");
-            }
-
-            var existingOpt = membershipRepository.findByOrgAndUser(em, orgId, targetUser.getId());
-            if (existingOpt.isPresent()) {
-                OrganizationMembership existing = existingOpt.get();
-                if (existing.isActive()) {
-                    throw new IllegalStateException(
-                            "MEMBER_ALREADY_EXISTS: Thành viên đã đang hoạt động trong tổ chức");
-                }
-                existing.setActive(true);
-                existing.changeRole(dto.role());
-                membershipRepository.save(em, existing);
-                return toDto(existing, targetUser);
-            }
-
-            Organization org = em.find(Organization.class, orgId);
-            if (org == null) {
-                throw new IllegalArgumentException("Tổ chức không tồn tại: " + orgId);
-            }
-
-            OrganizationMembership newMembership = new OrganizationMembership(targetUser, org, dto.role());
-            membershipRepository.save(em, newMembership);
-            return toDto(newMembership, targetUser);
         });
+        if (targetUser.getStatus() != UserStatus.ACTIVE) {
+            throw new IllegalStateException("Tài khoản người dùng không ở trạng thái hoạt động");
+        }
+
+        MembershipRow row = transactions.execute(WRITE_PRINCIPAL, em ->
+                membershipRepository.addMember(em, orgId, actorId, targetUser.getId(), dto.role()));
+        return toDto(row, targetUser);
     }
 
     public OrganizationMemberDto changeRole(UUID actorId, UUID orgId, UUID targetUserId,
@@ -141,86 +124,44 @@ public class OrganizationMembershipService {
             throw new IllegalArgumentException("Thông tin đổi vai trò không hợp lệ");
         }
         dto.validate();
-
-        return transactions.execute(databasePrincipal, em -> {
-            assertManagerAccess(em, actorId, orgId);
-
-            OrganizationMembership membership = membershipRepository.findByOrgAndUser(em, orgId, targetUserId)
-                    .orElseThrow(() -> new IllegalArgumentException("Thành viên không tồn tại trong tổ chức"));
-
-            boolean demotingActiveManager = membership.getRole() == OrganizationRole.MANAGER
-                    && dto.role() != OrganizationRole.MANAGER && membership.isActive();
-            if (demotingActiveManager) {
-                long activeManagers = membershipRepository.countActiveManagers(em, orgId);
-                if (activeManagers <= 1) {
-                    throw new IllegalStateException(
-                            "CANNOT_DEACTIVATE_LAST_MANAGER: Không thể hạ quyền Quản lý duy nhất còn lại của tổ chức");
-                }
-            }
-
-            membership.changeRole(dto.role());
-            membershipRepository.save(em, membership);
-            return toDto(membership, membership.getUser());
-        });
+        return changeMember(actorId, orgId, targetUserId, dto.role(), null);
     }
 
     public OrganizationMemberDto deactivateMember(UUID actorId, UUID orgId, UUID targetUserId) {
         if (actorId == null || orgId == null || targetUserId == null) {
             throw new IllegalArgumentException("Thông tin vô hiệu hóa không hợp lệ");
         }
-
-        return transactions.execute(databasePrincipal, em -> {
-            assertManagerAccess(em, actorId, orgId);
-
-            OrganizationMembership membership = membershipRepository.findByOrgAndUser(em, orgId, targetUserId)
-                    .orElseThrow(() -> new IllegalArgumentException("Thành viên không tồn tại trong tổ chức"));
-
-            if (!membership.isActive()) {
-                return toDto(membership, membership.getUser());
-            }
-
-            if (membership.getRole() == OrganizationRole.MANAGER) {
-                long activeManagers = membershipRepository.countActiveManagers(em, orgId);
-                if (activeManagers <= 1) {
-                    throw new IllegalStateException(
-                            "CANNOT_DEACTIVATE_LAST_MANAGER: "
-                                    + "Không thể vô hiệu hóa Quản lý duy nhất còn lại của tổ chức");
-                }
-            }
-
-            membership.setActive(false);
-            membershipRepository.save(em, membership);
-            return toDto(membership, membership.getUser());
-        });
+        return changeMember(actorId, orgId, targetUserId, null, false);
     }
 
     public OrganizationMemberDto activateMember(UUID actorId, UUID orgId, UUID targetUserId) {
         if (actorId == null || orgId == null || targetUserId == null) {
             throw new IllegalArgumentException("Thông tin kích hoạt không hợp lệ");
         }
-
-        return transactions.execute(databasePrincipal, em -> {
-            assertManagerAccess(em, actorId, orgId);
-
-            OrganizationMembership membership = membershipRepository.findByOrgAndUser(em, orgId, targetUserId)
-                    .orElseThrow(() -> new IllegalArgumentException("Thành viên không tồn tại trong tổ chức"));
-
-            membership.setActive(true);
-            membershipRepository.save(em, membership);
-            return toDto(membership, membership.getUser());
-        });
+        return changeMember(actorId, orgId, targetUserId, null, true);
     }
 
-    private static OrganizationMemberDto toDto(OrganizationMembership m, User u) {
+    /** One procedure call decides the authorization, the last-manager rule and the audit row. */
+    private OrganizationMemberDto changeMember(UUID actorId, UUID orgId, UUID targetUserId,
+                                               OrganizationRole role, Boolean active) {
+        MembershipRow row = transactions.execute(WRITE_PRINCIPAL, em ->
+                membershipRepository.changeMember(em, orgId, actorId, targetUserId, role, active));
+        User targetUser = transactions.execute(databasePrincipal, em ->
+                userRepository.findById(em, targetUserId)
+                        .orElseThrow(() -> new IllegalStateException("Thành viên không có tài khoản: " + targetUserId)));
+        return toDto(row, targetUser);
+    }
+
+    private static OrganizationMemberDto toDto(MembershipRow m, User u) {
         return new OrganizationMemberDto(
-                m.getId(),
+                m.membershipId(),
                 u.getId(),
                 u.getUserName(),
                 u.getFullName(),
                 u.getEmail(),
-                m.getRole(),
-                m.isActive(),
-                m.getJoinedAt()
+                m.role(),
+                m.active(),
+                m.joinedAt()
         );
     }
 }
