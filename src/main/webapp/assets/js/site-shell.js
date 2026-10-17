@@ -38,8 +38,52 @@
   }).format(date);
  }
 
+ function escapeHtml(value){
+  return String(value===null||value===undefined?'':value)
+   .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+   .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+ }
+
+ // Only http(s) and same-site paths may reach an img src; javascript:, data: and the like are dropped.
+ function safeImageUrl(value){
+  const url=String(value||'').trim();
+  return /^(https?:\/\/|\/(?!\/))/i.test(url)?url:'';
+ }
+
+ function buildDropdownHtml(base,title,count,events){
+  const itemsHtml=(events&&events.length)?events.map((ev,i)=>{
+   const cover=safeImageUrl(ev.coverImageUrl);
+   return `
+   <a class="tc-search-dropdown-item" href="${escapeHtml(base)}/event-detail?eventId=${encodeURIComponent(ev.eventId)}" data-index="${i}">
+    <div class="tc-sdd-thumb-wrapper">
+     ${cover?`<img class="tc-sdd-thumb" src="${escapeHtml(cover)}" alt="${escapeHtml(ev.title||'Sự kiện')}">`:''}
+     <div class="tc-sdd-thumb-fallback" style="${cover?'display:none':'display:block'}"><i class="fa-solid fa-ticket"></i></div>
+    </div>
+    <div class="tc-sdd-info">
+     <div class="tc-sdd-title">${escapeHtml(ev.title||'Sự kiện')}</div>
+     <div class="tc-sdd-meta">
+      <span><i class="fa-regular fa-clock me-1 text-muted"></i>${escapeHtml(formatEventTime(ev.startTime)||'Đang cập nhật')}</span>
+      <span><i class="fa-solid fa-location-dot me-1 text-muted"></i>${escapeHtml(ev.venueName||'Chưa có địa điểm')}</span>
+     </div>
+     <div class="tc-sdd-bottom">
+      <span class="tc-sdd-badge">${escapeHtml(ev.category||'Sự kiện')}</span>
+      <span class="tc-sdd-price">${escapeHtml(formatPrice(ev.minPrice))}</span>
+     </div>
+    </div>
+   </a>`;}).join(''):'<div class="tc-search-dropdown-empty text-center py-4 text-muted"><i class="fa-regular fa-calendar-xmark fs-4 d-block mb-2 text-secondary"></i><span>Không tìm thấy sự kiện nào phù hợp.</span></div>';
+  return `
+   <div class="tc-search-dropdown-header">
+    <span class="tc-search-dropdown-title"><i class="fa-solid fa-magnifying-glass text-danger me-1"></i>${escapeHtml(title)}</span>
+    <span class="tc-search-dropdown-count badge bg-light text-dark border">${escapeHtml(count)} sự kiện</span>
+   </div>
+   <div class="tc-search-dropdown-list" role="listbox">${itemsHtml}</div>
+   <div class="tc-search-dropdown-footer">
+    <button type="button" class="tc-search-dropdown-view-all">Xem tất cả kết quả trên trang sự kiện <i class="fa-solid fa-arrow-right ms-1"></i></button>
+   </div>`;
+ }
+
  if(typeof module!=='undefined'&&module.exports){
-  module.exports={signOut,buildSearchQuery,formatPrice,formatEventTime};
+  module.exports={signOut,buildSearchQuery,formatPrice,formatEventTime,escapeHtml,safeImageUrl,buildDropdownHtml};
   return;
  }
 
@@ -95,34 +139,10 @@
  function renderDropdown(title,count,events,selectedCat,keyword){
   if(!dropdown)return;
   activeItemIndex=-1;
-  const itemsHtml=(events&&events.length)?events.map((ev,i)=>`
-   <a class="tc-search-dropdown-item" href="${base}/event-detail?eventId=${encodeURIComponent(ev.eventId)}" data-index="${i}">
-    <div class="tc-sdd-thumb-wrapper">
-     ${ev.coverImageUrl?`<img class="tc-sdd-thumb" src="${ev.coverImageUrl}" alt="${ev.title||'Sự kiện'}" onerror="this.hidden=true;this.nextElementSibling.style.display='block'">`:''}
-     <div class="tc-sdd-thumb-fallback" style="${ev.coverImageUrl?'display:none':'display:block'}"><i class="fa-solid fa-ticket"></i></div>
-    </div>
-    <div class="tc-sdd-info">
-     <div class="tc-sdd-title">${ev.title||'Sự kiện'}</div>
-     <div class="tc-sdd-meta">
-      <span><i class="fa-regular fa-clock me-1 text-muted"></i>${formatEventTime(ev.startTime)||'Đang cập nhật'}</span>
-      <span><i class="fa-solid fa-location-dot me-1 text-muted"></i>${ev.venueName||'Chưa có địa điểm'}</span>
-     </div>
-     <div class="tc-sdd-bottom">
-      <span class="tc-sdd-badge">${ev.category||'Sự kiện'}</span>
-      <span class="tc-sdd-price">${formatPrice(ev.minPrice)}</span>
-     </div>
-    </div>
-   </a>`).join(''):'<div class="tc-search-dropdown-empty text-center py-4 text-muted"><i class="fa-regular fa-calendar-xmark fs-4 d-block mb-2 text-secondary"></i><span>Không tìm thấy sự kiện nào phù hợp.</span></div>';
-
-  dropdown.innerHTML=`
-   <div class="tc-search-dropdown-header">
-    <span class="tc-search-dropdown-title"><i class="fa-solid fa-magnifying-glass text-danger me-1"></i>${title}</span>
-    <span class="tc-search-dropdown-count badge bg-light text-dark border">${count} sự kiện</span>
-   </div>
-   <div class="tc-search-dropdown-list" role="listbox">${itemsHtml}</div>
-   <div class="tc-search-dropdown-footer">
-    <button type="button" class="tc-search-dropdown-view-all">Xem tất cả kết quả trên trang sự kiện <i class="fa-solid fa-arrow-right ms-1"></i></button>
-   </div>`;
+  dropdown.innerHTML=buildDropdownHtml(base,title,count,events);
+  dropdown.querySelectorAll('img.tc-sdd-thumb').forEach(img=>{
+   img.addEventListener('error',()=>{img.hidden=true;if(img.nextElementSibling)img.nextElementSibling.style.display='block';},{once:true});
+  });
 
   dropdown.querySelector('.tc-search-dropdown-view-all')?.addEventListener('click',e=>{
    e.preventDefault();

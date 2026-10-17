@@ -1,17 +1,34 @@
 package vn.ticketscenter.identity.dao;
 
 import jakarta.persistence.EntityManager;
+import org.hibernate.Session;
 import vn.ticketscenter.identity.dto.MembershipSummaryDto;
 import vn.ticketscenter.identity.dto.OrganizationMemberDto;
 import vn.ticketscenter.identity.model.OrganizationMembership;
 import vn.ticketscenter.identity.model.OrganizationRole;
 
+import java.sql.CallableStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Reads of memberships go through JPA; every write is one call of usp_AddMember / usp_ChangeMemberRole, which own
+ * the authorization (active manager or platform admin), the audit row and the organization lock. The
+ * last-manager rule is kept by trg_Membership_ProtectLastManager.
+ */
 public class OrganizationMembershipRepository {
+
+    /** The membership as the procedures return it after a write. */
+    public record MembershipRow(UUID membershipId, UUID userId, OrganizationRole role, boolean active,
+                                Instant joinedAt) { }
 
     public Optional<OrganizationMembership> findByOrgAndUser(EntityManager em, UUID orgId, UUID userId) {
         Objects.requireNonNull(em, "EntityManager must not be null.");
@@ -66,30 +83,77 @@ public class OrganizationMembershipRepository {
                 .getResultList();
     }
 
-    public long countActiveManagers(EntityManager em, UUID orgId) {
-        Objects.requireNonNull(em, "EntityManager must not be null.");
-        if (orgId == null) {
-            return 0L;
-        }
-        Long count = em.createQuery(
-                        "SELECT COUNT(m) FROM OrganizationMembership m WHERE m.organization.id = :orgId "
-                                + "AND m.role = vn.ticketscenter.identity.model.OrganizationRole.MANAGER "
-                                + "AND m.active = true",
-                        Long.class)
-                .setParameter("orgId", orgId)
-                .getSingleResult();
-        return count != null ? count : 0L;
+    /** Adds the user, or reactivates a deactivated member, as {@code role}. */
+    public MembershipRow addMember(EntityManager em, UUID orgId, UUID actorId, UUID userId, OrganizationRole role) {
+        Objects.requireNonNull(role, "role must not be null");
+        return callMembershipProcedure(em, "{call dbo.usp_AddMember(?,?,?,?)}", call -> {
+            call.setString(1, orgId.toString());
+            call.setString(2, actorId.toString());
+            call.setString(3, userId.toString());
+            call.setString(4, role.name());
+        });
     }
 
-    public OrganizationMembership save(EntityManager em, OrganizationMembership membership) {
+    /** Changes the role and/or the active flag; a null argument keeps the current value. */
+    public MembershipRow changeMember(EntityManager em, UUID orgId, UUID actorId, UUID userId,
+                                      OrganizationRole role, Boolean active) {
+        return callMembershipProcedure(em, "{call dbo.usp_ChangeMemberRole(?,?,?,?,?)}", call -> {
+            call.setString(1, orgId.toString());
+            call.setString(2, actorId.toString());
+            call.setString(3, userId.toString());
+            if (role == null) call.setNull(4, Types.VARCHAR); else call.setString(4, role.name());
+            if (active == null) call.setNull(5, Types.BIT); else call.setBoolean(5, active);
+        });
+    }
+
+    @FunctionalInterface
+    private interface Binder {
+        void bind(CallableStatement call) throws SQLException;
+    }
+
+    private MembershipRow callMembershipProcedure(EntityManager em, String sql, Binder binder) {
         Objects.requireNonNull(em, "EntityManager must not be null.");
-        Objects.requireNonNull(membership, "OrganizationMembership must not be null.");
-        if (membership.getId() == null) {
-            em.persist(membership);
-            return membership;
-        } else {
-            return em.merge(membership);
+        try {
+            return em.unwrap(Session.class).doReturningWork(connection -> {
+                try (CallableStatement call = connection.prepareCall(sql)) {
+                    binder.bind(call);
+                    try (ResultSet row = call.executeQuery()) {
+                        if (!row.next()) throw new IllegalStateException("Membership procedure returned no row");
+                        return new MembershipRow(
+                                UUID.fromString(row.getString("membership_id")),
+                                UUID.fromString(row.getString("user_id")),
+                                OrganizationRole.valueOf(row.getString("role")),
+                                row.getBoolean("active"),
+                                row.getObject("joined_at", LocalDateTime.class).toInstant(ZoneOffset.UTC));
+                    }
+                } catch (SQLException failure) {
+                    throw translate(failure);
+                }
+            });
+        } finally {
+            em.clear();
         }
+    }
+
+    /** Maps the procedures' and the trigger's THROW numbers onto the exceptions the service has always raised. */
+    static RuntimeException translate(SQLException failure) {
+        for (SQLException error = failure; error != null; error = error.getNextException()) {
+            switch (error.getErrorCode()) {
+                case 51810: return new SecurityException(
+                        "FORBIDDEN: Chỉ Quản lý (MANAGER) của tổ chức mới có quyền thực hiện thao tác này");
+                case 51816: return new IllegalArgumentException(
+                        "Vai trò không hợp lệ: chỉ chấp nhận MANAGER hoặc CHECK_IN_STAFF");
+                case 51817: return new IllegalStateException("Tài khoản người dùng không ở trạng thái hoạt động");
+                case 52650: return new IllegalStateException(
+                        "MEMBER_ALREADY_EXISTS: Thành viên đã đang hoạt động trong tổ chức");
+                case 52651: return new IllegalArgumentException("Thành viên không tồn tại trong tổ chức");
+                case 52652: return new IllegalArgumentException("Không có thay đổi nào được yêu cầu");
+                case 51106: return new IllegalStateException("CANNOT_DEACTIVATE_LAST_MANAGER: "
+                        + "Không thể hạ quyền hoặc vô hiệu hóa Quản lý duy nhất còn lại của tổ chức");
+                default: break;
+            }
+        }
+        return new IllegalStateException("Membership command failed", failure);
     }
 
     /** The user's strongest active role: MANAGER before any other, empty when the user has no membership. */

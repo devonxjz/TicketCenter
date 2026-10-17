@@ -55,3 +55,9 @@ một số một file.
 `068_checkout_eligible_coupons.sql` bổ sung procedure chỉ đọc và quyền EXECUTE cho `tc_buyer`,
 phục vụ combo box ưu đãi trên trang thanh toán. Áp migration này trước khi triển khai API/UI chọn mã;
 việc áp dụng mã vẫn đi qua command hiện có để kiểm tra điều kiện và giữ lượt sử dụng.
+
+`070_membership_commands.sql` thay `usp_AddMember` và `usp_ChangeMemberRole` (từ `032`): dùng savepoint khi nằm trong
+transaction của bên gọi, cho phép ADMIN nền tảng, tái kích hoạt thành viên đã bị vô hiệu hóa, ghi audit
+`MEMBER_ACTIVATED`/`MEMBER_DEACTIVATED` và trả về dòng membership. `OrganizationMembershipService` gọi hai procedure
+này dưới principal `MANAGER`; áp migration này trước khi triển khai bản Java tương ứng. Quy tắc "Quản lý cuối cùng"
+vẫn do `trg_Membership_ProtectLastManager` giữ (mã lỗi 51106).
