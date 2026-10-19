@@ -14,7 +14,7 @@ import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
 
 /**
- * Buyer refund requests: the form page, the JSON list, one request's detail or attempts, and create.
+ * Buyer refund requests: the form page, my-refunds page, JSON list, detail, attempts, and create.
  */
 @WebServlet(
         name = "RefundRequestServlet",
@@ -22,12 +22,16 @@ import vn.ticketscenter.identity.security.UserPrincipal;
             "/api/refund-requests",
             "/api/refund-requests/*",
             "/refund-requests",
-            "/refund-requests/*"
+            "/refund-requests/*",
+            "/api/me/refund-requests",
+            "/my-refunds"
         })
 public final class RefundRequestServlet extends HttpServlet {
     private static final String API_PATH = "/api/refund-requests";
     private static final String PAGE_PATH = "/refund-requests";
     private static final String LEGACY_PAGE_PATH = "/refund-request";
+    private static final String MY_API_PATH = "/api/me/refund-requests";
+    private static final String MY_PAGE_PATH = "/my-refunds";
     private static final String ATTEMPTS_SUFFIX = "/attempts";
     private static final String CREATED_MESSAGE =
             "Yêu cầu hoàn tiền đã được tiếp nhận và chuyển đến Ban quản trị xem xét.";
@@ -42,7 +46,9 @@ public final class RefundRequestServlet extends HttpServlet {
 
             if (path.equals(PAGE_PATH) || path.equals(LEGACY_PAGE_PATH)) {
                 showForm(request, response, actor, refunds);
-            } else if (path.equals(API_PATH)) {
+            } else if (path.equals(MY_PAGE_PATH)) {
+                showMyRefunds(request, response, actor, refunds);
+            } else if (path.equals(API_PATH) || path.equals(MY_API_PATH)) {
                 writeList(request, response, actor, refunds);
             } else {
                 writeDetail(response, actor, refunds, detailTail(path));
@@ -82,6 +88,20 @@ public final class RefundRequestServlet extends HttpServlet {
         SecurityContext.getOrCreateCsrfToken(request);
         response.setHeader("Cache-Control", "no-store");
         request.getRequestDispatcher("/WEB-INF/views/refund/request-form.jsp").forward(request, response);
+    }
+
+    private static void showMyRefunds(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            UserPrincipal actor,
+            RefundRequestService refunds)
+            throws IOException, ServletException {
+        int page = RefundWeb.page(request.getParameter("page"), 1);
+        int size = RefundWeb.page(request.getParameter("pageSize"), 20);
+        request.setAttribute("refundPage", refunds.list(actor, page, size));
+        response.setHeader("Cache-Control", "no-store");
+        request.getRequestDispatcher("/WEB-INF/views/refund/my-refunds.jsp")
+                .forward(request, response);
     }
 
     private static void writeList(

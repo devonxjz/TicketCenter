@@ -33,6 +33,15 @@ final class RefundWeb {
         return actor;
     }
 
+    static UserPrincipal requireAdmin(HttpServletRequest request) {
+        var actor = actor(request);
+        if (!actor.isAdmin()) {
+            throw new RefundException(
+                    403, "ADMIN_REQUIRED", "Chỉ quản trị viên được phép xử lý hoàn tiền.");
+        }
+        return actor;
+    }
+
     static UUID id(String value) {
         if (value == null || !value.matches(UUID_PATTERN)) throw RefundException.invalid();
         return UUID.fromString(value);
