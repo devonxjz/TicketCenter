@@ -1,11 +1,10 @@
 package vn.ticketscenter.identity.controller;
 
-import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import vn.ticketscenter.config.web.HttpResponses;
+import vn.ticketscenter.config.web.BaseApiServlet;
 import vn.ticketscenter.identity.config.IdentityServices;
 import vn.ticketscenter.identity.controller.support.IdentityErrorWriter;
 import vn.ticketscenter.identity.dto.CurrentUserDto;
@@ -17,7 +16,7 @@ import java.io.IOException;
 import java.util.Optional;
 
 @WebServlet(name = "MeServlet", urlPatterns = "/api/me")
-public class MeServlet extends HttpServlet {
+public class MeServlet extends BaseApiServlet {
 
     private ProfileService profileService;
 
@@ -27,41 +26,34 @@ public class MeServlet extends HttpServlet {
         this.profileService = profileService;
     }
 
-    private ProfileService profileService(ServletContext context) {
-        if (profileService != null) return profileService;
-        IdentityServices services = IdentityServices.from(context);
-        return services == null ? null : services.profileService();
-    }
-
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    protected void doRequest(HttpServletRequest req, HttpServletResponse res)
+            throws ServletException, IOException {
         Optional<UserPrincipal> principalOpt = SecurityContext.getCurrentUser(req);
         if (principalOpt.isEmpty()) {
-            HttpResponses.error(
-                    resp,
-                    HttpServletResponse.SC_UNAUTHORIZED,
-                    "UNAUTHENTICATED",
-                    "Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn");
+            respondUnauthorized(res);
             return;
         }
 
-        ProfileService service = profileService(req.getServletContext());
+        ProfileService service = profileService(req);
         if (service == null) {
-            IdentityErrorWriter.databaseUnavailable(resp);
+            IdentityErrorWriter.databaseUnavailable(res);
             return;
         }
 
         CurrentUserDto user = service.getCurrentUser(principalOpt.get().actorId());
         if (user == null) {
             SecurityContext.clearSession(req);
-            HttpResponses.error(
-                    resp,
-                    HttpServletResponse.SC_UNAUTHORIZED,
-                    "UNAUTHENTICATED",
-                    "Tài khoản không tồn tại hoặc đã bị xóa");
+            respondUnauthorized(res);
             return;
         }
 
-        HttpResponses.data(resp, user.toJson());
+        respondData(res, user.toJson());
+    }
+
+    private ProfileService profileService(HttpServletRequest req) {
+        if (profileService != null) return profileService;
+        IdentityServices services = IdentityServices.from(req.getServletContext());
+        return services == null ? null : services.profileService();
     }
 }
