@@ -1,15 +1,14 @@
 package vn.ticketscenter.payment.service;
 
-import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
 import jakarta.servlet.annotation.WebListener;
 import vn.ticketscenter.config.AppConfig;
-import vn.ticketscenter.config.DatabaseConfig;
 import vn.ticketscenter.config.PayosConfig;
 import vn.ticketscenter.config.persistence.ConnectionBudgets;
+import vn.ticketscenter.config.persistence.SingleConnectionPools;
 import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.config.worker.PaymentReconciliationJob;
 import vn.ticketscenter.payment.cache.RedisPaymentIdempotency;
@@ -185,17 +184,7 @@ public final class PaymentRuntime implements ServletContextListener {
             String password = AppConfig.get("db." + principal + ".password");
             if (user == null || password == null)
                 throw new IllegalStateException("db." + principal + ".user/password are required");
-            HikariConfig config = new HikariConfig();
-            config.setPoolName("payment-" + principal);
-            config.setJdbcUrl(DatabaseConfig.getJdbcUrl());
-            config.setUsername(user);
-            config.setPassword(password);
-            config.setMaximumPoolSize(1);
-            config.setMinimumIdle(0);
-            config.setInitializationFailTimeout(-1);
-            config.setConnectionTimeout(10_000);
-            config.setAutoCommit(true);
-            return new HikariDataSource(config);
+            return SingleConnectionPools.open("payment-" + principal, user, password);
         }
     }
 }

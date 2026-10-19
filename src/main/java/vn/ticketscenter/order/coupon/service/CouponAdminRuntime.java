@@ -1,14 +1,13 @@
 package vn.ticketscenter.order.coupon.service;
 
-import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
 import jakarta.servlet.annotation.WebListener;
 import vn.ticketscenter.config.AppConfig;
-import vn.ticketscenter.config.DatabaseConfig;
 import vn.ticketscenter.config.persistence.ConnectionBudgets;
+import vn.ticketscenter.config.persistence.SingleConnectionPools;
 import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.order.coupon.repository.CouponAdminRepository;
 import vn.ticketscenter.order.service.OrderException;
@@ -50,17 +49,7 @@ public final class CouponAdminRuntime implements ServletContextListener {
         if (user == null || user.isBlank() || password == null || password.isBlank()) {
             throw OrderException.unavailable();
         }
-        HikariConfig config = new HikariConfig();
-        config.setPoolName("coupon-" + principal);
-        config.setJdbcUrl(DatabaseConfig.getJdbcUrl());
-        config.setUsername(user);
-        config.setPassword(password);
-        config.setMaximumPoolSize(1);
-        config.setMinimumIdle(0);
-        config.setInitializationFailTimeout(-1);
-        config.setConnectionTimeout(10_000);
-        config.setAutoCommit(true);
-        return new HikariDataSource(config);
+        return SingleConnectionPools.open("coupon-" + principal, user, password);
     }
 
     @Override

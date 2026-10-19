@@ -1,12 +1,11 @@
 package vn.ticketscenter.order.service;
 
-import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebListener;
 import vn.ticketscenter.config.AppConfig;
-import vn.ticketscenter.config.DatabaseConfig;
 import vn.ticketscenter.config.persistence.ConnectionBudgets;
+import vn.ticketscenter.config.persistence.SingleConnectionPools;
 import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.order.cache.RedisOrderCache;
 import vn.ticketscenter.order.dao.OrderRepository;
@@ -31,17 +30,7 @@ public final class OrderRuntime implements ServletContextListener {
                         password = AppConfig.get("db.buyer.password");
                 if (user == null || user.isBlank() || password == null || password.isBlank())
                     throw OrderException.unavailable();
-                HikariConfig config = new HikariConfig();
-                config.setPoolName("order-buyer");
-                config.setJdbcUrl(DatabaseConfig.getJdbcUrl());
-                config.setUsername(user);
-                config.setPassword(password);
-                config.setMaximumPoolSize(1);
-                config.setMinimumIdle(0);
-                config.setInitializationFailTimeout(-1);
-                config.setConnectionTimeout(10_000);
-                config.setAutoCommit(true);
-                pool = new HikariDataSource(config);
+                pool = SingleConnectionPools.open("order-buyer", user, password);
                 var redis = RedisClientProvider.getInstance();
                 OrderService service =
                         new OrderService(

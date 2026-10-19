@@ -1,6 +1,5 @@
 package vn.ticketscenter.fulfillment.ticket.service;
 
-import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletContextEvent;
@@ -9,6 +8,7 @@ import jakarta.servlet.annotation.WebListener;
 import vn.ticketscenter.config.AppConfig;
 import vn.ticketscenter.config.DatabaseConfig;
 import vn.ticketscenter.config.persistence.ConnectionBudgets;
+import vn.ticketscenter.config.persistence.SingleConnectionPools;
 import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.fulfillment.ticket.cache.RedisTicketCache;
 import vn.ticketscenter.fulfillment.ticket.dao.TicketRepository;
@@ -35,17 +35,7 @@ public final class TicketRuntime implements ServletContextListener {
                 String password = AppConfig.get("db.buyer.password");
                 if (password == null || password.isBlank()) password = DatabaseConfig.getPassword();
 
-                HikariConfig config = new HikariConfig();
-                config.setPoolName("ticket-buyer");
-                config.setJdbcUrl(DatabaseConfig.getJdbcUrl());
-                config.setUsername(user);
-                config.setPassword(password);
-                config.setMaximumPoolSize(1);
-                config.setMinimumIdle(0);
-                config.setInitializationFailTimeout(-1);
-                config.setConnectionTimeout(10_000);
-                config.setAutoCommit(true);
-                pool = new HikariDataSource(config);
+                pool = SingleConnectionPools.open("ticket-buyer", user, password);
 
                 SignedTicketQrSigner signer = SignedTicketQrSigner.configured();
                 var redis = RedisClientProvider.getInstance();
