@@ -121,15 +121,10 @@ public class LoginServlet extends HttpServlet {
     }
 
     private static String roleName(UserPrincipal principal) {
-        if (principal.isAdmin()) {
-            return "ADMIN";
-        }
-        if (principal.organizationRole() == OrganizationRole.MANAGER) {
-            return "MANAGER";
-        }
-        if (principal.organizationRole() == OrganizationRole.CHECK_IN_STAFF) {
-            return "STAFF";
-        }
+        if (principal.isAdmin()) return "ADMIN";
+        OrganizationRole role = principal.organizationRole();
+        if (role == OrganizationRole.MANAGER) return "MANAGER";
+        if (role == OrganizationRole.CHECK_IN_STAFF) return "STAFF";
         return "CUSTOMER";
     }
 
