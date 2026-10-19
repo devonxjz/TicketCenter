@@ -1,14 +1,18 @@
 package vn.ticketscenter.order.dto;
 
-import vn.ticketscenter.config.web.HttpResponses;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+
+import static vn.ticketscenter.config.web.Json.array;
+import static vn.ticketscenter.config.web.Json.field;
+import static vn.ticketscenter.config.web.Json.money;
+import static vn.ticketscenter.config.web.Json.nullableText;
+import static vn.ticketscenter.config.web.Json.number;
+import static vn.ticketscenter.config.web.Json.object;
+import static vn.ticketscenter.config.web.Json.text;
 
 /**
  * Chi tiết đầy đủ của đơn hàng (LIEM-06 / UI-06).
@@ -55,8 +59,8 @@ public record OrderDetailDto(
             return object(
                     field("id", text(id)),
                     field("zoneName", text(zoneName)),
-                    field("seatLabel", HttpResponses.jsonString(seatLabel)),
-                    field("quantity", String.valueOf(quantity)),
+                    field("seatLabel", nullableText(seatLabel)),
+                    field("quantity", number(quantity)),
                     field("unitPrice", money(unitPrice)),
                     field("lineTotal", money(lineTotal)));
         }
@@ -68,7 +72,7 @@ public record OrderDetailDto(
                     field("id", text(id)),
                     field("ticketCode", text(ticketCode)),
                     field("status", text(status)),
-                    field("paidAmount", String.valueOf(paidAmount)));
+                    field("paidAmount", number(paidAmount)));
         }
     }
 
@@ -89,32 +93,12 @@ public record OrderDetailDto(
                 field("status", text(status)),
                 field("createdAt", text(createdAt)),
                 field("paidAt", text(paidAt)),
-                field("couponCode", HttpResponses.jsonString(couponCode)),
-                field("paymentStatus", HttpResponses.jsonString(paymentStatus)),
-                field("txnRef", HttpResponses.jsonString(txnRef)),
-                field("providerReference", HttpResponses.jsonString(providerReference)),
+                field("couponCode", nullableText(couponCode)),
+                field("paymentStatus", nullableText(paymentStatus)),
+                field("txnRef", nullableText(txnRef)),
+                field("providerReference", nullableText(providerReference)),
                 field("paymentCapturedAt", text(paymentCapturedAt)),
                 field("items", array(items, OrderItemDetail::toJson)),
                 field("tickets", array(tickets, OrderTicketDetail::toJson)));
-    }
-
-    private static String object(String... fields) {
-        return "{" + String.join(",", fields) + "}";
-    }
-
-    private static String field(String name, String json) {
-        return "\"" + name + "\":" + json;
-    }
-
-    private static String text(Object value) {
-        return HttpResponses.jsonString(value == null ? "" : value.toString());
-    }
-
-    private static String money(BigDecimal value) {
-        return (value == null ? BigDecimal.ZERO : value).toString();
-    }
-
-    private static <T> String array(List<T> values, Function<T, String> encode) {
-        return values.stream().map(encode).collect(Collectors.joining(",", "[", "]"));
     }
 }
