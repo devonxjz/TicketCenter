@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Supplier;
+import vn.ticketscenter.config.redis.RedisScripts;
 
 /**
  * Coordinates duplicate requests, without authorizing inventory changes.
@@ -20,12 +21,6 @@ import java.util.function.Supplier;
  */
 public final class RedisHoldIdempotency {
     public static final Duration MAX_RESULT_RETENTION = Duration.ofMinutes(10);
-    private static final String COMPLETE =
-            """
-            if redis.call('GET', KEYS[1]) ~= ARGV[1] then return 0 end
-            redis.call('PSETEX', KEYS[1], ARGV[3], ARGV[2])
-            return 1
-            """;
     private final Supplier<Jedis> connections;
 
     public RedisHoldIdempotency(Supplier<Jedis> connections) {
@@ -108,7 +103,7 @@ public final class RedisHoldIdempotency {
         try (Jedis jedis = connections.get()) {
             Object result =
                     jedis.eval(
-                            COMPLETE,
+                            RedisScripts.REPLACE_IF_EQUALS_PX,
                             List.of(claim.redisKey),
                             List.of(claim.pendingValue, completed, Long.toString(retentionMillis)));
             if (Long.valueOf(1).equals(result)) {
@@ -166,7 +161,7 @@ public final class RedisHoldIdempotency {
             if (!(state instanceof InProgress)) return false;
             Object result =
                     jedis.eval(
-                            COMPLETE,
+                            RedisScripts.REPLACE_IF_EQUALS_PX,
                             List.of(redisKey),
                             List.of(observed, completed, Long.toString(millis)));
             if (Long.valueOf(1).equals(result)) return true;
