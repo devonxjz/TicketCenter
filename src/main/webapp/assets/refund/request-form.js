@@ -1,145 +1,134 @@
 'use strict';
 (() => {
     const app = document.querySelector('#app');
-    const base = app.dataset.base;
+    if (!app) return;
     const order = document.querySelector('#order');
     const tickets = document.querySelector('#tickets');
     const reason = document.querySelector('#reason');
     const message = document.querySelector('#message');
     const submit = document.querySelector('#submit');
-    const dialog = document.querySelector('#confirm');
     const totalLabel = document.querySelector('#total');
-    let choices = [],
-        busy = false,
-        pending = null,
-        key = null,
-        previousBody = null,
-        load = 0;
+    const confirmDialog = document.querySelector('#confirm');
+    const confirmation = document.querySelector('#confirmation');
 
-    const money = value => BigInt(value).toLocaleString('vi-VN') + ' ₫';
-    const selected = () => choices.filter(ticket =>
-        tickets.querySelector('input[data-id="' + ticket.ticketId + '"]')?.checked);
+    const state = {
+        tickets: [],
+        busy: false,
+        loadId: 0,
+        pending: null,
+        key: null,
+        lastBody: null
+    };
 
-    function total() {
-        const list = selected();
-        totalLabel.textContent = 'Số tiền dự kiến: ' + money(list.reduce((sum, ticket) => sum + BigInt(ticket
-            .paidAmount), 0n));
-        submit.disabled = busy || list.length === 0;
-    }
-
-    async function api(url, options = {}) {
-        const response = await fetch(base + url, {
-            credentials: 'same-origin',
-            ...options
+    function checkedTickets() {
+        return state.tickets.filter(ticket => {
+            const input = tickets.querySelector('input[data-id="' + ticket.ticketId + '"]');
+            return input?.checked;
         });
-        const body = await response.json();
-        if (!response.ok) throw new Error(body.error?.message || 'Không thể thực hiện yêu cầu.');
-        return body.data;
     }
 
-    function renderTicket(ticket) {
-        const row = document.createElement('div');
-        row.className = 'ticket';
-        const label = document.createElement('label');
-        const input = document.createElement('input');
-        input.type = 'checkbox';
-        input.dataset.id = ticket.ticketId;
-        input.disabled = !ticket.isRefundable;
-        input.addEventListener('change', total);
-        const text = document.createElement('span');
-        text.textContent = ticket.seatLabel + ' · ' + money(ticket.paidAmount);
-        label.append(input, text);
-        row.append(label);
+    function renderTotal() {
+        const chosen = checkedTickets();
+        const sum = chosen.reduce((total, ticket) => total + BigInt(ticket.paidAmount), 0n);
+        totalLabel.textContent = 'Số tiền dự kiến: ' + TC.money(sum);
+        submit.disabled = state.busy || chosen.length === 0;
+    }
+
+    function ticketRow(ticket) {
+        const input = TC.el('input', {
+            type: 'checkbox',
+            disabled: !ticket.isRefundable,
+            dataset: {id: ticket.ticketId}
+        });
+        input.addEventListener('change', renderTotal);
+
+        const text = TC.el('span', {text: ticket.seatLabel + ' · ' + TC.money(ticket.paidAmount)});
+        const row = TC.el('div', {className: 'ticket'}, TC.el('label', {}, input, text));
         if (ticket.unrefundableReason) {
-            const hint = document.createElement('p');
-            hint.className = 'muted';
-            hint.textContent = ticket.unrefundableReason;
-            row.append(hint);
+            row.append(TC.el('p', {className: 'muted', text: ticket.unrefundableReason}));
         }
-        tickets.append(row);
+        return row;
     }
 
-    order.addEventListener('change', async () => {
-        const generation = ++load;
+    function setBusy(busy) {
+        state.busy = busy;
+        order.disabled = busy;
+        reason.disabled = busy;
+        renderTotal();
+    }
+
+    async function loadTickets() {
+        const loadId = ++state.loadId;
+        state.tickets = [];
         tickets.replaceChildren();
-        choices = [];
-        total();
         message.textContent = '';
+        renderTotal();
         if (!order.value) return;
+
         message.textContent = 'Đang tải vé…';
         try {
-            const rows = await api('/api/orders/' + encodeURIComponent(order.value) +
-                '/refundable-tickets');
-            if (generation !== load) return;
-            choices = rows;
-            message.textContent = rows.length ? '' : 'Đơn hàng không có vé.';
-            rows.forEach(renderTicket);
-            total();
-        } catch (error) {
-            if (generation === load) message.textContent = error.message;
-        }
-    });
+            const path = '/api/orders/' + encodeURIComponent(order.value) + '/refundable-tickets';
+            const rows = await TC.api(path);
+            if (loadId !== state.loadId) return;
 
-    document.querySelector('#form').addEventListener('submit', event => {
+            state.tickets = rows;
+            tickets.append(...rows.map(ticketRow));
+            message.textContent = rows.length ? '' : 'Đơn hàng không có vé.';
+            renderTotal();
+        } catch (error) {
+            if (loadId === state.loadId) message.textContent = error.message;
+        }
+    }
+
+    function review(event) {
         event.preventDefault();
-        if (busy || !selected().length) return;
-        pending = {
+        const chosen = checkedTickets();
+        if (state.busy || chosen.length === 0) return;
+
+        const request = {
             orderId: order.value,
-            ticketIds: selected().map(ticket => ticket.ticketId),
+            ticketIds: chosen.map(ticket => ticket.ticketId),
             reason: reason.value.trim()
         };
-        if ([...pending.reason].length < 10) {
+        if ([...request.reason].length < 10) {
             message.textContent = 'Lý do cần ít nhất 10 ký tự.';
             return;
         }
-        const body = JSON.stringify(pending);
-        // Reuse the key when retrying the same request after an uncertain response.
-        if (body !== previousBody) {
-            key = crypto.randomUUID();
-            previousBody = body;
-        }
-        document.querySelector('#confirmation').textContent = 'Bạn chọn ' + pending.ticketIds.length +
-            ' vé. ' + totalLabel.textContent;
-        dialog.showModal();
-    });
 
-    document.querySelector('#cancel').onclick = () => dialog.close();
-    document.querySelector('#send').onclick = async () => {
-        dialog.close();
-        busy = true;
-        order.disabled = true;
-        reason.disabled = true;
-        total();
+        // Retrying the same request after an uncertain response must reuse its Idempotency-Key.
+        const body = JSON.stringify(request);
+        if (body !== state.lastBody) {
+            state.key = TC.newKey();
+            state.lastBody = body;
+        }
+        state.pending = request;
+        confirmation.textContent = 'Bạn chọn ' + chosen.length + ' vé. ' + totalLabel.textContent;
+        confirmDialog.showModal();
+    }
+
+    async function sendRequest() {
+        confirmDialog.close();
+        setBusy(true);
         message.textContent = 'Đang gửi yêu cầu…';
         try {
-            const result = await api('/api/refund-requests', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': app.dataset.csrf,
-                    'Idempotency-Key': key
-                },
-                body: JSON.stringify(pending)
-            });
-            message.textContent = result.message + '\nSố tiền: ' + money(result.totalRefundAmount);
-            pending = null;
-            key = null;
-            previousBody = null;
-            order.disabled = false;
-            order.dispatchEvent(new Event('change'));
-            location.assign(base + '/my-refunds');
+            const result = await TC.send('POST', '/api/refund-requests', state.pending, state.key);
+            message.textContent = result.message + '\nSố tiền: ' + TC.money(result.totalRefundAmount);
+            location.assign(TC.url('/my-refunds'));
         } catch (error) {
             message.textContent = error.message + ' Bạn có thể bấm gửi lại cùng yêu cầu.';
         } finally {
-            busy = false;
-            order.disabled = false;
-            reason.disabled = false;
-            total();
+            setBusy(false);
         }
-    };
+    }
 
-    if (app.dataset.order && [...order.options].some(option => option.value === app.dataset.order)) {
-        order.value = app.dataset.order;
-        order.dispatchEvent(new Event('change'));
+    order.addEventListener('change', loadTickets);
+    document.querySelector('#form').addEventListener('submit', review);
+    document.querySelector('#cancel').addEventListener('click', () => confirmDialog.close());
+    document.querySelector('#send').addEventListener('click', sendRequest);
+
+    const preselected = app.dataset.order;
+    if (preselected && [...order.options].some(option => option.value === preselected)) {
+        order.value = preselected;
+        loadTickets();
     }
 })();

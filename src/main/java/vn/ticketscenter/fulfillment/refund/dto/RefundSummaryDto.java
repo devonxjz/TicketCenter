@@ -14,6 +14,19 @@ public record RefundSummaryDto(
         String eventName,
         String reason,
         String rejectionReason) {
+    public String statusLabel() {
+        return switch (status) {
+            case "REQUESTED" -> "Chờ duyệt";
+            case "APPROVED" -> "Đã duyệt, chờ chuyển tiền";
+            case "PROCESSING" -> "Đang chuyển tiền";
+            case "COMPLETED" -> "Đã hoàn tiền";
+            case "REJECTED" -> "Bị từ chối";
+            case "RETRYABLE" -> "Chuyển tiền thất bại, cần xử lý";
+            case "NEEDS_RECONCILIATION" -> "Đang xác minh giao dịch";
+            default -> status;
+        };
+    }
+
     public String json() {
         return "{\"refundId\":"
                 + text(refundId.toString())
