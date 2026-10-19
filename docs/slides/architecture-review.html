@@ -1,426 +1,486 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TicketCenter Architecture Review - Deepening Opportunities</title>
+  <head>
+    <meta charset="utf-8" />
+    <title>Architecture Review — TicketCenter</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-    <style>
-        :root {
-            --color-primary: #3b82f6;
-            --color-secondary: #10b981;
-            --color-warning: #f59e0b;
-            --color-danger: #ef4444;
-            --color-surface: #f9fafb;
-            --color-border: #e5e7eb;
-            --color-text: #1f2937;
-        }
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --color-primary: #60a5fa;
-                --color-secondary: #34d399;
-                --color-warning: #fbbf24;
-                --color-danger: #f87171;
-                --color-surface: #1f2937;
-                --color-border: #374151;
-                --color-text: #f3f4f6;
-            }
-        }
-        body {
-            background-color: var(--color-surface);
-            color: var(--color-text);
-        }
-        .diagram-container {
-            background: white;
-            border-radius: 8px;
-            padding: 16px;
-            margin: 16px 0;
-            border: 1px solid var(--color-border);
-        }
-        @media (prefers-color-scheme: dark) {
-            .diagram-container {
-                background: #111827;
-                border-color: var(--color-border);
-            }
-        }
-        .mermaid { display: flex; justify-content: center; }
-        .badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 9999px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        .badge-strong { background: var(--color-secondary); color: white; }
-        .badge-explore { background: var(--color-primary); color: white; }
-        .before-after {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin: 16px 0;
-        }
-        @media (max-width: 768px) {
-            .before-after { grid-template-columns: 1fr; }
-        }
-        .module-box {
-            background: #eff6ff;
-            border-left: 4px solid var(--color-primary);
-            padding: 12px;
-            margin: 8px 0;
-            border-radius: 4px;
-        }
-        @media (prefers-color-scheme: dark) {
-            .module-box { background: #1e3a8a; color: #bfdbfe; }
-        }
-        .files-list {
-            list-style: none;
-            padding-left: 0;
-        }
-        .files-list li {
-            padding: 4px 0;
-            font-family: monospace;
-            font-size: 13px;
-            color: var(--color-primary);
-        }
-        .candidate-card {
-            background: white;
-            border: 1px solid var(--color-border);
-            border-radius: 8px;
-            padding: 24px;
-            margin: 20px 0;
-        }
-        @media (prefers-color-scheme: dark) {
-            .candidate-card { background: #111827; border-color: var(--color-border); }
-        }
-        .candidate-title { font-size: 20px; font-weight: 700; margin-bottom: 12px; }
-        .section-title {
-            font-size: 14px;
-            font-weight: 600;
-            margin-top: 16px;
-            margin-bottom: 8px;
-            color: var(--color-primary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .top-recommendation {
-            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-            color: white;
-            border-radius: 8px;
-            padding: 24px;
-            margin: 30px 0;
-        }
-        code { background: #f3f4f6; padding: 2px 6px; border-radius: 3px; font-family: monospace; font-size: 13px; }
-        @media (prefers-color-scheme: dark) { code { background: #374151; } }
-    </style>
-</head>
-<body>
-    <div class="max-w-7xl mx-auto px-4 py-8">
-        <!-- Header -->
-        <div class="mb-12">
-            <h1 class="text-4xl font-bold mb-4">TicketCenter Architecture Review</h1>
-            <p class="text-lg text-gray-600 mb-2">Deepening Opportunities for Testability, Navigability & Code Quality</p>
-            <p class="text-sm text-gray-500">For: newbie-friendly codebase, clean architecture, SOLID principles, design patterns, video tutorials</p>
-        </div>
-
-        <!-- Architecture Goals -->
-        <div class="bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-lg p-6 mb-12">
-            <h2 class="text-xl font-bold mb-4">Architecture Goals</h2>
-            <ul class="space-y-2">
-                <li><strong>1. Single Config Module:</strong> Centralize all application configuration into one coherent <code>AppConfig</code></li>
-                <li><strong>2. Consistent MVC per Feature:</strong> Each feature-package implements controller → service → repository → model with clean seams</li>
-                <li><strong>3. Error Tanks:</strong> Each feature owns an <code>error/</code> directory holding all domain-specific exceptions and error codes</li>
-                <li><strong>4. Code Quality:</strong> Follow SOLID principles, use design patterns, reduce complexity, improve navigability</li>
-                <li><strong>5. Teachability:</strong> Structure code so newbies can understand the request flow: servlet → service → repository → stored procedure</li>
-            </ul>
-        </div>
-
-        <!-- Candidate 1: Config Consolidation -->
-        <div class="candidate-card" id="candidate-1">
-            <div class="flex items-start justify-between mb-4">
-                <h3 class="candidate-title">Config Consolidation Module</h3>
-                <span class="badge badge-strong">Strong</span>
-            </div>
-
-            <div class="section-title">Problem</div>
-            <p class="mb-4">
-                Configuration is scattered across multiple files creating initialization chaos and circular dependencies:
-            </p>
-            <ul class="list-disc pl-6 mb-4 space-y-1">
-                <li><code>AppConfig.java</code>, <code>ServerConfig.java</code>, <code>DatabaseConfig.java</code>, <code>MailConfig.java</code>, <code>IdentityConfig.java</code>, <code>PayosConfig.java</code>, <code>TicketQrConfig.java</code> — all at <code>config/</code> level</li>
-                <li>Plus <code>IdentityContextListener</code> and <code>IdentityServices</code> in <code>identity/config/</code> — feature-specific config mixed with global</li>
-                <li>Multiple initialization paths: listeners, static blocks, servlet context, @PostConstruct</li>
-                <li>No clear entry point; hard to trace where a config value comes from</li>
-                <li>Tests must boot many subsystems just to read config</li>
-            </ul>
-
-            <div class="section-title">Solution</div>
-            <p class="mb-4">
-                Create a unified <code>AppConfig</code> module as the single entry point for all runtime configuration:
-            </p>
-            <ul class="list-disc pl-6 mb-4 space-y-1">
-                <li><code>AppConfig.java</code> loads environment variables, properties file, and secrets — one constructor</li>
-                <li>Feature-scoped config providers return immutable config objects (no side effects)</li>
-                <li>Move <code>IdentityContextListener</code> and <code>IdentityServices</code> into config initialization (no feature-level listeners)</li>
-                <li>All features depend only on <code>AppConfig</code>, never on each other's config</li>
-                <li>Config is immutable once initialized; no lazy initialization in services</li>
-            </ul>
-
-            <div class="section-title">Benefits</div>
-            <ul class="list-disc pl-6 mb-4 space-y-1">
-                <li><strong>Locality:</strong> All config in one place; developers see the full startup picture immediately</li>
-                <li><strong>Leverage:</strong> Tests can inject config without booting the app; mocking becomes trivial</li>
-                <li><strong>Testability:</strong> Unit tests create minimal AppConfig; integration tests override specific values</li>
-                <li><strong>Navigability:</strong> New developers start at AppConfig and trace feature initialization</li>
-            </ul>
-
-            <div class="section-title">Files Involved</div>
-            <ul class="files-list">
-                <li>src/main/java/vn/ticketscenter/config/AppConfig.java (refactor: single entry point)</li>
-                <li>src/main/java/vn/ticketscenter/config/ServerConfig.java (merge into AppConfig)</li>
-                <li>src/main/java/vn/ticketscenter/config/DatabaseConfig.java (merge into AppConfig)</li>
-                <li>src/main/java/vn/ticketscenter/config/MailConfig.java (merge into AppConfig)</li>
-                <li>src/main/java/vn/ticketscenter/config/PayosConfig.java (merge into AppConfig)</li>
-                <li>src/main/java/vn/ticketscenter/config/TicketQrConfig.java (merge into AppConfig)</li>
-                <li>src/main/java/vn/ticketscenter/identity/config/IdentityContextListener.java (remove, move to AppConfig init)</li>
-                <li>src/main/java/vn/ticketscenter/identity/config/IdentityServices.java (remove, move to AppConfig)</li>
-                <li>src/main/resources/application.properties (centralized source of truth)</li>
-            </ul>
-        </div>
-
-        <!-- Candidate 2: Error Tanks per Feature -->
-        <div class="candidate-card" id="candidate-2">
-            <div class="flex items-start justify-between mb-4">
-                <h3 class="candidate-title">Consistent Error Tanks Across Features</h3>
-                <span class="badge badge-strong">Strong</span>
-            </div>
-
-            <div class="section-title">Problem</div>
-            <p class="mb-4">
-                Error handling is inconsistent and scattered:
-            </p>
-            <ul class="list-disc pl-6 mb-4 space-y-1">
-                <li>Some features have an <code>error/</code> directory: <code>identity/error/IdentityException.java</code>, <code>identity/error/IdentityError.java</code></li>
-                <li>Others scatter exceptions in service or controller layers: <code>payment/service/PaymentException.java</code>, <code>order/service/OrderException.java</code>, <code>ticketing/service/HoldException.java</code></li>
-                <li>Error codes and messages are hardcoded in services, not centralized</li>
-                <li>No shared error taxonomy; newbies don't know where to define a new error</li>
-                <li>Testing error paths requires understanding where exceptions live across the codebase</li>
-            </ul>
-
-            <div class="section-title">Solution</div>
-            <p class="mb-4">
-                Create an "error tank" (<code>error/</code> directory) in each feature, holding all domain exceptions, codes, and validation errors:
-            </p>
-            <ul class="list-disc pl-6 mb-4 space-y-1">
-                <li><code>feature/error/FeatureException.java</code> — domain-specific exception wrapping error code</li>
-                <li><code>feature/error/FeatureErrorCode.java</code> — enum of all error codes (HTTP status, message template, user-facing message)</li>
-                <li><code>feature/error/FeatureValidationError.java</code> — struct for field-level validation results</li>
-                <li>Services throw <code>FeatureException</code> with error codes; controllers catch and translate to HTTP responses</li>
-                <li>Integration tests assert on error codes, making tests refactor-safe</li>
-            </ul>
-
-            <div class="section-title">Benefits</div>
-            <ul class="list-disc pl-6 mb-4 space-y-1">
-                <li><strong>Locality:</strong> All errors for a feature in one place; error handling is fully encapsulated</li>
-                <li><strong>Leverage:</strong> Controller code: <code>catch(FeatureException e) { return e.toResponse(); }</code></li>
-                <li><strong>Testability:</strong> Tests assert on error codes, not messages; they survive refactoring</li>
-                <li><strong>Navigability:</strong> New feature? Create <code>error/</code> directory with exceptions; done</li>
-            </ul>
-
-            <div class="section-title">Files to Create/Move</div>
-            <ul class="files-list">
-                <li>src/main/java/vn/ticketscenter/identity/error/ (already exists, use as template)</li>
-                <li>src/main/java/vn/ticketscenter/order/error/ (create, move OrderException)</li>
-                <li>src/main/java/vn/ticketscenter/payment/error/ (create, move PaymentException)</li>
-                <li>src/main/java/vn/ticketscenter/event/error/ (create, move EventException)</li>
-                <li>src/main/java/vn/ticketscenter/ticketing/error/ (create, move HoldException)</li>
-                <li>src/main/java/vn/ticketscenter/fulfillment/error/ (create, move CheckInException, TicketException, RefundException)</li>
-                <li>src/main/java/vn/ticketscenter/settlement/error/ (create, move CommissionRuleException, FinanceException)</li>
-            </ul>
-        </div>
-
-        <!-- Candidate 3: MVC Depth -->
-        <div class="candidate-card" id="candidate-3">
-            <div class="flex items-start justify-between mb-4">
-                <h3 class="candidate-title">Deepen MVC Seams with Explicit Dependency Injection</h3>
-                <span class="badge badge-explore">Worth exploring</span>
-            </div>
-
-            <div class="section-title">Problem</div>
-            <p class="mb-4">
-                The MVC structure exists but is not uniformly deep; dependencies leak across layers:
-            </p>
-            <ul class="list-disc pl-6 mb-4 space-y-1">
-                <li>Controllers call services, services call repositories — good so far</li>
-                <li>But services instantiate helpers inline (validators, builders, hashers), blurring the layer</li>
-                <li><code>IdentityServices</code> is a god object pulling in email, hashing, session cache</li>
-                <li>Dependencies are implicit; tests must set up all services even to test one endpoint</li>
-                <li>Hard to understand what a service needs without reading its constructor</li>
-            </ul>
-
-            <div class="section-title">Solution</div>
-            <p class="mb-4">
-                Strengthen the MVC seams with explicit dependency injection and clear responsibility:
-            </p>
-            <ul class="list-disc pl-6 mb-4 space-y-1">
-                <li>Each controller knows only the service interface, not the implementation</li>
-                <li>Each service knows only the repository interface and needed domain services</li>
-                <li>Helper classes (validators, builders) are injected, never instantiated inline</li>
-                <li>Create <code>feature/FeatureComponent.java</code> that wires all feature dependencies</li>
-                <li>Use immutable DTOs at layer boundaries; no entity mutation across layers</li>
-            </ul>
-
-            <div class="section-title">Benefits</div>
-            <ul class="list-disc pl-6 mb-4 space-y-1">
-                <li><strong>Locality:</strong> Reading a servlet, you see exactly its dependencies; wiring is explicit</li>
-                <li><strong>Leverage:</strong> Mock the service interface; test the servlet without touching the database</li>
-                <li><strong>Testability:</strong> Each layer tested independently with minimal fixtures</li>
-                <li><strong>Navigability:</strong> New developer traces servlet → service → repository → SQL; no surprises</li>
-            </ul>
-
-            <div class="section-title">Files to Create/Refactor</div>
-            <ul class="files-list">
-                <li>src/main/java/vn/ticketscenter/identity/IdentityComponent.java (create)</li>
-                <li>src/main/java/vn/ticketscenter/order/OrderComponent.java (create)</li>
-                <li>src/main/java/vn/ticketscenter/event/EventComponent.java (create)</li>
-                <li>src/main/java/vn/ticketscenter/*/service/*Service.java (refactor: constructor injection)</li>
-                <li>src/main/java/vn/ticketscenter/*/controller/*Servlet.java (refactor: depend on interface)</li>
-            </ul>
-        </div>
-
-        <!-- Candidate 4: Design Patterns -->
-        <div class="candidate-card" id="candidate-4">
-            <div class="flex items-start justify-between mb-4">
-                <h3 class="candidate-title">Apply Design Patterns & SOLID for Quality</h3>
-                <span class="badge badge-explore">Worth exploring</span>
-            </div>
-
-            <div class="section-title">Problem</div>
-            <p class="mb-4">
-                Code quality issues reduce navigability and increase maintenance burden:
-            </p>
-            <ul class="list-disc pl-6 mb-4 space-y-1">
-                <li>Large services (100+ lines) doing multiple things: validation, logic, persistence</li>
-                <li>Duplicate validation logic across endpoints</li>
-                <li>No clear strategy pattern for different payment/refund flows</li>
-                <li>Magic strings (field names, error codes) instead of constants</li>
-                <li>Mutable DTOs; unclear what fields are read-only vs. writable</li>
-            </ul>
-
-            <div class="section-title">Solution</div>
-            <p class="mb-4">
-                Apply SOLID principles and design patterns systematically:
-            </p>
-            <ul class="list-disc pl-6 mb-4 space-y-1">
-                <li><strong>Single Responsibility:</strong> Split large services; e.g., <code>OrderValidationService</code>, <code>OrderPlacementService</code>, <code>OrderQueryService</code></li>
-                <li><strong>Strategy Pattern:</strong> Payment strategies (payOS, manual refund) implement a common interface</li>
-                <li><strong>Builder Pattern:</strong> DTOs built step-by-step; immutable once created</li>
-                <li><strong>Adapter Pattern:</strong> External APIs (payOS, email) behind feature-specific adapters</li>
-                <li><strong>Constants:</strong> Move magic strings to feature <code>FeatureConstants.java</code></li>
-            </ul>
-
-            <div class="section-title">Benefits</div>
-            <ul class="list-disc pl-6 mb-4 space-y-1">
-                <li><strong>Locality:</strong> Each class has one reason to change; understanding is scoped</li>
-                <li><strong>Leverage:</strong> New flow? Add a strategy; no existing code changes</li>
-                <li><strong>Testability:</strong> Small classes are easier to test; mocking strategies is straightforward</li>
-                <li><strong>Teachability:</strong> Newbies see clear patterns; they apply the same to new features</li>
-            </ul>
-
-            <div class="module-box">
-                <strong>Example: Order Payment Strategies</strong><br/>
-                <code>order/payment/PaymentStrategy.java</code> — interface<br/>
-                <code>order/payment/PayosPaymentStrategy.java</code> — payOS impl<br/>
-                <code>order/payment/ManualPaymentStrategy.java</code> — manual impl<br/>
-                <code>order/service/OrderPaymentService.java</code> — uses strategy
-            </div>
-        </div>
-
-        <!-- Candidate 5: Documentation -->
-        <div class="candidate-card" id="candidate-5">
-            <div class="flex items-start justify-between mb-4">
-                <h3 class="candidate-title">Onboarding Guide & Architecture Documentation</h3>
-                <span class="badge badge-explore">Worth exploring</span>
-            </div>
-
-            <div class="section-title">Problem</div>
-            <p class="mb-4">
-                New developers have no clear entry point to understand the codebase:
-            </p>
-            <ul class="list-disc pl-6 mb-4 space-y-1">
-                <li>SPEC.md is functional spec, not architecture guide</li>
-                <li>No "walkthrough of a request" showing the layers in action</li>
-                <li>No decision record for why features are structured this way</li>
-                <li>Hard to know which files to read to understand a domain concept</li>
-            </ul>
-
-            <div class="section-title">Solution</div>
-            <p class="mb-4">
-                Create developer onboarding guide and architecture decision records:
-            </p>
-            <ul class="list-disc pl-6 mb-4 space-y-1">
-                <li><code>docs/architecture/ONBOARDING.md</code> — "Read the code in this order"</li>
-                <li><code>docs/architecture/REQUEST-FLOW.md</code> — trace one request end-to-end with file paths</li>
-                <li><code>docs/adr/ADR-001-feature-based-packaging.md</code> — why package-by-feature</li>
-                <li><code>docs/adr/ADR-002-error-tanks.md</code> — why each feature owns errors</li>
-                <li>Video script narrating: servlet → service → repository → stored procedure</li>
-            </ul>
-
-            <div class="section-title">Benefits</div>
-            <ul class="list-disc pl-6 mb-4 space-y-1">
-                <li><strong>Navigability:</strong> New person opens ONBOARDING.md, follows the path, understands the system in 30 minutes</li>
-                <li><strong>Teachability:</strong> Video narrator narrates request flow; viewers see code structure in action</li>
-                <li><strong>Maintainability:</strong> ADRs capture why decisions were made, preventing future regressions</li>
-            </ul>
-        </div>
-
-        <!-- Top Recommendation -->
-        <div class="top-recommendation">
-            <h2 class="text-2xl font-bold mb-4">Recommended Deepening Path</h2>
-            <ol class="list-decimal pl-6 space-y-3 text-sm">
-                <li>
-                    <strong>Start with Error Tanks (Candidate 2)</strong> — Quickest win, lowest risk. Move scattered exceptions into <code>feature/error/</code>. Defines pattern for other features. ~2-3 days.
-                </li>
-                <li>
-                    <strong>Then Config Consolidation (Candidate 1)</strong> — Medium effort, high impact. Refactor config into single AppConfig. Unblocks clean DI. ~3-5 days.
-                </li>
-                <li>
-                    <strong>Deepen MVC Seams (Candidate 3)</strong> — Introduce explicit DI, layer boundaries. Makes codebase dramatically more testable. ~1 week.
-                </li>
-                <li>
-                    <strong>Apply Design Patterns (Candidate 4)</strong> — Extract strategies, builders, validators. Refactor incrementally. Ongoing, ~1 month.
-                </li>
-                <li>
-                    <strong>Documentation & Video (Candidate 5)</strong> — Once architecture stable, document and record walkthrough. ~3-5 days.
-                </li>
-            </ol>
-            <p class="mt-6 text-sm">
-                <strong>Total effort:</strong> 2-3 weeks for core cleanup, then ongoing pattern application. Each step makes the next easier because the design becomes more legible.
-            </p>
-        </div>
-
-        <!-- Call to Action -->
-        <div class="bg-indigo-50 dark:bg-indigo-900 border border-indigo-200 dark:border-indigo-700 rounded-lg p-6 mt-12 mb-12">
-            <h3 class="text-lg font-bold mb-4">Next Steps</h3>
-            <p class="mb-4">
-                Which candidate would you like to explore further? Ask me to:
-            </p>
-            <ul class="list-disc pl-6 space-y-1 text-sm">
-                <li><strong>Plan Config Consolidation:</strong> Walk through AppConfig design, identify all config values, plan migration</li>
-                <li><strong>Design Error Tanks:</strong> Define error structure template, list all exceptions to move, plan refactoring order</li>
-                <li><strong>Detail MVC Deepening:</strong> Show Component pattern, design DI container structure, plan servlet refactoring</li>
-                <li><strong>Sketch Design Patterns:</strong> Pick a feature, show how to apply Strategy/Builder, provide code examples</li>
-                <li><strong>Draft Documentation:</strong> Create ONBOARDING.md, ADR templates, outline video script</li>
-            </ul>
-        </div>
-
-        <footer class="text-center text-sm text-gray-500 py-8 border-t border-gray-200 dark:border-gray-700">
-            <p>TicketCenter Architecture Review · Generated 2026-10-19 · For newbie-friendly codebase with clean, testable architecture</p>
-        </footer>
-    </div>
-
-    <script>
-        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
     </script>
-</body>
+    <style>
+      .seam { stroke-dasharray: 4 4; }
+      .leak { stroke: #dc2626; }
+      .deep-card { background: linear-gradient(135deg, #0f172a, #1e293b); }
+    </style>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans antialiased">
+    <main class="max-w-5xl mx-auto px-6 py-12 space-y-12">
+      <!-- Header -->
+      <header class="border-b border-stone-200 pb-8">
+        <div class="flex items-baseline justify-between">
+          <h1 class="text-3xl font-serif font-bold tracking-tight text-slate-900">
+            Architecture Review — TicketCenter
+          </h1>
+          <span class="text-xs uppercase tracking-widest text-slate-500 font-mono">
+            19 Oct 2026
+          </span>
+        </div>
+        <p class="text-sm text-slate-600 mt-2">
+          Deepening opportunities: turning shallow modules into deep ones to improve leverage, locality, and testability.
+        </p>
+
+        <!-- Legend -->
+        <div class="mt-6 flex flex-wrap gap-4 text-xs font-mono text-slate-600 bg-stone-100 p-3 rounded-md border border-stone-200">
+          <span class="inline-flex items-center gap-1.5">
+            <span class="w-3.5 h-3.5 border border-slate-700 bg-white rounded-sm"></span> Solid box = module
+          </span>
+          <span class="inline-flex items-center gap-1.5">
+            <span class="w-4 border-b-2 border-dashed border-slate-700"></span> Dashed line = seam
+          </span>
+          <span class="inline-flex items-center gap-1.5">
+            <span class="w-4 border-b-2 border-red-600"></span> Red line = leakage / friction
+          </span>
+          <span class="inline-flex items-center gap-1.5">
+            <span class="w-3.5 h-3.5 bg-slate-900 rounded-sm"></span> Thick dark box = deep module
+          </span>
+        </div>
+      </header>
+
+      <!-- Candidates Section -->
+      <section id="candidates" class="space-y-12">
+
+        <!-- Candidate 1 -->
+        <article id="candidate-refund-pipeline" class="bg-white rounded-xl border border-stone-200 shadow-sm p-6 space-y-6">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 pb-4">
+            <div>
+              <span class="text-xs font-mono uppercase tracking-wider text-slate-400">Candidate 1</span>
+              <h2 class="text-xl font-serif font-bold text-slate-900">
+                Collapse the Refund Web Pipeline
+              </h2>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">
+                Strong
+              </span>
+              <span class="px-2 py-0.5 rounded text-xs font-mono bg-stone-100 text-slate-600">
+                in-process
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-1">Involved Files</div>
+            <ul class="font-mono text-xs text-slate-700 bg-stone-50 p-3 rounded border border-stone-200 space-y-1">
+              <li>vn.ticketscenter.fulfillment.refund.controller.RefundWeb</li>
+              <li>vn.ticketscenter.fulfillment.refund.controller.AdminRefundWeb</li>
+              <li>vn.ticketscenter.fulfillment.refund.controller.RefundRequestServlet</li>
+              <li>vn.ticketscenter.fulfillment.refund.controller.AdminRefundRequestsServlet</li>
+              <li>vn.ticketscenter.fulfillment.refund.controller.AdminRefundDecisionServlet</li>
+              <li>vn.ticketscenter.fulfillment.refund.controller.AdminRefundRetryServlet</li>
+              <li>vn.ticketscenter.fulfillment.refund.controller.MyRefundRequestsServlet</li>
+              <li>vn.ticketscenter.fulfillment.refund.controller.OrderRefundableTicketsServlet</li>
+            </ul>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-2">
+              <h3 class="text-xs uppercase tracking-wider font-mono text-slate-500 font-semibold">Before: Shallow Fragmentation</h3>
+              <div class="rounded-lg border border-red-200 bg-red-50/30 p-3 h-80 flex flex-col justify-center">
+                <pre class="mermaid">
+                  flowchart TD
+                    subgraph Caller["HTTP Requests"]
+                      R1["/api/me/refunds"]
+                      R2["/api/refunds/requests"]
+                      R3["/api/admin/refunds/decision"]
+                    end
+                    subgraph ShallowServlets["6 Shallow Micro-Servlets"]
+                      S1[MyRefundRequestsServlet]
+                      S2[RefundRequestServlet]
+                      S3[AdminRefundDecisionServlet]
+                      S4[AdminRefundRetryServlet]
+                    end
+                    subgraph StaticHelpers["Static Glue Helpers"]
+                      H1[RefundWeb]
+                      H2[AdminRefundWeb]
+                    end
+                    subgraph Svc["Refund Service"]
+                      RS[RefundService]
+                    end
+                    R1 --> S1
+                    R2 --> S2
+                    R3 --> S3
+                    S1 -.actor/path.-> H1
+                    S2 -.mutation/id.-> H1
+                    S3 -.target.-> H2
+                    H2 -.delegate.-> H1
+                    S1 --> RS
+                    S2 --> RS
+                    S3 --> RS
+                    classDef leak stroke:#dc2626,stroke-width:1.5px;
+                    class H1,H2,S1,S2,S3,S4 leak;
+                </pre>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <h3 class="text-xs uppercase tracking-wider font-mono text-slate-500 font-semibold">After: Deep Consolidated Module</h3>
+              <div class="rounded-lg border border-slate-200 bg-stone-50 p-3 h-80 flex flex-col justify-center">
+                <pre class="mermaid">
+                  flowchart TD
+                    subgraph Caller["HTTP Requests"]
+                      R1["/api/me/refunds"]
+                      R2["/api/refunds/requests"]
+                      R3["/api/admin/refunds/*"]
+                    end
+                    subgraph DeepModule["Deep Module: RefundManagementServlet"]
+                      direction TB
+                      RMS["doGet / doPost Routing"]
+                      RMS --> SEC["Actor & Security Guard"]
+                      SEC --> DISP["Target & Mutation Dispatcher"]
+                      DISP --> ERR["Unified Error Handler"]
+                    end
+                    subgraph Svc["Refund Service"]
+                      RS[RefundService]
+                    end
+                    R1 --> RMS
+                    R2 --> RMS
+                    R3 --> RMS
+                    DISP --> RS
+                    classDef deep stroke:#0f172a,stroke-width:2px,fill:#f8fafc;
+                    class DeepModule,RMS deep;
+                </pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            <div>
+              <h4 class="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold mb-1">Problem</h4>
+              <p class="text-sm text-slate-700">
+                The refund HTTP surface is fragmented across six micro-servlets bouncing between two static helper modules to extract actors and format errors.
+              </p>
+            </div>
+            <div>
+              <h4 class="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold mb-1">Solution</h4>
+              <p class="text-sm text-slate-700">
+                Deepen into a unified RefundManagementServlet that owns route dispatching, actor extraction, and error translation behind a single entry seam.
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <h4 class="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold mb-2">Architectural Wins</h4>
+            <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono text-slate-700">
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> locality: routing and security live in one module</li>
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> leverage: one test surface for all refund endpoints</li>
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> interface shrinks: delete 8 shallow classes</li>
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> no static request attribute bouncing</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Candidate 2 -->
+        <article id="candidate-event-management" class="bg-white rounded-xl border border-stone-200 shadow-sm p-6 space-y-6">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 pb-4">
+            <div>
+              <span class="text-xs font-mono uppercase tracking-wider text-slate-400">Candidate 2</span>
+              <h2 class="text-xl font-serif font-bold text-slate-900">
+                Deepen the Event Management Dispatcher
+              </h2>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">
+                Strong
+              </span>
+              <span class="px-2 py-0.5 rounded text-xs font-mono bg-stone-100 text-slate-600">
+                in-process
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-1">Involved Files</div>
+            <ul class="font-mono text-xs text-slate-700 bg-stone-50 p-3 rounded border border-stone-200 space-y-1">
+              <li>vn.ticketscenter.event.controller.EventManagementWeb</li>
+              <li>vn.ticketscenter.event.controller.EventManagementServlet</li>
+              <li>vn.ticketscenter.event.controller.EventManagementRoutesFilter</li>
+            </ul>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-2">
+              <h3 class="text-xs uppercase tracking-wider font-mono text-slate-500 font-semibold">Before: Monolithic Static Procedure</h3>
+              <div class="rounded-lg border border-red-200 bg-red-50/30 p-3 h-80 flex flex-col justify-center">
+                <pre class="mermaid">
+                  flowchart TD
+                    subgraph Servlet["EventManagementServlet"]
+                      S["doGet / doPost"]
+                    end
+                    subgraph MegaProc["EventManagementWeb.handle (250 lines)"]
+                      direction TB
+                      P1["String[] p = path.split('/')"]
+                      P2{"kind/operation string flags"}
+                      P3["Manual multipart forward"]
+                      P4["Zone price restricted fields check"]
+                      P5["Manual JSON response writer"]
+                      P1 --> P2 --> P3 --> P4 --> P5
+                    end
+                    S --> MegaProc
+                    classDef leak stroke:#dc2626,stroke-width:1.5px;
+                    class MegaProc,P1,P2,P3,P4,P5 leak;
+                </pre>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <h3 class="text-xs uppercase tracking-wider font-mono text-slate-500 font-semibold">After: Deep Dispatcher with Internal Seams</h3>
+              <div class="rounded-lg border border-slate-200 bg-stone-50 p-3 h-80 flex flex-col justify-center">
+                <pre class="mermaid">
+                  flowchart TD
+                    subgraph Entry["EventManagementServlet"]
+                      EP["service(req, resp)"]
+                    end
+                    subgraph DeepDispatcher["Deep Module: EventManagementDispatcher"]
+                      direction TB
+                      R["Path Pattern Matcher"]
+                      R --> ZO["ZoneOperations (with price guard)"]
+                      R --> CO["CoverOperations (with size guard)"]
+                      R --> EO["LifecycleOperations (publish/reject/edit)"]
+                    end
+                    subgraph Runtime["EventManagementRuntime"]
+                      EMR[Services & Repositories]
+                    end
+                    EP --> DeepDispatcher
+                    ZO --> EMR
+                    CO --> EMR
+                    EO --> EMR
+                    classDef deep stroke:#0f172a,stroke-width:2px,fill:#f8fafc;
+                    class DeepDispatcher deep;
+                </pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            <div>
+              <h4 class="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold mb-1">Problem</h4>
+              <p class="text-sm text-slate-700">
+                EventManagementWeb is a 250-line static procedure mixing ad-hoc string path splitting, untyped action dispatching, and multipart forward delegation.
+              </p>
+            </div>
+            <div>
+              <h4 class="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold mb-1">Solution</h4>
+              <p class="text-sm text-slate-700">
+                Deepen into an EventManagementDispatcher module that encapsulates typed sub-route dispatching behind a clean seam, with co-located guards.
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <h4 class="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold mb-2">Architectural Wins</h4>
+            <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono text-slate-700">
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> locality: zone pricing and cover validations don't interleave</li>
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> leverage: operations tested without 200-line monolithic harness</li>
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> depth: clean internal seams replace string array hacks</li>
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> eliminates untyped action string switching</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Candidate 3 -->
+        <article id="candidate-redis-cache" class="bg-white rounded-xl border border-stone-200 shadow-sm p-6 space-y-6">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 pb-4">
+            <div>
+              <span class="text-xs font-mono uppercase tracking-wider text-slate-400">Candidate 3</span>
+              <h2 class="text-xl font-serif font-bold text-slate-900">
+                Unify the Redis Cache Cluster (RedisCachedProjection)
+              </h2>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
+                Worth exploring
+              </span>
+              <span class="px-2 py-0.5 rounded text-xs font-mono bg-stone-100 text-slate-600">
+                ports & adapters
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-1">Involved Files</div>
+            <ul class="font-mono text-xs text-slate-700 bg-stone-50 p-3 rounded border border-stone-200 space-y-1">
+              <li>vn.ticketscenter.ticketing.cache.RedisActiveHoldCache</li>
+              <li>vn.ticketscenter.fulfillment.checkin.cache.RedisCheckInEventCache</li>
+              <li>vn.ticketscenter.fulfillment.checkin.cache.RedisCheckInScanCache</li>
+              <li>vn.ticketscenter.event.cache.RedisEventCatalogCache</li>
+              <li>vn.ticketscenter.order.cache.RedisOrderCache</li>
+              <li>vn.ticketscenter.fulfillment.refund.service.RedisRefundRequestCache</li>
+            </ul>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-2">
+              <h3 class="text-xs uppercase tracking-wider font-mono text-slate-500 font-semibold">Before: Shallow Duplication</h3>
+              <div class="rounded-lg border border-red-200 bg-red-50/30 p-3 h-80 flex flex-col justify-center">
+                <pre class="mermaid">
+                  flowchart TD
+                    subgraph Domain["Domain Services"]
+                      DS1[OrderService]
+                      DS2[HoldService]
+                      DS3[CheckInService]
+                    end
+                    subgraph Caches["6 Repetitive Shallow Adapters"]
+                      C1["RedisOrderCache\n(try-catch fail-open)"]
+                      C2["RedisActiveHoldCache\n(try-catch fail-open)"]
+                      C3["RedisCheckInEventCache\n(try-catch fail-open)"]
+                    end
+                    subgraph Driver["Jedis Connection"]
+                      J[Jedis Connection Supplier]
+                    end
+                    DS1 --> C1 --> J
+                    DS2 --> C2 --> J
+                    DS3 --> C3 --> J
+                    classDef leak stroke:#dc2626,stroke-width:1.5px;
+                    class C1,C2,C3 leak;
+                </pre>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <h3 class="text-xs uppercase tracking-wider font-mono text-slate-500 font-semibold">After: Deep Cached Projection Adapter</h3>
+              <div class="rounded-lg border border-slate-200 bg-stone-50 p-3 h-80 flex flex-col justify-center">
+                <pre class="mermaid">
+                  flowchart TD
+                    subgraph Domain["Domain Services"]
+                      DS1[OrderService]
+                      DS2[HoldService]
+                      DS3[CheckInService]
+                    end
+                    subgraph DeepAdapter["Deep Module: RedisCachedProjection&lt;T&gt;"]
+                      direction TB
+                      P["get(id) / put(id, val) / evict(id)"]
+                      P --> FO["Fail-Open Outage Suppressor"]
+                      P --> EXP["TTL & PSETEX Engine"]
+                      P --> SER["Safe String Serializer"]
+                    end
+                    subgraph Driver["Jedis Connection"]
+                      J[Jedis Connection Supplier]
+                    end
+                    DS1 --> DeepAdapter
+                    DS2 --> DeepAdapter
+                    DS3 --> DeepAdapter
+                    DeepAdapter --> J
+                    classDef deep stroke:#0f172a,stroke-width:2px,fill:#f8fafc;
+                    class DeepAdapter,P deep;
+                </pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            <div>
+              <h4 class="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold mb-1">Problem</h4>
+              <p class="text-sm text-slate-700">
+                Six domain caches duplicate identical fail-open try-catch blocks, connection borrowing, and TTL handling.
+              </p>
+            </div>
+            <div>
+              <h4 class="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold mb-1">Solution</h4>
+              <p class="text-sm text-slate-700">
+                Deepen a generic RedisCachedProjection adapter that encapsulates connection borrowing, error suppression, and TTL policies behind a small get/put/evict interface.
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <h4 class="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold mb-2">Architectural Wins</h4>
+            <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono text-slate-700">
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> leverage: one fail-open policy across all domains</li>
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> locality: connection timeouts and logging handled once</li>
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> deletion test: removes ~200 lines of duplicated boilerplate</li>
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> testability: trivial substitution with in-memory adapter</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Candidate 4 -->
+        <article id="candidate-checkin-cluster" class="bg-white rounded-xl border border-stone-200 shadow-sm p-6 space-y-6">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 pb-4">
+            <div>
+              <span class="text-xs font-mono uppercase tracking-wider text-slate-400">Candidate 4</span>
+              <h2 class="text-xl font-serif font-bold text-slate-900">
+                Consolidate the CheckIn Web Cluster
+              </h2>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
+                Worth exploring
+              </span>
+              <span class="px-2 py-0.5 rounded text-xs font-mono bg-stone-100 text-slate-600">
+                in-process
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-1">Involved Files</div>
+            <ul class="font-mono text-xs text-slate-700 bg-stone-50 p-3 rounded border border-stone-200 space-y-1">
+              <li>vn.ticketscenter.fulfillment.checkin.controller.CheckInWeb</li>
+              <li>vn.ticketscenter.fulfillment.checkin.controller.TicketCheckInServlet</li>
+              <li>vn.ticketscenter.fulfillment.checkin.controller.EventCheckInLogsServlet</li>
+              <li>vn.ticketscenter.fulfillment.checkin.controller.CheckInEventsServlet</li>
+              <li>vn.ticketscenter.fulfillment.checkin.controller.CheckInScannerServlet</li>
+              <li>vn.ticketscenter.fulfillment.checkin.controller.CheckInWindowServlet</li>
+            </ul>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            <div>
+              <h4 class="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold mb-1">Problem</h4>
+              <p class="text-sm text-slate-700">
+                Five micro-servlets act as shallow pass-throughs to a static CheckInWeb helper, spreading check-in HTTP logic across seven files.
+              </p>
+            </div>
+            <div>
+              <h4 class="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold mb-1">Solution</h4>
+              <p class="text-sm text-slate-700">
+                Consolidate into a single CheckInServlet module with structured top-down execution order.
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <h4 class="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold mb-2">Architectural Wins</h4>
+            <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono text-slate-700">
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> locality: entire check-in HTTP flow in one place</li>
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> interface shrinks: eliminates 5 servlet registrations</li>
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> deletes 5 pass-through classes</li>
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> consistent error handling across scanner and logs</li>
+            </ul>
+          </div>
+        </article>
+
+      </section>
+
+      <!-- Top Recommendation Section -->
+      <section id="top-recommendation" class="deep-card text-white rounded-2xl p-8 border border-slate-700 space-y-4 shadow-lg">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-xs font-mono uppercase tracking-widest text-emerald-400">Top Recommendation</span>
+        </div>
+        <h2 class="text-2xl font-serif font-bold text-slate-100">
+          Candidate 1: Collapse the Refund Web Pipeline
+        </h2>
+        <p class="text-sm text-slate-300 leading-relaxed max-w-3xl">
+          The refund subsystem has the highest fragmentation in the repository: 6 shallow servlets, 1 route filter, and 2 static helper classes just to dispatch refund requests. Collapsing this into a unified <code class="text-emerald-300 font-mono text-xs">RefundManagementServlet</code> achieves maximum locality, cuts over 150 lines of glue code, and establishes a single, clear test surface for the entire refund feature.
+        </p>
+        <div class="pt-2">
+          <a href="#candidate-refund-pipeline" class="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-emerald-300 hover:text-emerald-200 underline underline-offset-4">
+            Inspect Candidate 1 details &rarr;
+          </a>
+        </div>
+      </section>
+    </main>
+  </body>
 </html>
