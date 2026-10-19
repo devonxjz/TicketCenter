@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Supplier;
+import vn.ticketscenter.config.error.AppException;
 import vn.ticketscenter.config.redis.RedisScripts;
 
 /**
@@ -90,7 +91,7 @@ public final class RedisHoldIdempotency {
             }
             return readResult(jedis.get(redisKey), requestHash);
         } catch (RuntimeException unavailable) {
-            throw new HoldIdempotencyUnavailableException();
+            throw unavailable();
         }
     }
 
@@ -116,10 +117,14 @@ public final class RedisHoldIdempotency {
                 }
                 return false;
             }
-            throw new HoldIdempotencyUnavailableException();
+            throw unavailable();
         } catch (RuntimeException unavailable) {
-            throw new HoldIdempotencyUnavailableException();
+            throw unavailable();
         }
+    }
+
+    private static AppException unavailable() {
+        return new AppException(503, "HOLD_UNAVAILABLE", "Hold idempotency is unavailable");
     }
 
     public static String redisKey(UUID actorId, String key) {
@@ -166,34 +171,34 @@ public final class RedisHoldIdempotency {
                             List.of(observed, completed, Long.toString(millis)));
             if (Long.valueOf(1).equals(result)) return true;
             if (Long.valueOf(0).equals(result)) return false;
-            throw new HoldIdempotencyUnavailableException();
+            throw unavailable();
         } catch (RuntimeException unavailable) {
-            throw new HoldIdempotencyUnavailableException();
+            throw unavailable();
         }
     }
 
     private static Result readResult(String value, String requestHash) {
         if (value == null) {
-            throw new HoldIdempotencyUnavailableException();
+            throw unavailable();
         }
         String[] fields = value.split("\\|", -1);
         if (fields.length < 4 || !fields[0].equals("1") || !fields[2].matches("[0-9a-f]{64}")) {
-            throw new HoldIdempotencyUnavailableException();
+            throw unavailable();
         }
         CompletedResponse response = null;
         if (fields[1].equals("P") && fields.length == 4) {
             UUID token = UUID.fromString(fields[3]);
             if (!token.toString().equals(fields[3]) || token.equals(new UUID(0, 0))) {
-                throw new HoldIdempotencyUnavailableException();
+                throw unavailable();
             }
         } else if (fields[1].equals("C") && fields.length == 6) {
             int status = Integer.parseInt(fields[3]);
             if (!Integer.toString(status).equals(fields[3])) {
-                throw new HoldIdempotencyUnavailableException();
+                throw unavailable();
             }
             response = new CompletedResponse(status, decode(fields[4]), decode(fields[5]));
         } else {
-            throw new HoldIdempotencyUnavailableException();
+            throw unavailable();
         }
         if (!fields[2].equals(requestHash)) {
             return new Conflict();
@@ -233,7 +238,7 @@ public final class RedisHoldIdempotency {
     private static String decode(String value) {
         String decoded = new String(Base64.getUrlDecoder().decode(value), StandardCharsets.UTF_8);
         if (!encode(decoded).equals(value)) {
-            throw new HoldIdempotencyUnavailableException();
+            throw unavailable();
         }
         return decoded;
     }

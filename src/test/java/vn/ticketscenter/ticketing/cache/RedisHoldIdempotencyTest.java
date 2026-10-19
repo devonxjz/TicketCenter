@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static vn.ticketscenter.ticketing.cache.HoldIdempotencyAssertions.assertUnavailable;
 import static org.junit.jupiter.api.Assertions.*;
 
 class RedisHoldIdempotencyTest {
@@ -66,7 +67,7 @@ class RedisHoldIdempotencyTest {
     @Test
     void providerFailureBecomesOneSafeTypedError() {
         var store = new RedisHoldIdempotency(() -> { throw new IllegalStateException("provider-secret"); });
-        var failure = assertThrows(HoldIdempotencyUnavailableException.class, () -> store.acquire(ACTOR, "key", HASH));
+        var failure = assertUnavailable(() -> store.acquire(ACTOR, "key", HASH));
         assertEquals("Hold idempotency is unavailable", failure.getMessage());
         assertNull(failure.getCause());
     }
@@ -102,7 +103,7 @@ class RedisHoldIdempotencyTest {
             @Override public String get(String key) { return value; }
             @Override public void close() { }
         });
-        var failure = assertThrows(HoldIdempotencyUnavailableException.class, () -> store.acquire(ACTOR, "key", HASH));
+        var failure = assertUnavailable(() -> store.acquire(ACTOR, "key", HASH));
         assertEquals("Hold idempotency is unavailable", failure.getMessage());
     }
 }

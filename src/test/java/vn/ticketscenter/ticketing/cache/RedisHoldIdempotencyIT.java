@@ -16,6 +16,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import static vn.ticketscenter.ticketing.cache.HoldIdempotencyAssertions.assertUnavailable;
 import static org.junit.jupiter.api.Assertions.*;
 
 class RedisHoldIdempotencyIT {
@@ -173,8 +174,8 @@ class RedisHoldIdempotencyIT {
         try (Jedis jedis = pool.getResource()) {
             jedis.set(RedisHoldIdempotency.redisKey(actor, key), "corrupt");
         }
-        assertThrows(HoldIdempotencyUnavailableException.class, () -> store.acquire(actor, key, HASH));
-        assertThrows(HoldIdempotencyUnavailableException.class, () -> store.complete(claim, RESPONSE, Duration.ofSeconds(30)));
+        assertUnavailable(() -> store.acquire(actor, key, HASH));
+        assertUnavailable(() -> store.complete(claim, RESPONSE, Duration.ofSeconds(30)));
     }
 
     @Test
@@ -184,10 +185,10 @@ class RedisHoldIdempotencyIT {
         try (var closedPool = new JedisPool("127.0.0.1", Integer.parseInt(System.getProperty("liem.hold.redisTestPort")))) {
             var closedStore = new RedisHoldIdempotency(closedPool::getResource);
             closedPool.close();
-            var failure = assertThrows(HoldIdempotencyUnavailableException.class, () -> closedStore.acquire(actor, key, HASH));
+            var failure = assertUnavailable(() -> closedStore.acquire(actor, key, HASH));
             assertEquals("Hold idempotency is unavailable", failure.getMessage());
             assertNull(failure.getCause());
-            assertThrows(HoldIdempotencyUnavailableException.class, () -> closedStore.complete(claim, RESPONSE, Duration.ofSeconds(30)));
+            assertUnavailable(() -> closedStore.complete(claim, RESPONSE, Duration.ofSeconds(30)));
         }
     }
 

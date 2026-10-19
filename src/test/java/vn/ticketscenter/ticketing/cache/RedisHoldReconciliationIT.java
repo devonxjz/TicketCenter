@@ -10,6 +10,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 
+import static vn.ticketscenter.ticketing.cache.HoldIdempotencyAssertions.assertUnavailable;
 import static org.junit.jupiter.api.Assertions.*;
 
 class RedisHoldReconciliationIT extends HoldRedisFixture {
@@ -102,10 +103,10 @@ class RedisHoldReconciliationIT extends HoldRedisFixture {
     void corruptAndUnavailableRedisFailWithoutLeakingProviderCause() {
         String key = key();
         try (Jedis jedis = pool.getResource()) { jedis.set(redisKey(key), "corrupt"); }
-        assertThrows(HoldIdempotencyUnavailableException.class,
+        assertUnavailable(
                 () -> new RedisHoldIdempotency(pool::getResource).recoverConfirmedResult(actor, key, HASH, RESPONSE, RETENTION));
         var unavailable = new RedisHoldIdempotency(() -> { throw new IllegalStateException("private provider data"); });
-        var failure = assertThrows(HoldIdempotencyUnavailableException.class,
+        var failure = assertUnavailable(
                 () -> unavailable.recoverConfirmedResult(actor, key, HASH, RESPONSE, RETENTION));
         assertEquals("Hold idempotency is unavailable", failure.getMessage());
         assertNull(failure.getCause());
