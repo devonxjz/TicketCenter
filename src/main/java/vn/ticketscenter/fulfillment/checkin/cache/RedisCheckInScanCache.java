@@ -1,9 +1,9 @@
 package vn.ticketscenter.fulfillment.checkin.cache;
 
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.params.ScanParams;
 import redis.clients.jedis.params.SetParams;
 import vn.ticketscenter.config.redis.RedisClientProvider;
+import vn.ticketscenter.config.redis.RedisScan;
 import vn.ticketscenter.fulfillment.checkin.dto.CheckInScanResponseDto;
 
 import java.util.List;
@@ -54,19 +54,10 @@ public final class RedisCheckInScanCache implements CheckInScanCache {
                     List.of(
                             "tc:ticket:qr:v1:" + result.ticketId() + ":*",
                             "tc:checkin:events:v1:*:" + result.organizationId())) {
-                deleteMatching(redis, pattern);
+                RedisScan.deleteMatching(redis, pattern);
             }
         } catch (RuntimeException ignored) {
             // SQL preserves correctness and durable replay during Redis outages.
         }
-    }
-
-    private static void deleteMatching(Jedis redis, String pattern) {
-        String cursor = "0";
-        do {
-            var scan = redis.scan(cursor, new ScanParams().match(pattern).count(100));
-            if (!scan.getResult().isEmpty()) redis.del(scan.getResult().toArray(String[]::new));
-            cursor = scan.getCursor();
-        } while (!cursor.equals("0"));
     }
 }

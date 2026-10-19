@@ -10,8 +10,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.params.ScanParams;
 import vn.ticketscenter.config.redis.RedisClientProvider;
+import vn.ticketscenter.config.redis.RedisScan;
 import vn.ticketscenter.config.web.JsonObjectParser;
 import vn.ticketscenter.event.cache.RedisEventCatalogCache;
 import vn.ticketscenter.event.cancellation.dto.CancellationProgressDto;
@@ -133,12 +133,7 @@ public class CancellationProgressCacheHelper {
 
     private static void clearTicketProjections(Jedis redis) {
         for (String pattern : TICKET_PROJECTIONS) {
-            String cursor = "0";
-            do {
-                var page = redis.scan(cursor, new ScanParams().match(pattern).count(100));
-                if (!page.getResult().isEmpty()) redis.del(page.getResult().toArray(String[]::new));
-                cursor = page.getCursor();
-            } while (!cursor.equals("0"));
+            RedisScan.deleteMatching(redis, pattern);
         }
     }
 }

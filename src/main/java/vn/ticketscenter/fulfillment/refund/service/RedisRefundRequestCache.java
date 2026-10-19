@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.params.*;
 import vn.ticketscenter.config.redis.RedisClientProvider;
+import vn.ticketscenter.config.redis.RedisScan;
 import vn.ticketscenter.fulfillment.refund.dto.RefundSummaryDto;
 
 /** Redis reduces contention and clears display caches; SQL owns all financial decisions. */
@@ -56,23 +57,13 @@ public final class RedisRefundRequestCache implements RefundRequestCache {
         try (var redis = connections.get()) {
             for (UUID ticket : tickets) {
                 redis.del("tc:ticket:detail:v1:" + ticket);
-                remove(redis, "tc:ticket:qr:v1:" + ticket + ":*");
+                RedisScan.deleteMatching(redis, "tc:ticket:qr:v1:" + ticket + ":*");
             }
-            remove(redis, "tc:user:tickets:v1:" + actor + ":*");
+            RedisScan.deleteMatching(redis, "tc:user:tickets:v1:" + actor + ":*");
             redis.del("tc:admin:pending_refunds_count");
             redis.setex(idemKey(actor, key), IDEMPOTENCY_TTL, result.json());
         } catch (RuntimeException ignored) {
             /* The mutation has already committed; never report it as failed. */
         }
-    }
-
-    private static void remove(Jedis redis, String pattern) {
-        String cursor = "0";
-        var params = new ScanParams().match(pattern).count(100);
-        do {
-            var page = redis.scan(cursor, params);
-            if (!page.getResult().isEmpty()) redis.del(page.getResult().toArray(String[]::new));
-            cursor = page.getCursor();
-        } while (!"0".equals(cursor));
     }
 }

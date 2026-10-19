@@ -2,7 +2,6 @@ package vn.ticketscenter.fulfillment.ticket.cache;
 
 import org.json.JSONObject;
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.params.ScanParams;
 import vn.ticketscenter.fulfillment.ticket.dto.TicketDetailDto;
 
 import java.time.Instant;
@@ -11,6 +10,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
+import vn.ticketscenter.config.redis.RedisScan;
 
 /**
  * Hiện thực bộ nhớ đệm Redis cho chi tiết vé và ảnh PNG QR (LIEM-05).
@@ -87,17 +87,7 @@ public final class RedisTicketCache implements TicketCache {
         try (Jedis redis = connections.get()) {
             redis.del(detailKey(ticketId));
             // Xóa tất cả version của QR thuộc vé này
-            String cursor = "0";
-            ScanParams params =
-                    new ScanParams().match("tc:ticket:qr:v1:" + ticketId + ":*").count(50);
-            do {
-                var scanResult = redis.scan(cursor, params);
-                var keys = scanResult.getResult();
-                if (keys != null && !keys.isEmpty()) {
-                    redis.del(keys.toArray(String[]::new));
-                }
-                cursor = scanResult.getCursor();
-            } while (!"0".equals(cursor));
+            RedisScan.deleteMatching(redis, "tc:ticket:qr:v1:" + ticketId + ":*");
         } catch (Exception ignored) {
             // Lỗi cache không làm gián đoạn hệ thống
         }
