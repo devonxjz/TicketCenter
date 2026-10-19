@@ -169,7 +169,7 @@ public final class SqlCall {
     /**
      * Executes a SQL command or Stored Procedure with an explicit query timeout in seconds.
      */
-    public static <T> T callWithTimeout(
+    private static <T> T callWithTimeout(
             Connection connection,
             String sql,
             int timeoutSeconds,
