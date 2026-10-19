@@ -3,6 +3,7 @@ package vn.ticketscenter.fulfillment.checkin.cache;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.params.SetParams;
 import vn.ticketscenter.config.redis.RedisClientProvider;
+import vn.ticketscenter.config.redis.RedisOwnedLease;
 import vn.ticketscenter.config.redis.RedisScan;
 import vn.ticketscenter.fulfillment.checkin.dto.CheckInScanResponseDto;
 
@@ -24,24 +25,16 @@ public final class RedisCheckInScanCache implements CheckInScanCache {
     @Override
     public Lease lock(UUID ticketId) {
         if (ticketId == null) return () -> {};
-        String key = "tc:lock:ticket-checkin:" + ticketId;
-        String token = UUID.randomUUID().toString();
-        try (Jedis redis = connections.get()) {
-            if (!"OK".equals(redis.set(key, token, SetParams.setParams().nx().ex(5))))
-                return () -> {};
+        try {
+            return RedisOwnedLease.acquire(
+                            connections,
+                            "tc:lock:ticket-checkin:" + ticketId,
+                            SetParams.setParams().ex(5))
+                    .<Lease>map(release -> release::run)
+                    .orElse(() -> {});
         } catch (RuntimeException ignored) {
             return () -> {};
         }
-
-        return () -> {
-            try (Jedis redis = connections.get()) {
-                redis.eval(
-                        "if redis.call('get',KEYS[1])==ARGV[1] then return redis.call('del',KEYS[1]) else return 0 end",
-                        List.of(key),
-                        List.of(token));
-            } catch (RuntimeException ignored) {
-            }
-        };
     }
 
     @Override

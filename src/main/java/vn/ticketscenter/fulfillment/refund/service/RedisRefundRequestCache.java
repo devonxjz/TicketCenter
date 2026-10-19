@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.params.*;
 import vn.ticketscenter.config.redis.RedisClientProvider;
+import vn.ticketscenter.config.redis.RedisOwnedLease;
 import vn.ticketscenter.config.redis.RedisScan;
 import vn.ticketscenter.fulfillment.refund.dto.RefundSummaryDto;
 
@@ -33,23 +34,14 @@ public final class RedisRefundRequestCache implements RefundRequestCache {
 
     @Override
     public Lease lock(List<UUID> ids) {
-        String key = lockKey(ids), token = UUID.randomUUID().toString();
-        try (var redis = connections.get()) {
-            if (!"OK".equals(redis.set(key, token, SetParams.setParams().nx().px(10000))))
-                return () -> {};
+        try {
+            return RedisOwnedLease.acquire(
+                            connections, lockKey(ids), SetParams.setParams().px(10000))
+                    .<Lease>map(release -> release::run)
+                    .orElse(() -> {});
         } catch (RuntimeException unavailable) {
             return () -> {};
         }
-        return () -> {
-            try (var redis = connections.get()) {
-                redis.eval(
-                        "if redis.call('get',KEYS[1]) == ARGV[1] then return"
-                                + " redis.call('del',KEYS[1]) else return 0 end",
-                        List.of(key),
-                        List.of(token));
-            } catch (RuntimeException ignored) {
-            }
-        };
     }
 
     @Override
