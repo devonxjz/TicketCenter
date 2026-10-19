@@ -2,58 +2,22 @@ package vn.ticketscenter.settlement.commission.service;
 
 import java.util.*;
 import java.util.function.Supplier;
-import vn.ticketscenter.config.redis.RedisClientProvider;
+import vn.ticketscenter.config.redis.RedisKeyValueBackend;
 
 /** Optional list acceleration; callers must recheck current authority before read. */
 public final class CommissionRuleCache {
-    public interface Backend {
-        String get(String key);
+    private final RedisKeyValueBackend backend;
 
-        void put(String key, String value, int seconds);
-
-        void delete(String key);
-    }
-
-    private final Backend backend;
-
-    public CommissionRuleCache(Backend backend) {
+    public CommissionRuleCache(RedisKeyValueBackend backend) {
         this.backend = Objects.requireNonNull(backend);
     }
 
     public static CommissionRuleCache none() {
-        return new CommissionRuleCache(
-                new Backend() {
-                    public String get(String key) {
-                        return null;
-                    }
-
-                    public void put(String key, String value, int seconds) {}
-
-                    public void delete(String key) {}
-                });
+        return new CommissionRuleCache(new RedisKeyValueBackend() {});
     }
 
     public static CommissionRuleCache redis() {
-        return new CommissionRuleCache(
-                new Backend() {
-                    public String get(String key) {
-                        try (var redis = RedisClientProvider.getInstance().getResource()) {
-                            return redis.get(key);
-                        }
-                    }
-
-                    public void put(String key, String value, int seconds) {
-                        try (var redis = RedisClientProvider.getInstance().getResource()) {
-                            redis.setex(key, seconds, value);
-                        }
-                    }
-
-                    public void delete(String key) {
-                        try (var redis = RedisClientProvider.getInstance().getResource()) {
-                            redis.del(key);
-                        }
-                    }
-                });
+        return new CommissionRuleCache(RedisKeyValueBackend.redis());
     }
 
     public String read(UUID org, Supplier<String> current) {
@@ -66,7 +30,7 @@ public final class CommissionRuleCache {
         String json = current.get();
         if (json.length() <= 1_000_000)
             try {
-                backend.put(key(org), json, 300);
+                backend.setex(key(org), 300, json);
             } catch (RuntimeException unavailable) {
                 /* Database is authoritative. */
             }

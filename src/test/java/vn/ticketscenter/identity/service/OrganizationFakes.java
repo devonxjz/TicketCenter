@@ -1,5 +1,6 @@
 package vn.ticketscenter.identity.service;
 
+import vn.ticketscenter.config.redis.RedisKeyValueBackend;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.EntityTransaction;
@@ -202,7 +203,7 @@ final class OrganizationFakes {
         }
     }
 
-    static class InMemoryRedisStore implements OrganizationRequestIdempotency.Store {
+    static class InMemoryRedisStore implements RedisKeyValueBackend {
         private final Map<String, String> store = new HashMap<>();
 
         @Override

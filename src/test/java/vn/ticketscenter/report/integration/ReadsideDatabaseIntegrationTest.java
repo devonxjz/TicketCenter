@@ -123,9 +123,9 @@ class ReadsideDatabaseIntegrationTest {
     }
     @Test void cachedOverviewStillRejectsRevokedRoleAndStaleAuthVersionUsingActualDatabase()throws Exception{
         String[] value={null};int[] reads={0};
-        var cache=new vn.ticketscenter.dashboard.service.DashboardCache(new vn.ticketscenter.dashboard.service.DashboardCache.Backend(){
+        var cache=new vn.ticketscenter.dashboard.service.DashboardCache(new vn.ticketscenter.config.redis.RedisKeyValueBackend(){
             public String get(String key){reads[0]++;return value[0];}
-            public void set(String key,String json,int ttl){assertEquals(60,ttl);value[0]=json;}
+            public void setex(String key,int ttl,String json){assertEquals(60,ttl);value[0]=json;}
             public void delete(String key){value[0]=null;}
         });
         var service=new DashboardService(database,cache,Clock.fixed(Instant.parse("2026-10-01T14:00:00Z"),ZoneOffset.UTC));
