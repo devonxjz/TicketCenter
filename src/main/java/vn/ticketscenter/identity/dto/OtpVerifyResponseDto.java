@@ -1,6 +1,10 @@
 package vn.ticketscenter.identity.dto;
 
-import vn.ticketscenter.config.web.HttpResponses;
+import static vn.ticketscenter.config.web.Json.field;
+import static vn.ticketscenter.config.web.Json.nullableText;
+import static vn.ticketscenter.config.web.Json.number;
+import static vn.ticketscenter.config.web.Json.object;
+import static vn.ticketscenter.config.web.Json.optional;
 
 public record OtpVerifyResponseDto(boolean success, String message, String resetToken) {
     public static OtpVerifyResponseDto forEmailVerification(String message) {
@@ -12,14 +16,9 @@ public record OtpVerifyResponseDto(boolean success, String message, String reset
     }
 
     public String toJson() {
-        StringBuilder json =
-                new StringBuilder("{\"success\":")
-                        .append(success)
-                        .append(",\"message\":")
-                        .append(HttpResponses.jsonString(message));
-        if (resetToken != null) {
-            json.append(",\"resetToken\":").append(HttpResponses.jsonString(resetToken));
-        }
-        return json.append('}').toString();
+        return object(
+                field("success", number(success)),
+                field("message", nullableText(message)),
+                optional("resetToken", resetToken));
     }
 }

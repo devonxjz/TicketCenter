@@ -18,8 +18,8 @@ public final class Json {
         return "\"" + name + "\":" + json;
     }
 
-    public static String optional(String name, String value) {
-        return value == null ? null : field(name, HttpResponses.jsonString(value));
+    public static String optional(String name, Object value) {
+        return value == null ? null : field(name, HttpResponses.jsonString(value.toString()));
     }
 
     public static String text(Object value) {
