@@ -1,12 +1,13 @@
 /**
  * Shared glue between JSP pages and the JSON API.
  * Pages load it first (defer) and use `TC.*` instead of their own fetch, CSRF and format helpers.
+ *
+ * 5-bước tuần tự: 1. Helpers -> 2. Trạng thái -> 3. Render -> 4. Hành động -> 5. Xuất bản
  */
 (function (root) {
     'use strict';
 
-    let cachedCsrf = '';
-
+    // 1. HẰNG SỐ & PURE HELPERS
     function meta(name) {
         const tags = root.document?.querySelectorAll(`meta[name="${name}"]`) || [];
         for (const tag of tags) {
@@ -16,18 +17,9 @@
         return '';
     }
 
-    function url(path) {
-        if (/^https?:/.test(path)) return path;
-        return TC.base + path;
-    }
-
-    async function readJson(response) {
-        try {
-            return await response.json();
-        } catch (_) {
-            return null;
-        }
-    }
+    const url = path => /^https?:/.test(path) ? path : TC.base + path;
+    const readJson = response => response.json().catch(() => null);
+    const newKey = () => root.crypto.randomUUID();
 
     function apiError(response, body) {
         const message = body?.error?.message || `Yêu cầu thất bại (${response.status})`;
@@ -37,6 +29,48 @@
         return error;
     }
 
+    function money(value) {
+        if (value === null || value === undefined || value === '') return '—';
+        try {
+            return BigInt(value).toLocaleString('vi-VN') + ' ₫';
+        } catch (_) {
+            return String(value) + ' ₫';
+        }
+    }
+
+    function dateTime(value) {
+        if (!value) return '—';
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('vi-VN', {dateStyle: 'medium', timeStyle: 'short'});
+    }
+
+    function escapeHtml(value) {
+        if (value === null || value === undefined) return '';
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    // 2. TRẠNG THÁI (STATE)
+    let cachedCsrf = '';
+
+    // 3. RENDER / DOM BUILDERS
+    /** Builds an element; text always goes through textContent. */
+    function el(tag, props = {}, ...children) {
+        const element = root.document.createElement(tag);
+        const {text, className, dataset, ...rest} = props;
+        if (text !== undefined) element.textContent = text;
+        if (className) element.className = className;
+        Object.assign(element.dataset, dataset);
+        Object.assign(element, rest);
+        element.append(...children);
+        return element;
+    }
+
+    // 4. HÀNH ĐỘNG / API (ACTIONS)
     async function api(path, options = {}) {
         const response = await root.fetch(url(path), {
             ...options,
@@ -52,14 +86,9 @@
         if (cachedCsrf) return cachedCsrf;
         cachedCsrf = meta('csrf-token');
         if (cachedCsrf) return cachedCsrf;
-
         const data = await api('/api/auth/csrf', {cache: 'no-store'});
         cachedCsrf = data?.token || '';
         return cachedCsrf;
-    }
-
-    function newKey() {
-        return root.crypto.randomUUID();
     }
 
     /** JSON write with CSRF and Idempotency-Key; pass the same `key` to retry the same request. */
@@ -75,57 +104,10 @@
         });
     }
 
-    function money(value) {
-        if (value === null || value === undefined || value === '') return '—';
-        try {
-            return BigInt(value).toLocaleString('vi-VN') + ' ₫';
-        } catch (_) {
-            return String(value) + ' ₫';
-        }
-    }
-
-    function dateTime(value) {
-        if (!value) return '—';
-        const date = new Date(value);
-        if (Number.isNaN(date.getTime())) return String(value);
-        return date.toLocaleString('vi-VN', {dateStyle: 'medium', timeStyle: 'short'});
-    }
-
-    function escapeHtml(value) {
-        if (value === null || value === undefined) return '';
-        return String(value)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-    }
-
-    /** Builds an element; text always goes through textContent. */
-    function el(tag, props = {}, ...children) {
-        const element = root.document.createElement(tag);
-        const {text, className, dataset, ...rest} = props;
-        if (text !== undefined) element.textContent = text;
-        if (className) element.className = className;
-        Object.assign(element.dataset, dataset);
-        Object.assign(element, rest);
-        element.append(...children);
-        return element;
-    }
-
+    // 5. SỰ KIỆN & KHỞI TẠO (INIT & EXPORT)
     const TC = {
-        get base() {
-            return meta('context-path');
-        },
-        url,
-        api,
-        csrf,
-        send,
-        newKey,
-        money,
-        dateTime,
-        escapeHtml,
-        el
+        get base() { return meta('context-path'); },
+        url, api, csrf, send, newKey, money, dateTime, escapeHtml, el
     };
 
     root.TC = TC;
