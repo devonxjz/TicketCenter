@@ -75,7 +75,7 @@ public class CouponAdminServlet extends HttpServlet {
                 response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
             }
         } catch (OrderException e) {
-            HttpResponses.error(response, e.status(), e.code(), e.getMessage());
+            HttpResponses.error(response, e);
         } catch (IllegalArgumentException e) {
             HttpResponses.error(response, 400, "BAD_REQUEST", e.getMessage());
         } catch (Exception e) {

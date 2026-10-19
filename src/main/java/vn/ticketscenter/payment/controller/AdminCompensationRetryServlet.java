@@ -85,8 +85,7 @@ public class AdminCompensationRetryServlet extends HttpServlet {
                             + payment
                             + "\",\"status\":\"PENDING\"}");
         } catch (Rejected rejected) {
-            HttpResponses.error(
-                    response, rejected.status(), rejected.code(), rejected.getMessage());
+            HttpResponses.error(response, rejected);
         } catch (RuntimeException failure) {
             LOGGER.log(Level.SEVERE, "Compensation retry failed", failure);
             HttpResponses.error(

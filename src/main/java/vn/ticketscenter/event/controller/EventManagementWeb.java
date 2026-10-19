@@ -200,7 +200,7 @@ public final class EventManagementWeb {
                             .mutate(actor, key, command);
             write(response, result.status(), result.json());
         } catch (EventProblem e) {
-            HttpResponses.error(response, e.status(), e.code(), e.getMessage());
+            HttpResponses.error(response, e);
         } catch (EventCatalogService.NotFound e) {
             HttpResponses.error(
                     response, 404, "EVENT_NOT_FOUND", "Không tìm thấy sự kiện công khai.");

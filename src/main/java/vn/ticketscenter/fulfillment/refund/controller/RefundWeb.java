@@ -74,7 +74,7 @@ final class RefundWeb {
     /** SQL error tables raise plain {@link AppException}, so match the base type, not RefundException. */
     static void error(HttpServletResponse response, RuntimeException failure) throws IOException {
         if (failure instanceof AppException known) {
-            HttpResponses.error(response, known.status(), known.code(), known.getMessage());
+            HttpResponses.error(response, known);
             return;
         }
         HttpResponses.error(
