@@ -1,6 +1,6 @@
 package vn.ticketscenter.settlement.commission.dto;
 
-import vn.ticketscenter.settlement.commission.CommissionRuleException;
+import vn.ticketscenter.config.error.AppException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -30,7 +30,7 @@ public record CommissionRuleCreateDto(
         ratePercent = significantRate.setScale(4, RoundingMode.UNNECESSARY);
     }
 
-    private static CommissionRuleException invalid(String message) {
-        return new CommissionRuleException("COMMISSION_RULE_INVALID", message);
+    private static AppException invalid(String message) {
+        return new AppException(400, "COMMISSION_RULE_INVALID", message);
     }
 }
