@@ -217,7 +217,7 @@ class RedisActiveHoldCacheIT extends HoldRedisFixture {
     private RedisActiveHoldCache cache(Clock clock) {
         String key = RedisActiveHoldCache.redisKey(actor);
         if (!keys.contains(key)) keys.add(key);
-        return new RedisActiveHoldCache(pool, clock);
+        return new RedisActiveHoldCache(pool::getResource, clock);
     }
 
     private void assertMarkerTtl(UUID buyer) {

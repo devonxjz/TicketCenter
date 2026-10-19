@@ -16,12 +16,7 @@ public final class FinanceMutationService {
     private final SettlementReadCache settlementCache;
 
     public FinanceMutationService(FinanceRepository repository, PayoutAdapter adapter) {
-        this(repository, adapter, CommissionRuleCache.none());
-    }
-
-    public FinanceMutationService(
-            FinanceRepository repository, PayoutAdapter adapter, CommissionRuleCache cache) {
-        this(repository, adapter, cache, SettlementReadCache.none());
+        this(repository, adapter, CommissionRuleCache.none(), SettlementReadCache.none());
     }
 
     public FinanceMutationService(

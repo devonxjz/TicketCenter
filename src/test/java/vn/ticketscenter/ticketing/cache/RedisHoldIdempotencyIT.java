@@ -48,7 +48,7 @@ class RedisHoldIdempotencyIT {
         try (Jedis jedis = pool.getResource()) {
             assertEquals("PONG", jedis.ping());
         }
-        store = new RedisHoldIdempotency(pool);
+        store = new RedisHoldIdempotency(pool::getResource);
     }
 
     @AfterEach
@@ -182,7 +182,7 @@ class RedisHoldIdempotencyIT {
         String key = fixtureKey(actor);
         var claim = acquired(actor, key, HASH);
         try (var closedPool = new JedisPool("127.0.0.1", Integer.parseInt(System.getProperty("liem.hold.redisTestPort")))) {
-            var closedStore = new RedisHoldIdempotency(closedPool);
+            var closedStore = new RedisHoldIdempotency(closedPool::getResource);
             closedPool.close();
             var failure = assertThrows(HoldIdempotencyUnavailableException.class, () -> closedStore.acquire(actor, key, HASH));
             assertEquals("Hold idempotency is unavailable", failure.getMessage());

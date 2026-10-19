@@ -1,7 +1,6 @@
 package vn.ticketscenter.ticketing.cache;
 
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.params.SetParams;
 
 import java.nio.charset.StandardCharsets;
@@ -31,10 +30,6 @@ public final class RedisHoldIdempotency {
 
     public RedisHoldIdempotency(Supplier<Jedis> connections) {
         this.connections = Objects.requireNonNull(connections);
-    }
-
-    public RedisHoldIdempotency(JedisPool pool) {
-        this(Objects.requireNonNull(pool)::getResource);
     }
 
     public sealed interface Result permits Acquired, InProgress, Replay, Conflict {}

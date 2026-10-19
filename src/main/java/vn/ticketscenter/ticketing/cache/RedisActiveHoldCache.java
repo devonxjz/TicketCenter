@@ -1,7 +1,6 @@
 package vn.ticketscenter.ticketing.cache;
 
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.params.SetParams;
 import vn.ticketscenter.ticketing.dto.ActiveHoldProjection;
 
@@ -51,10 +50,6 @@ public final class RedisActiveHoldCache {
     public RedisActiveHoldCache(Supplier<Jedis> connections, Clock clock) {
         this.connections = Objects.requireNonNull(connections);
         this.clock = Objects.requireNonNull(clock);
-    }
-
-    public RedisActiveHoldCache(JedisPool pool, Clock clock) {
-        this(Objects.requireNonNull(pool)::getResource, clock);
     }
 
     public record Lookup(

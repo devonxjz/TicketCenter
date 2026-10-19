@@ -100,13 +100,6 @@ public class CancellationProgressCacheHelper {
         }
     }
 
-    public void processed(UUID id) {
-        try (var redis = connections.get()) {
-            redis.del(PROGRESS_PREFIX + id, PENDING_REFUNDS_KEY);
-            clearTicketProjections(redis);
-        }
-    }
-
     public void cancelled(CancellationProgressDto progress) {
         new RedisEventCatalogCache(connections)
                 .invalidateCommitted(progress.eventId(), progress.organizationId());
