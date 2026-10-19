@@ -45,7 +45,7 @@ final class CheckInWeb {
 
     static void error(HttpServletResponse response, RuntimeException exception) throws IOException {
         if (exception instanceof CheckInException e)
-            HttpResponses.error(response, e.httpStatus(), e.code(), e.getMessage());
+            HttpResponses.error(response, e.status(), e.code(), e.getMessage());
         else
             HttpResponses.error(
                     response,

@@ -13,14 +13,6 @@ public final class TicketException extends AppException {
         super(httpStatus, Objects.requireNonNull(errorCode, "errorCode is required"), message);
     }
 
-    public int httpStatus() {
-        return status();
-    }
-
-    public String errorCode() {
-        return code();
-    }
-
     public static TicketException unauthenticated() {
         return new TicketException(401, "UNAUTHENTICATED", "A current session is required.");
     }

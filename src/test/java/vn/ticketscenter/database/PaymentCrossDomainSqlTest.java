@@ -200,19 +200,19 @@ class PaymentCrossDomainSqlTest {
 
         var exTicket403 = assertThrows(vn.ticketscenter.fulfillment.ticket.service.TicketException.class,
                 () -> foreignTicketService.getTicketDetail(foreignId, 1, ticket.id()));
-        assertEquals(403, exTicket403.httpStatus());
+        assertEquals(403, exTicket403.status());
 
         var exTicket404 = assertThrows(vn.ticketscenter.fulfillment.ticket.service.TicketException.class,
                 () -> foreignTicketService.getTicketDetail(foreignId, 1, UUID.randomUUID()));
-        assertEquals(404, exTicket404.httpStatus());
+        assertEquals(404, exTicket404.status());
 
         var exQr403 = assertThrows(vn.ticketscenter.fulfillment.ticket.service.TicketException.class,
                 () -> foreignTicketService.getTicketQrPng(foreignId, 1, ticket.id(), 300, 300));
-        assertEquals(403, exQr403.httpStatus());
+        assertEquals(403, exQr403.status());
 
         var exQr404 = assertThrows(vn.ticketscenter.fulfillment.ticket.service.TicketException.class,
                 () -> foreignTicketService.getTicketQrPng(foreignId, 1, UUID.randomUUID(), 300, 300));
-        assertEquals(404, exQr404.httpStatus());
+        assertEquals(404, exQr404.status());
 
         var unauthenticatedOrderRepo = new vn.ticketscenter.order.dao.OrderRepository(source("buyer", null));
         var unauthenticatedOrderService = new vn.ticketscenter.order.service.OrderService(unauthenticatedOrderRepo, new vn.ticketscenter.order.cache.RedisOrderCache(()->null, java.time.Clock.systemUTC()));
@@ -224,11 +224,11 @@ class PaymentCrossDomainSqlTest {
         var unauthenticatedTicketService = new vn.ticketscenter.fulfillment.ticket.service.TicketService(unauthenticatedTicketRepo, vn.ticketscenter.fulfillment.ticket.service.SignedTicketQrSigner.configured(), new vn.ticketscenter.fulfillment.ticket.cache.RedisTicketCache(()->null));
         var exUnauthTicket = assertThrows(vn.ticketscenter.fulfillment.ticket.service.TicketException.class,
                 () -> unauthenticatedTicketService.getTicketDetail(UUID.randomUUID(), 1, ticket.id()));
-        assertEquals(403, exUnauthTicket.httpStatus());
+        assertEquals(403, exUnauthTicket.status());
 
         var exUnauthQr = assertThrows(vn.ticketscenter.fulfillment.ticket.service.TicketException.class,
                 () -> unauthenticatedTicketService.getTicketQrPng(UUID.randomUUID(), 1, ticket.id(), 300, 300));
-        assertEquals(403, exUnauthQr.httpStatus());
+        assertEquals(403, exUnauthQr.status());
 
         try(var c = source("buyer", null).getConnection()) {
             var exSqlOrder = assertThrows(SQLException.class, () -> ScanFixture.execute(c, "EXEC dbo.usp_AssertOrderAccess ?", f.order()));

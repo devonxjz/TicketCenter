@@ -43,26 +43,26 @@ class CheckInEventServiceTest {
     }
     @Test void anotherOrganizationIsForbiddenBeforeReadingCache() {
         CheckInException error=assertThrows(CheckInException.class,()->service.events(ACTOR,UUID.randomUUID()));
-        assertEquals(403,error.httpStatus());assertEquals(0,cache.listReads);
+        assertEquals(403,error.status());assertEquals(0,cache.listReads);
     }
     @Test void outsiderCannotReadEventWindow() {
         repository.allowed=false;
-        assertEquals(403,assertThrows(CheckInException.class,()->service.window(ACTOR,EVENT)).httpStatus());
+        assertEquals(403,assertThrows(CheckInException.class,()->service.window(ACTOR,EVENT)).status());
         assertEquals(1,cache.windowReads); // Internal reads do not authorize or produce a response.
     }
     @Test void noMembershipCannotListAllOrganizations() {
         repository.allowed=false;
-        assertEquals(403,assertThrows(CheckInException.class,()->service.events(ACTOR,null)).httpStatus());
+        assertEquals(403,assertThrows(CheckInException.class,()->service.events(ACTOR,null)).status());
     }
     @Test void revokedMembershipImmediatelyBlocksPreviouslyCachedWindowAndList() {
         service.window(ACTOR,EVENT);service.events(ACTOR,ORG);repository.allowed=false;
-        assertEquals(403,assertThrows(CheckInException.class,()->service.window(ACTOR,EVENT)).httpStatus());
-        assertEquals(403,assertThrows(CheckInException.class,()->service.events(ACTOR,ORG)).httpStatus());
+        assertEquals(403,assertThrows(CheckInException.class,()->service.window(ACTOR,EVENT)).status());
+        assertEquals(403,assertThrows(CheckInException.class,()->service.events(ACTOR,ORG)).status());
     }
     @Test void cancelledEventRejectsWindowEvenWithAnOpenCacheEntry() {
         service.window(ACTOR,EVENT);repository.status("CANCELLED");
         var error=assertThrows(CheckInException.class,()->service.window(ACTOR,EVENT));
-        assertEquals(400,error.httpStatus());assertEquals("EVENT_CANCELLED",error.code());
+        assertEquals(400,error.status());assertEquals("EVENT_CANCELLED",error.code());
         assertFalse(service.events(ACTOR,ORG).getFirst().isCheckInOpen());
         assertEquals("CANCELLED",service.events(ACTOR,ORG).getFirst().status());
     }
@@ -72,7 +72,7 @@ class CheckInEventServiceTest {
     }
     @Test void missingEventIsNotFound() {
         repository.missing=true;
-        assertEquals(404,assertThrows(CheckInException.class,()->service.window(ACTOR,EVENT)).httpStatus());
+        assertEquals(404,assertThrows(CheckInException.class,()->service.window(ACTOR,EVENT)).status());
     }
     @Test void scheduleChangeInvalidatesBothCachesAndUsesNewTime() {
         service.window(ACTOR,EVENT);service.events(ACTOR,ORG);
@@ -110,11 +110,11 @@ class CheckInEventServiceTest {
     @Test void legacyFunctionMismatchFailsClosed() {
         repository.functionOverride=false;
         var error=assertThrows(CheckInException.class,()->service.window(ACTOR,EVENT));
-        assertEquals(503,error.httpStatus());assertEquals("CHECK_IN_CONTRACT_MISMATCH",error.code());
+        assertEquals(503,error.status());assertEquals("CHECK_IN_CONTRACT_MISMATCH",error.code());
     }
     @Test void unauthenticatedRequestsNeverReachRepository() {
-        assertEquals(401,assertThrows(CheckInException.class,()->service.events(null,ORG)).httpStatus());
-        assertEquals(401,assertThrows(CheckInException.class,()->service.window(null,EVENT)).httpStatus());
+        assertEquals(401,assertThrows(CheckInException.class,()->service.events(null,ORG)).status());
+        assertEquals(401,assertThrows(CheckInException.class,()->service.window(null,EVENT)).status());
         assertEquals(0,repository.accessQueries);
     }
 
