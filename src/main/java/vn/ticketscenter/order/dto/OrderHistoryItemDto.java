@@ -5,6 +5,13 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
+import static vn.ticketscenter.config.web.Json.field;
+import static vn.ticketscenter.config.web.Json.money;
+import static vn.ticketscenter.config.web.Json.nullableText;
+import static vn.ticketscenter.config.web.Json.number;
+import static vn.ticketscenter.config.web.Json.object;
+import static vn.ticketscenter.config.web.Json.text;
+
 /**
  * Tóm tắt đơn hàng hiển thị trong lịch sử mua vé (LIEM-06 / UI-06).
  */
@@ -30,55 +37,20 @@ public record OrderHistoryItemDto(
     }
 
     public String toJson() {
-        return "{\"id\":\""
-                + id
-                + "\","
-                + "\"orderCode\":\""
-                + escape(orderCode)
-                + "\","
-                + "\"eventId\":\""
-                + (eventId != null ? eventId.toString() : "")
-                + "\","
-                + "\"eventTitle\":\""
-                + escape(eventTitle != null ? eventTitle : "")
-                + "\","
-                + "\"venueName\":\""
-                + escape(venueName != null ? venueName : "")
-                + "\","
-                + "\"startTime\":\""
-                + (startTime != null ? startTime.toString() : "")
-                + "\","
-                + "\"subtotalAmount\":"
-                + (subtotalAmount != null ? subtotalAmount : BigDecimal.ZERO)
-                + ","
-                + "\"discountAmount\":"
-                + (discountAmount != null ? discountAmount : BigDecimal.ZERO)
-                + ","
-                + "\"totalAmount\":"
-                + (totalAmount != null ? totalAmount : BigDecimal.ZERO)
-                + ","
-                + "\"status\":\""
-                + escape(status)
-                + "\","
-                + "\"createdAt\":\""
-                + (createdAt != null ? createdAt.toString() : "")
-                + "\","
-                + "\"paidAt\":\""
-                + (paidAt != null ? paidAt.toString() : "")
-                + "\","
-                + "\"couponCode\":"
-                + (couponCode != null ? "\"" + escape(couponCode) + "\"" : "null")
-                + ","
-                + "\"ticketCount\":"
-                + ticketCount
-                + "}";
-    }
-
-    private static String escape(String s) {
-        if (s == null) return "";
-        return s.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r");
+        return object(
+                field("id", text(id)),
+                field("orderCode", text(orderCode)),
+                field("eventId", text(eventId)),
+                field("eventTitle", text(eventTitle)),
+                field("venueName", text(venueName)),
+                field("startTime", text(startTime)),
+                field("subtotalAmount", money(subtotalAmount)),
+                field("discountAmount", money(discountAmount)),
+                field("totalAmount", money(totalAmount)),
+                field("status", text(status)),
+                field("createdAt", text(createdAt)),
+                field("paidAt", text(paidAt)),
+                field("couponCode", nullableText(couponCode)),
+                field("ticketCount", number(ticketCount)));
     }
 }

@@ -13,6 +13,11 @@ import java.sql.*;
 import java.time.Instant;
 import java.util.*;
 
+import static vn.ticketscenter.config.web.Json.array;
+import static vn.ticketscenter.config.web.Json.field;
+import static vn.ticketscenter.config.web.Json.number;
+import static vn.ticketscenter.config.web.Json.object;
+
 public class OrderRepository {
     private final DataSource buyer;
 
@@ -113,19 +118,11 @@ public class OrderRepository {
     public record OrderHistoryPage(
             int page, int size, long total, List<OrderHistoryItemDto> orders) {
         public String toJson() {
-            String ordersJson =
-                    orders.stream()
-                            .map(OrderHistoryItemDto::toJson)
-                            .collect(java.util.stream.Collectors.joining(","));
-            return "{\"page\":"
-                    + page
-                    + ",\"size\":"
-                    + size
-                    + ",\"total\":"
-                    + total
-                    + ",\"orders\":["
-                    + ordersJson
-                    + "]}";
+            return object(
+                    field("page", number(page)),
+                    field("size", number(size)),
+                    field("total", number(total)),
+                    field("orders", array(orders, OrderHistoryItemDto::toJson)));
         }
     }
 

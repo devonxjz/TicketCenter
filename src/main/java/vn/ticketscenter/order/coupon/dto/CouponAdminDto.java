@@ -5,6 +5,11 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
+import static vn.ticketscenter.config.web.Json.field;
+import static vn.ticketscenter.config.web.Json.number;
+import static vn.ticketscenter.config.web.Json.object;
+import static vn.ticketscenter.config.web.Json.text;
+
 /**
  * Thông tin quản trị Coupon kèm số liệu sử dụng thực tế (LIEM-06 / UI-14).
  */
@@ -33,61 +38,22 @@ public record CouponAdminDto(
     }
 
     public String toJson() {
-        return "{\"id\":\""
-                + id
-                + "\","
-                + "\"organizationId\":\""
-                + organizationId
-                + "\","
-                + "\"organizationName\":\""
-                + escape(organizationName != null ? organizationName : "")
-                + "\","
-                + "\"code\":\""
-                + escape(code)
-                + "\","
-                + "\"discountType\":\""
-                + escape(discountType)
-                + "\","
-                + "\"percentageValue\":"
-                + (percentageValue != null ? percentageValue : "null")
-                + ","
-                + "\"fixedAmount\":"
-                + (fixedAmount != null ? fixedAmount : "null")
-                + ","
-                + "\"maxDiscountAmount\":"
-                + (maxDiscountAmount != null ? maxDiscountAmount : "null")
-                + ","
-                + "\"maxUses\":"
-                + maxUses
-                + ","
-                + "\"reservedUses\":"
-                + reservedUses
-                + ","
-                + "\"consumedUses\":"
-                + consumedUses
-                + ","
-                + "\"availableUses\":"
-                + availableUses
-                + ","
-                + "\"validFrom\":\""
-                + (validFrom != null ? validFrom.toString() : "")
-                + "\","
-                + "\"validTo\":\""
-                + (validTo != null ? validTo.toString() : "")
-                + "\","
-                + "\"active\":"
-                + active
-                + ","
-                + "\"version\":"
-                + version
-                + "}";
-    }
-
-    private static String escape(String s) {
-        if (s == null) return "";
-        return s.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r");
+        return object(
+                field("id", text(id)),
+                field("organizationId", text(organizationId)),
+                field("organizationName", text(organizationName)),
+                field("code", text(code)),
+                field("discountType", text(discountType)),
+                field("percentageValue", number(percentageValue)),
+                field("fixedAmount", number(fixedAmount)),
+                field("maxDiscountAmount", number(maxDiscountAmount)),
+                field("maxUses", number(maxUses)),
+                field("reservedUses", number(reservedUses)),
+                field("consumedUses", number(consumedUses)),
+                field("availableUses", number(availableUses)),
+                field("validFrom", text(validFrom)),
+                field("validTo", text(validTo)),
+                field("active", number(active)),
+                field("version", number(version)));
     }
 }
