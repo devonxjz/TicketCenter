@@ -13,8 +13,7 @@ public final class DatabaseConfig {
     }
 
     public static String getHost() {
-        String host = AppConfig.get("db.host");
-        return (host != null && !host.isBlank()) ? host : AppConfig.get("TC_SQL_HOST", "localhost");
+        return AppConfig.get("db.host", AppConfig.get("TC_SQL_HOST", "localhost"));
     }
 
     public static int getPort() {
@@ -23,51 +22,33 @@ public final class DatabaseConfig {
     }
 
     public static String getDatabaseName() {
-        String dbName = AppConfig.get("db.name");
-        if (dbName != null && !dbName.isBlank()) {
-            return dbName;
-        }
-        String testDb = AppConfig.get("TC_SQL_TEST_DB");
-        if (testDb != null && !testDb.isBlank()) {
-            return testDb;
-        }
-        return AppConfig.get("TC_SQL_DEV_DB", "TicketsCenter_Dev");
+        return AppConfig.get(
+                "db.name", AppConfig.get("TC_SQL_TEST_DB", AppConfig.get("TC_SQL_DEV_DB", "TicketsCenter_Dev")));
     }
 
     public static String getUser() {
-        String user = AppConfig.get("db.user");
-        return (user != null && !user.isBlank()) ? user : AppConfig.get("TC_SQL_LOGIN", "sa");
+        return AppConfig.get("db.user", AppConfig.get("TC_SQL_LOGIN", "sa"));
     }
 
     public static String getPassword() {
-        String pass = AppConfig.get("db.password");
-        return (pass != null && !pass.isBlank()) ? pass : AppConfig.get("TC_SQL_PASSWORD", "");
+        return AppConfig.get("db.password", AppConfig.get("TC_SQL_PASSWORD", ""));
     }
 
     public static String getPrincipalUser(DatabasePrincipal principal) {
-        String user = AppConfig.get("db." + principal.name().toLowerCase() + ".user");
-        return (user != null && !user.isBlank()) ? user : getUser();
+        return AppConfig.get("db." + principal.name().toLowerCase() + ".user", getUser());
     }
 
     public static String getPrincipalPassword(DatabasePrincipal principal) {
-        String pass = AppConfig.get("db." + principal.name().toLowerCase() + ".password");
-        return (pass != null && !pass.isBlank()) ? pass : getPassword();
+        return AppConfig.get("db." + principal.name().toLowerCase() + ".password", getPassword());
     }
 
     public static boolean isEncrypt() {
-        String enc = AppConfig.get("db.encrypt");
-        if (enc != null && !enc.isBlank()) {
-            return Boolean.parseBoolean(enc);
-        }
-        return AppConfig.getBoolean("TC_SQL_ENCRYPT", true);
+        return AppConfig.getBoolean("db.encrypt", AppConfig.getBoolean("TC_SQL_ENCRYPT", true));
     }
 
     public static boolean isTrustServerCertificate() {
-        String trust = AppConfig.get("db.trustServerCertificate");
-        if (trust != null && !trust.isBlank()) {
-            return Boolean.parseBoolean(trust);
-        }
-        return AppConfig.getBoolean("TC_SQL_TRUST_SERVER_CERT", false);
+        return AppConfig.getBoolean(
+                "db.trustServerCertificate", AppConfig.getBoolean("TC_SQL_TRUST_SERVER_CERT", false));
     }
 
     public static int getLoginTimeout() {
@@ -77,7 +58,7 @@ public final class DatabaseConfig {
 
     public static String getJdbcUrl() {
         String directUrl = AppConfig.get("db.url");
-        if (directUrl != null && !directUrl.isBlank()) {
+        if (directUrl != null) {
             return directUrl;
         }
         return String.format(
