@@ -15,25 +15,25 @@ import java.io.IOException;
 public abstract class BaseApiServlet extends HttpServlet {
 
     @Override
-    protected final void doGet(HttpServletRequest req, HttpServletResponse res)
+    public final void doGet(HttpServletRequest req, HttpServletResponse res)
             throws ServletException, IOException {
         doRequest(req, res);
     }
 
     @Override
-    protected final void doPost(HttpServletRequest req, HttpServletResponse res)
+    public final void doPost(HttpServletRequest req, HttpServletResponse res)
             throws ServletException, IOException {
         doRequest(req, res);
     }
 
     @Override
-    protected final void doPut(HttpServletRequest req, HttpServletResponse res)
+    public final void doPut(HttpServletRequest req, HttpServletResponse res)
             throws ServletException, IOException {
         doRequest(req, res);
     }
 
     @Override
-    protected final void doDelete(HttpServletRequest req, HttpServletResponse res)
+    public final void doDelete(HttpServletRequest req, HttpServletResponse res)
             throws ServletException, IOException {
         doRequest(req, res);
     }
