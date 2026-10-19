@@ -154,47 +154,20 @@ public final class AppConfig {
             return null;
         }
 
-        // 1. Kiểm tra System Property
-        String sysProp = System.getProperty(key);
-        if (sysProp != null && !sysProp.isBlank()) {
-            return sysProp.trim();
-        }
-
-        // 2. Kiểm tra System Environment
-        String envValue = System.getenv(key);
-        if (envValue != null && !envValue.isBlank()) {
-            return envValue.trim();
-        }
-
-        String normalizedEnvKey = key.replace('.', '_').toUpperCase();
-        String normalizedEnvVal = System.getenv(normalizedEnvKey);
-        if (normalizedEnvVal != null && !normalizedEnvVal.isBlank()) {
-            return normalizedEnvVal.trim();
-        }
-
-        // 3. Fallback cho Railway: các biến môi trường không có dấu gạch dưới (REDISHOST,
-        // REDISPORT, REDISPASSWORD, REDISURL)
-        String compactEnvKey = key.replace(".", "").toUpperCase();
-        String compactEnvVal = System.getenv(compactEnvKey);
-        if (compactEnvVal != null && !compactEnvVal.isBlank()) {
-            return compactEnvVal.trim();
-        }
-
-        // 4. Kiểm tra Properties file
-        String propValue = PROPERTIES.getProperty(key);
-        if (propValue != null && !propValue.isBlank()) {
-            return propValue.trim();
-        }
-
-        // 4. Fallback lookup giữa dạng dot notation và TC_SQL_* notation
         String mappedKey = resolveMappedKey(key);
-        if (mappedKey != null) {
-            String mappedValue = PROPERTIES.getProperty(mappedKey);
-            if (mappedValue != null && !mappedValue.isBlank()) {
-                return mappedValue.trim();
+        String[] candidates = {
+            System.getProperty(key),
+            System.getenv(key),
+            System.getenv(key.replace('.', '_').toUpperCase()),
+            System.getenv(key.replace(".", "").toUpperCase()),
+            PROPERTIES.getProperty(key),
+            mappedKey == null ? null : PROPERTIES.getProperty(mappedKey)
+        };
+        for (String candidate : candidates) {
+            if (candidate != null && !candidate.isBlank()) {
+                return candidate.trim();
             }
         }
-
         return null;
     }
 
