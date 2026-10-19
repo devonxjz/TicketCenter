@@ -51,8 +51,8 @@ final class OrderFixture implements AutoCloseable {
         try (Jedis jedis = redis.getResource()) {
             if (!"PONG".equals(jedis.ping())) throw new IllegalStateException("Redis fixture unavailable");
         }
-        cache = new RedisActiveHoldCache(redis, Clock.systemUTC());
-        service = new HoldService(repository, cache, new RedisHoldIdempotency(redis));
+        cache = new RedisActiveHoldCache(redis::getResource, Clock.systemUTC());
+        service = new HoldService(repository, cache, new RedisHoldIdempotency(redis::getResource));
         sql("INSERT dbo.tc_organizations(id,name,contact_email,status) VALUES(?,'Hold fixture',?,'APPROVED')",
                 organization, organization + "@example.test");
         sql("INSERT dbo.tc_event_categories(id,name,slug) VALUES(?,'Hold fixture',?)", category, category.toString());

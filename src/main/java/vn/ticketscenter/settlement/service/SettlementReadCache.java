@@ -2,7 +2,7 @@ package vn.ticketscenter.settlement.service;
 
 import java.util.*;
 import java.util.function.Supplier;
-import vn.ticketscenter.config.redis.RedisClientProvider;
+import vn.ticketscenter.config.redis.RedisKeyValueBackend;
 
 /** Read acceleration only. Caller checks current ADMIN and event existence before every hit. */
 public final class SettlementReadCache {
@@ -18,54 +18,18 @@ public final class SettlementReadCache {
         }
     }
 
-    public interface Backend {
-        String get(String key);
+    private final RedisKeyValueBackend backend;
 
-        void put(String key, String value, int ttl);
-
-        void delete(String key);
-    }
-
-    private final Backend backend;
-
-    public SettlementReadCache(Backend backend) {
+    public SettlementReadCache(RedisKeyValueBackend backend) {
         this.backend = Objects.requireNonNull(backend);
     }
 
     public static SettlementReadCache none() {
-        return new SettlementReadCache(
-                new Backend() {
-                    public String get(String k) {
-                        return null;
-                    }
-
-                    public void put(String k, String v, int t) {}
-
-                    public void delete(String k) {}
-                });
+        return new SettlementReadCache(new RedisKeyValueBackend() {});
     }
 
     public static SettlementReadCache redis() {
-        return new SettlementReadCache(
-                new Backend() {
-                    public String get(String k) {
-                        try (var redis = RedisClientProvider.getInstance().getResource()) {
-                            return redis.get(k);
-                        }
-                    }
-
-                    public void put(String k, String v, int ttl) {
-                        try (var redis = RedisClientProvider.getInstance().getResource()) {
-                            redis.setex(k, ttl, v);
-                        }
-                    }
-
-                    public void delete(String k) {
-                        try (var redis = RedisClientProvider.getInstance().getResource()) {
-                            redis.del(k);
-                        }
-                    }
-                });
+        return new SettlementReadCache(RedisKeyValueBackend.redis());
     }
 
     public String read(UUID event, Kind kind, Supplier<String> authoritative) {
@@ -78,7 +42,7 @@ public final class SettlementReadCache {
         String json = authoritative.get();
         if (json.length() <= 1_000_000)
             try {
-                backend.put(key, json, kind.ttl);
+                backend.setex(key, kind.ttl, json);
             } catch (RuntimeException unavailable) {
             }
         return json;

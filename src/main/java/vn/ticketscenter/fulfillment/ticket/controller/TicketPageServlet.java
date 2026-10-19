@@ -72,7 +72,7 @@ public class TicketPageServlet extends HttpServlet {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
             }
         } catch (TicketException e) {
-            response.sendError(e.httpStatus(), e.getMessage());
+            response.sendError(e.status(), e.getMessage());
         } catch (IllegalArgumentException e) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid ticket ID");
         }

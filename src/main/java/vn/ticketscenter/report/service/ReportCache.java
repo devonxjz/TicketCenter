@@ -3,60 +3,24 @@ package vn.ticketscenter.report.service;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.*;
-import vn.ticketscenter.config.redis.RedisClientProvider;
+import vn.ticketscenter.config.redis.RedisKeyValueBackend;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.report.dto.ReportFilter;
 
 /** Optional 60-second acceleration. Current DB authorization always precedes use. */
 public final class ReportCache {
-    public interface Backend {
-        String get(String key);
+    private final RedisKeyValueBackend backend;
 
-        void set(String key, String value, int ttl);
-
-        void increment(String key);
-    }
-
-    private final Backend backend;
-
-    public ReportCache(Backend backend) {
+    public ReportCache(RedisKeyValueBackend backend) {
         this.backend = Objects.requireNonNull(backend);
     }
 
     public static ReportCache none() {
-        return new ReportCache(
-                new Backend() {
-                    public String get(String k) {
-                        return null;
-                    }
-
-                    public void set(String k, String v, int t) {}
-
-                    public void increment(String k) {}
-                });
+        return new ReportCache(new RedisKeyValueBackend() {});
     }
 
     public static ReportCache redis() {
-        return new ReportCache(
-                new Backend() {
-                    public String get(String key) {
-                        try (var redis = RedisClientProvider.getInstance().getResource()) {
-                            return redis.get(key);
-                        }
-                    }
-
-                    public void set(String key, String value, int ttl) {
-                        try (var redis = RedisClientProvider.getInstance().getResource()) {
-                            redis.setex(key, ttl, value);
-                        }
-                    }
-
-                    public void increment(String key) {
-                        try (var redis = RedisClientProvider.getInstance().getResource()) {
-                            redis.incr(key);
-                        }
-                    }
-                });
+        return new ReportCache(RedisKeyValueBackend.redis());
     }
 
     public String key(UserPrincipal actor, ReportFilter filter) {
@@ -95,7 +59,7 @@ public final class ReportCache {
     public void put(String key, String json) {
         if (key == null || json.length() > 1_000_000) return;
         try {
-            backend.set(key, json, 60);
+            backend.setex(key, 60, json);
         } catch (RuntimeException ignored) {
         }
     }

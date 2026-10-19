@@ -1,7 +1,6 @@
 package vn.ticketscenter.fulfillment.refund.controller;
 
 import jakarta.servlet.ServletContext;
-import java.time.Clock;
 import vn.ticketscenter.config.persistence.*;
 import vn.ticketscenter.fulfillment.refund.dao.RefundRequestRepository;
 import vn.ticketscenter.fulfillment.refund.service.*;
@@ -23,8 +22,7 @@ public final class RefundRuntime {
             var service =
                     new RefundRequestService(
                             new RefundRequestRepository(registry.transactionManager()),
-                            new RedisRefundRequestCache(),
-                            Clock.systemUTC());
+                            new RedisRefundRequestCache());
             context.setAttribute(SERVICE_ATTRIBUTE, service);
             return service;
         }

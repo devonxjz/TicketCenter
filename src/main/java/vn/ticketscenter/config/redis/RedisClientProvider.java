@@ -85,10 +85,6 @@ public final class RedisClientProvider implements AutoCloseable {
         }
     }
 
-    public JedisPool getPool() {
-        return jedisPool;
-    }
-
     @Override
     public void close() {
         synchronized (RedisClientProvider.class) {

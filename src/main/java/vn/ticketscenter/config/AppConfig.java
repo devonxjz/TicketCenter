@@ -38,14 +38,11 @@ public final class AppConfig {
         public static final String DB_ENCRYPT = "db.encrypt";
         public static final String DB_TRUST_CERT = "db.trustServerCertificate";
         public static final String DB_TIMEOUT = "db.loginTimeout";
-        public static final String DB_URL = "db.url";
 
         // Aliases TC_SQL_*
         public static final String TC_SQL_HOST = "TC_SQL_HOST";
         public static final String TC_SQL_PORT = "TC_SQL_PORT";
-        public static final String TC_SQL_DEV_DB = "TC_SQL_DEV_DB";
         public static final String TC_SQL_TEST_DB = "TC_SQL_TEST_DB";
-        public static final String TC_SQL_BENCH_DB = "TC_SQL_BENCH_DB";
         public static final String TC_SQL_LOGIN = "TC_SQL_LOGIN";
         public static final String TC_SQL_PASSWORD = "TC_SQL_PASSWORD";
         public static final String TC_SQL_ENCRYPT = "TC_SQL_ENCRYPT";
@@ -54,17 +51,12 @@ public final class AppConfig {
 
         // 2. Cấu hình Ứng dụng Web
         public static final String APP_BASE_URL = "app.base.url";
-        public static final String APP_ENV = "app.env";
         public static final String APP_SECRET_KEY = "app.secret.key";
         public static final String EVENT_IMAGE_DIRECTORY = "event.image.directory";
         public static final String REFUND_STATE_DIRECTORY = "refund.simulated.state.directory";
         public static final String REFUND_SIMULATED_OUTCOME = "refund.simulated.outcome";
         public static final String REFUND_TIMEOUT_AFTER_SIDE_EFFECT =
                 "refund.simulated.timeoutAfterSideEffect";
-        public static final String PAYOUT_STATE_DIRECTORY = "payout.simulated.state.directory";
-        public static final String PAYOUT_SIMULATED_OUTCOME = "payout.simulated.outcome";
-        public static final String PAYOUT_TIMEOUT_AFTER_SIDE_EFFECT =
-                "payout.simulated.timeoutAfterSideEffect";
 
         // 3. Cổng Thanh Toán payOS (biến môi trường tương ứng: PAYOS_CLIENT_ID, PAYOS_API_KEY, ...)
         public static final String PAYOS_CLIENT_ID = "payos.client.id";
@@ -73,12 +65,6 @@ public final class AppConfig {
         public static final String PAYOS_RETURN_URL = "payos.return.url";
         public static final String PAYOS_CANCEL_URL = "payos.cancel.url";
         public static final String PAYOS_LOG_LEVEL = "payos.log.level";
-
-        // 4. Dịch vụ Gửi Email (SMTP)
-        public static final String MAIL_HOST = "mail.smtp.host";
-        public static final String MAIL_PORT = "mail.smtp.port";
-        public static final String MAIL_USER = "mail.smtp.user";
-        public static final String MAIL_PASSWORD = "mail.smtp.password";
 
         // 5. Cấu hình Redis (Idempotency & Caching)
         public static final String REDIS_HOST = "redis.host";
@@ -101,14 +87,6 @@ public final class AppConfig {
                 "identity.login.throttle.window.minutes";
         public static final String IDENTITY_SESSION_CACHE_TTL_SECONDS =
                 "identity.session.cache.ttl.seconds";
-
-        // 6. Cấu hình Connection Pool (HikariCP)
-        public static final String HIKARI_MAX_POOL_SIZE = "hikari.maximum-pool-size";
-        public static final String HIKARI_MIN_IDLE = "hikari.minimum-idle";
-        public static final String HIKARI_IDLE_TIMEOUT = "hikari.idle-timeout";
-        public static final String HIKARI_CONNECTION_TIMEOUT = "hikari.connection-timeout";
-        public static final String HIKARI_MAX_LIFETIME = "hikari.max-lifetime";
-        public static final String HIKARI_POOL_BUDGET = "hikari.pool-budget";
 
         private Keys() {
             // Không cho phép khởi tạo hằng số keys
@@ -176,47 +154,20 @@ public final class AppConfig {
             return null;
         }
 
-        // 1. Kiểm tra System Property
-        String sysProp = System.getProperty(key);
-        if (sysProp != null && !sysProp.isBlank()) {
-            return sysProp.trim();
-        }
-
-        // 2. Kiểm tra System Environment
-        String envValue = System.getenv(key);
-        if (envValue != null && !envValue.isBlank()) {
-            return envValue.trim();
-        }
-
-        String normalizedEnvKey = key.replace('.', '_').toUpperCase();
-        String normalizedEnvVal = System.getenv(normalizedEnvKey);
-        if (normalizedEnvVal != null && !normalizedEnvVal.isBlank()) {
-            return normalizedEnvVal.trim();
-        }
-
-        // 3. Fallback cho Railway: các biến môi trường không có dấu gạch dưới (REDISHOST,
-        // REDISPORT, REDISPASSWORD, REDISURL)
-        String compactEnvKey = key.replace(".", "").toUpperCase();
-        String compactEnvVal = System.getenv(compactEnvKey);
-        if (compactEnvVal != null && !compactEnvVal.isBlank()) {
-            return compactEnvVal.trim();
-        }
-
-        // 4. Kiểm tra Properties file
-        String propValue = PROPERTIES.getProperty(key);
-        if (propValue != null && !propValue.isBlank()) {
-            return propValue.trim();
-        }
-
-        // 4. Fallback lookup giữa dạng dot notation và TC_SQL_* notation
         String mappedKey = resolveMappedKey(key);
-        if (mappedKey != null) {
-            String mappedValue = PROPERTIES.getProperty(mappedKey);
-            if (mappedValue != null && !mappedValue.isBlank()) {
-                return mappedValue.trim();
+        String[] candidates = {
+            System.getProperty(key),
+            System.getenv(key),
+            System.getenv(key.replace('.', '_').toUpperCase()),
+            System.getenv(key.replace(".", "").toUpperCase()),
+            PROPERTIES.getProperty(key),
+            mappedKey == null ? null : PROPERTIES.getProperty(mappedKey)
+        };
+        for (String candidate : candidates) {
+            if (candidate != null && !candidate.isBlank()) {
+                return candidate.trim();
             }
         }
-
         return null;
     }
 

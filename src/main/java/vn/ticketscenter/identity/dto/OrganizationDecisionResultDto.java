@@ -1,9 +1,12 @@
 package vn.ticketscenter.identity.dto;
 
-import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.identity.model.OrganizationStatus;
 
 import java.util.UUID;
+
+import static vn.ticketscenter.config.web.Json.field;
+import static vn.ticketscenter.config.web.Json.nullableText;
+import static vn.ticketscenter.config.web.Json.object;
 
 /** The response to approving or rejecting an organisation request. */
 public record OrganizationDecisionResultDto(
@@ -29,28 +32,15 @@ public record OrganizationDecisionResultDto(
     }
 
     public String toJson() {
-        StringBuilder json =
-                new StringBuilder("{\"success\":true,\"status\":")
-                        .append(HttpResponses.jsonString(status.name()))
-                        .append(",\"organizationId\":")
-                        .append(HttpResponses.jsonString(organizationId.toString()));
-        if (status == OrganizationStatus.APPROVED) {
-            json.append(",\"assignedManagerId\":")
-                    .append(nullableId(detail.requesterId()))
-                    .append(",\"commissionRuleId\":")
-                    .append(nullableId(detail.commissionRuleId()));
-        } else {
-            json.append(",\"rejectionReason\":").append(HttpResponses.jsonString(rejectionReason));
-        }
-        return json.append(",\"message\":")
-                .append(HttpResponses.jsonString(message))
-                .append(",\"detail\":")
-                .append(detail.toJson())
-                .append('}')
-                .toString();
-    }
-
-    private static String nullableId(UUID id) {
-        return HttpResponses.jsonString(id == null ? null : id.toString());
+        boolean approved = status == OrganizationStatus.APPROVED;
+        return object(
+                field("success", "true"),
+                field("status", nullableText(status.name())),
+                field("organizationId", nullableText(organizationId.toString())),
+                approved ? field("assignedManagerId", nullableText(detail.requesterId())) : null,
+                approved ? field("commissionRuleId", nullableText(detail.commissionRuleId())) : null,
+                approved ? null : field("rejectionReason", nullableText(rejectionReason)),
+                field("message", nullableText(message)),
+                field("detail", detail.toJson()));
     }
 }

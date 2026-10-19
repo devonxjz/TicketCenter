@@ -47,12 +47,12 @@ class CheckInEventRepositoryTest {
     }
     @Test void existingEventWithoutMembershipIsForbidden(){
         results.add(Collections.singletonList(eventRow()));results.add(List.of());
-        assertEquals(403,assertThrows(CheckInException.class,()->repository.accessibleEvent(ACTOR,EVENT)).httpStatus());
+        assertEquals(403,assertThrows(CheckInException.class,()->repository.accessibleEvent(ACTOR,EVENT)).status());
         assertEquals(EVENT.toString(),queries.getFirst().bindings.get(1));
         assertEquals(ACTOR.toString(),queries.get(1).bindings.get(1));assertEquals(ORG.toString(),queries.get(1).bindings.get(2));
     }
     @Test void unknownEventIsNotFoundWithoutQueryingMembership(){
-        results.add(List.of());assertEquals(404,assertThrows(CheckInException.class,()->repository.accessibleEvent(ACTOR,EVENT)).httpStatus());
+        results.add(List.of());assertEquals(404,assertThrows(CheckInException.class,()->repository.accessibleEvent(ACTOR,EVENT)).status());
         assertEquals(1,queries.size());
     }
     @Test void timestampsAreUtcRegardlessOfHostTimezone(){
@@ -83,9 +83,9 @@ class CheckInEventRepositoryTest {
     @Test void warmWindowGuardCannotAuthorizeRevokedMembershipOrDeletedEvent(){
         var cached=new CheckInEventRepository.EventInfo(EVENT,ORG,"Title","Venue",Instant.EPOCH,Instant.EPOCH.plusSeconds(7200),"PUBLISHED",0,0);
         results.add(Collections.singletonList(new Object[]{false,true}));
-        assertEquals(403,assertThrows(CheckInException.class,()->repository.isCachedWindowCurrent(ACTOR,EVENT,cached)).httpStatus());
+        assertEquals(403,assertThrows(CheckInException.class,()->repository.isCachedWindowCurrent(ACTOR,EVENT,cached)).status());
         results.add(List.of());
-        assertEquals(404,assertThrows(CheckInException.class,()->repository.isCachedWindowCurrent(ACTOR,EVENT,cached)).httpStatus());
+        assertEquals(404,assertThrows(CheckInException.class,()->repository.isCachedWindowCurrent(ACTOR,EVENT,cached)).status());
     }
     @Test void datetimeoffsetPreservesTheActualInstant(){
         var data=eventRow();data[4]=OffsetDateTime.parse("2026-10-10T02:00:00+07:00");

@@ -7,6 +7,18 @@ const {test} = require('node:test');
 
 const root = path.resolve(__dirname, '../../..');
 const source = name => fs.readFileSync(path.join(root, 'src/main/webapp/assets/refund', name), 'utf8');
+const core = fs.readFileSync(path.join(root, 'src/main/webapp/assets/js/tc-core.js'), 'utf8');
+const metas = {'context-path': '/tc', 'csrf-token': 'csrf-token'};
+const metaTags = selector => {
+  const name = /^meta\[name="([^"]+)"\]$/.exec(selector)?.[1];
+  return name ? [{getAttribute: () => metas[name]}] : null;
+};
+
+function run(script, globals) {
+  const context = vm.createContext(globals);
+  vm.runInContext(core, context);
+  vm.runInContext(script, context);
+}
 const flush = () => new Promise(resolve => setImmediate(resolve));
 
 class Element {
@@ -47,13 +59,13 @@ class Element {
 
 function harness(script, ids, fetch, dataset = {}) {
   const elements = Object.fromEntries(ids.map(id => [id, new Element()]));
-  Object.assign(elements.app?.dataset || elements.main.dataset, dataset);
+  Object.assign(elements.app.dataset, dataset);
   const redirects = [];
   let generated = 0;
-  vm.runInNewContext(script, {
+  run(script, {
     document: {
       querySelector: selector => elements[selector.replace(/^#/, '')],
-      querySelectorAll: () => elements.buttons || [],
+      querySelectorAll: selector => metaTags(selector) || elements.buttons || [],
       createElement: tag => new Element(tag)
     },
     fetch,
@@ -80,7 +92,7 @@ async function checkRequestForm(script) {
       if (options.method !== 'POST') return reply(active);
       if (failFirst) { failFirst = false; throw new TypeError('Connection lost'); }
       return reply({message: 'Đã tiếp nhận.', totalRefundAmount: '9007199254741000'});
-    }, {base: '/tc', csrf: 'csrf-token', order: ''});
+    }, {order: ''});
 
   e.order.value = 'order-1';
   await e.order.trigger('change');
@@ -132,7 +144,7 @@ async function checkStaleOrderResponse(script) {
     ['app', 'order', 'tickets', 'reason', 'message', 'submit', 'confirm', 'total', 'form', 'confirmation', 'cancel', 'send'],
     url => url.includes('old-order') ? new Promise(resolve => { resolveFirst = resolve; })
       : Promise.resolve(reply([{ticketId: 'new', seatLabel: 'B1', paidAmount: '1', isRefundable: true}])),
-    {base: '/tc', csrf: 'csrf-token', order: ''});
+    {order: ''});
   e.order.value = 'old-order';
   const first = e.order.trigger('change');
   e.order.value = 'new-order';
@@ -146,11 +158,13 @@ async function checkStaleOrderResponse(script) {
 async function checkHistory(script) {
   const button = new Element('button');
   button.dataset.id = 'refund-1';
-  const elements = {main: new Element('main'), dialog: new Element('dialog'), details: new Element(), close: new Element(), buttons: [button]};
-  elements.main.dataset.base = '/tc';
+  const elements = {dialog: new Element('dialog'), details: new Element(), close: new Element()};
   const calls = [];
-  vm.runInNewContext(script, {
-    document: {querySelector: selector => elements[selector.replace(/^#/, '')], querySelectorAll: () => [button]},
+  run(script, {
+    document: {
+      querySelector: selector => elements[selector.replace(/^#/, '')],
+      querySelectorAll: selector => metaTags(selector) || [button]
+    },
     fetch: async (url, options) => {
       calls.push({url, options});
       return reply({refund: {status: 'REJECTED', rejectionReason: '<img src=x>'},

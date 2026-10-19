@@ -24,7 +24,7 @@ public final class EventManagementRuntime {
             var repository =
                     new EventManagementRepository(
                             new EventTransactions(registry.transactionManager()));
-            EventIdempotencyStore idempotency = resolveIdempotency();
+            EventIdempotencyStore idempotency = EventRuntime.idempotencyStore();
             var orphans = new EventCoverOrphanJournal();
             var management =
                     new EventManagementService(
@@ -34,24 +34,24 @@ public final class EventManagementRuntime {
                     new StorageService() {
                         public StoredAsset upload(InputStream content, String folder)
                                 throws IOException {
-                            return resolveStorage().upload(content, folder);
+                            return LocalImageStorage.configured().upload(content, folder);
                         }
 
                         public StoredAsset ensure(InputStream content, String id)
                                 throws IOException {
-                            return resolveStorage().ensure(content, id);
+                            return LocalImageStorage.configured().ensure(content, id);
                         }
 
                         public java.util.Optional<StoredAsset> find(String id) throws IOException {
-                            return resolveStorage().find(id);
+                            return LocalImageStorage.configured().find(id);
                         }
 
                         public void delete(String publicId) throws IOException {
-                            resolveStorage().delete(publicId);
+                            LocalImageStorage.configured().delete(publicId);
                         }
 
                         public String getUrl(String publicId) {
-                            return resolveStorage().getUrl(publicId);
+                            return LocalImageStorage.configured().getUrl(publicId);
                         }
                     };
             var services =
@@ -62,16 +62,5 @@ public final class EventManagementRuntime {
             context.setAttribute(ATTRIBUTE, services);
             return services;
         }
-    }
-
-    private static EventIdempotencyStore resolveIdempotency() {
-        if (vn.ticketscenter.config.AppConfig.getBoolean("event.redis.enabled", false)) {
-            return new RedisEventIdempotencyStore();
-        }
-        return new InMemoryEventIdempotencyStore();
-    }
-
-    private static StorageService resolveStorage() {
-        return LocalImageStorage.configured();
     }
 }

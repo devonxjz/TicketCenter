@@ -1,5 +1,6 @@
 package vn.ticketscenter.settlement.commission.service;
 
+import vn.ticketscenter.config.redis.RedisKeyValueBackend;
 import org.junit.jupiter.api.Test;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -7,9 +8,9 @@ import static org.junit.jupiter.api.Assertions.*;
 class CommissionRuleCacheTest {
     @Test void cacheScopeAndInvalidationAvoidOldRules() {
         var values=new HashMap<String,String>(); int[] reads={0},ttl={0};
-        var cache=new CommissionRuleCache(new CommissionRuleCache.Backend() {
+        var cache=new CommissionRuleCache(new RedisKeyValueBackend() {
             public String get(String key) { return values.get(key); }
-            public void put(String key,String value,int seconds) { ttl[0]=seconds; values.put(key,value); }
+            public void setex(String key,int seconds,String value) { ttl[0]=seconds; values.put(key,value); }
             public void delete(String key) { values.remove(key); }
         });
         UUID org=UUID.randomUUID();
@@ -21,9 +22,9 @@ class CommissionRuleCacheTest {
     }
     @Test void cacheOutageFallsBackToDatabaseOnce() {
         int[] calls={0};
-        var cache=new CommissionRuleCache(new CommissionRuleCache.Backend() {
+        var cache=new CommissionRuleCache(new RedisKeyValueBackend() {
             public String get(String k) { throw new IllegalStateException(); }
-            public void put(String k,String v,int t) { throw new IllegalStateException(); }
+            public void setex(String k,int t,String v) { throw new IllegalStateException(); }
             public void delete(String k) { throw new IllegalStateException(); }
         });
         assertEquals("fresh",cache.read(UUID.randomUUID(),()->{ calls[0]++;return "fresh"; })); assertEquals(1,calls[0]);

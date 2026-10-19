@@ -214,26 +214,22 @@ public class AdminOrganizationApprovalServlet extends HttpServlet {
         }
     }
 
-    /** Maps a service failure onto its HTTP response. */
     private static void writeFailure(HttpServletResponse resp, RuntimeException failure)
             throws IOException {
-        if (failure instanceof NoSuchElementException) {
-            HttpResponses.error(
+        switch (failure) {
+            case NoSuchElementException e -> HttpResponses.error(
                     resp,
                     HttpServletResponse.SC_NOT_FOUND,
                     "ORGANIZATION_NOT_FOUND",
                     "Không tìm thấy hồ sơ yêu cầu tổ chức");
-        } else if (failure instanceof IllegalStateException) {
-            HttpResponses.error(
-                    resp, HttpServletResponse.SC_CONFLICT, "CONFLICT", failure.getMessage());
-        } else if (failure instanceof IllegalArgumentException) {
-            HttpResponses.error(
+            case IllegalStateException e -> HttpResponses.error(
+                    resp, HttpServletResponse.SC_CONFLICT, "CONFLICT", e.getMessage());
+            case IllegalArgumentException e -> HttpResponses.error(
                     resp,
                     HttpServletResponse.SC_BAD_REQUEST,
                     "VALIDATION_ERROR",
-                    failure.getMessage());
-        } else {
-            HttpResponses.error(
+                    e.getMessage());
+            default -> HttpResponses.error(
                     resp, HttpServletResponse.SC_FORBIDDEN, "FORBIDDEN", failure.getMessage());
         }
     }
@@ -291,14 +287,12 @@ public class AdminOrganizationApprovalServlet extends HttpServlet {
     }
 
     private static int positiveInt(String value, int fallback) {
-        if (value == null || value.isBlank()) {
-            return fallback;
+        if (value != null && !value.isBlank()) {
+            try {
+                int number = Integer.parseInt(value.trim());
+                if (number > 0) return number;
+            } catch (NumberFormatException ignored) {}
         }
-        try {
-            int number = Integer.parseInt(value.trim());
-            return number > 0 ? number : fallback;
-        } catch (NumberFormatException invalid) {
-            return fallback;
-        }
+        return fallback;
     }
 }

@@ -50,5 +50,5 @@ class SignedQrDecoderTest {
         byte[] secret=SECRET.clone();var decoder=new SignedQrDecoder(secret);Arrays.fill(secret,(byte)0);
         assertEquals(ID,decoder.decode(signed("{\"id\":\""+ID+"\",\"name\":\"A\"}")).ticketId());
     }
-    private static void invalid(String qr){var e=assertThrows(CheckInException.class,()->new SignedQrDecoder(SECRET).decode(qr));assertEquals(400,e.httpStatus());assertEquals("INVALID_SIGNATURE",e.code());}
+    private static void invalid(String qr){var e=assertThrows(CheckInException.class,()->new SignedQrDecoder(SECRET).decode(qr));assertEquals(400,e.status());assertEquals("INVALID_SIGNATURE",e.code());}
 }

@@ -6,9 +6,14 @@ import com.zaxxer.hikari.HikariDataSource;
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebListener;
 
+import vn.ticketscenter.config.AppConfig;
 import vn.ticketscenter.config.DatabaseConfig;
 import vn.ticketscenter.config.persistence.*;
+import vn.ticketscenter.event.cache.EventIdempotencyStore;
+import vn.ticketscenter.event.cache.InMemoryEventIdempotencyStore;
+import vn.ticketscenter.event.cache.RedisEventIdempotencyStore;
 import vn.ticketscenter.event.dao.EventRepository;
+import vn.ticketscenter.storage.LocalImageStorage;
 import vn.ticketscenter.storage.StorageService;
 
 import java.util.*;
@@ -34,8 +39,8 @@ public final class EventRuntime implements ServletContextListener {
                 pools.add(buyer);
                 HikariDataSource worker = pool(DatabasePrincipal.WORKER);
                 pools.add(worker);
-                StorageService storage = resolveStorage();
-                vn.ticketscenter.event.cache.EventIdempotencyStore redis = resolveRedis();
+                StorageService storage = LocalImageStorage.configured();
+                EventIdempotencyStore redis = idempotencyStore();
                 EventService service =
                         new EventService(
                                 new EventRepository(
@@ -54,15 +59,11 @@ public final class EventRuntime implements ServletContextListener {
         }
     }
 
-    private static StorageService resolveStorage() {
-        return vn.ticketscenter.storage.LocalImageStorage.configured();
-    }
-
-    private static vn.ticketscenter.event.cache.EventIdempotencyStore resolveRedis() {
-        if (vn.ticketscenter.config.AppConfig.getBoolean("event.redis.enabled", false)) {
-            return new vn.ticketscenter.event.cache.RedisEventIdempotencyStore();
+    public static EventIdempotencyStore idempotencyStore() {
+        if (AppConfig.getBoolean("event.redis.enabled", false)) {
+            return new RedisEventIdempotencyStore();
         }
-        return new vn.ticketscenter.event.cache.InMemoryEventIdempotencyStore();
+        return new InMemoryEventIdempotencyStore();
     }
 
     private static HikariDataSource pool(DatabasePrincipal principal) {

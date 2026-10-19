@@ -3,6 +3,7 @@ package vn.ticketscenter.fulfillment.refund.controller;
 import jakarta.servlet.http.*;
 import java.io.*;
 import java.util.*;
+import vn.ticketscenter.config.error.AppException;
 import vn.ticketscenter.config.web.*;
 import vn.ticketscenter.fulfillment.refund.dto.CreateRefundRequestDto;
 import vn.ticketscenter.fulfillment.refund.service.RefundException;
@@ -28,6 +29,15 @@ final class RefundWeb {
         if (!auth.isSessionValid(actor.actorId(), actor.authVersion())) {
             SecurityContext.clearSession(request);
             throw new RefundException(401, "SESSION_EXPIRED", "Phiên đăng nhập đã hết hạn.");
+        }
+        return actor;
+    }
+
+    static UserPrincipal requireAdmin(HttpServletRequest request) {
+        var actor = actor(request);
+        if (!actor.isAdmin()) {
+            throw new RefundException(
+                    403, "ADMIN_REQUIRED", "Chỉ quản trị viên được phép xử lý hoàn tiền.");
         }
         return actor;
     }
@@ -70,15 +80,14 @@ final class RefundWeb {
         return RefundRequestJson.parse(body.toString());
     }
 
+    /** SQL error tables raise plain {@link AppException}, so match the base type, not RefundException. */
     static void error(HttpServletResponse response, RuntimeException failure) throws IOException {
-        if (failure instanceof RefundException e)
-            HttpResponses.error(response, e.status(), e.code(), e.getMessage());
-        else
-            HttpResponses.error(
-                    response,
-                    503,
-                    "REFUND_UNAVAILABLE",
-                    "Hệ thống hoàn vé tạm thời không khả dụng.");
+        if (failure instanceof AppException known) {
+            HttpResponses.error(response, known);
+            return;
+        }
+        HttpResponses.error(
+                response, 503, "REFUND_UNAVAILABLE", "Hệ thống hoàn vé tạm thời không khả dụng.");
     }
 
     static String path(HttpServletRequest r) {

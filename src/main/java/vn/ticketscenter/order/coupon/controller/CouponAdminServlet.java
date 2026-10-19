@@ -5,7 +5,6 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import vn.ticketscenter.config.persistence.ConnectionBudgets;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
@@ -16,7 +15,6 @@ import vn.ticketscenter.order.coupon.service.CouponAdminRuntime;
 import vn.ticketscenter.order.coupon.service.CouponAdminService;
 import vn.ticketscenter.order.service.OrderException;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
@@ -75,7 +73,7 @@ public class CouponAdminServlet extends HttpServlet {
                 response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
             }
         } catch (OrderException e) {
-            HttpResponses.error(response, e.status(), e.code(), e.getMessage());
+            HttpResponses.error(response, e);
         } catch (IllegalArgumentException e) {
             HttpResponses.error(response, 400, "BAD_REQUEST", e.getMessage());
         } catch (Exception e) {
@@ -185,14 +183,9 @@ public class CouponAdminServlet extends HttpServlet {
     }
 
     private static String readBody(HttpServletRequest request) throws IOException {
-        StringBuilder sb = new StringBuilder();
-        try (BufferedReader reader = request.getReader()) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                sb.append(line);
-            }
+        try (var reader = request.getReader()) {
+            return reader.lines().collect(Collectors.joining());
         }
-        return sb.toString();
     }
 
     private static UUID parseUuid(String s) {
@@ -204,12 +197,12 @@ public class CouponAdminServlet extends HttpServlet {
     }
 
     private static int parsePositiveInt(String val, int def) {
-        if (val == null || val.isBlank()) return def;
-        try {
-            int parsed = Integer.parseInt(val);
-            return parsed > 0 ? parsed : def;
-        } catch (NumberFormatException e) {
-            return def;
+        if (val != null && !val.isBlank()) {
+            try {
+                int parsed = Integer.parseInt(val);
+                if (parsed > 0) return parsed;
+            } catch (NumberFormatException ignored) {}
         }
+        return def;
     }
 }

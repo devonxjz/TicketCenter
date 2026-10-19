@@ -1,6 +1,7 @@
 package vn.ticketscenter.identity.service;
 
 import vn.ticketscenter.config.redis.RedisClientProvider;
+import vn.ticketscenter.config.redis.RedisKeyValueBackend;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.config.web.JsonObjectParser;
 import vn.ticketscenter.identity.dto.OrganizationRequestCreateDto;
@@ -33,16 +34,9 @@ public class OrganizationRequestIdempotency {
             Logger.getLogger(OrganizationRequestIdempotency.class.getName());
     private static final int TTL_SECONDS = 86400;
 
-    /** The slice of Redis this cache needs. */
-    interface Store {
-        String get(String key);
+    private final RedisKeyValueBackend store;
 
-        void setex(String key, int seconds, String value);
-    }
-
-    private final Store store;
-
-    private OrganizationRequestIdempotency(Store store) {
+    private OrganizationRequestIdempotency(RedisKeyValueBackend store) {
         this.store = store;
     }
 
@@ -56,24 +50,10 @@ public class OrganizationRequestIdempotency {
             return none();
         }
         return new OrganizationRequestIdempotency(
-                new Store() {
-                    @Override
-                    public String get(String key) {
-                        try (var jedis = provider.getResource()) {
-                            return jedis.get(key);
-                        }
-                    }
-
-                    @Override
-                    public void setex(String key, int seconds, String value) {
-                        try (var jedis = provider.getResource()) {
-                            jedis.setex(key, seconds, value);
-                        }
-                    }
-                });
+                RedisKeyValueBackend.redis(provider::getResource));
     }
 
-    static OrganizationRequestIdempotency withStore(Store store) {
+    static OrganizationRequestIdempotency withStore(RedisKeyValueBackend store) {
         return new OrganizationRequestIdempotency(store);
     }
 

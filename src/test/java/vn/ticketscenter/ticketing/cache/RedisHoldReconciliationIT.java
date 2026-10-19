@@ -10,6 +10,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 
+import static vn.ticketscenter.ticketing.cache.HoldIdempotencyAssertions.assertUnavailable;
 import static org.junit.jupiter.api.Assertions.*;
 
 class RedisHoldReconciliationIT extends HoldRedisFixture {
@@ -21,9 +22,9 @@ class RedisHoldReconciliationIT extends HoldRedisFixture {
     @Test
     void anotherProcessCanReconcileConfirmedResultWithoutOriginalClaim() {
         String key = key();
-        var firstProcess = new RedisHoldIdempotency(pool);
+        var firstProcess = new RedisHoldIdempotency(pool::getResource);
         var oldClaim = acquired(firstProcess, key);
-        var secondProcess = new RedisHoldIdempotency(pool);
+        var secondProcess = new RedisHoldIdempotency(pool::getResource);
         assertTrue(secondProcess.recoverConfirmedResult(actor, key, HASH, RESPONSE, RETENTION));
         assertEquals(RESPONSE, assertInstanceOf(RedisHoldIdempotency.Replay.class, firstProcess.acquire(actor, key, HASH)).response());
         assertFalse(firstProcess.complete(oldClaim, RESPONSE, RETENTION));
@@ -33,14 +34,14 @@ class RedisHoldReconciliationIT extends HoldRedisFixture {
     @Test
     void absentEntryRemainsAbsentAndDoesNotAuthorizeAnotherClaim() {
         String key = key();
-        assertFalse(new RedisHoldIdempotency(pool).recoverConfirmedResult(actor, key, HASH, RESPONSE, RETENTION));
+        assertFalse(new RedisHoldIdempotency(pool::getResource).recoverConfirmedResult(actor, key, HASH, RESPONSE, RETENTION));
         try (Jedis jedis = pool.getResource()) { assertFalse(jedis.exists(redisKey(key))); }
     }
 
     @Test
     void mismatchedPayloadCannotReplacePendingOrCompletedResult() {
         String key = key();
-        var store = new RedisHoldIdempotency(pool);
+        var store = new RedisHoldIdempotency(pool::getResource);
         var claim = acquired(store, key);
         assertFalse(store.recoverConfirmedResult(actor, key, OTHER_HASH, RESPONSE, RETENTION));
         assertInstanceOf(RedisHoldIdempotency.InProgress.class, store.acquire(actor, key, HASH));
@@ -52,7 +53,7 @@ class RedisHoldReconciliationIT extends HoldRedisFixture {
     @Test
     void completedResultAcceptsOnlyExactResponseWithoutExtendingRetention() {
         String key = key();
-        var store = new RedisHoldIdempotency(pool);
+        var store = new RedisHoldIdempotency(pool::getResource);
         assertTrue(store.complete(acquired(store, key), RESPONSE, Duration.ofSeconds(30)));
         long before;
         try (Jedis jedis = pool.getResource()) { before = jedis.pttl(redisKey(key)); }
@@ -68,7 +69,7 @@ class RedisHoldReconciliationIT extends HoldRedisFixture {
     @Test
     void changedPendingTokenBetweenObservationAndCasCannotBeOverwritten() {
         String key = key();
-        var store = new RedisHoldIdempotency(pool);
+        var store = new RedisHoldIdempotency(pool::getResource);
         acquired(store, key);
         String replacement = "1|P|" + HASH + "|" + UUID.randomUUID();
         var racingStore = new RedisHoldIdempotency(() -> new Jedis(host, port) {
@@ -87,7 +88,7 @@ class RedisHoldReconciliationIT extends HoldRedisFixture {
     @Test
     void createAndCancelOnSameActorKeyConflict() {
         String key = key();
-        var store = new RedisHoldIdempotency(pool);
+        var store = new RedisHoldIdempotency(pool::getResource);
         UUID event = UUID.randomUUID();
         var request = new CreateHoldRequest(event, List.of(new HoldSelection(UUID.randomUUID(), null, 1)));
         String create = HoldMutationFingerprint.create(request);
@@ -102,10 +103,10 @@ class RedisHoldReconciliationIT extends HoldRedisFixture {
     void corruptAndUnavailableRedisFailWithoutLeakingProviderCause() {
         String key = key();
         try (Jedis jedis = pool.getResource()) { jedis.set(redisKey(key), "corrupt"); }
-        assertThrows(HoldIdempotencyUnavailableException.class,
-                () -> new RedisHoldIdempotency(pool).recoverConfirmedResult(actor, key, HASH, RESPONSE, RETENTION));
+        assertUnavailable(
+                () -> new RedisHoldIdempotency(pool::getResource).recoverConfirmedResult(actor, key, HASH, RESPONSE, RETENTION));
         var unavailable = new RedisHoldIdempotency(() -> { throw new IllegalStateException("private provider data"); });
-        var failure = assertThrows(HoldIdempotencyUnavailableException.class,
+        var failure = assertUnavailable(
                 () -> unavailable.recoverConfirmedResult(actor, key, HASH, RESPONSE, RETENTION));
         assertEquals("Hold idempotency is unavailable", failure.getMessage());
         assertNull(failure.getCause());

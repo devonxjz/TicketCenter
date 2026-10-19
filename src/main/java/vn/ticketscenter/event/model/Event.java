@@ -140,14 +140,6 @@ public class Event {
         return categoryId;
     }
 
-    public void setCategoryId(UUID categoryId) {
-        this.categoryId = categoryId;
-    }
-
-    public void setCommissionRule(CommissionRule rule) {
-        this.commissionRule = rule;
-    }
-
     public Instant getCreatedAt() {
         return createdAt;
     }

@@ -2,6 +2,7 @@ package vn.ticketscenter.ticketing.dao;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import vn.ticketscenter.config.persistence.SqlErrors;
 import vn.ticketscenter.ticketing.dto.*;
 import vn.ticketscenter.ticketing.service.HoldException;
 import vn.ticketscenter.config.ServerConfig;
@@ -209,7 +210,8 @@ public final class HoldRepository {
             } catch (SQLException failure) {
                 HoldException domain = domainFailure(failure);
                 if (domain != null) throw domain;
-                if (attempt == 2 || !retryable(failure)) throw HoldException.unavailable();
+                if (attempt == 2 || !SqlErrors.isTransient(failure, 51309))
+                    throw HoldException.unavailable();
             } catch (HoldException failure) {
                 throw failure;
             } catch (RuntimeException invalidResponse) {
@@ -217,18 +219,6 @@ public final class HoldRepository {
             }
         }
         throw HoldException.unavailable();
-    }
-
-    private static boolean retryable(SQLException failure) {
-        for (SQLException error = failure; error != null; error = error.getNextException()) {
-            int code = error.getErrorCode();
-            if (code == 1205 || code == 1222 || code == 51309) return true;
-            String state = error.getSQLState();
-            if (state != null
-                    && (state.startsWith("08") || state.equals("HYT00") || state.equals("HYT01")))
-                return true;
-        }
-        return false;
     }
 
     private static HoldException domainFailure(SQLException failure) {

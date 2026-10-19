@@ -62,6 +62,72 @@ public class OrganizationRequestServlet extends HttpServlet {
     }
 
     @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        UserPrincipal principal = requirePrincipal(req, resp);
+        if (principal == null) {
+            return;
+        }
+        OrganizationRequestService service = getService(req.getServletContext());
+        if (service == null) {
+            IdentityErrorWriter.databaseUnavailable(resp);
+            return;
+        }
+
+        String path = PathIds.path(req);
+        if (path.equals("/api/me/organization-requests")) {
+            List<OrganizationRequestSummaryDto> mine = service.getMyRequests(principal.actorId());
+            HttpResponses.data(
+                    resp,
+                    mine.stream()
+                            .map(OrganizationRequestSummaryDto::toJson)
+                            .collect(Collectors.joining(",", "[", "]")));
+            return;
+        }
+        Matcher detailPath = DETAIL_PATH.matcher(path);
+        if (detailPath.matches()) {
+            readDetail(resp, service, principal, detailPath.group(1));
+            return;
+        }
+        notFound(resp);
+    }
+
+    private void readDetail(
+            HttpServletResponse resp,
+            OrganizationRequestService service,
+            UserPrincipal principal,
+            String idText)
+            throws IOException {
+        UUID organizationId = PathIds.uuidOrNull(idText);
+        if (organizationId == null) {
+            HttpResponses.error(
+                    resp,
+                    HttpServletResponse.SC_BAD_REQUEST,
+                    "INVALID_ORGANIZATION_ID",
+                    "Mã tổ chức không hợp lệ");
+            return;
+        }
+        try {
+            HttpResponses.data(
+                    resp,
+                    service.getRequestDetail(
+                                    principal.actorId(), principal.isAdmin(), organizationId)
+                            .toJson());
+        } catch (NoSuchElementException e) {
+            HttpResponses.error(
+                    resp,
+                    HttpServletResponse.SC_NOT_FOUND,
+                    "ORGANIZATION_NOT_FOUND",
+                    "Không tìm thấy hồ sơ yêu cầu tổ chức");
+        } catch (SecurityException e) {
+            HttpResponses.error(
+                    resp,
+                    HttpServletResponse.SC_FORBIDDEN,
+                    "FORBIDDEN",
+                    "Bạn không có quyền truy cập hồ sơ này");
+        }
+    }
+
+    @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         UserPrincipal principal = requirePrincipal(req, resp);
         if (principal == null) {
@@ -131,72 +197,6 @@ public class OrganizationRequestServlet extends HttpServlet {
                     HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
                     "INTERNAL_ERROR",
                     "Có lỗi xảy ra trong quá trình xử lý yêu cầu");
-        }
-    }
-
-    @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        UserPrincipal principal = requirePrincipal(req, resp);
-        if (principal == null) {
-            return;
-        }
-        OrganizationRequestService service = getService(req.getServletContext());
-        if (service == null) {
-            IdentityErrorWriter.databaseUnavailable(resp);
-            return;
-        }
-
-        String path = PathIds.path(req);
-        if (path.equals("/api/me/organization-requests")) {
-            List<OrganizationRequestSummaryDto> mine = service.getMyRequests(principal.actorId());
-            HttpResponses.data(
-                    resp,
-                    mine.stream()
-                            .map(OrganizationRequestSummaryDto::toJson)
-                            .collect(Collectors.joining(",", "[", "]")));
-            return;
-        }
-        Matcher detailPath = DETAIL_PATH.matcher(path);
-        if (detailPath.matches()) {
-            readDetail(resp, service, principal, detailPath.group(1));
-            return;
-        }
-        notFound(resp);
-    }
-
-    private void readDetail(
-            HttpServletResponse resp,
-            OrganizationRequestService service,
-            UserPrincipal principal,
-            String idText)
-            throws IOException {
-        UUID organizationId = PathIds.uuidOrNull(idText);
-        if (organizationId == null) {
-            HttpResponses.error(
-                    resp,
-                    HttpServletResponse.SC_BAD_REQUEST,
-                    "INVALID_ORGANIZATION_ID",
-                    "Mã tổ chức không hợp lệ");
-            return;
-        }
-        try {
-            HttpResponses.data(
-                    resp,
-                    service.getRequestDetail(
-                                    principal.actorId(), principal.isAdmin(), organizationId)
-                            .toJson());
-        } catch (NoSuchElementException e) {
-            HttpResponses.error(
-                    resp,
-                    HttpServletResponse.SC_NOT_FOUND,
-                    "ORGANIZATION_NOT_FOUND",
-                    "Không tìm thấy hồ sơ yêu cầu tổ chức");
-        } catch (SecurityException e) {
-            HttpResponses.error(
-                    resp,
-                    HttpServletResponse.SC_FORBIDDEN,
-                    "FORBIDDEN",
-                    "Bạn không có quyền truy cập hồ sơ này");
         }
     }
 

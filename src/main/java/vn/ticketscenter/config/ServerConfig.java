@@ -17,20 +17,8 @@ public final class ServerConfig {
         return AppConfig.get("app.env", "development");
     }
 
-    public static String getSecretKey() {
-        return AppConfig.get("app.secret.key", "");
-    }
-
-    public static boolean isDevelopment() {
-        return "development".equalsIgnoreCase(getEnv());
-    }
-
     public static boolean isProduction() {
         return "production".equalsIgnoreCase(getEnv());
-    }
-
-    public static boolean isTest() {
-        return "test".equalsIgnoreCase(getEnv());
     }
 
     public static boolean isDemoData() {

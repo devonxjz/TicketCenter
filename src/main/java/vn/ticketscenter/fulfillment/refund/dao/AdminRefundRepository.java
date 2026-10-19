@@ -1,17 +1,16 @@
 package vn.ticketscenter.fulfillment.refund.dao;
 
+import static vn.ticketscenter.config.persistence.SqlCall.instant;
+import static vn.ticketscenter.config.persistence.SqlCall.uuid;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.List;
 import java.util.Objects;
-import java.util.TimeZone;
 import java.util.UUID;
 import javax.sql.DataSource;
-import org.hibernate.Session;
-import vn.ticketscenter.config.error.AppException;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.SqlCall;
 import vn.ticketscenter.config.persistence.TransactionManager;
@@ -51,45 +50,34 @@ public final class AdminRefundRepository implements AdminRefundStore {
         this.transactions = null;
     }
 
+    private record ActorRow(String status, int authVersion, boolean admin) {}
+
+    private record RefundHeader(AdminRefundSummaryDto summary, UUID attemptId, UUID reviewerId, Instant decidedAt) {}
+
     private <T> T withConnection(SqlCall.SqlWork<T> work) {
+        if (transactions != null) {
+            return SqlCall.inTransaction(transactions, DatabasePrincipal.ADMIN, work, ERRORS);
+        }
         try {
-            if (transactions != null) {
-                return transactions.execute(
-                        DatabasePrincipal.ADMIN,
-                        em -> em.unwrap(Session.class).doReturningWork(work::run));
-            }
             return SqlCall.inTransaction(supplied, work, ERRORS);
-        } catch (AppException e) {
-            throw e;
-        } catch (Exception failure) {
-            for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
-                if (cause instanceof AppException app) {
-                    throw app;
-                }
-                if (cause instanceof SQLException sql) {
-                    AppException app = ERRORS.translate(sql.getErrorCode(), sql.getMessage());
-                    if (app != null) throw app;
-                }
-            }
-            throw new RefundException(503, "DATABASE_UNAVAILABLE", "Hệ thống hoàn tiền tạm thời không khả dụng.");
+        } catch (RuntimeException failure) {
+            throw ERRORS.fromCause(failure);
         }
     }
 
     @Override
     public void requireAdmin(UserPrincipal actor) {
         withConnection(c -> {
-            var row = SqlCall.queryOptional(
+            ActorRow row = SqlCall.call(
                     c,
                     "SELECT status, auth_version, is_admin FROM dbo.v_admin_refund_actor WHERE id=?",
-                    r -> new Object[] {r.getString(1), r.getInt(2), r.getBoolean(3)},
+                    r -> new ActorRow(r.getString(1), r.getInt(2), r.getBoolean(3)),
                     ERRORS,
                     actor.actorId());
-            if (row.isEmpty()
-                    || !"ACTIVE".equals(row.get()[0])
-                    || (int) row.get()[1] != actor.authVersion()) {
+            if (row == null || !"ACTIVE".equals(row.status()) || row.authVersion() != actor.authVersion()) {
                 throw new RefundException(401, "SESSION_EXPIRED", "Phiên đăng nhập đã hết hạn.");
             }
-            if (!(boolean) row.get()[2]) {
+            if (!row.admin()) {
                 throw new RefundException(403, "ADMIN_REQUIRED", "Bạn không còn quyền quản trị viên.");
             }
             return null;
@@ -124,24 +112,19 @@ public final class AdminRefundRepository implements AdminRefundStore {
     @Override
     public AdminRefundDetailDto detail(UUID id) {
         return withConnection(c -> {
-            var header = SqlCall.call(
+            RefundHeader header = SqlCall.call(
                     c,
                     "SELECT * FROM dbo.v_admin_refund_requests WHERE refund_id=?",
-                    r -> new Object[] {
-                        summary(r),
-                        uuid(r, "current_attempt_id"),
-                        uuid(r, "reviewer_id"),
-                        instant(r, "decided_at")
-                    },
+                    r -> new RefundHeader(
+                            summary(r),
+                            uuid(r, "current_attempt_id"),
+                            uuid(r, "reviewer_id"),
+                            instant(r, "decided_at")),
                     ERRORS,
                     id);
             if (header == null) {
                 throw new RefundException(404, "REFUND_NOT_FOUND", "Yêu cầu hoàn tiền không tồn tại.");
             }
-            var refund = (AdminRefundSummaryDto) header[0];
-            var current = (UUID) header[1];
-            var reviewer = (UUID) header[2];
-            var decided = (Instant) header[3];
 
             var tickets = SqlCall.queryList(
                     c,
@@ -179,7 +162,14 @@ public final class AdminRefundRepository implements AdminRefundStore {
                     ERRORS,
                     id);
 
-            return new AdminRefundDetailDto(refund, current, reviewer, decided, note, tickets, attempts);
+            return new AdminRefundDetailDto(
+                    header.summary(),
+                    header.attemptId(),
+                    header.reviewerId(),
+                    header.decidedAt(),
+                    note,
+                    tickets,
+                    attempts);
         });
     }
 
@@ -242,15 +232,5 @@ public final class AdminRefundRepository implements AdminRefundStore {
                 r.getString("rejection_reason"),
                 r.getBoolean("can_decide"),
                 r.getBoolean("can_retry"));
-    }
-
-    private static UUID uuid(ResultSet r, String column) throws SQLException {
-        String value = r.getString(column);
-        return value == null ? null : UUID.fromString(value);
-    }
-
-    private static Instant instant(ResultSet r, String column) throws SQLException {
-        var value = r.getTimestamp(column, Calendar.getInstance(TimeZone.getTimeZone("UTC")));
-        return value == null ? null : value.toInstant();
     }
 }

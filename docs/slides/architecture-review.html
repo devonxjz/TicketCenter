@@ -1,674 +1,485 @@
 <!doctype html>
-<html lang="vi">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Đánh giá kiến trúc TicketsCenter</title>
+    <title>Architecture Review — TicketCenter</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="module">
-      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
       mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
     </script>
     <style>
-      .seam { border-style: dashed; }
-      .leak { color: #dc2626; border-color: #dc2626; }
-      .deep { background: linear-gradient(135deg, #0f172a, #1e293b); color: #f8fafc; }
-      .diagram { min-height: 320px; }
-      .mermaid { display: flex; justify-content: center; }
+      .seam { stroke-dasharray: 4 4; }
+      .leak { stroke: #dc2626; }
+      .deep-card { background: linear-gradient(135deg, #0f172a, #1e293b); }
     </style>
   </head>
-  <body class="bg-stone-50 text-slate-900 font-sans">
-    <main class="max-w-5xl mx-auto px-4 sm:px-6 py-12 space-y-12">
+  <body class="bg-stone-50 text-slate-900 font-sans antialiased">
+    <main class="max-w-5xl mx-auto px-6 py-12 space-y-12">
+      <!-- Header -->
+      <header class="border-b border-stone-200 pb-8">
+        <div class="flex items-baseline justify-between">
+          <h1 class="text-3xl font-serif font-bold tracking-tight text-slate-900">
+            Architecture Review — TicketCenter
+          </h1>
+          <span class="text-xs uppercase tracking-widest text-slate-500 font-mono">
+            19 Oct 2026
+          </span>
+        </div>
+        <p class="text-sm text-slate-600 mt-2">
+          Deepening opportunities: turning shallow modules into deep ones to improve leverage, locality, and testability.
+        </p>
 
-      <header class="space-y-4">
-        <p class="text-xs uppercase tracking-wider text-slate-500">Đánh giá kiến trúc · 17/10/2026</p>
-        <h1 class="font-serif text-4xl">TicketsCenter</h1>
-        <p class="text-sm text-slate-600">Java 25 · Servlet 6.1 · 401 file nguồn main · 15 package tính năng</p>
-        <div class="flex flex-wrap gap-5 text-xs uppercase tracking-wider text-slate-600 pt-2">
-          <span class="flex items-center gap-2"><span class="inline-block w-5 h-4 border border-slate-500 bg-white"></span>module</span>
-          <span class="flex items-center gap-2"><span class="inline-block w-6 border-t-2 border-dashed border-slate-500"></span>seam</span>
-          <span class="flex items-center gap-2"><span class="inline-block w-6 border-t-2 border-red-600"></span><span class="text-red-600">→</span>rò rỉ</span>
-          <span class="flex items-center gap-2"><span class="inline-block w-5 h-4 deep border-2 border-slate-900"></span>deep module</span>
+        <!-- Legend -->
+        <div class="mt-6 flex flex-wrap gap-4 text-xs font-mono text-slate-600 bg-stone-100 p-3 rounded-md border border-stone-200">
+          <span class="inline-flex items-center gap-1.5">
+            <span class="w-3.5 h-3.5 border border-slate-700 bg-white rounded-sm"></span> Solid box = module
+          </span>
+          <span class="inline-flex items-center gap-1.5">
+            <span class="w-4 border-b-2 border-dashed border-slate-700"></span> Dashed line = seam
+          </span>
+          <span class="inline-flex items-center gap-1.5">
+            <span class="w-4 border-b-2 border-red-600"></span> Red line = leakage / friction
+          </span>
+          <span class="inline-flex items-center gap-1.5">
+            <span class="w-3.5 h-3.5 bg-slate-900 rounded-sm"></span> Thick dark box = deep module
+          </span>
         </div>
       </header>
 
-      <section id="candidates" class="space-y-10">
+      <!-- Candidates Section -->
+      <section id="candidates" class="space-y-12">
 
-        <!-- 1 -->
-        <article id="c1" class="rounded-xl border border-slate-200 bg-white p-6 space-y-5 shadow-sm">
-          <h2 class="font-serif text-2xl">1 · Gom các runtime của từng tính năng vào persistence registry</h2>
-          <div class="flex flex-wrap gap-2 text-xs">
-            <span class="rounded-full bg-emerald-100 text-emerald-800 px-3 py-1 font-medium">Mạnh</span>
-            <span class="rounded-full bg-slate-100 text-slate-700 px-3 py-1">in-process</span>
-          </div>
-          <ul class="font-mono text-sm text-slate-700 leading-6">
-            <li>ticketing/service/HoldRuntime.java</li>
-            <li>order/service/OrderRuntime.java · payment/service/PaymentRuntime.java</li>
-            <li>fulfillment/ticket/service/TicketRuntime.java · event/service/EventRuntime.java</li>
-            <li>order/coupon/service/CouponAdminRuntime.java</li>
-            <li>settlement/infrastructure/FinanceRuntime.java</li>
-            <li>config/persistence/PersistenceRegistry.java</li>
-          </ul>
-          <div class="grid md:grid-cols-2 gap-4">
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4 diagram">
-              <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Trước</p>
-              <pre class="mermaid">
-flowchart LR
-  H[Hold] --> HC["new HikariConfig ×6<br/>size 1 · autoCommit"]
-  O[Order] --> HC
-  P[Payment] --> HC
-  T[Ticket] --> HC
-  E[Event images] --> HC
-  C[Coupon] --> HC
-  F[Finance] -.không pool · không budget.-> DM["DriverManager<br/>mỗi request"]
-  R["Refund · CheckIn<br/>Catalog · Mgmt"] --> REG[PersistenceRegistry]
-  HC --> DB[(SQL Server)]
-  DM --> DB
-  REG --> DB
-  classDef leak stroke:#dc2626,stroke-width:2px,color:#991b1b;
-  class HC,DM leak
-              </pre>
+        <!-- Candidate 1 -->
+        <article id="candidate-refund-pipeline" class="bg-white rounded-xl border border-stone-200 shadow-sm p-6 space-y-6">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 pb-4">
+            <div>
+              <span class="text-xs font-mono uppercase tracking-wider text-slate-400">Candidate 1</span>
+              <h2 class="text-xl font-serif font-bold text-slate-900">
+                Collapse the Refund Web Pipeline
+              </h2>
             </div>
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4 diagram">
-              <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Sau</p>
-              <pre class="mermaid">
-flowchart LR
-  A["12 runtime<br/>chỉ gọi constructor"] --> REG["PersistenceRegistry<br/>jdbc(principal)<br/>transactions()"]
-  REG --> DB[(SQL Server)]
-  classDef deep fill:#0f172a,color:#f8fafc,stroke:#0f172a,stroke-width:3px;
-  class REG deep
-              </pre>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">
+                Strong
+              </span>
+              <span class="px-2 py-0.5 rounded text-xs font-mono bg-stone-100 text-slate-600">
+                in-process
+              </span>
             </div>
           </div>
-          <p><span class="font-semibold">Vấn đề.</span> Mười hai runtime module mỗi cái tự quyết cách kết nối SQL Server: sáu cái tự dựng Hikari pool một kết nối, Finance mở kết nối không qua pool cho mỗi request và nằm ngoài connection budget, phần còn lại dùng registry.</p>
-          <p><span class="font-semibold">Giải pháp.</span> Làm sâu <code class="font-mono text-sm">PersistenceRegistry</code>: chỉ nó sở hữu pool, cấp cho mỗi principal một <code class="font-mono text-sm">DataSource</code> auto-commit có budget và gắn actor, bên cạnh <code class="font-mono text-sm">TransactionManager</code> JPA.</p>
-          <ul class="list-disc pl-5 text-sm space-y-1">
-            <li>Một cấu hình pool thay vì bảy</li>
-            <li>Connection budget bao cả Finance</li>
-            <li>Xoá sáu bản sao <code class="font-mono">HikariConfig</code></li>
-            <li>locality: lỗi pool nằm ở một module</li>
-          </ul>
-          <div class="rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-900">ADR: <code class="font-mono">docs/backend/2026-10-10-vuong-schema-decision.md</code> cấm sửa code của owner khác — cần thống nhất thay đổi registry với từng owner tính năng trước.</div>
+
+          <div>
+            <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-1">Involved Files</div>
+            <ul class="font-mono text-xs text-slate-700 bg-stone-50 p-3 rounded border border-stone-200 space-y-1">
+              <li>vn.ticketscenter.fulfillment.refund.controller.RefundWeb</li>
+              <li>vn.ticketscenter.fulfillment.refund.controller.AdminRefundWeb</li>
+              <li>vn.ticketscenter.fulfillment.refund.controller.RefundRequestServlet</li>
+              <li>vn.ticketscenter.fulfillment.refund.controller.AdminRefundRequestsServlet</li>
+              <li>vn.ticketscenter.fulfillment.refund.controller.AdminRefundDecisionServlet</li>
+              <li>vn.ticketscenter.fulfillment.refund.controller.AdminRefundRetryServlet</li>
+              <li>vn.ticketscenter.fulfillment.refund.controller.MyRefundRequestsServlet</li>
+              <li>vn.ticketscenter.fulfillment.refund.controller.OrderRefundableTicketsServlet</li>
+            </ul>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-2">
+              <h3 class="text-xs uppercase tracking-wider font-mono text-slate-500 font-semibold">Before: Shallow Fragmentation</h3>
+              <div class="rounded-lg border border-red-200 bg-red-50/30 p-3 h-80 flex flex-col justify-center">
+                <pre class="mermaid">
+                  flowchart TD
+                    subgraph Caller["HTTP Requests"]
+                      R1["/api/me/refunds"]
+                      R2["/api/refunds/requests"]
+                      R3["/api/admin/refunds/decision"]
+                    end
+                    subgraph ShallowServlets["6 Shallow Micro-Servlets"]
+                      S1[MyRefundRequestsServlet]
+                      S2[RefundRequestServlet]
+                      S3[AdminRefundDecisionServlet]
+                      S4[AdminRefundRetryServlet]
+                    end
+                    subgraph StaticHelpers["Static Glue Helpers"]
+                      H1[RefundWeb]
+                      H2[AdminRefundWeb]
+                    end
+                    subgraph Svc["Refund Service"]
+                      RS[RefundService]
+                    end
+                    R1 --> S1
+                    R2 --> S2
+                    R3 --> S3
+                    S1 -.actor/path.-> H1
+                    S2 -.mutation/id.-> H1
+                    S3 -.target.-> H2
+                    H2 -.delegate.-> H1
+                    S1 --> RS
+                    S2 --> RS
+                    S3 --> RS
+                    classDef leak stroke:#dc2626,stroke-width:1.5px;
+                    class H1,H2,S1,S2,S3,S4 leak;
+                </pre>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <h3 class="text-xs uppercase tracking-wider font-mono text-slate-500 font-semibold">After: Deep Consolidated Module</h3>
+              <div class="rounded-lg border border-slate-200 bg-stone-50 p-3 h-80 flex flex-col justify-center">
+                <pre class="mermaid">
+                  flowchart TD
+                    subgraph Caller["HTTP Requests"]
+                      R1["/api/me/refunds"]
+                      R2["/api/refunds/requests"]
+                      R3["/api/admin/refunds/*"]
+                    end
+                    subgraph DeepModule["Deep Module: RefundManagementServlet"]
+                      direction TB
+                      RMS["doGet / doPost Routing"]
+                      RMS --> SEC["Actor & Security Guard"]
+                      SEC --> DISP["Target & Mutation Dispatcher"]
+                      DISP --> ERR["Unified Error Handler"]
+                    end
+                    subgraph Svc["Refund Service"]
+                      RS[RefundService]
+                    end
+                    R1 --> RMS
+                    R2 --> RMS
+                    R3 --> RMS
+                    DISP --> RS
+                    classDef deep stroke:#0f172a,stroke-width:2px,fill:#f8fafc;
+                    class DeepModule,RMS deep;
+                </pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            <div>
+              <h4 class="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold mb-1">Problem</h4>
+              <p class="text-sm text-slate-700">
+                The refund HTTP surface is fragmented across six micro-servlets bouncing between two static helper modules to extract actors and format errors.
+              </p>
+            </div>
+            <div>
+              <h4 class="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold mb-1">Solution</h4>
+              <p class="text-sm text-slate-700">
+                Deepen into a unified RefundManagementServlet that owns route dispatching, actor extraction, and error translation behind a single entry seam.
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <h4 class="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold mb-2">Architectural Wins</h4>
+            <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono text-slate-700">
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> locality: routing and security live in one module</li>
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> leverage: one test surface for all refund endpoints</li>
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> interface shrinks: delete 8 shallow classes</li>
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> no static request attribute bouncing</li>
+            </ul>
+          </div>
         </article>
 
-        <!-- 2 -->
-        <article id="c2" class="rounded-xl border border-slate-200 bg-white p-6 space-y-5 shadow-sm">
-          <h2 class="font-serif text-2xl">2 · Một module duy nhất để gọi stored procedure</h2>
-          <div class="flex flex-wrap gap-2 text-xs">
-            <span class="rounded-full bg-emerald-100 text-emerald-800 px-3 py-1 font-medium">Mạnh</span>
-            <span class="rounded-full bg-slate-100 text-slate-700 px-3 py-1">local-substitutable</span>
-          </div>
-          <ul class="font-mono text-sm text-slate-700 leading-6">
-            <li>event/dao/EventJdbc.java · event/dao/EventTransactions.java</li>
-            <li>settlement/dao/FinanceJdbc.java</li>
-            <li>fulfillment/refund/dao/*Repository.java · event/dao/EventCancellationRepository.java</li>
-            <li>order/dao/OrderRepository.java · payment/dao/PaymentRepository.java · ticketing/dao/HoldRepository.java</li>
-          </ul>
-          <div class="grid md:grid-cols-2 gap-4">
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4 diagram">
-              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">Trước · call graph theo từng tính năng</p>
-              <div class="grid grid-cols-3 gap-2 text-[10px] uppercase tracking-wider">
-                <div class="border border-slate-400 bg-white p-2 space-y-1">
-                  <p class="font-semibold">EventJdbc</p>
-                  <p class="border border-slate-300 px-1">bind · LocalDateTime</p>
-                  <p class="border border-slate-300 px-1">drain kết quả</p>
-                  <p class="border border-red-500 text-red-700 px-1">dịch lỗi 52xxx</p>
-                </div>
-                <div class="border border-slate-400 bg-white p-2 space-y-1">
-                  <p class="font-semibold">FinanceJdbc</p>
-                  <p class="border border-slate-300 px-1">bind · Timestamp+UTC</p>
-                  <p class="border border-slate-300 px-1">drain kết quả</p>
-                  <p class="border border-red-500 text-red-700 px-1">dịch lỗi 527xx</p>
-                </div>
-                <div class="border border-slate-400 bg-white p-2 space-y-1">
-                  <p class="font-semibold">EventTransactions</p>
-                  <p class="border border-slate-300 px-1">gắn actor</p>
-                  <p class="border border-slate-300 px-1">unwrap session</p>
-                  <p class="border border-red-500 text-red-700 px-1">dịch lỗi 52xxx</p>
-                </div>
-              </div>
-              <div class="mt-3 grid grid-cols-4 gap-2 text-[10px] uppercase tracking-wider">
-                <p class="border border-slate-300 bg-white p-2">Refund ×3 drain</p>
-                <p class="border border-slate-300 bg-white p-2">Cancel ×2 drain</p>
-                <p class="border border-red-400 text-red-700 bg-white p-2">17 getErrorCode</p>
-                <p class="border border-slate-300 bg-white p-2">16 setQueryTimeout</p>
-              </div>
+        <!-- Candidate 2 -->
+        <article id="candidate-event-management" class="bg-white rounded-xl border border-stone-200 shadow-sm p-6 space-y-6">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 pb-4">
+            <div>
+              <span class="text-xs font-mono uppercase tracking-wider text-slate-400">Candidate 2</span>
+              <h2 class="text-xl font-serif font-bold text-slate-900">
+                Deepen the Event Management Dispatcher
+              </h2>
             </div>
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4 diagram flex items-center justify-center">
-              <div class="w-full">
-                <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">Sau · gộp lại</p>
-                <div class="deep border-4 border-slate-900 rounded-md p-5 space-y-3">
-                  <p class="text-xs uppercase tracking-wider font-semibold">SqlCall</p>
-                  <p class="font-mono text-xs text-slate-300">call(conn, "usp_X", args) → rows</p>
-                  <div class="grid grid-cols-2 gap-2 text-[10px] uppercase tracking-wider text-slate-400">
-                    <p class="border border-slate-600 px-2 py-1">bind UUID · Instant · VND</p>
-                    <p class="border border-slate-600 px-2 py-1">timeout</p>
-                    <p class="border border-slate-600 px-2 py-1">drain tới THROW muộn</p>
-                    <p class="border border-slate-600 px-2 py-1">bảng mã → AppException</p>
-                  </div>
-                </div>
-                <p class="mt-3 text-[10px] uppercase tracking-wider text-slate-500">tính năng truyền bảng mã lỗi, không viết code</p>
-              </div>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">
+                Strong
+              </span>
+              <span class="px-2 py-0.5 rounded text-xs font-mono bg-stone-100 text-slate-600">
+                in-process
+              </span>
             </div>
           </div>
-          <p><span class="font-semibold">Vấn đề.</span> Việc bind tham số, drain kết quả và dịch lỗi SQL bị viết lại ở từng tính năng: tám module tự drain <code class="font-mono text-sm">getMoreResults</code>, 17 module đọc <code class="font-mono text-sm">getErrorCode()</code>, và <code class="font-mono text-sm">Instant</code> được bind theo hai cách khác nhau.</p>
-          <p><span class="font-semibold">Giải pháp.</span> Một module <code class="font-mono text-sm">SqlCall</code> bind giá trị theo một cách, luôn drain để lỗi THROW xảy ra sau result set vẫn nổi lên, và dịch mã lỗi qua bảng mã của từng tính năng sang <code class="font-mono text-sm">AppException</code>.</p>
-          <ul class="list-disc pl-5 text-sm space-y-1">
-            <li>Quy tắc drain THROW muộn ở một chỗ</li>
-            <li>Một quy tắc bind Instant</li>
-            <li>Mã lỗi trở thành dữ liệu</li>
-            <li>Test đi qua một interface</li>
-          </ul>
+
+          <div>
+            <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-1">Involved Files</div>
+            <ul class="font-mono text-xs text-slate-700 bg-stone-50 p-3 rounded border border-stone-200 space-y-1">
+              <li>vn.ticketscenter.event.controller.EventManagementWeb</li>
+              <li>vn.ticketscenter.event.controller.EventManagementServlet</li>
+              <li>vn.ticketscenter.event.controller.EventManagementRoutesFilter</li>
+            </ul>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-2">
+              <h3 class="text-xs uppercase tracking-wider font-mono text-slate-500 font-semibold">Before: Monolithic Static Procedure</h3>
+              <div class="rounded-lg border border-red-200 bg-red-50/30 p-3 h-80 flex flex-col justify-center">
+                <pre class="mermaid">
+                  flowchart TD
+                    subgraph Servlet["EventManagementServlet"]
+                      S["doGet / doPost"]
+                    end
+                    subgraph MegaProc["EventManagementWeb.handle (250 lines)"]
+                      direction TB
+                      P1["String[] p = path.split('/')"]
+                      P2{"kind/operation string flags"}
+                      P3["Manual multipart forward"]
+                      P4["Zone price restricted fields check"]
+                      P5["Manual JSON response writer"]
+                      P1 --> P2 --> P3 --> P4 --> P5
+                    end
+                    S --> MegaProc
+                    classDef leak stroke:#dc2626,stroke-width:1.5px;
+                    class MegaProc,P1,P2,P3,P4,P5 leak;
+                </pre>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <h3 class="text-xs uppercase tracking-wider font-mono text-slate-500 font-semibold">After: Deep Dispatcher with Internal Seams</h3>
+              <div class="rounded-lg border border-slate-200 bg-stone-50 p-3 h-80 flex flex-col justify-center">
+                <pre class="mermaid">
+                  flowchart TD
+                    subgraph Entry["EventManagementServlet"]
+                      EP["service(req, resp)"]
+                    end
+                    subgraph DeepDispatcher["Deep Module: EventManagementDispatcher"]
+                      direction TB
+                      R["Path Pattern Matcher"]
+                      R --> ZO["ZoneOperations (with price guard)"]
+                      R --> CO["CoverOperations (with size guard)"]
+                      R --> EO["LifecycleOperations (publish/reject/edit)"]
+                    end
+                    subgraph Runtime["EventManagementRuntime"]
+                      EMR[Services & Repositories]
+                    end
+                    EP --> DeepDispatcher
+                    ZO --> EMR
+                    CO --> EMR
+                    EO --> EMR
+                    classDef deep stroke:#0f172a,stroke-width:2px,fill:#f8fafc;
+                    class DeepDispatcher deep;
+                </pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            <div>
+              <h4 class="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold mb-1">Problem</h4>
+              <p class="text-sm text-slate-700">
+                EventManagementWeb is a 250-line static procedure mixing ad-hoc string path splitting, untyped action dispatching, and multipart forward delegation.
+              </p>
+            </div>
+            <div>
+              <h4 class="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold mb-1">Solution</h4>
+              <p class="text-sm text-slate-700">
+                Deepen into an EventManagementDispatcher module that encapsulates typed sub-route dispatching behind a clean seam, with co-located guards.
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <h4 class="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold mb-2">Architectural Wins</h4>
+            <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono text-slate-700">
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> locality: zone pricing and cover validations don't interleave</li>
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> leverage: operations tested without 200-line monolithic harness</li>
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> depth: clean internal seams replace string array hacks</li>
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> eliminates untyped action string switching</li>
+            </ul>
+          </div>
         </article>
 
-        <!-- 3 -->
-        <article id="c3" class="rounded-xl border border-slate-200 bg-white p-6 space-y-5 shadow-sm">
-          <h2 class="font-serif text-2xl">3 · Một module API request cho actor, id, body và lỗi</h2>
-          <div class="flex flex-wrap gap-2 text-xs">
-            <span class="rounded-full bg-emerald-100 text-emerald-800 px-3 py-1 font-medium">Mạnh</span>
-            <span class="rounded-full bg-slate-100 text-slate-700 px-3 py-1">in-process</span>
-          </div>
-          <ul class="font-mono text-sm text-slate-700 leading-6">
-            <li>fulfillment/refund/controller/RefundWeb.java · AdminRefundWeb.java</li>
-            <li>fulfillment/checkin/controller/CheckInWeb.java</li>
-            <li>event/controller/EventManagementWeb.java · event/cancellation/controller/EventCancellationWeb.java</li>
-            <li>report/controller/ReadsideHttp.java · identity/controller/support/IdentityErrorWriter.java</li>
-            <li>config/web/HttpResponses.java</li>
-          </ul>
-          <div class="grid md:grid-cols-2 gap-4">
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4 diagram">
-              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">Trước · mặt cắt một request</p>
-              <div class="space-y-1.5 text-xs uppercase tracking-wider">
-                <div class="h-9 border-l-4 border-slate-400 bg-white pl-3 flex items-center">SessionValidationFilter <span class="ml-auto pr-2 text-slate-400 normal-case">bị bỏ qua khi named forward</span></div>
-                <div class="h-9 border-l-4 border-red-500 bg-white pl-3 flex items-center text-red-700">*Web.actor · kiểm tra lại session</div>
-                <div class="h-9 border-l-4 border-slate-400 bg-white pl-3 flex items-center">*Web.id · regex UUID ×14</div>
-                <div class="h-9 border-l-4 border-slate-400 bg-white pl-3 flex items-center">*Web.body · vòng char[1024] ×16</div>
-                <div class="h-9 border-l-4 border-slate-400 bg-white pl-3 flex items-center">*Web.mutation · CSRF · JSON · key</div>
-                <div class="h-9 border-l-4 border-red-500 bg-white pl-3 flex items-center text-red-700">*Web.error · instanceof exception riêng</div>
-                <div class="h-9 border-l-4 border-slate-400 bg-white pl-3 flex items-center">servlet</div>
-              </div>
+        <!-- Candidate 3 -->
+        <article id="candidate-redis-cache" class="bg-white rounded-xl border border-stone-200 shadow-sm p-6 space-y-6">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 pb-4">
+            <div>
+              <span class="text-xs font-mono uppercase tracking-wider text-slate-400">Candidate 3</span>
+              <h2 class="text-xl font-serif font-bold text-slate-900">
+                Unify the Redis Cache Cluster (RedisCachedProjection)
+              </h2>
             </div>
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4 diagram">
-              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">Sau</p>
-              <div class="space-y-1.5 text-xs uppercase tracking-wider">
-                <div class="deep h-48 border-l-8 border-emerald-500 pl-4 py-3 flex flex-col justify-center gap-2">
-                  <p class="font-semibold">ApiRequest</p>
-                  <p class="font-mono normal-case text-slate-300 text-[11px]">actor() · admin() · uuid() · jsonBody(limit) · mutation()</p>
-                  <p class="text-slate-400 text-[10px]">session được kiểm tra lại một lần, tại đây</p>
-                </div>
-                <div class="h-9 border-l-4 border-slate-400 bg-white pl-3 flex items-center font-mono normal-case">HttpResponses.error(res, AppException)</div>
-                <div class="h-9 border-l-4 border-slate-400 bg-white pl-3 flex items-center">servlet</div>
-              </div>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
+                Worth exploring
+              </span>
+              <span class="px-2 py-0.5 rounded text-xs font-mono bg-stone-100 text-slate-600">
+                ports & adapters
+              </span>
             </div>
           </div>
-          <p><span class="font-semibold">Vấn đề.</span> Module <code class="font-mono text-sm">*Web</code> của mỗi tính năng lặp lại việc lấy actor kèm kiểm tra lại session, parse UUID, đọc body có giới hạn và kiểm tra CSRF; <code class="font-mono text-sm">ReadsideHttp.actor</code> bỏ qua bước kiểm tra lại session và dựa vào nơi gọi.</p>
-          <p><span class="font-semibold">Giải pháp.</span> Một module <code class="font-mono text-sm">ApiRequest</code> sở hữu các kiểm tra đó, và một <code class="font-mono text-sm">HttpResponses.error(response, AppException)</code> thay cho mọi bộ map lỗi riêng — mọi exception của tính năng đều đã extend <code class="font-mono text-sm">AppException</code>.</p>
-          <ul class="list-disc pl-5 text-sm space-y-1">
-            <li>Kiểm tra session ở một module</li>
-            <li>Sáu module <code class="font-mono">*Web</code> thu gọn</li>
-            <li>leverage: một interface, 31 file</li>
-          </ul>
+
+          <div>
+            <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-1">Involved Files</div>
+            <ul class="font-mono text-xs text-slate-700 bg-stone-50 p-3 rounded border border-stone-200 space-y-1">
+              <li>vn.ticketscenter.ticketing.cache.RedisActiveHoldCache</li>
+              <li>vn.ticketscenter.fulfillment.checkin.cache.RedisCheckInEventCache</li>
+              <li>vn.ticketscenter.fulfillment.checkin.cache.RedisCheckInScanCache</li>
+              <li>vn.ticketscenter.event.cache.RedisEventCatalogCache</li>
+              <li>vn.ticketscenter.order.cache.RedisOrderCache</li>
+              <li>vn.ticketscenter.fulfillment.refund.service.RedisRefundRequestCache</li>
+            </ul>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-2">
+              <h3 class="text-xs uppercase tracking-wider font-mono text-slate-500 font-semibold">Before: Shallow Duplication</h3>
+              <div class="rounded-lg border border-red-200 bg-red-50/30 p-3 h-80 flex flex-col justify-center">
+                <pre class="mermaid">
+                  flowchart TD
+                    subgraph Domain["Domain Services"]
+                      DS1[OrderService]
+                      DS2[HoldService]
+                      DS3[CheckInService]
+                    end
+                    subgraph Caches["6 Repetitive Shallow Adapters"]
+                      C1["RedisOrderCache\n(try-catch fail-open)"]
+                      C2["RedisActiveHoldCache\n(try-catch fail-open)"]
+                      C3["RedisCheckInEventCache\n(try-catch fail-open)"]
+                    end
+                    subgraph Driver["Jedis Connection"]
+                      J[Jedis Connection Supplier]
+                    end
+                    DS1 --> C1 --> J
+                    DS2 --> C2 --> J
+                    DS3 --> C3 --> J
+                    classDef leak stroke:#dc2626,stroke-width:1.5px;
+                    class C1,C2,C3 leak;
+                </pre>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <h3 class="text-xs uppercase tracking-wider font-mono text-slate-500 font-semibold">After: Deep Cached Projection Adapter</h3>
+              <div class="rounded-lg border border-slate-200 bg-stone-50 p-3 h-80 flex flex-col justify-center">
+                <pre class="mermaid">
+                  flowchart TD
+                    subgraph Domain["Domain Services"]
+                      DS1[OrderService]
+                      DS2[HoldService]
+                      DS3[CheckInService]
+                    end
+                    subgraph DeepAdapter["Deep Module: RedisCachedProjection&lt;T&gt;"]
+                      direction TB
+                      P["get(id) / put(id, val) / evict(id)"]
+                      P --> FO["Fail-Open Outage Suppressor"]
+                      P --> EXP["TTL & PSETEX Engine"]
+                      P --> SER["Safe String Serializer"]
+                    end
+                    subgraph Driver["Jedis Connection"]
+                      J[Jedis Connection Supplier]
+                    end
+                    DS1 --> DeepAdapter
+                    DS2 --> DeepAdapter
+                    DS3 --> DeepAdapter
+                    DeepAdapter --> J
+                    classDef deep stroke:#0f172a,stroke-width:2px,fill:#f8fafc;
+                    class DeepAdapter,P deep;
+                </pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            <div>
+              <h4 class="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold mb-1">Problem</h4>
+              <p class="text-sm text-slate-700">
+                Six domain caches duplicate identical fail-open try-catch blocks, connection borrowing, and TTL handling.
+              </p>
+            </div>
+            <div>
+              <h4 class="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold mb-1">Solution</h4>
+              <p class="text-sm text-slate-700">
+                Deepen a generic RedisCachedProjection adapter that encapsulates connection borrowing, error suppression, and TTL policies behind a small get/put/evict interface.
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <h4 class="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold mb-2">Architectural Wins</h4>
+            <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono text-slate-700">
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> leverage: one fail-open policy across all domains</li>
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> locality: connection timeouts and logging handled once</li>
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> deletion test: removes ~200 lines of duplicated boilerplate</li>
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> testability: trivial substitution with in-memory adapter</li>
+            </ul>
+          </div>
         </article>
 
-        <!-- 4 -->
-        <article id="c4" class="rounded-xl border border-slate-200 bg-white p-6 space-y-5 shadow-sm">
-          <h2 class="font-serif text-2xl">4 · Gộp hai luồng ghi sự kiện</h2>
-          <div class="flex flex-wrap gap-2 text-xs">
-            <span class="rounded-full bg-amber-100 text-amber-800 px-3 py-1 font-medium">Đáng thử</span>
-            <span class="rounded-full bg-slate-100 text-slate-700 px-3 py-1">local-substitutable</span>
-          </div>
-          <ul class="font-mono text-sm text-slate-700 leading-6">
-            <li>event/controller/EventManagementWeb.java · event/controller/EventApiServlet.java</li>
-            <li>event/service/EventService.java · event/dao/EventRepository.java</li>
-            <li>event/service/EventCoverService.java · event/service/EventManagementService.java</li>
-            <li>event/dao/EventManagementRepository.java</li>
-            <li>event/EventException.java · event/service/EventProblem.java</li>
-          </ul>
-          <div class="grid md:grid-cols-2 gap-4">
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4 diagram">
-              <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Trước</p>
-              <pre class="mermaid">
-flowchart TD
-  W[EventManagementWeb] -->|"CREATE · EDIT<br/>COVER + expectedVersion"| A[EventApiServlet]
-  W -->|"COVER, không expectedVersion"| CS[EventCoverService]
-  A --> S["EventService<br/>EventException"]
-  S --> R1["EventRepository<br/>usp_EventImage*"]
-  R1 --> P1[pool riêng]
-  CS --> R2["EventManagementRepository<br/>usp_EventCommand<br/>EventProblem"]
-  R2 --> P2[PersistenceRegistry]
-  linkStyle 0,1 stroke:#dc2626,stroke-width:2px;
-              </pre>
+        <!-- Candidate 4 -->
+        <article id="candidate-checkin-cluster" class="bg-white rounded-xl border border-stone-200 shadow-sm p-6 space-y-6">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 pb-4">
+            <div>
+              <span class="text-xs font-mono uppercase tracking-wider text-slate-400">Candidate 4</span>
+              <h2 class="text-xl font-serif font-bold text-slate-900">
+                Consolidate the CheckIn Web Cluster
+              </h2>
             </div>
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4 diagram">
-              <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Sau</p>
-              <pre class="mermaid">
-flowchart TD
-  W[EventManagementWeb] --> M["EventManagementService<br/>CREATE · EDIT · COVER"]
-  M --> R2[EventManagementRepository]
-  R2 --> P2[PersistenceRegistry]
-  J[job migrate ảnh bìa] --> S[EventService]
-  classDef deep fill:#0f172a,color:#f8fafc,stroke:#0f172a,stroke-width:3px;
-  class M deep
-              </pre>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
+                Worth exploring
+              </span>
+              <span class="px-2 py-0.5 rounded text-xs font-mono bg-stone-100 text-slate-600">
+                in-process
+              </span>
             </div>
           </div>
-          <p><span class="font-semibold">Vấn đề.</span> Upload ảnh bìa đi vào một trong hai implementation tuỳ form có <code class="font-mono text-sm">expectedVersion</code> hay không, mỗi bên có procedure, pool và kiểu exception riêng; việc đọc sự kiện public và sự kiện quản lý cũng được phục vụ hai lần.</p>
-          <p><span class="font-semibold">Giải pháp.</span> Làm sâu một module ghi sự kiện duy nhất cho tạo, sửa và ảnh bìa; <code class="font-mono text-sm">EventService</code> chỉ giữ job migrate ảnh bìa.</p>
-          <ul class="list-disc pl-5 text-sm space-y-1">
-            <li>Một luồng ảnh bìa để test</li>
-            <li>Một kiểu exception cho event</li>
-            <li>Bỏ forward sang <code class="font-mono">EventApiServlet</code></li>
-          </ul>
-          <div class="rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-900">Xem <code class="font-mono">docs/references/COVERAGE.md</code> trước khi bỏ một bộ procedure khỏi Java; các object DB được liệt kê vẫn phải giữ.</div>
+
+          <div>
+            <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-1">Involved Files</div>
+            <ul class="font-mono text-xs text-slate-700 bg-stone-50 p-3 rounded border border-stone-200 space-y-1">
+              <li>vn.ticketscenter.fulfillment.checkin.controller.CheckInWeb</li>
+              <li>vn.ticketscenter.fulfillment.checkin.controller.TicketCheckInServlet</li>
+              <li>vn.ticketscenter.fulfillment.checkin.controller.EventCheckInLogsServlet</li>
+              <li>vn.ticketscenter.fulfillment.checkin.controller.CheckInEventsServlet</li>
+              <li>vn.ticketscenter.fulfillment.checkin.controller.CheckInScannerServlet</li>
+              <li>vn.ticketscenter.fulfillment.checkin.controller.CheckInWindowServlet</li>
+            </ul>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            <div>
+              <h4 class="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold mb-1">Problem</h4>
+              <p class="text-sm text-slate-700">
+                Five micro-servlets act as shallow pass-throughs to a static CheckInWeb helper, spreading check-in HTTP logic across seven files.
+              </p>
+            </div>
+            <div>
+              <h4 class="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold mb-1">Solution</h4>
+              <p class="text-sm text-slate-700">
+                Consolidate into a single CheckInServlet module with structured top-down execution order.
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <h4 class="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold mb-2">Architectural Wins</h4>
+            <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono text-slate-700">
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> locality: entire check-in HTTP flow in one place</li>
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> interface shrinks: eliminates 5 servlet registrations</li>
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> deletes 5 pass-through classes</li>
+              <li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">✓</span> consistent error handling across scanner and logs</li>
+            </ul>
+          </div>
         </article>
 
-        <!-- 5 -->
-        <article id="c5" class="rounded-xl border border-slate-200 bg-white p-6 space-y-5 shadow-sm">
-          <h2 class="font-serif text-2xl">5 · Một module idempotency, hai adapter</h2>
-          <div class="flex flex-wrap gap-2 text-xs">
-            <span class="rounded-full bg-amber-100 text-amber-800 px-3 py-1 font-medium">Đáng thử</span>
-            <span class="rounded-full bg-slate-100 text-slate-700 px-3 py-1">ports &amp; adapters</span>
-          </div>
-          <ul class="font-mono text-sm text-slate-700 leading-6">
-            <li>ticketing/cache/RedisHoldIdempotency.java</li>
-            <li>payment/cache/RedisPaymentIdempotency.java</li>
-            <li>event/cache/EventIdempotencyStore.java · RedisEventIdempotencyStore.java · InMemoryEventIdempotencyStore.java</li>
-            <li>identity/service/OrganizationRequestIdempotency.java</li>
-            <li>order/cache/RedisOrderCache.java (receipt)</li>
-          </ul>
-          <div class="grid md:grid-cols-2 gap-4">
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4 diagram">
-              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">Trước · interface so với implementation</p>
-              <div class="flex items-end justify-between gap-3 h-64">
-                <div class="flex-1 flex flex-col items-center gap-1"><div class="flex items-end gap-1 h-52"><div class="w-4 bg-slate-400" style="height:60%"></div><div class="w-4 bg-slate-700" style="height:70%"></div></div><p class="text-[10px] uppercase tracking-wider">Hold</p></div>
-                <div class="flex-1 flex flex-col items-center gap-1"><div class="flex items-end gap-1 h-52"><div class="w-4 bg-red-400" style="height:85%"></div><div class="w-4 bg-slate-700" style="height:100%"></div></div><p class="text-[10px] uppercase tracking-wider text-red-700">Payment</p></div>
-                <div class="flex-1 flex flex-col items-center gap-1"><div class="flex items-end gap-1 h-52"><div class="w-4 bg-slate-400" style="height:20%"></div><div class="w-4 bg-slate-700" style="height:30%"></div></div><p class="text-[10px] uppercase tracking-wider">Event</p></div>
-                <div class="flex-1 flex flex-col items-center gap-1"><div class="flex items-end gap-1 h-52"><div class="w-4 bg-slate-400" style="height:40%"></div><div class="w-4 bg-slate-700" style="height:55%"></div></div><p class="text-[10px] uppercase tracking-wider">Org req</p></div>
-                <div class="flex-1 flex flex-col items-center gap-1"><div class="flex items-end gap-1 h-52"><div class="w-4 bg-slate-400" style="height:30%"></div><div class="w-4 bg-slate-700" style="height:35%"></div></div><p class="text-[10px] uppercase tracking-wider">Order</p></div>
-              </div>
-              <p class="mt-2 text-[10px] uppercase tracking-wider text-slate-500"><span class="inline-block w-2 h-2 bg-slate-400"></span> interface &nbsp; <span class="inline-block w-2 h-2 bg-slate-700"></span> implementation · năm shallow module</p>
-            </div>
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4 diagram">
-              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">Sau</p>
-              <div class="flex items-end justify-center gap-6 h-52">
-                <div class="flex flex-col items-center gap-1">
-                  <div class="flex items-end gap-1 h-52"><div class="w-8 bg-emerald-500" style="height:14%"></div><div class="w-8 deep" style="height:100%"></div></div>
-                  <p class="text-[10px] uppercase tracking-wider font-semibold">Idempotency</p>
-                </div>
-              </div>
-              <div class="mt-3 border-t-2 border-dashed border-slate-400 pt-3 flex justify-center gap-3 text-[10px] uppercase tracking-wider">
-                <span class="border border-slate-500 bg-white px-3 py-1">Redis adapter</span>
-                <span class="border border-slate-500 bg-white px-3 py-1">in-memory adapter</span>
-              </div>
-            </div>
-          </div>
-          <p><span class="font-semibold">Vấn đề.</span> Năm module cùng cài đặt một giao thức claim → complete → replay/conflict với định dạng key và TTL riêng; bản của Payment còn ôm cả order lock và cache webhook, và chuyển sang bộ nhớ của process khi Redis sập.</p>
-          <p><span class="font-semibold">Giải pháp.</span> Một interface <code class="font-mono text-sm">Idempotency</code> — <code class="font-mono text-sm">claim(scope, actor, key, hash)</code> → Acquired | InProgress | Replay | Conflict, <code class="font-mono text-sm">complete(claim, response, ttl)</code> — với một Redis adapter và một in-memory adapter.</p>
-          <ul class="list-disc pl-5 text-sm space-y-1">
-            <li>Hai adapter biện minh cho seam</li>
-            <li>Order lock tách khỏi payment idempotency</li>
-            <li>Một chính sách fallback, nêu một lần</li>
-          </ul>
-          <div class="rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-900">CLAUDE.md: idempotency key là business ID lưu trong SQL — Redis chỉ là đường nhanh, không bao giờ là nguồn sự thật.</div>
-        </article>
-
-        <!-- 6 -->
-        <article id="c6" class="rounded-xl border border-slate-200 bg-white p-6 space-y-5 shadow-sm">
-          <h2 class="font-serif text-2xl">6 · Một bảng route cho <code class="font-mono">/api</code></h2>
-          <div class="flex flex-wrap gap-2 text-xs">
-            <span class="rounded-full bg-slate-200 text-slate-700 px-3 py-1 font-medium">Suy đoán</span>
-            <span class="rounded-full bg-slate-100 text-slate-700 px-3 py-1">in-process</span>
-          </div>
-          <ul class="font-mono text-sm text-slate-700 leading-6">
-            <li>config/web/OrganizationApiRoutesFilter.java · OrganizationMembersRoutesFilter.java</li>
-            <li>event/controller/EventManagementRoutesFilter.java · event/cancellation/controller/EventCancellationRoutesFilter.java</li>
-            <li>fulfillment/checkin/controller/CheckInEventRoutesFilter.java · fulfillment/refund/controller/RefundOrderRoutesFilter.java</li>
-            <li>report/controller/OrganizationReadsideRoutesFilter.java · order/coupon/controller/CouponOrganizationRoutesFilter.java</li>
-          </ul>
-          <div class="grid md:grid-cols-2 gap-4">
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4 diagram">
-              <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Trước</p>
-              <pre class="mermaid">
-flowchart LR
-  U["/api/organizations/*"] --> F1[OrganizationApiRoutesFilter]
-  U --> F2[OrganizationMembersRoutesFilter]
-  U --> F3[EventManagementRoutesFilter]
-  U --> F4[OrganizationReadsideRoutesFilter]
-  U --> S[EventApiServlet]
-  F1 -.named forward.-> X["servlet -internal ×7<br/>tự kiểm tra session"]
-  F2 -.-> X
-  F3 -.-> X
-  classDef leak stroke:#dc2626,stroke-width:2px,color:#991b1b;
-  class X leak
-              </pre>
-            </div>
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4 diagram">
-              <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Sau</p>
-              <pre class="mermaid">
-flowchart LR
-  U["/api/*"] --> R["ApiRouter<br/>bảng route<br/>session · SQL actor · role"]
-  R --> S1[servlet tính năng]
-  R --> S2[servlet tính năng]
-  R --> S3[servlet tính năng]
-  classDef deep fill:#0f172a,color:#f8fafc,stroke:#0f172a,stroke-width:3px;
-  class R deep
-              </pre>
-            </div>
-          </div>
-          <p><span class="font-semibold">Vấn đề.</span> <code class="font-mono text-sm">/api/organizations/*</code> bị bốn filter và một servlet cùng nhận; filter forward sang named servlet có thể chạy trước <code class="font-mono text-sm">SessionValidationFilter</code>, nên các tính năng tự kiểm tra lại session và phải mở các URL <code class="font-mono text-sm">-internal</code>.</p>
-          <p><span class="font-semibold">Giải pháp.</span> Một front filter đọc bảng route (method + pattern → servlet, auth, role), kiểm tra session và gắn SQL actor một lần, rồi mới dispatch.</p>
-          <ul class="list-disc pl-5 text-sm space-y-1">
-            <li>Mỗi URL có một owner</li>
-            <li>Bỏ bảy URL <code class="font-mono">-internal</code></li>
-            <li>Kiểm tra session chạy một lần</li>
-          </ul>
-          <div class="rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-900">ADR: <code class="font-mono">docs/backend/2026-10-12-cross-domain-runtime-contract.md</code> — named forward phải gắn và khôi phục SQL actor, giữ attribute canonical path; router phải kế thừa hợp đồng đó.</div>
-        </article>
       </section>
 
-      <section id="bo-sung" class="space-y-10">
-        <header class="space-y-2 border-t border-slate-300 pt-10">
-          <p class="text-xs uppercase tracking-wider text-slate-500">Phần bổ sung</p>
-          <h2 class="font-serif text-3xl">Tận dụng database và viết code theo luồng tư duy</h2>
-          <p class="text-sm text-slate-600">Đối chiếu migration 001–069 với <code class="font-mono">docs/references/COVERAGE.md</code> và code Java · Pipeline: security filter → servlet → service (Redis → DAO) → SQL Server</p>
-        </header>
-
-        <!-- 7 -->
-        <article id="c7" class="rounded-xl border border-slate-200 bg-white p-6 space-y-5 shadow-sm">
-          <h2 class="font-serif text-2xl">7 · Nối lại các SP/view bắt buộc mà Java đang bỏ qua</h2>
-          <div class="flex flex-wrap gap-2 text-xs">
-            <span class="rounded-full bg-emerald-100 text-emerald-800 px-3 py-1 font-medium">Mạnh</span>
-            <span class="rounded-full bg-slate-100 text-slate-700 px-3 py-1">local-substitutable</span>
-          </div>
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4"><p class="font-serif text-3xl">96</p><p class="text-xs uppercase tracking-wider text-slate-500">procedure · Java tham chiếu 58</p></div>
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4"><p class="font-serif text-3xl">67</p><p class="text-xs uppercase tracking-wider text-slate-500">view · Java tham chiếu 42</p></div>
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4"><p class="font-serif text-3xl">22</p><p class="text-xs uppercase tracking-wider text-slate-500">function · Java tham chiếu 8</p></div>
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4"><p class="font-serif text-3xl">26</p><p class="text-xs uppercase tracking-wider text-slate-500">trigger · tự chạy trong DB</p></div>
-          </div>
-          <div class="grid md:grid-cols-2 gap-4">
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4">
-              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">17 SP bắt buộc (SP01–SP17)</p>
-              <div class="flex h-8 rounded overflow-hidden text-[10px] uppercase tracking-wider text-white font-semibold">
-                <div class="bg-emerald-600 flex items-center justify-center" style="width:29.4%">5 Java gọi</div>
-                <div class="bg-slate-500 flex items-center justify-center" style="width:29.4%">5 SQL gọi</div>
-                <div class="bg-red-600 flex items-center justify-center" style="width:35.3%">6 không ai gọi</div>
-                <div class="bg-amber-500 flex items-center justify-center" style="width:5.9%">1</div>
-              </div>
-              <p class="mt-2 text-[10px] uppercase tracking-wider text-slate-500">vàng: SP04 <code class="font-mono normal-case">usp_CheckInTicket</code> đã drop ở 050, thay bằng <code class="font-mono normal-case">sp_ticket_check_in</code></p>
-              <p class="text-xs uppercase tracking-wider text-slate-500 mt-5 mb-3">10 view bắt buộc (V01–V10)</p>
-              <div class="flex h-8 rounded overflow-hidden text-[10px] uppercase tracking-wider text-white font-semibold">
-                <div class="bg-emerald-600 flex items-center justify-center" style="width:40%">4 Java đọc</div>
-                <div class="bg-slate-500 flex items-center justify-center" style="width:20%">2 SQL đọc</div>
-                <div class="bg-red-600 flex items-center justify-center" style="width:40%">4 không ai đọc</div>
-              </div>
-            </div>
-            <div class="rounded-lg border border-slate-200 bg-white p-4 overflow-x-auto">
-              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">Object bắt buộc ↔ bản song song Java đang gọi</p>
-              <table class="w-full text-xs">
-                <thead class="text-left text-slate-500 uppercase tracking-wider"><tr><th class="py-1 pr-2">Mã</th><th class="py-1 pr-2">Bắt buộc</th><th class="py-1">Java gọi thay</th></tr></thead>
-                <tbody class="font-mono divide-y divide-slate-100">
-                  <tr><td class="py-1 pr-2">SP01</td><td class="pr-2 text-red-700">usp_ApproveOrganization</td><td>sp_organization_approve</td></tr>
-                  <tr><td class="py-1 pr-2">SP03</td><td class="pr-2 text-red-700">usp_ApplyOrderCoupon</td><td>usp_ApplyOrderCouponRequest</td></tr>
-                  <tr><td class="py-1 pr-2">SP05</td><td class="pr-2 text-red-700">usp_RequestTicketRefund</td><td>sp_refund_request_for_tickets</td></tr>
-                  <tr><td class="py-1 pr-2">SP06</td><td class="pr-2 text-red-700">usp_CreateOrderFromHold</td><td>usp_CreateOrderRequest</td></tr>
-                  <tr><td class="py-1 pr-2">SP10</td><td class="pr-2 text-red-700">usp_DecideRefund</td><td>sp_refund_approve / sp_refund_reject</td></tr>
-                  <tr><td class="py-1 pr-2">SP13</td><td class="pr-2 text-red-700">usp_CancelEvent</td><td>sp_event_cancel</td></tr>
-                  <tr><td class="py-1 pr-2">V06</td><td class="pr-2 text-red-700">vw_TicketDetails</td><td>vw_TicketRuntimeDetails</td></tr>
-                  <tr><td class="py-1 pr-2">V05</td><td class="pr-2 text-red-700">vw_CheckInHistory</td><td>sp_checkin_recent_logs</td></tr>
-                  <tr><td class="py-1 pr-2">V10</td><td class="pr-2 text-red-700">vw_OrganizationMembers</td><td>JPQL trên entity</td></tr>
-                  <tr><td class="py-1 pr-2">—</td><td class="pr-2 text-red-700">usp_AddMember · usp_ChangeMemberRole</td><td>JPA persist / merge</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-          <p><span class="font-semibold">Vấn đề.</span> Mỗi thành viên viết thêm một thế hệ procedure "runtime" riêng, nên phần lớn SP/view trong rubric bị bỏ rơi; 17 procedure dùng tiền tố <code class="font-mono text-sm">sp_</code> (SQL Server tra trong <code class="font-mono text-sm">master</code> trước) và 11 view đặt tên <code class="font-mono text-sm">v_*</code>/<code class="font-mono text-sm">tc_*</code> lệch quy ước <code class="font-mono text-sm">vw_*</code>.</p>
-          <p><span class="font-semibold">Giải pháp.</span> Với mỗi cặp: hoặc DAO gọi object bắt buộc (bản song song trở thành phần implementation bên trong nó), hoặc cập nhật COVERAGE kèm lý do — không để hai interface cùng làm một việc.</p>
-          <ul class="list-disc pl-5 text-sm space-y-1">
-            <li>Rubric DBMS khớp với code chạy</li>
-            <li>Một interface SQL mỗi nghiệp vụ</li>
-            <li>Bỏ JPA write ở identity</li>
-          </ul>
-          <div class="rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-900">COVERAGE.md đã cũ ở hai chỗ: SP04 bị drop ở migration 050, TR06 nay tên là <code class="font-mono">trg_Membership_ProtectLastManager</code>. Không drop object nào trong danh sách; chạy thử SP cũ trên DB fixture trước khi nối vào Java.</div>
-        </article>
-
-        <!-- 8 -->
-        <article id="c8" class="rounded-xl border border-slate-200 bg-white p-6 space-y-5 shadow-sm">
-          <h2 class="font-serif text-2xl">8 · Năm tầng theo đúng luồng một request</h2>
-          <div class="flex flex-wrap gap-2 text-xs">
-            <span class="rounded-full bg-emerald-100 text-emerald-800 px-3 py-1 font-medium">Mạnh</span>
-            <span class="rounded-full bg-slate-100 text-slate-700 px-3 py-1">in-process</span>
-          </div>
-          <div class="space-y-2">
-            <div class="grid md:grid-cols-12 gap-2 items-stretch">
-              <div class="md:col-span-3 deep rounded-md p-3"><p class="text-[10px] uppercase tracking-wider text-emerald-400">Tầng 1</p><p class="font-semibold">Security filter pipeline</p><p class="font-mono text-[10px] text-slate-400 mt-1">web.xml</p></div>
-              <div class="md:col-span-5 rounded-md border border-slate-200 bg-stone-50 p-3 text-sm"><p class="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Làm</p><p class="font-mono text-xs">SecurityHeaders → DatabaseActor → RequestValidation → SessionValidation → Csrf → RoleAuthorization</p></div>
-              <div class="md:col-span-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-900"><p class="text-[10px] uppercase tracking-wider mb-1">Đang rò rỉ</p>8 <code class="font-mono">*RoutesFilter</code> forward sang named servlet nên session bị kiểm tra lại trong <code class="font-mono">*Web</code></div>
-            </div>
-            <div class="grid md:grid-cols-12 gap-2 items-stretch">
-              <div class="md:col-span-3 deep rounded-md p-3"><p class="text-[10px] uppercase tracking-wider text-emerald-400">Tầng 2</p><p class="font-semibold">Servlet (controller)</p><p class="font-mono text-[10px] text-slate-400 mt-1">doGet · doPost</p></div>
-              <div class="md:col-span-5 rounded-md border border-slate-200 bg-stone-50 p-3 text-sm"><p class="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Làm</p>Đọc input → dựng DTO → kiểm tra hình thức → gọi service → đặt kết quả → forward JSP / ghi JSON</div>
-              <div class="md:col-span-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-900"><p class="text-[10px] uppercase tracking-wider mb-1">Đang rò rỉ</p>4 servlet override <code class="font-mono">service()</code>; 7 servlet tự <code class="font-mono">new</code> service/repository</div>
-            </div>
-            <div class="grid md:grid-cols-12 gap-2 items-stretch">
-              <div class="md:col-span-3 deep rounded-md p-3"><p class="text-[10px] uppercase tracking-wider text-emerald-400">Tầng 3</p><p class="font-semibold">Service + Redis</p><p class="font-mono text-[10px] text-slate-400 mt-1">cache · idempotency</p></div>
-              <div class="md:col-span-5 rounded-md border border-slate-200 bg-stone-50 p-3 text-sm"><p class="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Làm</p>Hỏi Redis (replay / cache) → gọi DAO → sau commit mới ghi hoặc xoá Redis. Redis hỏng thì đi thẳng DB.</div>
-              <div class="md:col-span-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-900"><p class="text-[10px] uppercase tracking-wider mb-1">Đang rò rỉ</p>Service tự đếm quản lý, tự kiểm quyền; Payment âm thầm fallback in-memory</div>
-            </div>
-            <div class="grid md:grid-cols-12 gap-2 items-stretch">
-              <div class="md:col-span-3 deep rounded-md p-3"><p class="text-[10px] uppercase tracking-wider text-emerald-400">Tầng 4</p><p class="font-semibold">DAO</p><p class="font-mono text-[10px] text-slate-400 mt-1">usp_* · vw_* · fn_*</p></div>
-              <div class="md:col-span-5 rounded-md border border-slate-200 bg-stone-50 p-3 text-sm"><p class="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Làm</p>Một lệnh <code class="font-mono">EXEC</code> hoặc <code class="font-mono">SELECT</code> từ view/UDF qua <code class="font-mono">SqlCall</code>, map row → DTO, mã lỗi → <code class="font-mono">AppException</code></div>
-              <div class="md:col-span-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-900"><p class="text-[10px] uppercase tracking-wider mb-1">Đang rò rỉ</p>4 DAO identity ghi bằng <code class="font-mono">persist</code>/<code class="font-mono">merge</code>/JPQL <code class="font-mono">UPDATE</code></div>
-            </div>
-            <div class="grid md:grid-cols-12 gap-2 items-stretch">
-              <div class="md:col-span-3 deep rounded-md p-3 border-2 border-emerald-500"><p class="text-[10px] uppercase tracking-wider text-emerald-400">Tầng 5</p><p class="font-semibold">SQL Server</p><p class="font-mono text-[10px] text-slate-400 mt-1">nguồn sự thật</p></div>
-              <div class="md:col-span-9 rounded-md border border-slate-200 bg-stone-50 p-3 text-sm"><p class="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Làm</p>SP sở hữu giao dịch, khoá, quyền và audit; trigger giữ bất biến; view/UDF phục vụ đọc; sáu role <code class="font-mono">tc_*</code> chặn ghi trực tiếp vào bảng.</div>
-            </div>
-          </div>
-          <p><span class="font-semibold">Vấn đề.</span> Luật nghiệp vụ nằm rải ở cả bốn tầng trên, nên đọc một luồng phải mở filter, <code class="font-mono text-sm">*Web</code>, service, DAO và migration cùng lúc.</p>
-          <p><span class="font-semibold">Giải pháp.</span> Mỗi tầng chỉ làm đúng cột "Làm"; luật nghiệp vụ chỉ sống ở tầng 5, Java chỉ chuyển dữ liệu vào và kết quả ra.</p>
-          <ul class="list-disc pl-5 text-sm space-y-1">
-            <li>locality: luật nằm ở SQL</li>
-            <li>Servlet đọc từ trên xuống</li>
-            <li>Redis không bao giờ quyết định</li>
-          </ul>
-        </article>
-
-        <!-- 9 -->
-        <article id="c9" class="rounded-xl border border-slate-200 bg-white p-6 space-y-5 shadow-sm">
-          <h2 class="font-serif text-2xl">9 · Lát cắt mẫu: đổi vai trò thành viên</h2>
-          <div class="flex flex-wrap gap-2 text-xs">
-            <span class="rounded-full bg-emerald-100 text-emerald-800 px-3 py-1 font-medium">Mạnh</span>
-            <span class="rounded-full bg-slate-100 text-slate-700 px-3 py-1">local-substitutable</span>
-          </div>
-          <ul class="font-mono text-sm text-slate-700 leading-6">
-            <li>identity/service/OrganizationMembershipService.java</li>
-            <li>identity/dao/OrganizationMembershipRepository.java · identity/controller/OrganizationMembersServlet.java</li>
-            <li>database/migrations/032_sql_report_permissions.sql (usp_AddMember · usp_ChangeMemberRole)</li>
-          </ul>
-          <div class="grid md:grid-cols-2 gap-4">
-            <div class="rounded-lg border border-red-200 bg-stone-50 p-4 diagram">
-              <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Trước · Java tự làm luật</p>
-              <pre class="font-mono text-[11px] leading-5 text-slate-800 whitespace-pre-wrap">transactions.execute(principal, em -&gt; {
-  assertManagerAccess(em, actorId, orgId);
-  var m = repo.findByOrgAndUser(em, orgId, userId)
-      .orElseThrow(...);
-  if (demotingActiveManager) {
-    <span class="text-red-700">long n = repo.countActiveManagers(em, orgId);
-    if (n &lt;= 1) throw new IllegalStateException(
-        "CANNOT_DEACTIVATE_LAST_MANAGER: ...");</span>
-  }
-  m.changeRole(dto.role());
-  <span class="text-red-700">repo.save(em, m);          // em.merge</span>
-  return toDto(m, m.getUser());
-});
-<span class="text-red-700">// không ghi tc_audit_logs</span></pre>
-            </div>
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4 diagram">
-              <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Sau · Java chuyển dữ liệu, SQL làm luật</p>
-              <pre class="font-mono text-[11px] leading-5 text-slate-800 whitespace-pre-wrap"><span class="text-slate-500">// Servlet: 6 bước, từ trên xuống</span>
-UUID orgId  = api.uuid(path, 1);           <span class="text-slate-500">// 1 đọc</span>
-UUID userId = api.uuid(path, 3);
-var command = api.jsonBody(ChangeMemberRole.class); <span class="text-slate-500">// 2 DTO</span>
-command.validateShape();                   <span class="text-slate-500">// 3 hình thức</span>
-var member = members.changeRole(api.actor(), orgId, userId, command); <span class="text-slate-500">// 4</span>
-HttpResponses.data(response, member);      <span class="text-slate-500">// 5–6</span>
-
-<span class="text-slate-500">// DAO: một lệnh</span>
-sql.call(c, "usp_ChangeMemberRole",
-    orgId, actor, userId, role, active);
-<span class="text-emerald-700">// SP: khoá org, kiểm quản lý, ghi audit
-// trigger: chặn hạ quyền quản lý cuối</span></pre>
-            </div>
-          </div>
-          <p><span class="font-semibold">Vấn đề.</span> Service đếm quản lý rồi <code class="font-mono text-sm">merge</code> qua JPA, bỏ qua <code class="font-mono text-sm">usp_ChangeMemberRole</code> nên không ghi audit <code class="font-mono text-sm">MEMBER_ROLE_CHANGED</code> mà SP có ghi.</p>
-          <p><span class="font-semibold">Giải pháp.</span> DAO gọi SP; luật "quản lý cuối" để trigger <code class="font-mono text-sm">trg_Membership_ProtectLastManager</code> giữ; service chỉ còn invalidate cache sau commit.</p>
-          <ul class="list-disc pl-5 text-sm space-y-1">
-            <li>Audit log được ghi đúng</li>
-            <li>Service ngắn còn vài dòng</li>
-            <li>Mẫu để cả nhóm làm theo</li>
-          </ul>
-          <div class="rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-900"><code class="font-mono">usp_ChangeMemberRole</code> tự <code class="font-mono">BEGIN TRANSACTION</code>/<code class="font-mono">ROLLBACK</code>, chưa dùng savepoint như CLAUDE.md yêu cầu — sửa bằng migration mới (070), không sửa file 032.</div>
-        </article>
-
-        <!-- 10 -->
-        <article id="c10" class="rounded-xl border border-slate-200 bg-white p-6 space-y-5 shadow-sm">
-          <h2 class="font-serif text-2xl">10 · Đo độ khó đọc</h2>
-          <div class="flex flex-wrap gap-2 text-xs">
-            <span class="rounded-full bg-amber-100 text-amber-800 px-3 py-1 font-medium">Đáng thử</span>
-            <span class="rounded-full bg-slate-100 text-slate-700 px-3 py-1">in-process</span>
-          </div>
-          <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4"><p class="font-serif text-3xl text-red-700">178</p><p class="text-xs uppercase tracking-wider text-slate-500">dòng Java dài hơn 180 ký tự</p></div>
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4"><p class="font-serif text-3xl text-red-700">118</p><p class="text-xs uppercase tracking-wider text-slate-500">dòng nhồi từ 4 lệnh trở lên</p></div>
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4"><p class="font-serif text-3xl text-red-700">88</p><p class="text-xs uppercase tracking-wider text-slate-500">khối scriptlet trong 16/53 JSP</p></div>
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4"><p class="font-serif text-3xl">53</p><p class="text-xs uppercase tracking-wider text-slate-500">file tự nối chuỗi JSON</p></div>
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4"><p class="font-serif text-3xl">2</p><p class="text-xs uppercase tracking-wider text-slate-500">tên thư mục DAO: <code class="font-mono normal-case">dao</code> và <code class="font-mono normal-case">repository</code></p></div>
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4"><p class="font-serif text-3xl">11</p><p class="text-xs uppercase tracking-wider text-slate-500">file sai tầng</p></div>
-          </div>
-          <div class="grid md:grid-cols-2 gap-4">
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4">
-              <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">File dày đặc nhất</p>
-              <ul class="font-mono text-xs space-y-1">
-                <li>19 · settlement/dao/FinanceRepository.java</li>
-                <li>16 · report/dao/ReportRepository.java</li>
-                <li>15 · fulfillment/refund/dao/AdminRefundRepository.java</li>
-                <li>14 · fulfillment/refund/dao/RefundRequestRepository.java</li>
-                <li>12 · event/dao/EventManagementRepository.java</li>
-              </ul>
-            </div>
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4">
-              <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Sai tầng</p>
-              <ul class="font-mono text-xs space-y-1">
-                <li>5 <span class="text-slate-500">*Runtime</span> nằm trong <span class="text-red-700">controller/</span></li>
-                <li>CancellationReviewRepository trong <span class="text-red-700">service/</span></li>
-                <li>5 file Finance trong <span class="text-red-700">infrastructure/</span></li>
-                <li>refund/my-refunds.jsp tự định nghĩa hàm escape bằng <span class="text-red-700">&lt;%! %&gt;</span></li>
-              </ul>
-            </div>
-          </div>
-          <p><span class="font-semibold">Vấn đề.</span> Một method nằm gọn trên một dòng (ví dụ <code class="font-mono text-sm">AdminRefundRepository.decide</code> mở connection, chọn SP, bind và map trong một biểu thức), nên phải cuộn ngang mới đọc được luồng.</p>
-          <p><span class="font-semibold">Giải pháp.</span> Mỗi dòng một lệnh, mỗi bước một method có tên; JSP chỉ dùng EL + JSTL (<code class="font-mono text-sm">&lt;c:forEach&gt;</code>, <code class="font-mono text-sm">&lt;c:out&gt;</code> thay hàm escape tự viết); JSON qua một serializer.</p>
-          <ul class="list-disc pl-5 text-sm space-y-1">
-            <li>Đọc luồng không cần cuộn ngang</li>
-            <li>JSP không còn Java</li>
-            <li>Một thư mục <code class="font-mono">dao</code> cho mọi tính năng</li>
-          </ul>
-        </article>
-
-        <!-- 11 -->
-        <article id="c11" class="rounded-xl border border-slate-200 bg-white p-6 space-y-5 shadow-sm">
-          <h2 class="font-serif text-2xl">11 · Frontend JS: mỗi file tự viết một framework nhỏ</h2>
-          <div class="flex flex-wrap gap-2 text-xs">
-            <span class="rounded-full bg-emerald-100 text-emerald-800 px-3 py-1 font-medium">Mạnh</span>
-            <span class="rounded-full bg-slate-100 text-slate-700 px-3 py-1">in-process</span>
-          </div>
-          <ul class="font-mono text-sm text-slate-700 leading-6">
-            <li>src/main/webapp/assets/js/*.js — 14 file · 4 115 dòng</li>
-            <li>ticket-hold.js (735) · organization-members.js (644) · admin-organizations.js (480) · order-checkout.js (427)</li>
-            <li>10 JSP có <code>&lt;script&gt;</code> inline · 19 thuộc tính <code>on*=</code> trong JSP</li>
-          </ul>
-
-          <div class="rounded-md bg-red-50 border border-red-300 px-4 py-3 text-sm text-red-900 space-y-1">
-            <p class="font-semibold">Lỗi bảo mật cần vá trước: stored XSS ở ô tìm kiếm</p>
-            <p><code class="font-mono">site-shell.js</code> · <code class="font-mono">renderDropdown</code> chèn <code class="font-mono">ev.title</code>, <code class="font-mono">ev.venueName</code>, <code class="font-mono">ev.category</code>, <code class="font-mono">ev.coverImageUrl</code> và từ khoá tìm kiếm vào <code class="font-mono">innerHTML</code> mà không escape. Server chỉ kiểm độ dài tên (5–200 ký tự, <code class="font-mono">EventCommand</code>), CSP không có <code class="font-mono">script-src</code>: một sự kiện tên <code class="font-mono">&lt;img src=x onerror=…&gt;</code>, sau khi được công khai, chạy script trên trình duyệt của mọi người gõ vào ô tìm kiếm.</p>
-          </div>
-
-          <div class="grid md:grid-cols-2 gap-4">
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4 diagram overflow-x-auto">
-              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">Trước · cùng một việc, nhiều cách</p>
-              <table class="w-full text-xs">
-                <thead class="text-left text-slate-500 uppercase tracking-wider"><tr><th class="py-1 pr-2">Việc</th><th class="py-1 pr-2">File tự viết</th><th class="py-1">Số cách</th></tr></thead>
-                <tbody class="divide-y divide-slate-200">
-                  <tr><td class="py-1.5 pr-2">Lấy context path</td><td class="pr-2">13</td><td class="text-red-700 font-semibold">4</td></tr>
-                  <tr><td class="py-1.5 pr-2">Lấy CSRF token</td><td class="pr-2">10</td><td class="text-red-700 font-semibold">3</td></tr>
-                  <tr><td class="py-1.5 pr-2">Hàm <code class="font-mono">api()</code> + đọc lỗi envelope</td><td class="pr-2">8</td><td class="text-red-700 font-semibold">8</td></tr>
-                  <tr><td class="py-1.5 pr-2">Sinh <code class="font-mono">Idempotency-Key</code></td><td class="pr-2">7</td><td class="text-red-700 font-semibold">7</td></tr>
-                  <tr><td class="py-1.5 pr-2">Hàm <code class="font-mono">money</code></td><td class="pr-2">8</td><td class="text-red-700 font-semibold">2 nghĩa</td></tr>
-                  <tr><td class="py-1.5 pr-2">Vẽ HTML bằng <code class="font-mono">innerHTML</code></td><td class="pr-2">4</td><td class="text-red-700 font-semibold">escape tuỳ file</td></tr>
-                  <tr><td class="py-1.5 pr-2">Khởi động file</td><td class="pr-2">14</td><td class="text-red-700 font-semibold">4 kiểu</td></tr>
-                </tbody>
-              </table>
-              <p class="mt-3 text-[10px] uppercase tracking-wider text-slate-500"><code class="font-mono normal-case">money</code>: 3 file định dạng (có/không " đ"), 2 file lại là hàm kiểm tra chuỗi số · <code class="font-mono normal-case">admin-organizations.js</code> khai báo biến global</p>
-            </div>
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4 diagram">
-              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">Sau · một module chung, mọi trang cùng 5 bước</p>
-              <div class="deep rounded-md p-3 mb-3">
-                <p class="text-xs uppercase tracking-wider font-semibold">tc-core.js <span class="text-slate-400 normal-case font-normal">· layout nạp đầu tiên</span></p>
-                <p class="font-mono text-[11px] text-slate-300 mt-1">TC.base · TC.api() · TC.mutate() · TC.money() · TC.date() · TC.el()</p>
-              </div>
-              <pre class="font-mono text-[11px] leading-5 text-slate-800 whitespace-pre-wrap">(() =&gt; {
-  <span class="text-slate-500">// 1. Tìm DOM gốc — không có thì thoát</span>
-  const root = document.getElementById('members');
-  if (!root) return;
-  <span class="text-slate-500">// 2. Trạng thái</span>
-  const state = { items: [], page: 1 };
-  <span class="text-slate-500">// 3. Vẽ — chỉ textContent qua TC.el</span>
-  function render() { … }
-  <span class="text-slate-500">// 4. Hành động — gọi API → state → vẽ</span>
-  async function load() {
-    state.items = await TC.api(`/api/…?page=${state.page}`);
-    render();
-  }
-  <span class="text-slate-500">// 5. Gắn sự kiện + tải lần đầu</span>
-  root.addEventListener('click', onClick);
-  load();
-})();</pre>
-            </div>
-          </div>
-          <p><span class="font-semibold">Vấn đề.</span> Mỗi file tự viết lại context path, CSRF, gọi API, Idempotency-Key, định dạng tiền và cách vẽ HTML, xen kẽ hàm tiện ích với handler, nên đọc một trang phải nhảy qua lại trong file, và chỉ một chỗ quên escape là thành lỗ hổng.</p>
-          <p><span class="font-semibold">Giải pháp.</span> Một <code class="font-mono text-sm">tc-core.js</code> sở hữu các việc chung (vẽ mặc định bằng <code class="font-mono text-sm">textContent</code>); mỗi file trang đi đúng 5 bước tìm → state → vẽ → hành động → gắn; chuyển <code class="font-mono text-sm">&lt;script&gt;</code> và <code class="font-mono text-sm">on*=</code> inline trong JSP vào file JS.</p>
-          <ul class="list-disc pl-5 text-sm space-y-1">
-            <li>Escape mặc định, không tuỳ file</li>
-            <li>Một cách gọi API cho 14 file</li>
-            <li>Đọc file từ trên xuống</li>
-            <li>Bật được CSP <code class="font-mono">script-src 'self'</code></li>
-          </ul>
-          <div class="rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-900">7 file đang export cho test Node trong <code class="font-mono">src/test/js/</code> (<code class="font-mono">module.exports</code>) — giữ export đó khi tách <code class="font-mono">tc-core.js</code> để test vẫn chạy.</div>
-        </article>
-
-        <!-- Lộ trình -->
-        <article id="lo-trinh" class="rounded-xl border border-slate-200 bg-white p-6 space-y-4 shadow-sm">
-          <h2 class="font-serif text-2xl">Lộ trình</h2>
-          <ol class="space-y-3 text-sm">
-            <li class="flex gap-3"><span class="font-serif text-2xl text-red-700 w-8 shrink-0">0</span><span><a href="#c11" class="font-semibold underline">Vá XSS ô tìm kiếm</a> trong <code class="font-mono">site-shell.js</code> — lỗi bảo mật, làm ngay, vài dòng.</span></li>
-            <li class="flex gap-3"><span class="font-serif text-2xl text-emerald-700 w-8 shrink-0">1</span><span><a href="#c9" class="font-semibold underline">Lát cắt mẫu membership</a> — nhỏ, có lỗi thật (thiếu audit), làm mẫu cho cả nhóm.</span></li>
-            <li class="flex gap-3"><span class="font-serif text-2xl text-emerald-700 w-8 shrink-0">2</span><span><a href="#c1" class="font-semibold underline">Gom runtime vào registry</a> và <a href="#c2" class="font-semibold underline">SqlCall</a> — nền chung cho tầng 4.</span></li>
-            <li class="flex gap-3"><span class="font-serif text-2xl text-emerald-700 w-8 shrink-0">3</span><span><a href="#c7" class="font-semibold underline">Nối lại SP/view bắt buộc</a> từng cặp, hoặc cập nhật COVERAGE kèm lý do.</span></li>
-            <li class="flex gap-3"><span class="font-serif text-2xl text-emerald-700 w-8 shrink-0">4</span><span><a href="#c3" class="font-semibold underline">ApiRequest</a> và bỏ <code class="font-mono">service()</code> override — tầng 2 sạch.</span></li>
-            <li class="flex gap-3"><span class="font-serif text-2xl text-emerald-700 w-8 shrink-0">5</span><span><a href="#c10" class="font-semibold underline">JSP sang JSTL</a>, tách dòng dày đặc.</span></li>
-            <li class="flex gap-3"><span class="font-serif text-2xl text-emerald-700 w-8 shrink-0">6</span><span><a href="#c11" class="font-semibold underline"><code class="font-mono">tc-core.js</code></a>, rồi viết lại từng file trang theo 5 bước; sau đó mới tới #4, #5, #6.</span></li>
-          </ol>
-          <div class="rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-900">Mỗi bước cần owner tính năng đồng ý và test trên SQL Server thật (<code class="font-mono">mvn -B -Psqlserver-it verify</code>); H2/mock không chứng minh được khoá và quyền.</div>
-        </article>
-      </section>
-
-      <section id="top-recommendation">
-        <a href="#c9" class="block rounded-xl deep p-8 space-y-3 hover:opacity-95">
-          <p class="text-xs uppercase tracking-wider text-emerald-400">Đề xuất hàng đầu</p>
-          <h2 class="font-serif text-3xl">Làm lát cắt mẫu membership, rồi gom runtime vào persistence registry</h2>
-          <p class="text-slate-300">Lát cắt mẫu sửa một lỗi thật (thiếu audit log) và cho cả nhóm thấy năm tầng chạy thế nào; registry sau đó loại bỏ rủi ro Finance kết nối Azure SQL không qua pool.</p>
-        </a>
+      <!-- Top Recommendation Section -->
+      <section id="top-recommendation" class="deep-card text-white rounded-2xl p-8 border border-slate-700 space-y-4 shadow-lg">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-xs font-mono uppercase tracking-widest text-emerald-400">Top Recommendation</span>
+        </div>
+        <h2 class="text-2xl font-serif font-bold text-slate-100">
+          Candidate 1: Collapse the Refund Web Pipeline
+        </h2>
+        <p class="text-sm text-slate-300 leading-relaxed max-w-3xl">
+          The refund subsystem has the highest fragmentation in the repository: 6 shallow servlets, 1 route filter, and 2 static helper classes just to dispatch refund requests. Collapsing this into a unified <code class="text-emerald-300 font-mono text-xs">RefundManagementServlet</code> achieves maximum locality, cuts over 150 lines of glue code, and establishes a single, clear test surface for the entire refund feature.
+        </p>
+        <div class="pt-2">
+          <a href="#candidate-refund-pipeline" class="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-emerald-300 hover:text-emerald-200 underline underline-offset-4">
+            Inspect Candidate 1 details &rarr;
+          </a>
+        </div>
       </section>
     </main>
   </body>

@@ -1,5 +1,6 @@
 package vn.ticketscenter.dashboard.service;
 
+import vn.ticketscenter.config.redis.RedisKeyValueBackend;
 import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
 import java.sql.*;
@@ -33,9 +34,9 @@ class DashboardCacheTest {
         assertEquals(0,store.reads);assertEquals(0,db.aggregations);
     }
     @Test void cacheOutageFallsBackToAuthorizedSqlIncludingChart()throws Exception{
-        var db=new Sql();DashboardCache.Backend offline=new DashboardCache.Backend(){
+        var db=new Sql();RedisKeyValueBackend offline=new RedisKeyValueBackend(){
             public String get(String key){throw new IllegalStateException("offline");}
-            public void set(String key,String value,int ttl){throw new IllegalStateException("offline");}
+            public void setex(String key,int ttl,String value){throw new IllegalStateException("offline");}
             public void delete(String key){throw new IllegalStateException("offline");}
         };
         String result=new DashboardService(db::connection,new DashboardCache(offline),clock).admin(admin);
@@ -50,10 +51,10 @@ class DashboardCacheTest {
         String result=new DashboardService(db::connection,new DashboardCache(store),clock).organization(admin,UUID.randomUUID());
         assertFalse(result.contains("wrong global projection"));assertTrue(result.contains("\"eventCount\":7"),result);assertEquals(0,store.reads);
     }
-    static final class Memory implements DashboardCache.Backend {
+    static final class Memory implements RedisKeyValueBackend {
         final Map<String,String> values=new HashMap<>();int ttl,reads;
         public String get(String key){reads++;return values.get(key);}
-        public void set(String key,String value,int ttl){this.ttl=ttl;values.put(key,value);}
+        public void setex(String key,int ttl,String value){this.ttl=ttl;values.put(key,value);}
         public void delete(String key){values.remove(key);}
     }
     static final class Sql {

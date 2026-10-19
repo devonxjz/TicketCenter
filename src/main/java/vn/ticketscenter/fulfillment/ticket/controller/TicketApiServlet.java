@@ -61,7 +61,7 @@ public class TicketApiServlet extends HttpServlet {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
             }
         } catch (TicketException e) {
-            response.setStatus(e.httpStatus());
+            response.setStatus(e.status());
             response.setContentType("application/json;charset=UTF-8");
             response.getWriter().write(e.toJson());
         } catch (Exception e) {

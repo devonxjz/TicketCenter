@@ -3,7 +3,9 @@ package vn.ticketscenter.fulfillment.checkin.dto;
 import java.time.Instant;
 import java.util.UUID;
 
-import static vn.ticketscenter.config.web.HttpResponses.jsonString;
+import static vn.ticketscenter.config.web.Json.field;
+import static vn.ticketscenter.config.web.Json.nullableText;
+import static vn.ticketscenter.config.web.Json.object;
 
 public record RecentCheckInLogDto(
         UUID id,
@@ -14,20 +16,13 @@ public record RecentCheckInLogDto(
         String zoneName,
         String seatLabel) {
     public String toJson() {
-        return "{\"id\":"
-                + jsonString(id.toString())
-                + ",\"ticketId\":"
-                + jsonString(ticketId == null ? null : ticketId.toString())
-                + ",\"result\":"
-                + jsonString(result)
-                + ",\"scannedAt\":"
-                + jsonString(scannedAt.toString())
-                + ",\"staffName\":"
-                + jsonString(staffName)
-                + ",\"zoneName\":"
-                + jsonString(zoneName)
-                + ",\"seatLabel\":"
-                + jsonString(seatLabel)
-                + "}";
+        return object(
+                field("id", nullableText(id)),
+                field("ticketId", nullableText(ticketId)),
+                field("result", nullableText(result)),
+                field("scannedAt", nullableText(scannedAt)),
+                field("staffName", nullableText(staffName)),
+                field("zoneName", nullableText(zoneName)),
+                field("seatLabel", nullableText(seatLabel)));
     }
 }

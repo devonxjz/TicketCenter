@@ -24,8 +24,7 @@ public final class IdentityErrorWriter {
             HttpServletResponse response, RuntimeException failure, String serverErrorMessage)
             throws IOException {
         if (failure instanceof IdentityException identity) {
-            IdentityError error = identity.error();
-            HttpResponses.error(response, error.status(), error.code(), identity.getMessage());
+            HttpResponses.error(response, identity);
         } else if (failure instanceof IllegalArgumentException invalid) {
             HttpResponses.error(
                     response,

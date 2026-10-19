@@ -1,6 +1,7 @@
 package vn.ticketscenter.config.web;
 
 import jakarta.servlet.http.HttpServletResponse;
+import vn.ticketscenter.config.error.AppException;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -8,6 +9,10 @@ import java.util.UUID;
 public final class HttpResponses {
 
     private HttpResponses() {}
+
+    public static void error(HttpServletResponse response, AppException e) throws IOException {
+        error(response, e.status(), e.code(), e.getMessage());
+    }
 
     public static void error(HttpServletResponse response, int status, String code, String message)
             throws IOException {

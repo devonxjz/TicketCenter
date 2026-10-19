@@ -132,10 +132,8 @@ public final class OrderApiServlet extends HttpServlet {
                 UUID orderId = uuid(path.split("/")[3]);
                 response.getWriter().write(service().orderDetail(actor, orderId).toJson());
             } else throw missing();
-        } catch (OrderException failure) {
-            HttpResponses.error(response, failure.status(), failure.code(), failure.getMessage());
-        } catch (vn.ticketscenter.payment.service.PaymentException failure) {
-            HttpResponses.error(response, failure.status(), failure.code(), failure.getMessage());
+        } catch (OrderException | vn.ticketscenter.payment.service.PaymentException failure) {
+            HttpResponses.error(response, failure);
         } catch (OrderRequests.BodyTooLargeException failure) {
             HttpResponses.error(
                     response, 413, "PAYLOAD_TOO_LARGE", "Order request body is too large.");
