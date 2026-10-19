@@ -202,6 +202,8 @@ public class OrganizationMembersServlet extends HttpServlet {
             if (updated != null) {
                 HttpResponses.data(resp, updated.toJson());
             }
+        } catch (IllegalStateException ex) {
+            membershipConflict(resp, ex);
         } catch (Exception ex) {
             handleException(resp, ex);
         }
@@ -211,24 +213,6 @@ public class OrganizationMembersServlet extends HttpServlet {
         if (ex instanceof SecurityException) {
             HttpResponses.error(
                     resp, HttpServletResponse.SC_FORBIDDEN, "FORBIDDEN", ex.getMessage());
-        } else if (ex instanceof IllegalStateException) {
-            String msg = ex.getMessage();
-            if (msg != null && msg.startsWith("MEMBER_ALREADY_EXISTS")) {
-                HttpResponses.error(
-                        resp,
-                        HttpServletResponse.SC_CONFLICT,
-                        "MEMBER_ALREADY_EXISTS",
-                        msg);
-            } else if (msg != null && msg.contains("CANNOT_DEACTIVATE_LAST_MANAGER")) {
-                HttpResponses.error(
-                        resp,
-                        HttpServletResponse.SC_BAD_REQUEST,
-                        "CANNOT_DEACTIVATE_LAST_MANAGER",
-                        msg);
-            } else {
-                HttpResponses.error(
-                        resp, HttpServletResponse.SC_BAD_REQUEST, "BAD_REQUEST", msg);
-            }
         } else if (ex instanceof IllegalArgumentException) {
             HttpResponses.error(
                     resp, HttpServletResponse.SC_BAD_REQUEST, "BAD_REQUEST", ex.getMessage());
@@ -240,6 +224,27 @@ public class OrganizationMembersServlet extends HttpServlet {
                     HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
                     "SERVER_ERROR",
                     "Đã xảy ra lỗi hệ thống.");
+        }
+    }
+
+    private static void membershipConflict(HttpServletResponse resp, IllegalStateException ex)
+            throws IOException {
+        String msg = ex.getMessage();
+        if (msg != null && msg.startsWith("MEMBER_ALREADY_EXISTS")) {
+            HttpResponses.error(
+                    resp,
+                    HttpServletResponse.SC_CONFLICT,
+                    "MEMBER_ALREADY_EXISTS",
+                    msg);
+        } else if (msg != null && msg.contains("CANNOT_DEACTIVATE_LAST_MANAGER")) {
+            HttpResponses.error(
+                    resp,
+                    HttpServletResponse.SC_BAD_REQUEST,
+                    "CANNOT_DEACTIVATE_LAST_MANAGER",
+                    msg);
+        } else {
+            HttpResponses.error(
+                    resp, HttpServletResponse.SC_BAD_REQUEST, "BAD_REQUEST", msg);
         }
     }
 

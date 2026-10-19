@@ -184,7 +184,7 @@ public class CouponAdminServlet extends HttpServlet {
 
     private static String readBody(HttpServletRequest request) throws IOException {
         try (var reader = request.getReader()) {
-            return reader.lines().collect(Collectors.joining("\n"));
+            return reader.lines().collect(Collectors.joining());
         }
     }
 
