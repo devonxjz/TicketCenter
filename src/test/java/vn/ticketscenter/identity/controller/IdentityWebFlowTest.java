@@ -166,7 +166,7 @@ public class IdentityWebFlowTest {
         HttpServletRequest req = createMockRequest("GET", "/api/auth/csrf", true);
         HttpServletResponse resp = createMockResponse();
 
-        servlet.doGet(req, resp);
+        servlet.service(req, resp);
 
         assertEquals(200, responseStatus.get());
         String body = responseBuffer.toString();
@@ -289,7 +289,7 @@ public class IdentityWebFlowTest {
         HttpServletRequest req = createMockRequest("GET", "/api/me", false);
         HttpServletResponse resp = createMockResponse();
 
-        servlet.doGet(req, resp);
+        servlet.service(req, resp);
 
         assertEquals(401, responseStatus.get());
         assertTrue(responseBuffer.toString().contains("UNAUTHENTICATED"));
@@ -314,7 +314,7 @@ public class IdentityWebFlowTest {
         HttpServletRequest req = createMockRequest("GET", "/api/me", true);
         HttpServletResponse resp = createMockResponse();
 
-        servlet.doGet(req, resp);
+        servlet.service(req, resp);
 
         assertEquals(200, responseStatus.get());
         String body = responseBuffer.toString();
@@ -335,7 +335,7 @@ public class IdentityWebFlowTest {
         HttpServletRequest req = createMockRequest("POST", "/api/auth/logout", true);
         HttpServletResponse resp = createMockResponse();
 
-        servlet.doPost(req, resp);
+        servlet.service(req, resp);
 
         assertEquals(200, responseStatus.get());
         assertTrue(responseBuffer.toString().contains("\"loggedOut\":true"));
@@ -347,7 +347,7 @@ public class IdentityWebFlowTest {
         sessionAttributes.put("TC_CURRENT_USER", "dummy-user");
         sessionAttributes.put("TC_CSRF_TOKEN", "dummy-token");
         LogoutServlet servlet=new LogoutServlet();
-        servlet.doPost(createMockRequest("POST","/auth/logout",true),createMockResponse());
+        servlet.service(createMockRequest("POST","/auth/logout",true),createMockResponse());
         assertEquals(403,responseStatus.get());
         assertEquals("dummy-user",sessionAttributes.get("TC_CURRENT_USER"));
     }
@@ -359,7 +359,7 @@ public class IdentityWebFlowTest {
         HttpServletRequest req = createMockRequest("GET", "/auth/login", false);
         HttpServletResponse resp = createMockResponse();
 
-        servlet.doGet(req, resp);
+        servlet.service(req, resp);
 
         assertEquals("/WEB-INF/views/auth/login.jsp", requestAttributes.get("FORWARDED_TO"));
         assertNotNull(requestAttributes.get("csrfToken"));
@@ -372,7 +372,7 @@ public class IdentityWebFlowTest {
         HttpServletRequest req = createMockRequest("GET", "/auth/register", false);
         HttpServletResponse resp = createMockResponse();
 
-        servlet.doGet(req, resp);
+        servlet.service(req, resp);
 
         assertEquals("/WEB-INF/views/auth/register.jsp", requestAttributes.get("FORWARDED_TO"));
         assertNotNull(requestAttributes.get("csrfToken"));
@@ -399,7 +399,7 @@ public class IdentityWebFlowTest {
         HttpServletRequest req = createMockRequest("POST", "/api/auth/login", true);
         HttpServletResponse resp = createMockResponse();
 
-        servlet.doPost(req, resp);
+        servlet.service(req, resp);
 
         assertEquals(200, responseStatus.get());
         assertTrue(responseBuffer.toString().contains("\"authenticated\":true"));
@@ -430,7 +430,7 @@ public class IdentityWebFlowTest {
         HttpServletRequest req = createMockRequest("POST", "/api/auth/login", true);
         HttpServletResponse resp = createMockResponse();
 
-        servlet.doPost(req, resp);
+        servlet.service(req, resp);
 
         assertEquals(200, responseStatus.get());
         assertTrue(responseBuffer.toString().contains("\"redirect\":\"/\""));
@@ -458,7 +458,7 @@ public class IdentityWebFlowTest {
         HttpServletRequest req = createMockRequest("POST", "/api/auth/login", true);
         HttpServletResponse resp = createMockResponse();
 
-        servlet.doPost(req, resp);
+        servlet.service(req, resp);
 
         assertEquals(200, responseStatus.get());
         assertTrue(responseBuffer.toString().contains("\"redirect\":\"/\""));
@@ -486,7 +486,7 @@ public class IdentityWebFlowTest {
         HttpServletRequest req = createMockRequest("POST", "/api/auth/login", true);
         HttpServletResponse resp = createMockResponse();
 
-        servlet.doPost(req, resp);
+        servlet.service(req, resp);
 
         assertEquals(200, responseStatus.get());
         assertTrue(responseBuffer.toString().contains("\"redirect\":\"/\""));
@@ -511,7 +511,7 @@ public class IdentityWebFlowTest {
         HttpServletRequest req = createMockRequest("POST", "/api/auth/login", true);
         HttpServletResponse resp = createMockResponse();
 
-        servlet.doPost(req, resp);
+        servlet.service(req, resp);
 
         assertEquals(401, responseStatus.get());
         assertTrue(responseBuffer.toString().contains("ACCOUNT_DISABLED"));
@@ -537,7 +537,7 @@ public class IdentityWebFlowTest {
         HttpServletRequest req = createMockRequest("POST", "/api/auth/register", true);
         HttpServletResponse resp = createMockResponse();
 
-        servlet.doPost(req, resp);
+        servlet.service(req, resp);
 
         assertEquals(200, responseStatus.get());
         assertTrue(responseBuffer.toString().contains("\"registered\":true"));
@@ -563,7 +563,7 @@ public class IdentityWebFlowTest {
         HttpServletRequest req = createMockRequest("POST", "/api/auth/register", true);
         HttpServletResponse resp = createMockResponse();
 
-        servlet.doPost(req, resp);
+        servlet.service(req, resp);
 
         assertEquals(400, responseStatus.get());
         assertTrue(responseBuffer.toString().contains("VALIDATION_FAILED"));

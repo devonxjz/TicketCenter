@@ -1,5 +1,8 @@
 package vn.ticketscenter.order.dto;
 
+import vn.ticketscenter.config.web.DtoSerializer;
+import vn.ticketscenter.config.web.JsonSerializable;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -28,7 +31,7 @@ public record OrderDetailDto(
         String providerReference,
         Instant paymentCapturedAt,
         List<OrderItemDetail> items,
-        List<OrderTicketDetail> tickets) {
+        List<OrderTicketDetail> tickets) implements JsonSerializable {
     public OrderDetailDto {
         Objects.requireNonNull(id, "id is required");
         Objects.requireNonNull(orderCode, "orderCode is required");
@@ -46,4 +49,9 @@ public record OrderDetailDto(
             BigDecimal lineTotal) {}
 
     public record OrderTicketDetail(UUID id, String ticketCode, String status, long paidAmount) {}
+
+    @Override
+    public String toJson() {
+        return DtoSerializer.toJson(this);
+    }
 }
