@@ -28,7 +28,16 @@ public record RefundSummaryDto(
     }
 
     public String json() {
-        return "{\"refundId\":"
+        return "{" + fields() + "}";
+    }
+
+    /** The created summary plus a message for the buyer. */
+    public String json(String message) {
+        return "{" + fields() + ",\"message\":" + text(message) + "}";
+    }
+
+    private String fields() {
+        return "\"refundId\":"
                 + text(refundId.toString())
                 + ",\"orderId\":"
                 + text(orderId.toString())
@@ -45,7 +54,6 @@ public record RefundSummaryDto(
                 + ",\"reason\":"
                 + text(reason)
                 + ",\"rejectionReason\":"
-                + text(rejectionReason)
-                + "}";
+                + text(rejectionReason);
     }
 }

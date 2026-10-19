@@ -243,4 +243,19 @@ class SqlCallTest {
         assertEquals(503, thrown.status());
         assertEquals("DB_DOWN", thrown.code());
     }
+
+    @Test
+    void fromCauseFindsTheFirstDomainErrorInTheChain() {
+        var errors = SqlCall.ErrorTable.of()
+                .on(53005, 400, "REFUND_NOT_ELIGIBLE", "Vé không đủ điều kiện hoàn trả.")
+                .fallback((code, message) -> new AppException(503, "DB_DOWN", "Không khả dụng."));
+
+        var wrappedSql = new IllegalStateException(new SQLException("", "S0001", 53005));
+        assertEquals("REFUND_NOT_ELIGIBLE", errors.fromCause(wrappedSql).code());
+
+        var wrappedDomain = new RuntimeException(new AppException(409, "CONFLICT", "Xung đột."));
+        assertEquals("CONFLICT", errors.fromCause(wrappedDomain).code());
+
+        assertEquals("DB_DOWN", errors.fromCause(new IllegalArgumentException("no principal")).code());
+    }
 }

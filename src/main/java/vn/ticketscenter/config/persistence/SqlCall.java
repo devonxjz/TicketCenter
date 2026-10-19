@@ -6,20 +6,24 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import javax.sql.DataSource;
+import org.hibernate.Session;
 import vn.ticketscenter.config.error.AppException;
 
 /**
@@ -97,6 +101,19 @@ public final class SqlCall {
             }
             return null;
         }
+
+        /** The first domain error found in the cause chain, else the fallback for an unknown failure. */
+        public AppException fromCause(Throwable failure) {
+            for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+                if (cause instanceof AppException domain) return domain;
+                if (cause instanceof SQLException sql) {
+                    AppException domain = translate(sql.getErrorCode(), sql.getMessage());
+                    if (domain != null) return domain;
+                }
+            }
+            if (fallback != null) return fallback.apply(0, null);
+            return new AppException(500, "DATABASE_ERROR", failure.getMessage(), failure);
+        }
     }
 
     private SqlCall() {}
@@ -126,6 +143,19 @@ public final class SqlCall {
             }
         } catch (SQLException failure) {
             throw translateError(failure, errors);
+        }
+    }
+
+    /**
+     * Runs JDBC work on the connection of a JPA transaction opened for {@code principal}.
+     */
+    public static <T> T inTransaction(
+            TransactionManager transactions, DatabasePrincipal principal, SqlWork<T> work, ErrorTable errors) {
+        Objects.requireNonNull(transactions, "transactions must not be null");
+        try {
+            return transactions.execute(principal, em -> em.unwrap(Session.class).doReturningWork(work::run));
+        } catch (RuntimeException failure) {
+            throw errors.fromCause(failure);
         }
     }
 
@@ -215,6 +245,16 @@ public final class SqlCall {
      */
     public static void execute(Connection connection, String sql, ErrorTable errors, Object... args) {
         call(connection, sql, rows -> null, errors, args);
+    }
+
+    public static UUID uuid(ResultSet row, String column) throws SQLException {
+        String value = row.getString(column);
+        return value == null ? null : UUID.fromString(value);
+    }
+
+    public static Instant instant(ResultSet row, String column) throws SQLException {
+        Timestamp value = row.getTimestamp(column, Calendar.getInstance(TimeZone.getTimeZone("UTC")));
+        return value == null ? null : value.toInstant();
     }
 
     private static void bindArguments(PreparedStatement statement, Object[] args) throws SQLException {
