@@ -4,6 +4,7 @@ import vn.ticketscenter.config.error.AppException;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import vn.ticketscenter.config.persistence.SqlErrors;
 import vn.ticketscenter.payment.dto.PaymentStatusResult;
 import vn.ticketscenter.payment.service.PaymentException;
 
@@ -359,7 +360,8 @@ public class PaymentRepository {
             } catch (SQLException failure) {
                 PaymentException mapped = domainError(failure);
                 if (mapped != null) throw mapped;
-                if (attempt == 3 || !isTransient(failure)) throw PaymentException.unavailable();
+                if (attempt == 3 || !SqlErrors.isTransient(failure))
+                    throw PaymentException.unavailable();
             }
         }
     }
@@ -388,16 +390,5 @@ public class PaymentRepository {
             }
         }
         return null;
-    }
-
-    private static boolean isTransient(SQLException failure) {
-        for (SQLException error = failure; error != null; error = error.getNextException()) {
-            if (error.getErrorCode() == 1205 || error.getErrorCode() == 1222) return true;
-            String state = error.getSQLState();
-            if (state != null
-                    && (state.startsWith("08") || state.equals("HYT00") || state.equals("HYT01")))
-                return true;
-        }
-        return false;
     }
 }

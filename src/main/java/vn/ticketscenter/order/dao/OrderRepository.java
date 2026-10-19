@@ -2,6 +2,7 @@ package vn.ticketscenter.order.dao;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import vn.ticketscenter.config.persistence.SqlErrors;
 import vn.ticketscenter.order.dto.*;
 import vn.ticketscenter.order.model.OrderStatus;
 import vn.ticketscenter.order.service.OrderException;
@@ -498,7 +499,8 @@ public class OrderRepository {
             } catch (SQLException failure) {
                 OrderException mapped = domain(failure);
                 if (mapped != null) throw mapped;
-                if (attempt == 2 || !retryable(failure)) throw OrderException.unavailable();
+                if (attempt == 2 || !SqlErrors.isTransient(failure, 51309))
+                    throw OrderException.unavailable();
             } catch (OrderException failure) {
                 throw failure;
             } catch (RuntimeException invalidResponse) {
@@ -506,19 +508,6 @@ public class OrderRepository {
             }
         }
         throw OrderException.unavailable();
-    }
-
-    private static boolean retryable(SQLException failure) {
-        for (SQLException error = failure; error != null; error = error.getNextException()) {
-            if (error.getErrorCode() == 1205
-                    || error.getErrorCode() == 1222
-                    || error.getErrorCode() == 51309) return true;
-            String state = error.getSQLState();
-            if (state != null
-                    && (state.startsWith("08") || state.equals("HYT00") || state.equals("HYT01")))
-                return true;
-        }
-        return false;
     }
 
     private static OrderException domain(SQLException failure) {
