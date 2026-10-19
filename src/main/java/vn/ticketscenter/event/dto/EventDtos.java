@@ -1,12 +1,16 @@
 package vn.ticketscenter.event.dto;
 
-import vn.ticketscenter.config.web.HttpResponses;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+
+import static vn.ticketscenter.config.web.Json.array;
+import static vn.ticketscenter.config.web.Json.field;
+import static vn.ticketscenter.config.web.Json.nullableText;
+import static vn.ticketscenter.config.web.Json.number;
+import static vn.ticketscenter.config.web.Json.object;
+import static vn.ticketscenter.config.web.Json.text;
 
 /** Public projections only. VND amounts are integer strings, times are UTC. */
 public final class EventDtos {
@@ -30,47 +34,28 @@ public final class EventDtos {
             BigDecimal maximumPrice,
             boolean isSaleActive) {
         public String toJson() {
-            return "{\"eventId\":"
-                    + json(eventId)
-                    + ",\"id\":"
-                    + json(eventId)
-                    + ",\"categoryId\":"
-                    + json(categoryId)
-                    + ",\"title\":"
-                    + json(title)
-                    + ",\"description\":"
-                    + json(description)
-                    + ",\"coverImageUrl\":"
-                    + json(coverImageUrl)
-                    + ",\"venueName\":"
-                    + json(venueName)
-                    + ",\"venueAddress\":"
-                    + json(venueAddress)
-                    + ",\"venue\":"
-                    + json(venueName + ", " + venueAddress)
-                    + ",\"saleStartTime\":"
-                    + json(saleStart)
-                    + ",\"saleEndTime\":"
-                    + json(saleEnd)
-                    + ",\"saleStart\":"
-                    + json(saleStart)
-                    + ",\"saleEnd\":"
-                    + json(saleEnd)
-                    + ",\"startTime\":"
-                    + json(startTime)
-                    + ",\"endTime\":"
-                    + json(endTime)
-                    + ",\"minPrice\":"
-                    + money(minimumPrice)
-                    + ",\"maxPrice\":"
-                    + money(maximumPrice)
-                    + ",\"category\":"
-                    + json(category)
-                    + ",\"organizationName\":"
-                    + json(organizationName)
-                    + ",\"isSaleActive\":"
-                    + isSaleActive
-                    + ",\"status\":\"PUBLISHED\"}";
+            return object(
+                    field("eventId", nullableText(eventId)),
+                    field("id", nullableText(eventId)),
+                    field("categoryId", nullableText(categoryId)),
+                    field("title", nullableText(title)),
+                    field("description", nullableText(description)),
+                    field("coverImageUrl", nullableText(coverImageUrl)),
+                    field("venueName", nullableText(venueName)),
+                    field("venueAddress", nullableText(venueAddress)),
+                    field("venue", nullableText(venueName + ", " + venueAddress)),
+                    field("saleStartTime", nullableText(saleStart)),
+                    field("saleEndTime", nullableText(saleEnd)),
+                    field("saleStart", nullableText(saleStart)),
+                    field("saleEnd", nullableText(saleEnd)),
+                    field("startTime", nullableText(startTime)),
+                    field("endTime", nullableText(endTime)),
+                    field("minPrice", money(minimumPrice)),
+                    field("maxPrice", money(maximumPrice)),
+                    field("category", nullableText(category)),
+                    field("organizationName", nullableText(organizationName)),
+                    field("isSaleActive", number(isSaleActive)),
+                    field("status", text("PUBLISHED")));
         }
     }
 
@@ -85,56 +70,38 @@ public final class EventDtos {
             long soldQuantity,
             long availableQuantity) {
         public String toJson() {
-            return "{\"zoneId\":"
-                    + json(zoneId)
-                    + ",\"eventId\":"
-                    + json(eventId)
-                    + ",\"name\":"
-                    + json(name)
-                    + ",\"zoneType\":"
-                    + json(type)
-                    + ",\"basePrice\":"
-                    + money(price)
-                    + ",\"totalCapacity\":"
-                    + capacity
-                    + ",\"heldQuantity\":"
-                    + heldQuantity
-                    + ",\"soldQuantity\":"
-                    + soldQuantity
-                    + ",\"availableSeats\":"
-                    + availableQuantity
-                    + "}";
+            return object(
+                    field("zoneId", nullableText(zoneId)),
+                    field("eventId", nullableText(eventId)),
+                    field("name", nullableText(name)),
+                    field("zoneType", nullableText(type)),
+                    field("basePrice", money(price)),
+                    field("totalCapacity", number(capacity)),
+                    field("heldQuantity", number(heldQuantity)),
+                    field("soldQuantity", number(soldQuantity)),
+                    field("availableSeats", number(availableQuantity)));
         }
     }
 
     public record Seat(
             UUID seatId, UUID zoneId, String rowName, int seatNumber, String label, String status) {
         public String toJson() {
-            return "{\"seatId\":"
-                    + json(seatId)
-                    + ",\"zoneId\":"
-                    + json(zoneId)
-                    + ",\"rowName\":"
-                    + json(rowName)
-                    + ",\"seatNumber\":"
-                    + seatNumber
-                    + ",\"seatLabel\":"
-                    + json(label)
-                    + ",\"status\":"
-                    + json(status)
-                    + "}";
+            return object(
+                    field("seatId", nullableText(seatId)),
+                    field("zoneId", nullableText(zoneId)),
+                    field("rowName", nullableText(rowName)),
+                    field("seatNumber", number(seatNumber)),
+                    field("seatLabel", nullableText(label)),
+                    field("status", nullableText(status)));
         }
     }
 
     public record Category(UUID categoryId, String name, String slug) {
         public String toJson() {
-            return "{\"categoryId\":"
-                    + json(categoryId)
-                    + ",\"name\":"
-                    + json(name)
-                    + ",\"slug\":"
-                    + json(slug)
-                    + "}";
+            return object(
+                    field("categoryId", nullableText(categoryId)),
+                    field("name", nullableText(name)),
+                    field("slug", nullableText(slug)));
         }
     }
 
@@ -144,33 +111,22 @@ public final class EventDtos {
         }
 
         public String toJson(EventFilter filter) {
-            return "{\"data\":"
-                    + array(events, Event::toJson)
-                    + ",\"page\":"
-                    + filter.page()
-                    + ",\"pageSize\":"
-                    + filter.pageSize()
-                    + ",\"total\":"
-                    + total
-                    + ",\"totalPages\":"
-                    + (total / filter.pageSize() + (total % filter.pageSize() == 0 ? 0 : 1))
-                    + "}";
+            return object(
+                    field("data", array(events, Event::toJson)),
+                    field("page", number(filter.page())),
+                    field("pageSize", number(filter.pageSize())),
+                    field("total", number(total)),
+                    field(
+                            "totalPages",
+                            number(total / filter.pageSize() + (total % filter.pageSize() == 0 ? 0 : 1))));
         }
     }
 
-    public static String json(Object value) {
-        return value == null ? "null" : HttpResponses.jsonString(value.toString());
-    }
-
     private static String money(BigDecimal value) {
-        return value == null ? "null" : json(value.toBigIntegerExact());
-    }
-
-    public static <T> String array(List<T> items, Function<T, String> encode) {
-        return items.stream().map(encode).collect(Collectors.joining(",", "[", "]"));
+        return nullableText(value == null ? null : value.toBigIntegerExact());
     }
 
     public static String data(String json) {
-        return "{\"data\":" + json + "}";
+        return object(field("data", json));
     }
 }

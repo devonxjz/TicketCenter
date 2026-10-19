@@ -129,7 +129,7 @@ class DtoJsonGoldenTest {
                 new EventDtos.Page(List.of(event(true), event(false)), 41).toJson(eventFilter()));
         cases.put("event/page-empty", () -> new EventDtos.Page(List.of(), 0).toJson(eventFilter()));
         cases.put("event/data-array", () ->
-                EventDtos.data(EventDtos.array(List.of(new EventDtos.Category(ID, "A", "a")), EventDtos.Category::toJson)));
+                EventDtos.data(Json.array(List.of(new EventDtos.Category(ID, "A", "a")), EventDtos.Category::toJson)));
 
         return cases.entrySet().stream()
                 .map(entry -> dynamicTest(entry.getKey(), () -> assertGolden(entry.getKey(), entry.getValue().get())))
