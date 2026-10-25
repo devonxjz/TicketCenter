@@ -2,12 +2,12 @@ package vn.ticketscenter.event.cache;
 
 import redis.clients.jedis.Jedis;
 import vn.ticketscenter.config.redis.RedisClientProvider;
+import vn.ticketscenter.config.redis.RedisScan;
 import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 import java.util.*;
-import redis.clients.jedis.params.ScanParams;
 
 public final class EventCatalogCacheImpl implements EventCatalogCache, EventCacheInvalidator {
     private static final int MAX_CHARACTERS = 2_000_000;
@@ -97,13 +97,7 @@ public final class EventCatalogCacheImpl implements EventCatalogCache, EventCach
                             "tc:zone:seats:v1:*",
                             "tc:org:events:*",
                             "tc:admin:events:*")) {
-                String cursor = "0";
-                do {
-                    var result = redis.scan(cursor, new ScanParams().match(pattern).count(100));
-                    if (!result.getResult().isEmpty())
-                        redis.del(result.getResult().toArray(String[]::new));
-                    cursor = result.getCursor();
-                } while (!cursor.equals("0"));
+                RedisScan.deleteMatching(redis, pattern);
             }
             // An older successful scan must not acknowledge a newer failed invalidation.
             completedInvalidation.accumulateAndGet(epoch, Math::max);

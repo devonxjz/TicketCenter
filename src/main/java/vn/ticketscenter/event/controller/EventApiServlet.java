@@ -171,9 +171,9 @@ public class EventApiServlet extends HttpServlet {
     private static void error(HttpServletResponse response, RuntimeException exception)
             throws IOException {
         if (exception instanceof EventException e)
-            HttpResponses.error(response, e.status(), e.code(), e.getMessage());
+            HttpResponses.error(response, e);
         else if (exception instanceof EventProblem e)
-            HttpResponses.error(response, e.status(), e.code(), e.getMessage());
+            HttpResponses.error(response, e);
         else if (exception instanceof IllegalArgumentException)
             HttpResponses.error(response, 400, "EVENT_INPUT_INVALID", "Event input is invalid");
         else {

@@ -1,22 +1,20 @@
 package vn.ticketscenter.identity.dto;
 
-import vn.ticketscenter.config.web.HttpResponses;
-
 import java.util.UUID;
+
+import static vn.ticketscenter.config.web.Json.field;
+import static vn.ticketscenter.config.web.Json.nullableText;
+import static vn.ticketscenter.config.web.Json.object;
+import static vn.ticketscenter.config.web.Json.text;
 
 public record ProfileDto(UUID id, String email, String userName, String fullName, String phone) {
 
     public String toJson() {
-        return "{\"id\":"
-                + HttpResponses.jsonString(String.valueOf(id))
-                + ",\"email\":"
-                + HttpResponses.jsonString(email)
-                + ",\"userName\":"
-                + HttpResponses.jsonString(userName)
-                + ",\"fullName\":"
-                + HttpResponses.jsonString(fullName)
-                + ",\"phone\":"
-                + HttpResponses.jsonString(phone)
-                + "}";
+        return object(
+                field("id", text(String.valueOf(id))),
+                field("email", nullableText(email)),
+                field("userName", nullableText(userName)),
+                field("fullName", nullableText(fullName)),
+                field("phone", nullableText(phone)));
     }
 }

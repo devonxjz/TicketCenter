@@ -139,11 +139,11 @@ class TicketServiceTest {
 
         // Người dùng khác cố tình truy cập -> 403 Forbidden
         TicketException ex = assertThrows(TicketException.class, () -> service.getTicketDetail(BUYER_B, ticketId));
-        assertEquals(403, ex.httpStatus());
+        assertEquals(403, ex.status());
 
         // Vé không tồn tại -> 404 Not Found
         TicketException notFound = assertThrows(TicketException.class, () -> service.getTicketDetail(BUYER_A, UUID.randomUUID()));
-        assertEquals(404, notFound.httpStatus());
+        assertEquals(404, notFound.status());
     }
 
     @Test

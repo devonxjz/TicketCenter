@@ -9,6 +9,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
+import vn.ticketscenter.config.redis.RedisScripts;
 
 public final class RedisPaymentIdempotency {
     public static final Duration DEFAULT_RETENTION = Duration.ofMinutes(10);
@@ -18,13 +19,6 @@ public final class RedisPaymentIdempotency {
     // ARGV[1]: mã đánh dấu yêu cầu đang xử lý, tức pendingMarker.
     // ARGV[2]: kết quả muốn lưu.
     // ARGV[3]: thời gian tồn tại của kết quả, tính bằng mili giây.
-
-    private static final String COMPLETE_LUA =
-            """
-            if redis.call('GET', KEYS[1]) ~= ARGV[1] then return 0 end
-            redis.call('PSETEX', KEYS[1], ARGV[3], ARGV[2])
-            return 1
-            """;
 
     private final Supplier<Jedis> connections;
     private final ConcurrentMap<String, MemoryRecord> memoryStore;
@@ -112,7 +106,7 @@ public final class RedisPaymentIdempotency {
             try (Jedis client = connections.get()) {
                 Object result =
                         client.eval(
-                                COMPLETE_LUA,
+                                RedisScripts.REPLACE_IF_EQUALS_PX,
                                 1,
                                 redisKey,
                                 pendingMarker,

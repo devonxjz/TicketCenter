@@ -8,8 +8,6 @@ import vn.ticketscenter.fulfillment.refund.service.RefundException;
 import vn.ticketscenter.fulfillment.refund.service.RefundRequestService;
 import vn.ticketscenter.fulfillment.refund.service.RefundRequestServiceImpl;
 
-import java.time.Clock;
-
 import static vn.ticketscenter.config.persistence.DatabasePrincipal.BUYER;
 
 public final class RefundRuntime {
@@ -31,7 +29,6 @@ public final class RefundRuntime {
                                         503, "DATABASE_UNAVAILABLE", "Hệ thống hoàn vé chưa sẵn sàng."));
         return new RefundRequestServiceImpl(
                 new RefundRequestRepository(registry.transactionManager()),
-                new RefundRequestCacheImpl(),
-                Clock.systemUTC());
+                new RefundRequestCacheImpl());
     }
 }

@@ -5,7 +5,14 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.stream.Collectors;
+
+import static vn.ticketscenter.config.web.Json.array;
+import static vn.ticketscenter.config.web.Json.field;
+import static vn.ticketscenter.config.web.Json.money;
+import static vn.ticketscenter.config.web.Json.nullableText;
+import static vn.ticketscenter.config.web.Json.number;
+import static vn.ticketscenter.config.web.Json.object;
+import static vn.ticketscenter.config.web.Json.text;
 
 /**
  * Chi tiết đầy đủ của đơn hàng (LIEM-06 / UI-06).
@@ -49,123 +56,49 @@ public record OrderDetailDto(
             BigDecimal unitPrice,
             BigDecimal lineTotal) {
         public String toJson() {
-            return "{\"id\":\""
-                    + id
-                    + "\","
-                    + "\"zoneName\":\""
-                    + escape(zoneName)
-                    + "\","
-                    + "\"seatLabel\":"
-                    + (seatLabel != null ? "\"" + escape(seatLabel) + "\"" : "null")
-                    + ","
-                    + "\"quantity\":"
-                    + quantity
-                    + ","
-                    + "\"unitPrice\":"
-                    + (unitPrice != null ? unitPrice : BigDecimal.ZERO)
-                    + ","
-                    + "\"lineTotal\":"
-                    + (lineTotal != null ? lineTotal : BigDecimal.ZERO)
-                    + "}";
+            return object(
+                    field("id", text(id)),
+                    field("zoneName", text(zoneName)),
+                    field("seatLabel", nullableText(seatLabel)),
+                    field("quantity", number(quantity)),
+                    field("unitPrice", money(unitPrice)),
+                    field("lineTotal", money(lineTotal)));
         }
     }
 
     public record OrderTicketDetail(UUID id, String ticketCode, String status, long paidAmount) {
         public String toJson() {
-            return "{\"id\":\""
-                    + id
-                    + "\","
-                    + "\"ticketCode\":\""
-                    + escape(ticketCode)
-                    + "\","
-                    + "\"status\":\""
-                    + escape(status)
-                    + "\","
-                    + "\"paidAmount\":"
-                    + paidAmount
-                    + "}";
+            return object(
+                    field("id", text(id)),
+                    field("ticketCode", text(ticketCode)),
+                    field("status", text(status)),
+                    field("paidAmount", number(paidAmount)));
         }
     }
 
     public String toJson() {
-        String itemsJson =
-                items.stream().map(OrderItemDetail::toJson).collect(Collectors.joining(","));
-        String ticketsJson =
-                tickets.stream().map(OrderTicketDetail::toJson).collect(Collectors.joining(","));
-
-        return "{\"id\":\""
-                + id
-                + "\","
-                + "\"buyerId\":\""
-                + (buyerId != null ? buyerId.toString() : "")
-                + "\","
-                + "\"orderCode\":\""
-                + escape(orderCode)
-                + "\","
-                + "\"eventId\":\""
-                + (eventId != null ? eventId.toString() : "")
-                + "\","
-                + "\"eventTitle\":\""
-                + escape(eventTitle != null ? eventTitle : "")
-                + "\","
-                + "\"venueName\":\""
-                + escape(venueName != null ? venueName : "")
-                + "\","
-                + "\"venueAddress\":\""
-                + escape(venueAddress != null ? venueAddress : "")
-                + "\","
-                + "\"startTime\":\""
-                + (startTime != null ? startTime.toString() : "")
-                + "\","
-                + "\"endTime\":\""
-                + (endTime != null ? endTime.toString() : "")
-                + "\","
-                + "\"subtotalAmount\":"
-                + (subtotalAmount != null ? subtotalAmount : BigDecimal.ZERO)
-                + ","
-                + "\"discountAmount\":"
-                + (discountAmount != null ? discountAmount : BigDecimal.ZERO)
-                + ","
-                + "\"totalAmount\":"
-                + (totalAmount != null ? totalAmount : BigDecimal.ZERO)
-                + ","
-                + "\"status\":\""
-                + escape(status)
-                + "\","
-                + "\"createdAt\":\""
-                + (createdAt != null ? createdAt.toString() : "")
-                + "\","
-                + "\"paidAt\":\""
-                + (paidAt != null ? paidAt.toString() : "")
-                + "\","
-                + "\"couponCode\":"
-                + (couponCode != null ? "\"" + escape(couponCode) + "\"" : "null")
-                + ","
-                + "\"paymentStatus\":"
-                + (paymentStatus != null ? "\"" + escape(paymentStatus) + "\"" : "null")
-                + ","
-                + "\"txnRef\":"
-                + (txnRef != null ? "\"" + escape(txnRef) + "\"" : "null")
-                + ","
-                + "\"providerReference\":"
-                + (providerReference != null ? "\"" + escape(providerReference) + "\"" : "null")
-                + ","
-                + "\"paymentCapturedAt\":\""
-                + (paymentCapturedAt != null ? paymentCapturedAt.toString() : "")
-                + "\","
-                + "\"items\":["
-                + itemsJson
-                + "],"
-                + "\"tickets\":["
-                + ticketsJson
-                + "]}";
-    }
-
-    private static String escape(String s) {
-        if (s == null) return "";
-        return s.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r");
+        return object(
+                field("id", text(id)),
+                field("buyerId", text(buyerId)),
+                field("orderCode", text(orderCode)),
+                field("eventId", text(eventId)),
+                field("eventTitle", text(eventTitle)),
+                field("venueName", text(venueName)),
+                field("venueAddress", text(venueAddress)),
+                field("startTime", text(startTime)),
+                field("endTime", text(endTime)),
+                field("subtotalAmount", money(subtotalAmount)),
+                field("discountAmount", money(discountAmount)),
+                field("totalAmount", money(totalAmount)),
+                field("status", text(status)),
+                field("createdAt", text(createdAt)),
+                field("paidAt", text(paidAt)),
+                field("couponCode", nullableText(couponCode)),
+                field("paymentStatus", nullableText(paymentStatus)),
+                field("txnRef", nullableText(txnRef)),
+                field("providerReference", nullableText(providerReference)),
+                field("paymentCapturedAt", text(paymentCapturedAt)),
+                field("items", array(items, OrderItemDetail::toJson)),
+                field("tickets", array(tickets, OrderTicketDetail::toJson)));
     }
 }

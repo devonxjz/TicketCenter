@@ -17,6 +17,12 @@
         deactivateModal: ['btnDeactivateSubmit', '<i class="fa-solid fa-user-slash me-1"></i> Xác nhận vô hiệu hóa']
     };
 
+    function formatDate(instantStr) {
+        if (!instantStr) return '—';
+        const d = new Date(instantStr);
+        return isNaN(d.getTime()) ? instantStr : d.toLocaleString('vi-VN');
+    }
+
     function getActiveOrgId() {
         if (window.tcCurrentOrgId !== undefined) return window.tcCurrentOrgId;
         return window.TcOrgContext?.getCurrentOrgId() || localStorage?.getItem('tc_current_organization_id');
@@ -182,7 +188,7 @@
                 <td><span class="text-body">${TC.escapeHtml(email)}</span></td>
                 <td>${roleBadgeHtml}</td>
                 <td>${statusBadgeHtml}</td>
-                <td><span class="small text-muted">${TC.date(joinedAt)}</span></td>
+                <td><span class="small text-muted">${formatDate(joinedAt)}</span></td>
                 <td class="text-end">${actionsHtml}</td>
             `;
 

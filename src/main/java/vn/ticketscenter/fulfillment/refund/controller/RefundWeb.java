@@ -3,7 +3,7 @@ package vn.ticketscenter.fulfillment.refund.controller;
 import jakarta.servlet.http.*;
 import java.io.*;
 import java.util.*;
-import vn.ticketscenter.config.web.ApiRequest;
+import vn.ticketscenter.config.error.AppException;
 import vn.ticketscenter.config.web.*;
 import vn.ticketscenter.fulfillment.refund.dto.CreateRefundRequestDto;
 import vn.ticketscenter.fulfillment.refund.service.RefundException;
@@ -11,6 +11,8 @@ import vn.ticketscenter.identity.config.IdentityServices;
 import vn.ticketscenter.identity.security.*;
 
 final class RefundWeb {
+    static final String UUID_PATTERN =
+            "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 
     private RefundWeb() {}
 
@@ -31,8 +33,18 @@ final class RefundWeb {
         return actor;
     }
 
+    static UserPrincipal requireAdmin(HttpServletRequest request) {
+        var actor = actor(request);
+        if (!actor.isAdmin()) {
+            throw new RefundException(
+                    403, "ADMIN_REQUIRED", "Chỉ quản trị viên được phép xử lý hoàn tiền.");
+        }
+        return actor;
+    }
+
     static UUID id(String value) {
-        return ApiRequest.uuid(value).orElseThrow(RefundException::invalid);
+        if (value == null || !value.matches(UUID_PATTERN)) throw RefundException.invalid();
+        return UUID.fromString(value);
     }
 
     static int page(String value, int fallback) {
@@ -46,7 +58,11 @@ final class RefundWeb {
     static UUID mutation(HttpServletRequest request) {
         if (!SecurityContext.validateCsrfToken(request))
             throw new RefundException(403, "CSRF_INVALID", "Mã bảo vệ phiên không hợp lệ.");
-        if (!ApiRequest.isJson(request))
+        if (request.getContentType() == null
+                || !request.getContentType()
+                        .split(";", 2)[0]
+                        .strip()
+                        .equalsIgnoreCase("application/json"))
             throw new RefundException(415, "JSON_REQUIRED", "Yêu cầu phải sử dụng JSON.");
         return id(request.getHeader("Idempotency-Key"));
     }
@@ -64,18 +80,17 @@ final class RefundWeb {
         return RefundRequestJson.parse(body.toString());
     }
 
+    /** SQL error tables raise plain {@link AppException}, so match the base type, not RefundException. */
     static void error(HttpServletResponse response, RuntimeException failure) throws IOException {
-        if (failure instanceof RefundException e)
-            HttpResponses.error(response, e.status(), e.code(), e.getMessage());
-        else
-            HttpResponses.error(
-                    response,
-                    503,
-                    "REFUND_UNAVAILABLE",
-                    "Hệ thống hoàn vé tạm thời không khả dụng.");
+        if (failure instanceof AppException known) {
+            HttpResponses.error(response, known);
+            return;
+        }
+        HttpResponses.error(
+                response, 503, "REFUND_UNAVAILABLE", "Hệ thống hoàn vé tạm thời không khả dụng.");
     }
 
     static String path(HttpServletRequest r) {
-        return ApiRequest.path(r);
+        return r.getRequestURI().substring(r.getContextPath().length());
     }
 }

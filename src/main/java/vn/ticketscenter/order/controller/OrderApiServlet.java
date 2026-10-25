@@ -55,10 +55,8 @@ public final class OrderApiServlet extends HttpServlet {
             if (request.getMethod().equals("POST")) post(request, response, actor, path);
             else if (request.getMethod().equals("GET")) get(request, response, actor, path);
             else throw missing();
-        } catch (OrderException failure) {
-            HttpResponses.error(response, failure.status(), failure.code(), failure.getMessage());
-        } catch (PaymentException failure) {
-            HttpResponses.error(response, failure.status(), failure.code(), failure.getMessage());
+        } catch (OrderException | PaymentException failure) {
+            HttpResponses.error(response, failure);
         } catch (OrderRequests.BodyTooLargeException failure) {
             HttpResponses.error(response, 413, "PAYLOAD_TOO_LARGE", "Order request body is too large.");
         } catch (IllegalArgumentException failure) {

@@ -1,7 +1,6 @@
 package vn.ticketscenter.ticketing.cache;
 
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.params.SetParams;
 import vn.ticketscenter.ticketing.dto.ActiveHoldProjection;
 
@@ -21,6 +20,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
+import vn.ticketscenter.config.redis.RedisScripts;
 
 /**
  * Services must recheck current DB permission and ownership before returning hits.
@@ -29,12 +29,6 @@ import java.util.function.Supplier;
 public final class RedisActiveHoldCache {
     private static final int MAX_PAYLOAD_CHARS = 1024;
     private static final long MARKER_TTL_MILLIS = Duration.ofMinutes(10).toMillis();
-    private static final String REPLACE_MARKER =
-            """
-            if redis.call('GET', KEYS[1]) ~= ARGV[1] then return 0 end
-            redis.call('PSETEX', KEYS[1], ARGV[3], ARGV[2])
-            return 1
-            """;
     private static final String FILL =
             """
             if redis.call('GET', KEYS[1]) ~= ARGV[1] then return 0 end
@@ -51,10 +45,6 @@ public final class RedisActiveHoldCache {
     public RedisActiveHoldCache(Supplier<Jedis> connections, Clock clock) {
         this.connections = Objects.requireNonNull(connections);
         this.clock = Objects.requireNonNull(clock);
-    }
-
-    public RedisActiveHoldCache(JedisPool pool, Clock clock) {
-        this(Objects.requireNonNull(pool)::getResource, clock);
     }
 
     public record Lookup(
@@ -98,7 +88,7 @@ public final class RedisActiveHoldCache {
                             : Long.valueOf(1)
                                     .equals(
                                             jedis.eval(
-                                                    REPLACE_MARKER,
+                                                    RedisScripts.REPLACE_IF_EQUALS_PX,
                                                     List.of(key),
                                                     List.of(
                                                             observed,

@@ -1,5 +1,6 @@
 package vn.ticketscenter.report.service;
 
+import vn.ticketscenter.config.redis.RedisKeyValueBackend;
 import org.junit.jupiter.api.Test;
 import vn.ticketscenter.identity.model.*;
 import vn.ticketscenter.identity.security.UserPrincipal;
@@ -16,7 +17,7 @@ class ReportServiceTest {
     ReportFilter filter(){return ReportFilter.parse(Map.of("from","2026-10-01T00:00:00Z","to","2026-10-02T00:00:00Z"),org);}
     @Test void deniedMembershipIsCheckedBeforeCacheOrCsvBytes() throws Exception {
         var tracker=new Tracker();tracker.manager=false;var output=new ByteArrayOutputStream();
-        var cache=new ReportCache(new ReportCache.Backend(){public String get(String key){fail("cache read before permission");return null;}public void set(String key,String value,int ttl){}public void increment(String key){}});
+        var cache=new ReportCache(new RedisKeyValueBackend(){public String get(String key){fail("cache read before permission");return null;}public void setex(String key,int ttl,String value){}public void increment(String key){}});
         var service=new ReportServiceImpl(()->connection(tracker),cache);
         assertEquals(403,assertThrows(FinanceException.class,()->service.json(new UserPrincipal(user,PlatformRole.CUSTOMER,1,OrganizationRole.MANAGER),filter())).status());
         assertThrows(FinanceException.class,()->service.export(new UserPrincipal(user,PlatformRole.CUSTOMER,1),filter(),output));
@@ -33,7 +34,7 @@ class ReportServiceTest {
         assertEquals(1,tracker.reportQueries);assertTrue(tracker.reportCursorClosed);assertTrue(tracker.reportStatementClosed);assertTrue(tracker.connectionClosed);
     }
     @Test void redisFailureFallsBackToAuthorizedDatabase() throws Exception {
-        var tracker=new Tracker();var cache=new ReportCache(new ReportCache.Backend(){public String get(String key){throw new IllegalStateException("offline");}public void set(String k,String v,int t){throw new IllegalStateException();}public void increment(String k){throw new IllegalStateException();}});
+        var tracker=new Tracker();var cache=new ReportCache(new RedisKeyValueBackend(){public String get(String key){throw new IllegalStateException("offline");}public void setex(String k,int t,String v){throw new IllegalStateException();}public void increment(String k){throw new IllegalStateException();}});
         assertTrue(new ReportServiceImpl(()->connection(tracker),cache).json(new UserPrincipal(user,PlatformRole.CUSTOMER,1),filter()).contains("COHORT_REVENUE"));assertTrue(tracker.reportQueries>0);
     }
     static class Tracker {boolean manager=true,reportCursorClosed,reportStatementClosed,connectionClosed;int version=1,reportQueries;}

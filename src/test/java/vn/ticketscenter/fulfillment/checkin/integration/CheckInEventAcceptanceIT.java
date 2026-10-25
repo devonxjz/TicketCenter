@@ -112,7 +112,7 @@ class CheckInEventAcceptanceIT {
     static Jedis redis(){return new Jedis(AppConfig.get("redis.host"),AppConfig.getInt("redis.port",16379),1000);}
     CheckInEventService service(Instant now){return new CheckInEventServiceImpl(repository,cache,Clock.fixed(now,ZoneOffset.UTC));}
     static UUID id(String kind){return UUID.fromString(Objects.requireNonNull(AppConfig.get("TC_CHECKIN_TEST_"+kind+"_ID")));}
-    static void assertError(int status,Runnable action){assertEquals(status,assertThrows(CheckInException.class,action::run).httpStatus());}
+    static void assertError(int status,Runnable action){assertEquals(status,assertThrows(CheckInException.class,action::run).status());}
     static void change(String sql,UUID... ids)throws Exception {
         try(var c=DriverManager.getConnection(DatabaseConfig.getJdbcUrl(),DatabaseConfig.getUser(),DatabaseConfig.getPassword());var q=c.prepareStatement(sql)) {
             for(int i=0;i<ids.length;i++)q.setString(i+1,ids[i].toString());assertEquals(1,q.executeUpdate());

@@ -1,5 +1,8 @@
 package vn.ticketscenter.fulfillment.refund.dao;
 
+import static vn.ticketscenter.config.persistence.SqlCall.instant;
+import static vn.ticketscenter.config.persistence.SqlCall.uuid;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
@@ -20,9 +23,6 @@ import vn.ticketscenter.fulfillment.refund.dto.RefundTicketOptionDto;
 import vn.ticketscenter.fulfillment.refund.service.RefundException;
 import vn.ticketscenter.identity.security.UserPrincipal;
 
-import static vn.ticketscenter.config.persistence.SqlCall.instant;
-import static vn.ticketscenter.config.persistence.SqlCall.uuid;
-
 /**
  * Shared resource-local transaction in production; DataSource constructor enables real isolated fixtures.
  */
@@ -35,7 +35,7 @@ public final class AdminRefundRepository implements AdminRefundStore {
             .on(new int[] {54104, 51401}, 404, "REFUND_NOT_FOUND", "Yêu cầu hoàn tiền không tồn tại.")
             .on(new int[] {54109, 51403, 51404, 51406, 51407, 51805, 51806}, 409, "REFUND_DECISION_CONFLICT",
                     "Trạng thái hoàn tiền đã thay đổi hoặc cần đối soát. Hãy tải lại hồ sơ.")
-            .fallback((code, msg) -> unavailable());
+            .fallback((code, msg) -> new RefundException(503, "DATABASE_UNAVAILABLE", "Hệ thống hoàn tiền tạm thời không khả dụng."));
 
     private final TransactionManager transactions;
     private final DataSource supplied;
@@ -52,37 +52,32 @@ public final class AdminRefundRepository implements AdminRefundStore {
 
     private record ActorRow(String status, int authVersion, boolean admin) {}
 
-    private record Header(AdminRefundSummaryDto refund, UUID currentAttempt, UUID reviewer, Instant decidedAt) {}
+    private record RefundHeader(AdminRefundSummaryDto summary, UUID attemptId, UUID reviewerId, Instant decidedAt) {}
 
     private <T> T withConnection(SqlCall.SqlWork<T> work) {
-        try {
-            return transactions != null
-                    ? SqlCall.inSession(transactions, DatabasePrincipal.ADMIN, work)
-                    : SqlCall.inTransaction(supplied, work, ERRORS);
-        } catch (RuntimeException failure) {
-            throw SqlCall.failure(failure, ERRORS, AdminRefundRepository::unavailable);
+        if (transactions != null) {
+            return SqlCall.inTransaction(transactions, DatabasePrincipal.ADMIN, work, ERRORS);
         }
-    }
-
-    private static RefundException unavailable() {
-        return new RefundException(503, "DATABASE_UNAVAILABLE", "Hệ thống hoàn tiền tạm thời không khả dụng.");
+        try {
+            return SqlCall.inTransaction(supplied, work, ERRORS);
+        } catch (RuntimeException failure) {
+            throw ERRORS.fromCause(failure);
+        }
     }
 
     @Override
     public void requireAdmin(UserPrincipal actor) {
         withConnection(c -> {
-            var row = SqlCall.queryOptional(
+            ActorRow row = SqlCall.call(
                     c,
                     "SELECT status, auth_version, is_admin FROM dbo.v_admin_refund_actor WHERE id=?",
                     r -> new ActorRow(r.getString(1), r.getInt(2), r.getBoolean(3)),
                     ERRORS,
                     actor.actorId());
-            if (row.isEmpty()
-                    || !"ACTIVE".equals(row.get().status())
-                    || row.get().authVersion() != actor.authVersion()) {
+            if (row == null || !"ACTIVE".equals(row.status()) || row.authVersion() != actor.authVersion()) {
                 throw new RefundException(401, "SESSION_EXPIRED", "Phiên đăng nhập đã hết hạn.");
             }
-            if (!row.get().admin()) {
+            if (!row.admin()) {
                 throw new RefundException(403, "ADMIN_REQUIRED", "Bạn không còn quyền quản trị viên.");
             }
             return null;
@@ -117,10 +112,10 @@ public final class AdminRefundRepository implements AdminRefundStore {
     @Override
     public AdminRefundDetailDto detail(UUID id) {
         return withConnection(c -> {
-            var header = SqlCall.call(
+            RefundHeader header = SqlCall.call(
                     c,
                     "SELECT * FROM dbo.v_admin_refund_requests WHERE refund_id=?",
-                    r -> new Header(
+                    r -> new RefundHeader(
                             summary(r),
                             uuid(r, "current_attempt_id"),
                             uuid(r, "reviewer_id"),
@@ -130,6 +125,7 @@ public final class AdminRefundRepository implements AdminRefundStore {
             if (header == null) {
                 throw new RefundException(404, "REFUND_NOT_FOUND", "Yêu cầu hoàn tiền không tồn tại.");
             }
+
             var tickets = SqlCall.queryList(
                     c,
                     "SELECT * FROM dbo.v_refund_tickets WHERE refund_id=? ORDER BY ticket_id",
@@ -167,9 +163,9 @@ public final class AdminRefundRepository implements AdminRefundStore {
                     id);
 
             return new AdminRefundDetailDto(
-                    header.refund(),
-                    header.currentAttempt(),
-                    header.reviewer(),
+                    header.summary(),
+                    header.attemptId(),
+                    header.reviewerId(),
                     header.decidedAt(),
                     note,
                     tickets,

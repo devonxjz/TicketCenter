@@ -1,8 +1,8 @@
 package vn.ticketscenter.fulfillment.checkin.cache;
 
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.params.ScanParams;
 import vn.ticketscenter.config.redis.RedisClientProvider;
+import vn.ticketscenter.config.redis.RedisScan;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.config.web.JsonObjectParser;
 import vn.ticketscenter.fulfillment.checkin.dao.CheckInEventRepository.EventInfo;
@@ -86,15 +86,7 @@ public final class CheckInEventCacheImpl implements CheckInEventCache {
     public void invalidate(UUID eventId, UUID organizationId) {
         try (Jedis redis = connections.get()) {
             redis.del(windowKey(eventId));
-            String cursor = "0";
-            ScanParams params =
-                    new ScanParams().match("tc:checkin:events:v1:*:" + organizationId).count(100);
-            do {
-                var result = redis.scan(cursor, params);
-                if (!result.getResult().isEmpty())
-                    redis.del(result.getResult().toArray(String[]::new));
-                cursor = result.getCursor();
-            } while (!"0".equals(cursor));
+            RedisScan.deleteMatching(redis, "tc:checkin:events:v1:*:" + organizationId);
         } catch (RuntimeException ignored) {
         }
     }

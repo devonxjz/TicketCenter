@@ -16,7 +16,6 @@ import vn.ticketscenter.order.coupon.service.CouponAdminRuntime;
 import vn.ticketscenter.order.coupon.service.CouponAdminService;
 import vn.ticketscenter.order.service.OrderException;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
@@ -76,7 +75,7 @@ public class CouponAdminServlet extends HttpServlet {
                 response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
             }
         } catch (OrderException e) {
-            HttpResponses.error(response, e.status(), e.code(), e.getMessage());
+            HttpResponses.error(response, e);
         } catch (IllegalArgumentException e) {
             HttpResponses.error(response, 400, "BAD_REQUEST", e.getMessage());
         } catch (Exception e) {
@@ -185,14 +184,9 @@ public class CouponAdminServlet extends HttpServlet {
     }
 
     private static String readBody(HttpServletRequest request) throws IOException {
-        StringBuilder sb = new StringBuilder();
-        try (BufferedReader reader = request.getReader()) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                sb.append(line);
-            }
+        try (var reader = request.getReader()) {
+            return reader.lines().collect(Collectors.joining());
         }
-        return sb.toString();
     }
 
     private static UUID parseUuid(String s) {

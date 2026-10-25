@@ -16,12 +16,7 @@ public final class FinanceMutationServiceImpl implements FinanceMutationService 
     private final SettlementReadCache settlementCache;
 
     public FinanceMutationServiceImpl(FinanceRepository repository, PayoutAdapter adapter) {
-        this(repository, adapter, CommissionRuleCache.none());
-    }
-
-    public FinanceMutationServiceImpl(
-            FinanceRepository repository, PayoutAdapter adapter, CommissionRuleCache cache) {
-        this(repository, adapter, cache, SettlementReadCache.none());
+        this(repository, adapter, CommissionRuleCache.none(), SettlementReadCache.none());
     }
 
     public FinanceMutationServiceImpl(

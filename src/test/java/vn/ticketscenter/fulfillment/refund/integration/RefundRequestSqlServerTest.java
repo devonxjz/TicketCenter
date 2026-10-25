@@ -2,7 +2,6 @@ package vn.ticketscenter.fulfillment.refund.integration;
 
 import jakarta.persistence.*;
 import java.sql.*;
-import java.time.Clock;
 import java.util.*;
 import java.util.concurrent.*;
 import org.junit.jupiter.api.*;
@@ -18,7 +17,7 @@ import static vn.ticketscenter.fulfillment.refund.integration.RefundFixture.*;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class RefundRequestSqlServerTest {
     EntityManagerFactory factory;RefundRequestService service;
-    @BeforeAll void connect()throws Exception{try(var preflight=RefundFixture.connect("BUYER")){assertEquals("TicketCenter_Khanh03_Test",preflight.getCatalog());}factory=Persistence.createEntityManagerFactory("ticketscenter",Map.of("jakarta.persistence.jdbc.url",required("TC_REFUND_TEST_URL"),"jakarta.persistence.jdbc.user",required("TC_REFUND_BUYER_USER"),"jakarta.persistence.jdbc.password",required("TC_REFUND_BUYER_PASSWORD")));service=new RefundRequestServiceImpl(new RefundRequestRepository(new TransactionManager(Map.of(DatabasePrincipal.BUYER,factory))),RefundRequestCache.NONE,Clock.systemUTC());}
+    @BeforeAll void connect()throws Exception{try(var preflight=RefundFixture.connect("BUYER")){assertEquals("TicketCenter_Khanh03_Test",preflight.getCatalog());}factory=Persistence.createEntityManagerFactory("ticketscenter",Map.of("jakarta.persistence.jdbc.url",required("TC_REFUND_TEST_URL"),"jakarta.persistence.jdbc.user",required("TC_REFUND_BUYER_USER"),"jakarta.persistence.jdbc.password",required("TC_REFUND_BUYER_PASSWORD")));service=new RefundRequestServiceImpl(new RefundRequestRepository(new TransactionManager(Map.of(DatabasePrincipal.BUYER,factory))),RefundRequestCache.NONE);}
     @AfterAll void close(){if(factory!=null)factory.close();}
     private CreateRefundRequestDto request(RefundFixture f){return new CreateRefundRequestDto(f.order,f.tickets,"Không thể tham dự sự kiện này.");}
     private static void error(int status,Runnable work){assertEquals(status,assertThrows(RefundException.class,work::run).status());}

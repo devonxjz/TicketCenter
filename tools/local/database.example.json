@@ -1,6 +1,0 @@
-{
-  "database": "TC_Vuong_Test_Local_Demo",
-  "url": "jdbc:sqlserver://127.0.0.1:1433;databaseName=TC_Vuong_Test_Local_Demo;encrypt=false;trustServerCertificate=true;loginTimeout=5;",
-  "user": "generated-by-setup",
-  "password": "generated-by-setup"
-}

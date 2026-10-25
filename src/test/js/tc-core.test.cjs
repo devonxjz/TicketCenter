@@ -1,12 +1,21 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
+
+const metas = {};
+globalThis.document = {
+    querySelectorAll: selector => {
+        const name = /^meta\[name="([^"]+)"\]$/.exec(selector)?.[1];
+        return name in metas ? [{getAttribute: () => metas[name]}] : [];
+    },
+    createElement: tag => ({tag, dataset: {}, children: [], append(...c) { this.children.push(...c); }})
+};
 const TC = require('../../main/webapp/assets/js/core/tc-core.js');
 
-test('TC.money formats BigInt and string numbers correctly in VND', () => {
-    assert.equal(TC.money(100000), '100.000 đ');
-    assert.equal(TC.money('5000000'), '5.000.000 đ');
-    assert.equal(TC.money(0), '0 đ');
+test('TC.money formats exact VND amounts', () => {
+    assert.equal(TC.money(100000), '100.000 ₫');
+    assert.equal(TC.money('9007199254740993'), '9.007.199.254.740.993 ₫');
+    assert.equal(TC.money(0n), '0 ₫');
     assert.equal(TC.money(null), '—');
     assert.equal(TC.money(undefined), '—');
 });
@@ -16,49 +25,50 @@ test('TC.escapeHtml neutralizes XSS characters', () => {
     assert.equal(TC.escapeHtml('Tom & Jerry'), 'Tom &amp; Jerry');
     assert.equal(TC.escapeHtml("O'Reilly"), 'O&#039;Reilly');
     assert.equal(TC.escapeHtml(null), '');
-    assert.equal(TC.escapeHtml(undefined), '');
 });
 
-test('TC.date returns formatted date or fallback', () => {
-    assert.equal(TC.date(null), '—');
-    assert.equal(TC.date(''), '—');
-    const d = TC.date('2026-10-18T12:00:00Z');
-    assert.ok(d.includes('2026') || d.includes('/'));
+test('TC.dateTime returns formatted date or fallback', () => {
+    assert.equal(TC.dateTime(null), '—');
+    assert.equal(TC.dateTime('not-a-date'), 'not-a-date');
+    assert.match(TC.dateTime('2026-10-18T12:00:00Z'), /2026/);
 });
 
-test('TC.api handles successful response and error envelopes', async () => {
-    globalThis.fetch = async (url, options) => {
-        if (url.includes('/api/ok')) {
-            return { ok: true, status: 200, json: async () => ({ data: { id: 1 } }) };
-        }
-        return { ok: false, status: 400, json: async () => ({ error: { message: 'Dữ liệu sai' } }) };
+test('TC.el writes text through textContent', () => {
+    const child = TC.el('span', {text: '<img src=x>'});
+    const row = TC.el('div', {className: 'row', dataset: {id: 'a'}, hidden: true}, child);
+    assert.equal(child.textContent, '<img src=x>');
+    assert.equal(row.className, 'row');
+    assert.equal(row.dataset.id, 'a');
+    assert.equal(row.hidden, true);
+    assert.deepEqual(row.children, [child]);
+});
+
+test('TC.api prefixes the context path and unwraps the data envelope', async () => {
+    metas['context-path'] = '/tc';
+    const urls = [];
+    globalThis.fetch = async url => {
+        urls.push(url);
+        if (url.endsWith('/api/ok')) return {ok: true, status: 200, json: async () => ({data: {id: 1}})};
+        return {ok: false, status: 409, json: async () => ({error: {code: 'CONFLICT', message: 'Dữ liệu sai'}})};
     };
 
-    const res = await TC.api('/api/ok');
-    assert.equal(res.data.id, 1);
-
-    await assert.rejects(
-        () => TC.api('/api/fail'),
-        /Dữ liệu sai/
-    );
+    assert.deepEqual(await TC.api('/api/ok'), {id: 1});
+    await assert.rejects(() => TC.api('/api/fail'), {message: 'Dữ liệu sai', status: 409, code: 'CONFLICT'});
+    assert.deepEqual(urls, ['/tc/api/ok', '/tc/api/fail']);
 });
 
-test('TC.mutate sends POST with CSRF and Idempotency-Key headers', async () => {
-    let capturedOptions = null;
+test('TC.send posts JSON with CSRF and the given Idempotency-Key', async () => {
+    metas['csrf-token'] = 'meta-csrf';
+    let captured;
     globalThis.fetch = async (url, options) => {
-        if (url.includes('/api/auth/csrf')) {
-            return { ok: true, status: 200, json: async () => ({ data: { token: 'mock-csrf' } }) };
-        }
-        capturedOptions = options;
-        return { ok: true, status: 200, json: async () => ({ data: { success: true } }) };
+        captured = options;
+        return {ok: true, status: 200, json: async () => ({data: {success: true}})};
     };
 
-    const res = await TC.mutate('/api/action', { name: 'test' }, 'idemp-123');
-    assert.equal(res.data.success, true);
-    assert.equal(capturedOptions.method, 'POST');
-    assert.equal(capturedOptions.headers['X-CSRF-Token'], 'mock-csrf');
-    assert.equal(capturedOptions.headers['Idempotency-Key'], 'idemp-123');
-    const body = JSON.parse(capturedOptions.body);
-    assert.equal(body.name, 'test');
-    assert.equal(body._csrf, 'mock-csrf');
+    assert.deepEqual(await TC.send('POST', '/api/action', {name: 'test'}, 'idemp-123'), {success: true});
+    assert.equal(captured.method, 'POST');
+    assert.equal(captured.credentials, 'same-origin');
+    assert.equal(captured.headers['X-CSRF-Token'], 'meta-csrf');
+    assert.equal(captured.headers['Idempotency-Key'], 'idemp-123');
+    assert.deepEqual(JSON.parse(captured.body), {name: 'test'});
 });

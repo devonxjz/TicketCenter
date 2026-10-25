@@ -1,5 +1,6 @@
 package vn.ticketscenter.event.service;
 
+import vn.ticketscenter.config.web.Json;
 import vn.ticketscenter.event.cache.EventCatalogCache;
 import vn.ticketscenter.event.dto.EventDtos;
 import vn.ticketscenter.event.dto.EventFilter;
@@ -42,7 +43,7 @@ public final class EventCatalogServiceImpl implements EventCatalogService {
                 AVAILABILITY_TTL,
                 () ->
                         EventDtos.data(
-                                EventDtos.array(
+                                Json.array(
                                         repository.zones(id).orElseThrow(NotFound::new),
                                         EventDtos.Zone::toJson)));
     }
@@ -54,7 +55,7 @@ public final class EventCatalogServiceImpl implements EventCatalogService {
                 AVAILABILITY_TTL,
                 () ->
                         EventDtos.data(
-                                EventDtos.array(
+                                Json.array(
                                         repository.seats(id).orElseThrow(NotFound::new),
                                         EventDtos.Seat::toJson)));
     }
@@ -66,7 +67,7 @@ public final class EventCatalogServiceImpl implements EventCatalogService {
                 CATEGORIES_TTL,
                 () ->
                         EventDtos.data(
-                                EventDtos.array(
+                                Json.array(
                                         repository.categories(), EventDtos.Category::toJson)));
     }
 

@@ -68,8 +68,8 @@ class CheckInEventAzureReadOnlyIT {
             assertFalse(new CheckInEventServiceImpl(repository, cache, Clock.fixed(info.endTime(), ZoneOffset.UTC)).window(actor, event).isOpen());
             var summary = open.events(actor, info.organizationId()).stream().filter(e -> e.eventId().equals(event)).findFirst().orElseThrow();
             assertTrue(summary.isCheckInOpen()); assertTrue(summary.totalTicketsIssued() >= summary.totalCheckedIn());
-            assertEquals(403, assertThrows(CheckInException.class, () -> open.window(UUID.randomUUID(), event)).httpStatus());
-            assertEquals(404, assertThrows(CheckInException.class, () -> open.window(actor, UUID.randomUUID())).httpStatus());
+            assertEquals(403, assertThrows(CheckInException.class, () -> open.window(UUID.randomUUID(), event)).status());
+            assertEquals(404, assertThrows(CheckInException.class, () -> open.window(actor, UUID.randomUUID())).status());
             try (var query = connection.createStatement()) {
                 query.setQueryTimeout(5);
                 assertThrows(SQLException.class, () -> query.executeQuery("SELECT TOP (0) total_amount FROM dbo.tc_orders"));

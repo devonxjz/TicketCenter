@@ -16,7 +16,7 @@ class RefundRequestServiceTest {
     final List<String> calls=new ArrayList<>();boolean active=true;RuntimeException failure;
     final RefundRequestStore store=new RefundRequestStore(){
         public boolean active(UserPrincipal a){calls.add("auth");return active;}
-        public List<RefundTicketOptionDto> tickets(UserPrincipal a,UUID o,Instant now){if(failure!=null)throw failure;return List.of(new RefundTicketOptionDto(ticket,"code","A1","123456","ACTIVE",true,null));}
+        public List<RefundTicketOptionDto> tickets(UserPrincipal a,UUID o){if(failure!=null)throw failure;return List.of(new RefundTicketOptionDto(ticket,"code","A1","123456","ACTIVE",true,null));}
         public List<OrderOption> orders(UserPrincipal a){return List.of();}
         public RefundSummaryDto create(UserPrincipal a,CreateRefundRequestDto r,UUID k){calls.add("commit");if(failure!=null)throw failure;return result;}
         public RefundPageDto list(UserPrincipal a,int p,int size){return new RefundPageDto(List.of(result),1,p,size);}
@@ -26,7 +26,7 @@ class RefundRequestServiceTest {
         public Lease lock(List<UUID> ids){calls.add("lock");return ()->calls.add("release");}
         public void committed(UUID a,UUID k,List<UUID> ids,RefundSummaryDto r){assertEquals(result,r);calls.add("invalidate");}
     };
-    RefundRequestService service(RefundRequestCache c){return new RefundRequestServiceImpl(store,c,Clock.fixed(Instant.EPOCH,ZoneOffset.UTC));}
+    RefundRequestService service(RefundRequestCache c){return new RefundRequestServiceImpl(store,c);}
     CreateRefundRequestDto request(){return new CreateRefundRequestDto(order,List.of(ticket),"Không thể tham dự sự kiện.");}
     @Test void invalidationIsStrictlyAfterStoreCommit(){assertEquals(result,service(cache).create(actor,request(),UUID.randomUUID()));assertEquals(List.of("auth","lock","commit","invalidate","release"),calls);}
     @Test void failedMutationDoesNotInvalidateOrCache(){failure=new RefundException(400,"REFUND_NOT_ELIGIBLE","Vé đã được sử dụng.");assertEquals(400,assertThrows(RefundException.class,()->service(cache).create(actor,request(),UUID.randomUUID())).status());assertEquals(List.of("auth","lock","commit","release"),calls);}

@@ -4,6 +4,11 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
+import static vn.ticketscenter.config.web.Json.field;
+import static vn.ticketscenter.config.web.Json.number;
+import static vn.ticketscenter.config.web.Json.object;
+import static vn.ticketscenter.config.web.Json.text;
+
 /**
  * Tóm tắt thông tin vé hiển thị trong danh sách "Vé của tôi" (LIEM-05).
  */
@@ -29,49 +34,18 @@ public record TicketSummaryDto(
     }
 
     public String toJson() {
-        return "{\"id\":\""
-                + id
-                + "\","
-                + "\"orderId\":\""
-                + orderId
-                + "\","
-                + "\"ticketCode\":\""
-                + escape(ticketCode)
-                + "\","
-                + "\"eventTitle\":\""
-                + escape(eventTitle)
-                + "\","
-                + "\"venueName\":\""
-                + escape(venueName != null ? venueName : "")
-                + "\","
-                + "\"startTime\":\""
-                + (startTime != null ? startTime.toString() : "")
-                + "\","
-                + "\"zoneName\":\""
-                + escape(zoneName != null ? zoneName : "")
-                + "\","
-                + "\"seatLabel\":\""
-                + escape(seatLabel != null ? seatLabel : "")
-                + "\","
-                + "\"paidAmount\":"
-                + paidAmount
-                + ","
-                + "\"status\":\""
-                + escape(status)
-                + "\","
-                + "\"issuedAt\":\""
-                + (issuedAt != null ? issuedAt.toString() : "")
-                + "\","
-                + "\"version\":"
-                + version
-                + "}";
-    }
-
-    private static String escape(String s) {
-        if (s == null) return "";
-        return s.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r");
+        return object(
+                field("id", text(id)),
+                field("orderId", text(orderId)),
+                field("ticketCode", text(ticketCode)),
+                field("eventTitle", text(eventTitle)),
+                field("venueName", text(venueName)),
+                field("startTime", text(startTime)),
+                field("zoneName", text(zoneName)),
+                field("seatLabel", text(seatLabel)),
+                field("paidAmount", number(paidAmount)),
+                field("status", text(status)),
+                field("issuedAt", text(issuedAt)),
+                field("version", number(version)));
     }
 }

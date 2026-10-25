@@ -12,9 +12,12 @@ import java.math.BigDecimal;
 import java.sql.*;
 import java.time.Instant;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static vn.ticketscenter.config.persistence.SqlCall.instant;
+import static vn.ticketscenter.config.web.Json.array;
+import static vn.ticketscenter.config.web.Json.field;
+import static vn.ticketscenter.config.web.Json.number;
+import static vn.ticketscenter.config.web.Json.object;
 import static vn.ticketscenter.config.persistence.SqlCall.uuid;
 
 public class OrderRepository {
@@ -142,19 +145,11 @@ public class OrderRepository {
     public record OrderHistoryPage(
             int page, int size, long total, List<OrderHistoryItemDto> orders) {
         public String toJson() {
-            String ordersJson =
-                    orders.stream()
-                            .map(OrderHistoryItemDto::toJson)
-                            .collect(Collectors.joining(","));
-            return "{\"page\":"
-                    + page
-                    + ",\"size\":"
-                    + size
-                    + ",\"total\":"
-                    + total
-                    + ",\"orders\":["
-                    + ordersJson
-                    + "]}";
+            return object(
+                    field("page", number(page)),
+                    field("size", number(size)),
+                    field("total", number(total)),
+                    field("orders", array(orders, OrderHistoryItemDto::toJson)));
         }
     }
 

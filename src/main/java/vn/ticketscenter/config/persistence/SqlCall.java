@@ -126,6 +126,19 @@ public final class SqlCall {
             }
             return null;
         }
+
+        /** The first domain error found in the cause chain, else the fallback for an unknown failure. */
+        public AppException fromCause(Throwable failure) {
+            for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+                if (cause instanceof AppException domain) return domain;
+                if (cause instanceof SQLException sql) {
+                    AppException domain = translate(sql.getErrorCode(), sql.getMessage());
+                    if (domain != null) return domain;
+                }
+            }
+            if (fallback != null) return fallback.apply(0, null);
+            return new AppException(500, "DATABASE_ERROR", failure.getMessage(), failure);
+        }
     }
 
     private SqlCall() {}
@@ -184,7 +197,7 @@ public final class SqlCall {
             } catch (SQLException failure) {
                 AppException mapped = errors.find(failure);
                 if (mapped != null) throw mapped;
-                if (attempt == 3 || !isTransient(failure)) throw unavailable.get();
+                if (attempt == 3 || !SqlErrors.isTransient(failure, 51309)) throw unavailable.get();
             } catch (AppException failure) {
                 throw failure;
             } catch (RuntimeException invalidResponse) {
@@ -233,6 +246,19 @@ public final class SqlCall {
     public static Instant instant(ResultSet row, String column) throws SQLException {
         Timestamp value = row.getTimestamp(column, Calendar.getInstance(TimeZone.getTimeZone("UTC")));
         return value == null ? null : value.toInstant();
+    }
+
+    /**
+     * Runs JDBC work on the connection of a JPA transaction opened for {@code principal}.
+     */
+    public static <T> T inTransaction(
+            TransactionManager transactions, DatabasePrincipal principal, SqlWork<T> work, ErrorTable errors) {
+        Objects.requireNonNull(transactions, "transactions must not be null");
+        try {
+            return transactions.execute(principal, em -> em.unwrap(Session.class).doReturningWork(work::run));
+        } catch (RuntimeException failure) {
+            throw errors.fromCause(failure);
+        }
     }
 
     /**
@@ -323,6 +349,7 @@ public final class SqlCall {
         call(connection, sql, rows -> null, errors, args);
     }
 
+
     private static void bindArguments(PreparedStatement statement, Object[] args) throws SQLException {
         if (args == null || args.length == 0) return;
         for (int i = 0; i < args.length; i++) {
@@ -370,16 +397,4 @@ public final class SqlCall {
         return new AppException(500, "DATABASE_ERROR", failure.getMessage(), failure);
     }
 
-    /** Deadlock, lock timeout, a procedure's "preflight changed" signal (51309) or a dropped connection. */
-    private static boolean isTransient(SQLException failure) {
-        for (SQLException error = failure; error != null; error = error.getNextException()) {
-            int code = error.getErrorCode();
-            if (code == 1205 || code == 1222 || code == 51309) return true;
-            String state = error.getSQLState();
-            if (state != null
-                    && (state.startsWith("08") || state.equals("HYT00") || state.equals("HYT01")))
-                return true;
-        }
-        return false;
-    }
 }

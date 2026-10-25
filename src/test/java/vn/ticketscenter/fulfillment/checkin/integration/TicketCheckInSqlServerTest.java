@@ -70,14 +70,14 @@ public class TicketCheckInSqlServerTest {
     @Test void membershipRevocationBlocksEvenADurableSuccessfulReplay()throws Exception{
         var f=new ScanFixture();var key=UUID.randomUUID();var input=new CheckInScanRequestDto(f.event,f.qr(f.tickets.getFirst()),null);service(factory).scan(f.staff,key,input);
         try(var c=owner()){execute(c,"UPDATE dbo.tc_organization_memberships SET active=0 WHERE user_id=?",f.staff);}
-        var e=assertThrows(CheckInException.class,()->service(factory).scan(f.staff,key,input));assertEquals(403,e.httpStatus());
+        var e=assertThrows(CheckInException.class,()->service(factory).scan(f.staff,key,input));assertEquals(403,e.status());
     }
     @Test void outsidersAndDisabledStaffCannotScanOrReadHistory()throws Exception{
         var f=new ScanFixture();var input=new CheckInScanRequestDto(f.event,f.qr(f.tickets.getFirst()),null);
-        assertEquals(403,assertThrows(CheckInException.class,()->service(factory).scan(f.other,UUID.randomUUID(),input)).httpStatus());
-        assertEquals(403,assertThrows(CheckInException.class,()->service(factory).recent(f.other,f.event,20)).httpStatus());
+        assertEquals(403,assertThrows(CheckInException.class,()->service(factory).scan(f.other,UUID.randomUUID(),input)).status());
+        assertEquals(403,assertThrows(CheckInException.class,()->service(factory).recent(f.other,f.event,20)).status());
         try(var c=owner()){execute(c,"UPDATE dbo.tc_users SET status='DISABLED' WHERE id=?",f.staff);}
-        assertEquals(403,assertThrows(CheckInException.class,()->service(factory).scan(f.staff,UUID.randomUUID(),input)).httpStatus());
+        assertEquals(403,assertThrows(CheckInException.class,()->service(factory).scan(f.staff,UUID.randomUUID(),input)).status());
         assertEquals("0",scalar("SELECT COUNT(*) FROM dbo.tc_ticket_check_in_logs WHERE event_id=?",f.event));
     }
     @Test void cancelledAndEarlyAndEndedEventsRejectWithoutChangingTicket()throws Exception{
@@ -103,7 +103,7 @@ public class TicketCheckInSqlServerTest {
     @Test void injectedFailureAfterTicketUpdateRollsBackTicketAuditLogAndRequest()throws Exception{
         var f=new ScanFixture();try(var c=owner()){execute(c,"CREATE OR ALTER TRIGGER dbo.trg_Khanh02_Fault ON dbo.tc_ticket_check_in_logs AFTER INSERT AS BEGIN IF EXISTS(SELECT 1 FROM inserted WHERE event_id='"+f.event+"') THROW 53999,'Fixture fault after ticket update',1; END");}
         try{
-            assertEquals(503,assertThrows(CheckInException.class,()->scan(f,f.tickets.getFirst())).httpStatus());
+            assertEquals(503,assertThrows(CheckInException.class,()->scan(f,f.tickets.getFirst())).status());
             assertEquals("ACTIVE",scalar("SELECT status FROM dbo.tc_tickets WHERE id=?",f.tickets.getFirst()));
             assertEquals("0",scalar("SELECT COUNT(*) FROM dbo.tc_ticket_check_in_logs WHERE event_id=?",f.event));
             assertEquals("0",scalar("SELECT COUNT(*) FROM dbo.tc_checkin_scan_requests WHERE event_id=?",f.event));

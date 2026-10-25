@@ -59,23 +59,6 @@ public class RegisterServlet extends HttpServlet {
         return services == null ? null : services.otpService();
     }
 
-    /**
-     * Gửi mã OTP kích hoạt ngay sau khi đăng ký. Tài khoản đã được tạo nên lỗi gửi mail
-     * không làm hỏng phản hồi đăng ký; client dùng cờ otpSent để mời người dùng gửi lại.
-     */
-    private boolean sendVerificationOtp(ServletContext context, String email) {
-        try {
-            OtpService service = otpService(context);
-            return service != null
-                    && service.sendOtp(new OtpSendRequestDto(email, OtpPurpose.VERIFY_EMAIL));
-        } catch (RuntimeException ex) {
-            LOGGER.log(
-                    Level.WARNING,
-                    "Không thể gửi OTP kích hoạt sau khi đăng ký: " + ex.getMessage());
-            return false;
-        }
-    }
-
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
@@ -108,6 +91,23 @@ public class RegisterServlet extends HttpServlet {
                             .build());
         } catch (RuntimeException failure) {
             IdentityErrorWriter.write(resp, failure, "Đã xảy ra lỗi trong quá trình xử lý đăng ký");
+        }
+    }
+
+    /**
+     * Gửi mã OTP kích hoạt ngay sau khi đăng ký. Tài khoản đã được tạo nên lỗi gửi mail
+     * không làm hỏng phản hồi đăng ký; client dùng cờ otpSent để mời người dùng gửi lại.
+     */
+    private boolean sendVerificationOtp(ServletContext context, String email) {
+        try {
+            OtpService service = otpService(context);
+            return service != null
+                    && service.sendOtp(new OtpSendRequestDto(email, OtpPurpose.VERIFY_EMAIL));
+        } catch (RuntimeException ex) {
+            LOGGER.log(
+                    Level.WARNING,
+                    "Không thể gửi OTP kích hoạt sau khi đăng ký: " + ex.getMessage());
+            return false;
         }
     }
 }

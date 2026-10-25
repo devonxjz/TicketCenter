@@ -1,11 +1,15 @@
 package vn.ticketscenter.identity.dto;
 
-import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.identity.model.Organization;
 import vn.ticketscenter.identity.model.OrganizationStatus;
 
 import java.time.Instant;
 import java.util.UUID;
+
+import static vn.ticketscenter.config.web.Json.field;
+import static vn.ticketscenter.config.web.Json.nullableText;
+import static vn.ticketscenter.config.web.Json.object;
+import static vn.ticketscenter.config.web.Json.optional;
 
 public record OrganizationRequestSummaryDto(
         UUID organizationId,
@@ -103,49 +107,27 @@ public record OrganizationRequestSummaryDto(
     }
 
     public String toJson() {
-        StringBuilder sb = new StringBuilder("{");
-        sb.append("\"organizationId\":")
-                .append(json(organizationId))
-                .append(",\"name\":")
-                .append(json(name))
-                .append(",\"contactEmail\":")
-                .append(json(contactEmail))
-                .append(",\"contactPhone\":")
-                .append(json(contactPhone))
-                .append(",\"requesterEmail\":")
-                .append(json(requesterEmail));
-        if (requesterId != null || requesterName != null || requesterEmail != null) {
-            sb.append(",\"requester\":{")
-                    .append("\"userId\":")
-                    .append(json(requesterId))
-                    .append(",\"fullName\":")
-                    .append(json(requesterName))
-                    .append(",\"email\":")
-                    .append(json(requesterEmail))
-                    .append("}");
-        }
-        sb.append(",\"status\":")
-                .append(json(status))
-                .append(",\"submittedAt\":")
-                .append(json(submittedAt))
-                .append(",\"rejectionReason\":")
-                .append(json(rejectionReason));
-        if (description != null) {
-            sb.append(",\"description\":").append(HttpResponses.jsonString(description));
-        }
-        appendIfPresent(sb, "eventTitle", eventTitle());
-        appendIfPresent(sb, "eventDate", eventDate());
-        appendIfPresent(sb, "eventVenue", eventVenue());
-        return sb.append("}").toString();
-    }
-
-    private static void appendIfPresent(StringBuilder sb, String field, String value) {
-        if (value != null) {
-            sb.append(",\"").append(field).append("\":").append(HttpResponses.jsonString(value));
-        }
-    }
-
-    private static String json(Object value) {
-        return HttpResponses.jsonString(value == null ? null : value.toString());
+        boolean hasRequester = requesterId != null || requesterName != null || requesterEmail != null;
+        return object(
+                field("organizationId", nullableText(organizationId)),
+                field("name", nullableText(name)),
+                field("contactEmail", nullableText(contactEmail)),
+                field("contactPhone", nullableText(contactPhone)),
+                field("requesterEmail", nullableText(requesterEmail)),
+                hasRequester
+                        ? field(
+                                "requester",
+                                object(
+                                        field("userId", nullableText(requesterId)),
+                                        field("fullName", nullableText(requesterName)),
+                                        field("email", nullableText(requesterEmail))))
+                        : null,
+                field("status", nullableText(status)),
+                field("submittedAt", nullableText(submittedAt)),
+                field("rejectionReason", nullableText(rejectionReason)),
+                optional("description", description),
+                optional("eventTitle", eventTitle()),
+                optional("eventDate", eventDate()),
+                optional("eventVenue", eventVenue()));
     }
 }

@@ -124,7 +124,7 @@ final class EventCancellationWeb {
 
     static void error(HttpServletResponse response, RuntimeException failure) throws IOException {
         if (failure instanceof RefundException error) {
-            HttpResponses.error(response, error.status(), error.code(), error.getMessage());
+            HttpResponses.error(response, error);
         } else {
             HttpResponses.error(
                     response,

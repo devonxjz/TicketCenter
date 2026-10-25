@@ -1,12 +1,17 @@
 package vn.ticketscenter.fulfillment.refund.service;
 
-import java.util.*;
-import vn.ticketscenter.fulfillment.refund.dto.*;
+import java.util.List;
+import java.util.UUID;
 import vn.ticketscenter.fulfillment.refund.dao.RefundRequestStore;
+import vn.ticketscenter.fulfillment.refund.dto.CreateRefundRequestDto;
+import vn.ticketscenter.fulfillment.refund.dto.RefundDetailDto;
+import vn.ticketscenter.fulfillment.refund.dto.RefundPageDto;
+import vn.ticketscenter.fulfillment.refund.dto.RefundSummaryDto;
+import vn.ticketscenter.fulfillment.refund.dto.RefundTicketOptionDto;
 import vn.ticketscenter.identity.security.UserPrincipal;
 
 public interface RefundRequestService {
-    List<RefundTicketOptionDto> tickets(UserPrincipal actor, UUID order);
+    List<RefundTicketOptionDto> tickets(UserPrincipal actor, UUID orderId);
 
     List<RefundRequestStore.OrderOption> orders(UserPrincipal actor);
 
@@ -14,5 +19,5 @@ public interface RefundRequestService {
 
     RefundPageDto list(UserPrincipal actor, int page, int size);
 
-    RefundDetailDto detail(UserPrincipal actor, UUID id);
+    RefundDetailDto detail(UserPrincipal actor, UUID refundId);
 }
