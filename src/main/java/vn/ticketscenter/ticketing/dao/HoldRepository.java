@@ -5,6 +5,7 @@ import org.json.JSONObject;
 import vn.ticketscenter.ticketing.dto.*;
 import vn.ticketscenter.ticketing.service.HoldException;
 import vn.ticketscenter.config.ServerConfig;
+import vn.ticketscenter.config.persistence.SqlCall;
 import vn.ticketscenter.event.dao.RealEventVisibility;
 
 import javax.sql.DataSource;
@@ -14,6 +15,21 @@ import java.time.Instant;
 import java.util.*;
 
 public final class HoldRepository {
+    /** THROW numbers of the hold procedures. */
+    private static final SqlCall.ErrorTable ERRORS =
+            SqlCall.ErrorTable.of()
+                    .on(51301, m -> error(401, "UNAUTHENTICATED", "A current session is required."))
+                    .on(new int[] {51224, 51303}, m -> error(403, "FORBIDDEN", "An active verified account is required."))
+                    .on(new int[] {51270, 51272, 51304}, m -> error(404, "NOT_FOUND", "Hold or Event was not found."))
+                    .on(51308, m -> error(409, "IDEMPOTENCY_CONFLICT", "Use a new key for a changed command."))
+                    .on(new int[] {51225, 51226, 51228, 51229, 51306}, m -> error(409, "HOLD_CONFLICT", "Refresh your Hold and available tickets."))
+                    .on(new int[] {51220, 51221, 51222, 51223, 51227, 51300}, m -> error(400, "INVALID_REQUEST", "Invalid Hold selection."))
+                    .fallback((code, message) -> HoldException.unavailable());
+
+    private static HoldException error(int status, String code, String message) {
+        return new HoldException(status, code, message);
+    }
+
     private final DataSource buyer;
     private final DataSource worker;
 
@@ -121,20 +137,17 @@ public final class HoldRepository {
 
     private void requireVisibleEvent(UUID eventId) {
         if (ServerConfig.isDemoData()) return;
-        try (Connection connection = buyer.getConnection();
-                PreparedStatement statement =
-                        connection.prepareStatement(
-                                "SELECT e.event_id FROM dbo.vw_PublicEvents e WHERE e.event_id=? AND "
-                                        + RealEventVisibility.predicate("e"))) {
-            statement.setQueryTimeout(5);
-            statement.setString(1, eventId.toString());
-            try (ResultSet rows = statement.executeQuery()) {
-                if (!rows.next())
-                    throw new HoldException(404, "NOT_FOUND", "Hold or Event was not found.");
-            }
-        } catch (SQLException failure) {
-            throw HoldException.unavailable();
-        }
+        String sql =
+                "SELECT e.event_id FROM dbo.vw_PublicEvents e WHERE e.event_id=? AND "
+                        + RealEventVisibility.predicate("e");
+        boolean visible =
+                SqlCall.onConnection(
+                        buyer,
+                        connection ->
+                                SqlCall.callWithTimeout(connection, sql, 5, rows -> true, ERRORS, eventId)
+                                        != null,
+                        ERRORS);
+        if (!visible) throw new HoldException(404, "NOT_FOUND", "Hold or Event was not found.");
     }
 
     public List<HoldMutationReceipt.Change> expire(int batchSize) {
@@ -187,81 +200,8 @@ public final class HoldRepository {
         return UUID.fromString(value.getString(key));
     }
 
-    @FunctionalInterface
-    private interface Read<T> {
-        T read(ResultSet rows) throws SQLException;
-    }
-
-    private static <T> T call(DataSource source, String sql, Read<T> read, Object... args) {
-        for (int attempt = 0; attempt < 3; attempt++) {
-            try (Connection connection = source.getConnection()) {
-                connection.setAutoCommit(true);
-                try (PreparedStatement statement = connection.prepareStatement(sql)) {
-                    statement.setQueryTimeout(20);
-                    for (int i = 0; i < args.length; i++)
-                        statement.setObject(
-                                i + 1, args[i] instanceof UUID id ? id.toString() : args[i]);
-                    try (ResultSet rows = statement.executeQuery()) {
-                        if (!rows.next()) throw HoldException.unavailable();
-                        return read.read(rows);
-                    }
-                }
-            } catch (SQLException failure) {
-                HoldException domain = domainFailure(failure);
-                if (domain != null) throw domain;
-                if (attempt == 2 || !retryable(failure)) throw HoldException.unavailable();
-            } catch (HoldException failure) {
-                throw failure;
-            } catch (RuntimeException invalidResponse) {
-                throw HoldException.unavailable();
-            }
-        }
-        throw HoldException.unavailable();
-    }
-
-    private static boolean retryable(SQLException failure) {
-        for (SQLException error = failure; error != null; error = error.getNextException()) {
-            int code = error.getErrorCode();
-            if (code == 1205 || code == 1222 || code == 51309) return true;
-            String state = error.getSQLState();
-            if (state != null
-                    && (state.startsWith("08") || state.equals("HYT00") || state.equals("HYT01")))
-                return true;
-        }
-        return false;
-    }
-
-    private static HoldException domainFailure(SQLException failure) {
-        for (SQLException error = failure; error != null; error = error.getNextException()) {
-            HoldException mapped =
-                    switch (error.getErrorCode()) {
-                        case 51301 ->
-                                new HoldException(
-                                        401, "UNAUTHENTICATED", "A current session is required.");
-                        case 51224, 51303 ->
-                                new HoldException(
-                                        403,
-                                        "FORBIDDEN",
-                                        "An active verified account is required.");
-                        case 51270, 51272, 51304 ->
-                                new HoldException(404, "NOT_FOUND", "Hold or Event was not found.");
-                        case 51308 ->
-                                new HoldException(
-                                        409,
-                                        "IDEMPOTENCY_CONFLICT",
-                                        "Use a new key for a changed command.");
-                        case 51225, 51226, 51228, 51229, 51306 ->
-                                new HoldException(
-                                        409,
-                                        "HOLD_CONFLICT",
-                                        "Refresh your Hold and available tickets.");
-                        case 51220, 51221, 51222, 51223, 51227, 51300 ->
-                                new HoldException(
-                                        400, "INVALID_REQUEST", "Invalid Hold selection.");
-                        default -> null;
-                    };
-            if (mapped != null) return mapped;
-        }
-        return null;
+    private static <T> T call(
+            DataSource source, String sql, SqlCall.ResultSetExtractor<T> read, Object... args) {
+        return SqlCall.callWithRetry(source, sql, read, ERRORS, HoldException::unavailable, args);
     }
 }

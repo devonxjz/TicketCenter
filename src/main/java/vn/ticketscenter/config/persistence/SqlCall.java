@@ -87,9 +87,23 @@ public final class SqlCall {
             return this;
         }
 
+        public ErrorTable on(int[] codes, Function<String, AppException> factory) {
+            for (int code : codes) on(code, factory);
+            return this;
+        }
+
         public ErrorTable fallback(BiFunction<Integer, String, AppException> fallback) {
             this.fallback = fallback;
             return this;
+        }
+
+        /** The first error of the chain that has its own mapping; the fallback is not consulted. */
+        public AppException find(SQLException failure) {
+            for (SQLException error = failure; error != null; error = error.getNextException()) {
+                var factory = mapping.get(error.getErrorCode());
+                if (factory != null) return factory.apply(error.getErrorCode(), error.getMessage());
+            }
+            return null;
         }
 
         public AppException translate(int code, String message) {
@@ -129,6 +143,50 @@ public final class SqlCall {
             } finally {
                 connection.setAutoCommit(autoCommit);
             }
+        } catch (SQLException failure) {
+            throw translateError(failure, errors);
+        }
+    }
+
+    /**
+     * Calls a procedure that answers with one row, each attempt on a fresh auto-commit connection. Transient
+     * failures are retried up to three times; mapped SQL errors surface at once; anything else, including a
+     * missing row or an unreadable response, becomes {@code unavailable}.
+     */
+    public static <T> T callWithRetry(
+            DataSource dataSource,
+            String sql,
+            ResultSetExtractor<T> read,
+            ErrorTable errors,
+            Supplier<? extends AppException> unavailable,
+            Object... args) {
+        for (int attempt = 1; ; attempt++) {
+            try (Connection connection = dataSource.getConnection()) {
+                connection.setAutoCommit(true);
+                try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                    statement.setQueryTimeout(DEFAULT_TIMEOUT_SECONDS);
+                    bindArguments(statement, args);
+                    try (ResultSet rows = statement.executeQuery()) {
+                        if (!rows.next()) throw unavailable.get();
+                        return read.extract(rows);
+                    }
+                }
+            } catch (SQLException failure) {
+                AppException mapped = errors.find(failure);
+                if (mapped != null) throw mapped;
+                if (attempt == 3 || !isTransient(failure)) throw unavailable.get();
+            } catch (AppException failure) {
+                throw failure;
+            } catch (RuntimeException invalidResponse) {
+                throw unavailable.get();
+            }
+        }
+    }
+
+    /** Runs work on one pooled connection in its current commit mode; SQL errors go through {@code errors}. */
+    public static <T> T onConnection(DataSource dataSource, SqlWork<T> work, ErrorTable errors) {
+        try (Connection connection = dataSource.getConnection()) {
+            return work.run(connection);
         } catch (SQLException failure) {
             throw translateError(failure, errors);
         }
@@ -292,12 +350,24 @@ public final class SqlCall {
     }
 
     private static AppException translateError(SQLException failure, ErrorTable errors) {
-        for (SQLException error = failure; error != null; error = error.getNextException()) {
-            if (errors != null) {
-                AppException domain = errors.translate(error.getErrorCode(), error.getMessage());
-                if (domain != null) return domain;
-            }
+        if (errors != null) {
+            AppException domain = errors.find(failure);
+            if (domain == null) domain = errors.translate(failure.getErrorCode(), failure.getMessage());
+            if (domain != null) return domain;
         }
         return new AppException(500, "DATABASE_ERROR", failure.getMessage(), failure);
+    }
+
+    /** Deadlock, lock timeout, a procedure's "preflight changed" signal (51309) or a dropped connection. */
+    private static boolean isTransient(SQLException failure) {
+        for (SQLException error = failure; error != null; error = error.getNextException()) {
+            int code = error.getErrorCode();
+            if (code == 1205 || code == 1222 || code == 51309) return true;
+            String state = error.getSQLState();
+            if (state != null
+                    && (state.startsWith("08") || state.equals("HYT00") || state.equals("HYT01")))
+                return true;
+        }
+        return false;
     }
 }
