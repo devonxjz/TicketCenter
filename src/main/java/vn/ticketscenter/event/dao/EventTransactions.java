@@ -1,6 +1,5 @@
 package vn.ticketscenter.event.dao;
 
-import org.hibernate.Session;
 import vn.ticketscenter.config.persistence.*;
 import vn.ticketscenter.event.service.EventProblem;
 import java.sql.*;
@@ -21,8 +20,7 @@ public class EventTransactions {
 
     public <T> T run(DatabasePrincipal principal, Work<T> work) {
         try {
-            return transactions.execute(
-                    principal, em -> em.unwrap(Session.class).doReturningWork(work::execute));
+            return SqlCall.inSession(transactions, principal, work::execute);
         } catch (RuntimeException e) {
             throw translate(e);
         }

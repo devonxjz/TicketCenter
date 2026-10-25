@@ -6,20 +6,25 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import javax.sql.DataSource;
+import org.hibernate.Session;
 import vn.ticketscenter.config.error.AppException;
 
 /**
@@ -127,6 +132,39 @@ public final class SqlCall {
         } catch (SQLException failure) {
             throw translateError(failure, errors);
         }
+    }
+
+    /** Runs JDBC work on the connection of the principal's shared JPA transaction. */
+    public static <T> T inSession(TransactionManager transactions, DatabasePrincipal principal, SqlWork<T> work) {
+        return transactions.execute(principal, em -> em.unwrap(Session.class).doReturningWork(work::run));
+    }
+
+    /**
+     * The {@link AppException} a failed call surfaces as: one already raised in its cause chain, the first SQL
+     * error {@code errors} knows, or {@code unavailable}.
+     */
+    public static AppException failure(
+            RuntimeException failure, ErrorTable errors, Supplier<? extends AppException> unavailable) {
+        for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+            if (cause instanceof AppException app) return app;
+            if (cause instanceof SQLException sql) {
+                AppException app = errors.translate(sql.getErrorCode(), sql.getMessage());
+                if (app != null) return app;
+            }
+        }
+        return unavailable.get();
+    }
+
+    /** Nullable UUID column stored as text. */
+    public static UUID uuid(ResultSet row, String column) throws SQLException {
+        String value = row.getString(column);
+        return value == null ? null : UUID.fromString(value);
+    }
+
+    /** Nullable UTC timestamp column. */
+    public static Instant instant(ResultSet row, String column) throws SQLException {
+        Timestamp value = row.getTimestamp(column, Calendar.getInstance(TimeZone.getTimeZone("UTC")));
+        return value == null ? null : value.toInstant();
     }
 
     /**

@@ -3,7 +3,6 @@ package vn.ticketscenter.fulfillment.refund.worker;
 import java.sql.*;
 import java.util.*;
 import javax.sql.DataSource;
-import org.hibernate.Session;
 import vn.ticketscenter.config.persistence.*;
 import vn.ticketscenter.payment.integration.RefundGateway;
 
@@ -22,11 +21,7 @@ public final class RefundWorkerRepository implements RefundWorkerStore {
     private final Transactions transactions;
 
     public RefundWorkerRepository(TransactionManager manager) {
-        transactions =
-                work ->
-                        manager.execute(
-                                DatabasePrincipal.WORKER,
-                                em -> em.unwrap(Session.class).doReturningWork(work::run));
+        transactions = work -> SqlCall.inSession(manager, DatabasePrincipal.WORKER, work::run);
     }
 
     public RefundWorkerRepository(DataSource worker) {

@@ -1,7 +1,7 @@
 package vn.ticketscenter.fulfillment.checkin.dao;
 
-import org.hibernate.Session;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
+import vn.ticketscenter.config.persistence.SqlCall;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.fulfillment.checkin.CheckInException;
 import vn.ticketscenter.fulfillment.checkin.dto.CheckInScanResponseDto;
@@ -94,12 +94,9 @@ public class TicketCheckInRepository {
                 });
     }
 
-    private <T> T work(SqlWork<T> work) {
+    private <T> T work(SqlCall.SqlWork<T> work) {
         try {
-            return transactions.execute(
-                    DatabasePrincipal.CHECK_IN,
-                    entityManager ->
-                            entityManager.unwrap(Session.class).doReturningWork(work::run));
+            return SqlCall.inSession(transactions, DatabasePrincipal.CHECK_IN, work);
         } catch (RuntimeException exception) {
             for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
                 if (!(cause instanceof SQLException sql)) continue;
@@ -126,10 +123,6 @@ public class TicketCheckInRepository {
         }
     }
 
-    @FunctionalInterface
-    private interface SqlWork<T> {
-        T run(Connection connection) throws SQLException;
-    }
 
     private static UUID id(ResultSet rows, String column) throws SQLException {
         String value = rows.getString(column);

@@ -1,18 +1,14 @@
 package vn.ticketscenter.fulfillment.refund.dao;
 
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Instant;
-import java.util.Calendar;
 import java.util.List;
 import java.util.Objects;
-import java.util.TimeZone;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import org.hibernate.Session;
-import vn.ticketscenter.config.error.AppException;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.SqlCall;
 import vn.ticketscenter.config.persistence.TransactionManager;
@@ -25,6 +21,9 @@ import vn.ticketscenter.fulfillment.refund.dto.RefundTicketOptionDto;
 import vn.ticketscenter.fulfillment.refund.service.RefundException;
 import vn.ticketscenter.identity.security.UserPrincipal;
 
+import static vn.ticketscenter.config.persistence.SqlCall.instant;
+import static vn.ticketscenter.config.persistence.SqlCall.uuid;
+
 /** JDBC projections and SP-owned writes inside the shared resource-local JPA transaction. */
 public class RefundRequestRepository implements RefundRequestStore {
 
@@ -35,9 +34,7 @@ public class RefundRequestRepository implements RefundRequestStore {
             .on(53003, 403, "ORDER_FORBIDDEN", "Bạn không có quyền xem đơn hàng này.")
             .on(53004, 404, "ORDER_NOT_FOUND", "Đơn hàng không tồn tại.")
             .on(53009, 409, "REFUND_CONFLICT", "Xung đột yêu cầu hoàn vé.")
-            .fallback((code, msg) -> new RefundException(
-                    503, "DATABASE_UNAVAILABLE",
-                    "Không thể thực hiện yêu cầu hoàn vé. Vui lòng kiểm tra quyền, thời hạn và trạng thái vé."));
+            .fallback((code, msg) -> unavailable());
 
     private final TransactionManager transactions;
 
@@ -45,27 +42,21 @@ public class RefundRequestRepository implements RefundRequestStore {
         this.transactions = Objects.requireNonNull(transactions);
     }
 
+    private record RefundRow(String ownerId, RefundSummaryDto refund, UUID currentAttempt, Instant processedAt) {}
+
     private <T> T withConnection(SqlCall.SqlWork<T> work) {
         try {
-            return transactions.execute(
-                    DatabasePrincipal.BUYER,
-                    em -> em.unwrap(Session.class).doReturningWork(work::run));
-        } catch (AppException e) {
-            throw e;
-        } catch (Exception failure) {
-            for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
-                if (cause instanceof AppException app) {
-                    throw app;
-                }
-                if (cause instanceof SQLException sql) {
-                    AppException app = BUYER_REFUND_ERRORS.translate(sql.getErrorCode(), sql.getMessage());
-                    if (app != null) throw app;
-                }
-            }
-            throw new RefundException(
-                    503, "DATABASE_UNAVAILABLE",
-                    "Không thể thực hiện yêu cầu hoàn vé. Vui lòng kiểm tra quyền, thời hạn và trạng thái vé.");
+            return SqlCall.inSession(transactions, DatabasePrincipal.BUYER, work);
+        } catch (RuntimeException failure) {
+            throw SqlCall.failure(failure, BUYER_REFUND_ERRORS, RefundRequestRepository::unavailable);
         }
+    }
+
+    private static RefundException unavailable() {
+        return new RefundException(
+                503,
+                "DATABASE_UNAVAILABLE",
+                "Không thể thực hiện yêu cầu hoàn vé. Vui lòng kiểm tra quyền, thời hạn và trạng thái vé.");
     }
 
     @Override
@@ -79,7 +70,7 @@ public class RefundRequestRepository implements RefundRequestStore {
                 actor.authVersion()).orElse(false));
     }
 
-    private static void owner(java.sql.Connection c, UserPrincipal actor, UUID order) {
+    private static void owner(Connection c, UserPrincipal actor, UUID order) {
         var ownerId = SqlCall.queryOptional(
                 c,
                 "SELECT owner_id FROM dbo.v_refundable_orders WHERE order_id=?",
@@ -174,24 +165,19 @@ public class RefundRequestRepository implements RefundRequestStore {
             var refundRow = SqlCall.call(
                     c,
                     "SELECT * FROM dbo.v_refunds WHERE refund_id=?",
-                    r -> new Object[] {
-                        r.getString("owner_id"),
-                        summary(r),
-                        r.getString("current_attempt_id") == null ? null : UUID.fromString(r.getString("current_attempt_id")),
-                        instant(r, "processed_at")
-                    },
+                    r -> new RefundRow(
+                            r.getString("owner_id"),
+                            summary(r),
+                            uuid(r, "current_attempt_id"),
+                            instant(r, "processed_at")),
                     BUYER_REFUND_ERRORS,
                     id);
             if (refundRow == null) {
                 throw new RefundException(404, "REFUND_NOT_FOUND", "Yêu cầu hoàn tiền không tồn tại.");
             }
-            if (!actor.actorId().toString().equalsIgnoreCase((String) refundRow[0])) {
+            if (!actor.actorId().toString().equalsIgnoreCase(refundRow.ownerId())) {
                 throw new RefundException(403, "REFUND_FORBIDDEN", "Bạn không có quyền xem yêu cầu này.");
             }
-            var refund = (RefundSummaryDto) refundRow[1];
-            var attempt = (UUID) refundRow[2];
-            var processed = (Instant) refundRow[3];
-
             var tickets = SqlCall.queryList(
                     c,
                     "SELECT * FROM dbo.v_refund_tickets WHERE refund_id=? ORDER BY ticket_id",
@@ -211,7 +197,8 @@ public class RefundRequestRepository implements RefundRequestStore {
                     BUYER_REFUND_ERRORS,
                     id);
 
-            return new RefundDetailDto(refund, attempt, processed, tickets, attempts);
+            return new RefundDetailDto(
+                    refundRow.refund(), refundRow.currentAttempt(), refundRow.processedAt(), tickets, attempts);
         });
     }
 
@@ -238,10 +225,5 @@ public class RefundRequestRepository implements RefundRequestStore {
                 r.getString("status"),
                 reason == null,
                 reason);
-    }
-
-    private static Instant instant(ResultSet r, String column) throws SQLException {
-        Timestamp v = r.getTimestamp(column, Calendar.getInstance(TimeZone.getTimeZone("UTC")));
-        return v == null ? null : v.toInstant();
     }
 }

@@ -17,6 +17,7 @@ import java.util.UUID;
 import javax.sql.DataSource;
 import org.hibernate.Session;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
+import vn.ticketscenter.config.persistence.SqlCall;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.event.cancellation.dto.CancellationProgressDto;
 import vn.ticketscenter.event.cancellation.dto.EventCancelRequestDto;
@@ -195,9 +196,7 @@ public class EventCancellationRepository implements EventCancellationStore {
     private <T> T admin(SqlWork<T> work) {
         try {
             if (transactions != null) {
-                return transactions.execute(
-                        DatabasePrincipal.ADMIN,
-                        em -> em.unwrap(Session.class).doReturningWork(work::run));
+                return SqlCall.inSession(transactions, DatabasePrincipal.ADMIN, work::run);
             }
             try (var connection = supplied.getConnection()) {
                 connection.setAutoCommit(false);

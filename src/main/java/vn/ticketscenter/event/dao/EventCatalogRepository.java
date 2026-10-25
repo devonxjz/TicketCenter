@@ -1,7 +1,7 @@
 package vn.ticketscenter.event.dao;
 
-import org.hibernate.Session;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
+import vn.ticketscenter.config.persistence.SqlCall;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.event.dto.EventDtos;
 import vn.ticketscenter.event.dto.EventFilter;
@@ -184,16 +184,10 @@ public class EventCatalogRepository {
                 });
     }
 
-    private <T> T read(SqlRead<T> work) {
-        return transactions.execute(
-                DatabasePrincipal.BUYER,
-                em -> em.unwrap(Session.class).doReturningWork(work::apply));
+    private <T> T read(SqlCall.SqlWork<T> work) {
+        return SqlCall.inSession(transactions, DatabasePrincipal.BUYER, work);
     }
 
-    @FunctionalInterface
-    private interface SqlRead<T> {
-        T apply(Connection connection) throws SQLException;
-    }
 
     private static PreparedStatement prepare(Connection connection, String sql)
             throws SQLException {

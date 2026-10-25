@@ -1,7 +1,7 @@
 package vn.ticketscenter.fulfillment.checkin.dao;
 
-import org.hibernate.Session;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
+import vn.ticketscenter.config.persistence.SqlCall;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.fulfillment.checkin.CheckInException;
 
@@ -224,16 +224,10 @@ public class CheckInEventRepository {
                 });
     }
 
-    private <T> T read(SqlRead<T> work) {
-        return transactions.execute(
-                DatabasePrincipal.CHECK_IN,
-                entityManager -> entityManager.unwrap(Session.class).doReturningWork(work::apply));
+    private <T> T read(SqlCall.SqlWork<T> work) {
+        return SqlCall.inSession(transactions, DatabasePrincipal.CHECK_IN, work);
     }
 
-    @FunctionalInterface
-    private interface SqlRead<T> {
-        T apply(Connection connection) throws SQLException;
-    }
 
     private static PreparedStatement prepare(Connection connection, String sql)
             throws SQLException {

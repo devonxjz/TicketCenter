@@ -243,4 +243,21 @@ class SqlCallTest {
         assertEquals(503, thrown.status());
         assertEquals("DB_DOWN", thrown.code());
     }
+
+    @Test
+    void failureKeepsARaisedAppExceptionThenMapsTheFirstKnownSqlErrorThenFallsBack() {
+        var errors = SqlCall.ErrorTable.of().on(53004, 404, "ORDER_NOT_FOUND", "missing");
+        var raised = new AppException(409, "CONFLICT", "raised");
+        var unavailable = new AppException(503, "DATABASE_UNAVAILABLE", "down");
+
+        assertSame(raised, SqlCall.failure(new IllegalStateException(raised), errors, () -> unavailable));
+
+        var mapped = SqlCall.failure(
+                new IllegalStateException(new SQLException("order gone", "S0001", 53004)), errors, () -> unavailable);
+        assertEquals(404, mapped.status());
+        assertEquals("order gone", mapped.getMessage());
+
+        var unknown = new IllegalStateException(new SQLException("deadlock", "40001", 1205));
+        assertSame(unavailable, SqlCall.failure(unknown, errors, () -> unavailable));
+    }
 }
