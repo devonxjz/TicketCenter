@@ -34,7 +34,7 @@ public final class RequestValidationFilter implements Filter {
         }
         if (BODY_METHODS.contains(httpRequest.getMethod())) {
             String path =
-                    httpRequest.getRequestURI().substring(httpRequest.getContextPath().length());
+                    ApiRequest.path(httpRequest);
             if (!"/api/auth/logout".equals(path)) {
                 String contentType = httpRequest.getContentType();
                 if (contentType == null
@@ -57,7 +57,7 @@ public final class RequestValidationFilter implements Filter {
     private boolean isImageUpload(HttpServletRequest request) {
         String contentType = request.getContentType();
         if (contentType == null || !contentType.startsWith("multipart/form-data")) return false;
-        String path = request.getRequestURI().substring(request.getContextPath().length());
+        String path = ApiRequest.path(request);
         return path.matches("/api/events/[0-9a-fA-F-]{36}/(cover|edit)")
                 || path.matches("/api/organizations/[0-9a-fA-F-]{36}/events")
                 || path.equals("/api/me/profile");

@@ -5,6 +5,7 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.config.PayosConfig;
 import vn.ticketscenter.payment.dto.PaymentReturnResult;
 import vn.ticketscenter.payment.dto.PayosWebhookResult;
@@ -80,7 +81,7 @@ public class PayosCallbackServlet extends HttpServlet {
     }
 
     private static String path(HttpServletRequest request) {
-        return request.getRequestURI().substring(request.getContextPath().length());
+        return ApiRequest.path(request);
     }
 
     /** @return the UTF-8 body, or null when it exceeds {@link #MAX_WEBHOOK_BYTES} */

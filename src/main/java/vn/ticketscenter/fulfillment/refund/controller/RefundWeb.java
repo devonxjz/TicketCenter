@@ -3,6 +3,7 @@ package vn.ticketscenter.fulfillment.refund.controller;
 import jakarta.servlet.http.*;
 import java.io.*;
 import java.util.*;
+import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.config.web.*;
 import vn.ticketscenter.fulfillment.refund.dto.CreateRefundRequestDto;
 import vn.ticketscenter.fulfillment.refund.service.RefundException;
@@ -10,8 +11,6 @@ import vn.ticketscenter.identity.config.IdentityServices;
 import vn.ticketscenter.identity.security.*;
 
 final class RefundWeb {
-    static final String UUID_PATTERN =
-            "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 
     private RefundWeb() {}
 
@@ -33,8 +32,7 @@ final class RefundWeb {
     }
 
     static UUID id(String value) {
-        if (value == null || !value.matches(UUID_PATTERN)) throw RefundException.invalid();
-        return UUID.fromString(value);
+        return ApiRequest.uuid(value).orElseThrow(RefundException::invalid);
     }
 
     static int page(String value, int fallback) {
@@ -48,11 +46,7 @@ final class RefundWeb {
     static UUID mutation(HttpServletRequest request) {
         if (!SecurityContext.validateCsrfToken(request))
             throw new RefundException(403, "CSRF_INVALID", "Mã bảo vệ phiên không hợp lệ.");
-        if (request.getContentType() == null
-                || !request.getContentType()
-                        .split(";", 2)[0]
-                        .strip()
-                        .equalsIgnoreCase("application/json"))
+        if (!ApiRequest.isJson(request))
             throw new RefundException(415, "JSON_REQUIRED", "Yêu cầu phải sử dụng JSON.");
         return id(request.getHeader("Idempotency-Key"));
     }
@@ -82,6 +76,6 @@ final class RefundWeb {
     }
 
     static String path(HttpServletRequest r) {
-        return r.getRequestURI().substring(r.getContextPath().length());
+        return ApiRequest.path(r);
     }
 }

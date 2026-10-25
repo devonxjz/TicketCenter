@@ -5,6 +5,7 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.order.dto.OrderActor;
@@ -40,7 +41,7 @@ public class OrderPageServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        String path = request.getRequestURI().substring(request.getContextPath().length());
+        String path = ApiRequest.path(request);
 
         var userOpt = SecurityContext.getCurrentUser(request);
         if (userOpt.isEmpty()) {
@@ -59,8 +60,8 @@ public class OrderPageServlet extends HttpServlet {
 
         try {
             if ("/me/orders".equals(path)) {
-                int page = parsePositiveInt(request.getParameter("page"), 1);
-                int size = parsePositiveInt(request.getParameter("size"), 10);
+                int page = ApiRequest.positiveInt(request.getParameter("page"), 1);
+                int size = ApiRequest.positiveInt(request.getParameter("size"), 10);
                 String status = request.getParameter("status");
 
                 OrderRepository.OrderHistoryPage historyPage =
@@ -91,13 +92,4 @@ public class OrderPageServlet extends HttpServlet {
                 : OrderRuntime.resolve(getServletContext());
     }
 
-    private static int parsePositiveInt(String val, int def) {
-        if (val == null || val.isBlank()) return def;
-        try {
-            int parsed = Integer.parseInt(val);
-            return parsed > 0 ? parsed : def;
-        } catch (NumberFormatException e) {
-            return def;
-        }
-    }
 }

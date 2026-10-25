@@ -2,10 +2,14 @@ package vn.ticketscenter.order.controller;
 
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
+import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.order.dto.*;
 import vn.ticketscenter.order.service.*;
+import vn.ticketscenter.payment.service.PaymentException;
+import vn.ticketscenter.payment.service.PaymentRuntime;
+import vn.ticketscenter.payment.service.PaymentService;
 
 import java.io.IOException;
 import java.util.*;
@@ -19,22 +23,20 @@ import java.util.*;
             "/api/me/orders"
         })
 public final class OrderApiServlet extends HttpServlet {
+    private static final long MAX_BODY_BYTES = 16 * 1024;
+
     private final OrderService supplied;
-    private final vn.ticketscenter.payment.service.PaymentService suppliedPayment;
+    private final PaymentService suppliedPayment;
 
     public OrderApiServlet() {
-        this.supplied = null;
-        this.suppliedPayment = null;
+        this(null, null);
     }
 
     public OrderApiServlet(OrderService supplied) {
-        this.supplied = Objects.requireNonNull(supplied);
-        this.suppliedPayment = null;
+        this(Objects.requireNonNull(supplied), null);
     }
 
-    public OrderApiServlet(
-            OrderService supplied,
-            vn.ticketscenter.payment.service.PaymentService suppliedPayment) {
+    public OrderApiServlet(OrderService supplied, PaymentService suppliedPayment) {
         this.supplied = supplied;
         this.suppliedPayment = suppliedPayment;
     }
@@ -42,138 +44,98 @@ public final class OrderApiServlet extends HttpServlet {
     @Override
     protected void service(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
-        response.setCharacterEncoding("UTF-8");
-        response.setContentType("application/json;charset=UTF-8");
-        response.setHeader("Cache-Control", "no-store");
+        ApiRequest.prepareJson(response);
         try {
             var principal =
                     SecurityContext.getCurrentUser(request)
                             .orElseThrow(
-                                    () ->
-                                            new OrderException(
-                                                    401,
-                                                    "UNAUTHENTICATED",
-                                                    "A current session is required."));
-            OrderActor actor = new OrderActor(principal.actorId(), principal.authVersion());
-            String path = request.getRequestURI().substring(request.getContextPath().length());
-            if (request.getMethod().equals("POST")) {
-                if (request.getContentLengthLong() > 16 * 1024)
-                    throw new OrderException(
-                            413, "PAYLOAD_TOO_LARGE", "Order request body is too large.");
-                String contentType = request.getContentType();
-                if (contentType == null
-                        || !contentType
-                                .split(";", 2)[0]
-                                .trim()
-                                .equalsIgnoreCase("application/json"))
-                    throw new OrderException(415, "CONTENT_TYPE_INVALID", "Use application/json.");
-                if (!SecurityContext.validateCsrfToken(request))
-                    throw new OrderException(
-                            403, "CSRF_TOKEN_INVALID", "A valid CSRF token is required.");
-                Enumeration<String> keys = request.getHeaders("Idempotency-Key");
-                if (keys == null || !keys.hasMoreElements()) throw invalid();
-                UUID key = uuid(keys.nextElement());
-                if (keys.hasMoreElements()) throw invalid();
-                OrderCommand command;
-                if (path.equals("/api/orders"))
-                    command =
-                            new OrderCommand.Create(
-                                    key, OrderRequests.create(request.getInputStream()));
-                else if (path.matches("/api/orders/[^/]+/coupon"))
-                    command =
-                            new OrderCommand.ChangeCoupon(
-                                    key,
-                                    OrderRequests.coupon(
-                                            uuid(path.split("/")[3]), request.getInputStream()));
-                else if (path.matches("/api/orders/[^/]+/payments")) {
-                    UUID orderId = uuid(path.split("/")[3]);
-                    var result = paymentService().initiate(principal.actorId(), orderId, key);
-                    response.setStatus(HttpServletResponse.SC_OK);
-                    response.getWriter().write(result.body());
-                    return;
-                } else throw missing();
-                OrderMutationReceipt receipt = service().mutate(actor, command);
-                response.setStatus(receipt.httpStatus());
-                response.getWriter().write(receipt.body());
-            } else if (request.getMethod().equals("GET") && path.equals("/api/checkout/coupons")) {
-                response.getWriter()
-                        .write(
-                                service()
-                                        .eligibleCoupons(
-                                                actor, uuid(parameter(request, "holdId"))));
-            } else if (request.getMethod().equals("GET") && path.equals("/api/checkout")) {
-                response.getWriter()
-                        .write(
-                                service()
-                                        .checkout(actor, uuid(parameter(request, "holdId")))
-                                        .body());
-            } else if (request.getMethod().equals("GET") && path.equals("/api/me/orders")) {
-                int page = parsePositiveInt(request.getParameter("page"), 1);
-                int size = parsePositiveInt(request.getParameter("size"), 10);
-                String status = request.getParameter("status");
-                response.getWriter()
-                        .write(service().orderHistory(actor, page, size, status).toJson());
-            } else if (request.getMethod().equals("GET")
-                    && path.matches("/api/orders/[^/]+/coupon-eligibility")) {
-                response.getWriter()
-                        .write(
-                                service()
-                                        .eligibility(
-                                                actor,
-                                                uuid(path.split("/")[3]),
-                                                parameter(request, "couponCode")));
-            } else if (request.getMethod().equals("GET")
-                    && path.matches("/api/orders/[^/]+/payment-status")) {
-                var paymentStatus =
-                        paymentService()
-                                .getOrderPaymentStatus(actor.id(), uuid(path.split("/")[3]));
-                response.getWriter().write(paymentStatus.toJson());
-            } else if (request.getMethod().equals("GET") && path.matches("/api/orders/[^/]+")) {
-                UUID orderId = uuid(path.split("/")[3]);
-                response.getWriter().write(service().orderDetail(actor, orderId).toJson());
-            } else throw missing();
+                                    () -> new OrderException(401, "UNAUTHENTICATED", "A current session is required."));
+            var actor = new OrderActor(principal.actorId(), principal.authVersion());
+            String path = ApiRequest.path(request);
+            if (request.getMethod().equals("POST")) post(request, response, actor, path);
+            else if (request.getMethod().equals("GET")) get(request, response, actor, path);
+            else throw missing();
         } catch (OrderException failure) {
             HttpResponses.error(response, failure.status(), failure.code(), failure.getMessage());
-        } catch (vn.ticketscenter.payment.service.PaymentException failure) {
+        } catch (PaymentException failure) {
             HttpResponses.error(response, failure.status(), failure.code(), failure.getMessage());
         } catch (OrderRequests.BodyTooLargeException failure) {
-            HttpResponses.error(
-                    response, 413, "PAYLOAD_TOO_LARGE", "Order request body is too large.");
+            HttpResponses.error(response, 413, "PAYLOAD_TOO_LARGE", "Order request body is too large.");
         } catch (IllegalArgumentException failure) {
             HttpResponses.error(response, 400, "INVALID_REQUEST", "Invalid Order request.");
         } catch (Exception failure) {
             HttpResponses.error(
-                    response,
-                    500,
-                    "INTERNAL_ERROR",
-                    "Không thể xử lý đơn hàng lúc này. Vui lòng thử lại.");
+                    response, 500, "INTERNAL_ERROR", "Không thể xử lý đơn hàng lúc này. Vui lòng thử lại.");
         }
+    }
+
+    private void post(HttpServletRequest request, HttpServletResponse response, OrderActor actor, String path)
+            throws IOException {
+        UUID key = mutationKey(request);
+        if (path.equals("/api/orders")) {
+            mutate(response, actor, new OrderCommand.Create(key, OrderRequests.create(request.getInputStream())));
+        } else if (path.matches("/api/orders/[^/]+/coupon")) {
+            var coupon = OrderRequests.coupon(uuid(path.split("/")[3]), request.getInputStream());
+            mutate(response, actor, new OrderCommand.ChangeCoupon(key, coupon));
+        } else if (path.matches("/api/orders/[^/]+/payments")) {
+            var result = paymentService().initiate(actor.id(), uuid(path.split("/")[3]), key);
+            response.setStatus(HttpServletResponse.SC_OK);
+            response.getWriter().write(result.body());
+        } else throw missing();
+    }
+
+    /** Body size, JSON media type, CSRF token and exactly one Idempotency-Key, in that order. */
+    private static UUID mutationKey(HttpServletRequest request) {
+        if (request.getContentLengthLong() > MAX_BODY_BYTES)
+            throw new OrderException(413, "PAYLOAD_TOO_LARGE", "Order request body is too large.");
+        if (!ApiRequest.isJson(request))
+            throw new OrderException(415, "CONTENT_TYPE_INVALID", "Use application/json.");
+        if (!SecurityContext.validateCsrfToken(request))
+            throw new OrderException(403, "CSRF_TOKEN_INVALID", "A valid CSRF token is required.");
+        return uuid(ApiRequest.singleHeader(request, "Idempotency-Key").orElseThrow(OrderApiServlet::invalid));
+    }
+
+    private void mutate(HttpServletResponse response, OrderActor actor, OrderCommand command) throws IOException {
+        OrderMutationReceipt receipt = service().mutate(actor, command);
+        response.setStatus(receipt.httpStatus());
+        response.getWriter().write(receipt.body());
+    }
+
+    private void get(HttpServletRequest request, HttpServletResponse response, OrderActor actor, String path)
+            throws IOException {
+        var out = response.getWriter();
+        if (path.equals("/api/checkout/coupons")) {
+            out.write(service().eligibleCoupons(actor, uuid(parameter(request, "holdId"))));
+        } else if (path.equals("/api/checkout")) {
+            out.write(service().checkout(actor, uuid(parameter(request, "holdId"))).body());
+        } else if (path.equals("/api/me/orders")) {
+            int page = ApiRequest.positiveInt(request.getParameter("page"), 1);
+            int size = ApiRequest.positiveInt(request.getParameter("size"), 10);
+            out.write(service().orderHistory(actor, page, size, request.getParameter("status")).toJson());
+        } else if (path.matches("/api/orders/[^/]+/coupon-eligibility")) {
+            out.write(service().eligibility(actor, uuid(path.split("/")[3]), parameter(request, "couponCode")));
+        } else if (path.matches("/api/orders/[^/]+/payment-status")) {
+            out.write(paymentService().getOrderPaymentStatus(actor.id(), uuid(path.split("/")[3])).toJson());
+        } else if (path.matches("/api/orders/[^/]+")) {
+            out.write(service().orderDetail(actor, uuid(path.split("/")[3])).toJson());
+        } else throw missing();
     }
 
     private OrderService service() {
         return supplied == null ? OrderRuntime.resolve(getServletContext()) : supplied;
     }
 
-    private vn.ticketscenter.payment.service.PaymentService paymentService() {
-        return suppliedPayment == null
-                ? vn.ticketscenter.payment.service.PaymentRuntime.resolve(getServletContext())
-                : suppliedPayment;
+    private PaymentService paymentService() {
+        return suppliedPayment == null ? PaymentRuntime.resolve(getServletContext()) : suppliedPayment;
     }
 
     private static String parameter(HttpServletRequest request, String name) {
-        if (!request.getParameterMap().keySet().equals(Set.of(name))
-                || request.getParameterValues(name).length != 1) throw invalid();
-        return request.getParameter(name);
+        return ApiRequest.onlyParameter(request, name).orElseThrow(OrderApiServlet::invalid);
     }
 
+    /** Canonical, non-nil UUID text. */
     private static UUID uuid(String text) {
-        if (text == null
-                || !text.matches(
-                        "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"))
-            throw invalid();
-        UUID id = UUID.fromString(text);
-        if (id.equals(new UUID(0, 0))) throw invalid();
-        return id;
+        return ApiRequest.uuid(text).filter(id -> !id.equals(new UUID(0, 0))).orElseThrow(OrderApiServlet::invalid);
     }
 
     private static OrderException invalid() {
@@ -184,13 +146,4 @@ public final class OrderApiServlet extends HttpServlet {
         return new OrderException(404, "NOT_FOUND", "Order endpoint was not found.");
     }
 
-    private static int parsePositiveInt(String val, int def) {
-        if (val == null || val.isBlank()) return def;
-        try {
-            int parsed = Integer.parseInt(val);
-            return parsed > 0 ? parsed : def;
-        } catch (NumberFormatException e) {
-            return def;
-        }
-    }
 }

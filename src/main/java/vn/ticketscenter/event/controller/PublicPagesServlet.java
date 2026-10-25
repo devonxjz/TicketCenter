@@ -5,6 +5,7 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
 
@@ -43,7 +44,7 @@ public class PublicPagesServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        String path = req.getRequestURI().substring(req.getContextPath().length());
+        String path = ApiRequest.path(req);
 
         if (AUTH_REQUIRED_PAGES.contains(path)) {
             Optional<UserPrincipal> user = SecurityContext.getCurrentUser(req);

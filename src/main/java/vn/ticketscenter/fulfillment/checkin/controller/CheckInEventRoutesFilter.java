@@ -4,6 +4,7 @@ import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.config.web.HttpResponses;
 import java.io.IOException;
 
@@ -23,7 +24,7 @@ public final class CheckInEventRoutesFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
         HttpServletRequest http = (HttpServletRequest) request;
-        String path = http.getRequestURI().substring(http.getContextPath().length());
+        String path = ApiRequest.path(http);
         if (path.equals("/organizer/checkin-scanner")) {
             if (!"GET".equals(http.getMethod())) {
                 ((HttpServletResponse) response).setHeader("Allow", "GET");

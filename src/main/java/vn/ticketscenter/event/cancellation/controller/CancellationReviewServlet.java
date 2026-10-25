@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.UUID;
+import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.config.persistence.PersistenceListener;
 import vn.ticketscenter.config.persistence.PersistenceRegistry;
 import vn.ticketscenter.config.web.HttpResponses;
@@ -38,8 +39,7 @@ public final class CancellationReviewServlet extends HttpServlet {
         response.setHeader("Cache-Control", "no-store");
         try {
             String[] path =
-                    request.getRequestURI()
-                            .substring(request.getContextPath().length())
+                    ApiRequest.path(request)
                             .split("/", -1);
             boolean admin = path.length == 6 && path[2].equals("admin") && path[3].equals("events");
             boolean manager = path.length == 5 && path[2].equals("events");

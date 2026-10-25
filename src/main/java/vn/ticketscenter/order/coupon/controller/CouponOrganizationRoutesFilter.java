@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
+import vn.ticketscenter.config.web.ApiRequest;
 
 @WebFilter(
         urlPatterns = {"/api/organizations/*", "/api/admin/organizations/*"},
@@ -20,7 +21,7 @@ public final class CouponOrganizationRoutesFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
         HttpServletRequest http = (HttpServletRequest) request;
-        String path = http.getRequestURI().substring(http.getContextPath().length());
+        String path = ApiRequest.path(http);
         if (!path.matches("^/api/(admin/)?organizations/[^/]+/coupons$")) {
             chain.doFilter(request, response);
             return;

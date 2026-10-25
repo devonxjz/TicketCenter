@@ -1,6 +1,7 @@
 package vn.ticketscenter.event.controller;
 
 import jakarta.servlet.http.*;
+import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.event.dto.*;
 import vn.ticketscenter.event.dao.EventManagementRepository.Actor;
@@ -19,7 +20,7 @@ public final class EventManagementWeb {
             throws IOException {
         request.setCharacterEncoding("UTF-8");
         try {
-            String path = request.getRequestURI().substring(request.getContextPath().length());
+            String path = ApiRequest.path(request);
             String[] p = path.split("/", -1);
             boolean post = request.getMethod().equals("POST");
             if (!post && p.length == 5 && p[2].equals("events") && p[4].equals("image")) {

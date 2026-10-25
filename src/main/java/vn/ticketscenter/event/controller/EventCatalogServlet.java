@@ -3,6 +3,7 @@ package vn.ticketscenter.event.controller;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.*;
+import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.event.dto.EventFilter;
 import vn.ticketscenter.event.service.EventCatalogService;
@@ -29,7 +30,7 @@ public class EventCatalogServlet extends HttpServlet {
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
         boolean validated = false;
         try {
-            String route = request.getRequestURI().substring(request.getContextPath().length());
+            String route = ApiRequest.path(request);
             // Validate path/filter before resolving dependencies, so malformed requests remain
             // 400/404 during outages.
             java.util.function.Function<EventCatalogService, String> action;

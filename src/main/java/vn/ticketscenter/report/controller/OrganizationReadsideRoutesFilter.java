@@ -4,6 +4,7 @@ import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.*;
 import java.io.IOException;
+import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.settlement.infrastructure.FinanceException;
 
 /** Dispatches only the readside operations; the Event servlet retains its organization routes. */
@@ -19,7 +20,7 @@ public final class OrganizationReadsideRoutesFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
         var http = (HttpServletRequest) request;
-        String path = http.getRequestURI().substring(http.getContextPath().length());
+        String path = ApiRequest.path(http);
         String prefix = "/api/organizations";
         String route = path.startsWith(prefix + "/") ? path.substring(prefix.length()) : "";
         String[] parts = route.split("/", -1);

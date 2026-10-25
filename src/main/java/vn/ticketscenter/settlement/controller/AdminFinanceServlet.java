@@ -4,6 +4,7 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.util.*;
+import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.config.AppConfig;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.identity.security.*;
@@ -89,7 +90,7 @@ public final class AdminFinanceServlet extends HttpServlet {
                             .orElseThrow(() -> new FinanceException("UNAUTHENTICATED", 401));
             if (mutation && !SecurityContext.validateCsrfToken(request))
                 throw new FinanceException("CSRF_INVALID", 403);
-            String path = request.getRequestURI().substring(request.getContextPath().length());
+            String path = ApiRequest.path(request);
             String[] p = path.substring(1).split("/", -1);
             boolean rules =
                     p.length == 5
