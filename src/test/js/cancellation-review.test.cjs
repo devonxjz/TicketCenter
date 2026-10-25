@@ -6,7 +6,7 @@ function fixture(admin){
  const nodes=new Map(),calls=[],saved=new Map();
  const get=id=>{if(!nodes.has(id))nodes.set(id,{value:'',hidden:false,disabled:false,textContent:'',children:[],listeners:{},append(item){this.children.push(item);},replaceChildren(){this.children=[];},addEventListener(n,fn){this.listeners[n]=fn;},querySelector(){return get(id+'-button');}});return nodes.get(id);};
  const context={document:{body:{dataset:{context:'/app',cancellationAdmin:String(admin)}},hidden:false,getElementById:get,createElement:()=>({value:'',textContent:''}),addEventListener(){}},location:{search:''},URLSearchParams,crypto:{randomUUID:()=> 'stable-key'},sessionStorage:{getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v),removeItem:k=>saved.delete(k)},window:{confirm:()=>true,addEventListener(){}},setTimeout:()=>1,clearTimeout(){},fetch:(path,options)=>new Promise((resolve,reject)=>calls.push({path,options,resolve,reject}))};
- vm.createContext(context);vm.runInContext(fs.readFileSync('src/main/webapp/assets/js/event-cancellation-review.js','utf8'),context);
+ vm.createContext(context);vm.runInContext(fs.readFileSync('src/main/webapp/assets/js/event/cancellation-review.js','utf8'),context);
  return {get,calls,reply(i,data,status=200){calls[i].resolve({ok:status===200,status,json:async()=>data});},select(id){get('cancellation-event-id').value=id;return get('cancellation-select').listeners.submit({preventDefault(){}});}};
 }
 test('manager picker uses names and the existing top-level list pagination contract',async()=>{

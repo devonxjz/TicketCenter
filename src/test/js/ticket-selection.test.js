@@ -4,9 +4,9 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
-const { HoldClient, selectionPayload, currentHold, catalog, total, vnd, countdown } = require("../../main/webapp/assets/js/ticket-hold.js");
+const { HoldClient, selectionPayload, currentHold, catalog, total, vnd, countdown } = require("../../main/webapp/assets/js/order/ticket-selection.js");
 test('embedded booking resolves eventId and legacy id links without trusting malformed identifiers', () => {
-    const { resolveEventId } = require('../../main/webapp/assets/js/ticket-hold.js');
+    const { resolveEventId } = require('../../main/webapp/assets/js/order/ticket-selection.js');
     const id = '5318d6e0-16fc-5da5-a40b-14cde62ac2f7';
     assert.equal(resolveEventId('?eventId=' + id), id);
     assert.equal(resolveEventId('?id=' + id), id);
@@ -351,7 +351,7 @@ test("cached history restore freezes controls, rereads actor and server time, an
         }, setInterval: fn => { intervals.set(++timerId, fn); return timerId; },
         clearInterval: id => intervals.delete(id), addEventListener: (name, fn) => events.set(name, fn) };
     const flush = async () => { for (let i = 0; i < 5; i++) await new Promise(resolve => setImmediate(resolve)); };
-    vm.runInNewContext(fs.readFileSync(require.resolve("../../main/webapp/assets/js/ticket-hold.js"), "utf8"), { window: root, URLSearchParams });
+    vm.runInNewContext(fs.readFileSync(require.resolve("../../main/webapp/assets/js/order/ticket-selection.js"), "utf8"), { window: root, URLSearchParams });
     await flush();
     assert.equal(body.dataset.holdState, "active");
     assert.equal(nodes.get("hold-cancel").disabled, false);
@@ -554,7 +554,7 @@ test("production summary renders optional snapshot labels as text and omits raw 
         performance: { now: () => 0 }, location: { search: "" }, fetch: f.create().fetch,
         setInterval: () => 1, clearInterval: () => {}, addEventListener: (name, fn) => events.set(name, fn) };
     const flush = async () => { for (let i = 0; i < 5; i++) await new Promise(resolve => setImmediate(resolve)); };
-    vm.runInNewContext(fs.readFileSync(require.resolve("../../main/webapp/assets/js/ticket-hold.js"), "utf8"), { window: root, URLSearchParams });
+    vm.runInNewContext(fs.readFileSync(require.resolve("../../main/webapp/assets/js/order/ticket-selection.js"), "utf8"), { window: root, URLSearchParams });
     await flush();
     assert.equal(body.dataset.holdState, "active");
     assert.equal(nodes.get("hold-heading").textContent, "Concert <img src=x onerror=alert(1)>");
@@ -627,7 +627,7 @@ test("selection summary reports invalid when total tickets exceed 8 across multi
         setInterval: () => 1, clearInterval: () => {}, addEventListener: () => {}
     };
     const flush = async () => { for (let i = 0; i < 5; i++) await new Promise(resolve => setImmediate(resolve)); };
-    vm.runInNewContext(fs.readFileSync(require.resolve("../../main/webapp/assets/js/ticket-hold.js"), "utf8"), { window: root, URLSearchParams });
+    vm.runInNewContext(fs.readFileSync(require.resolve("../../main/webapp/assets/js/order/ticket-selection.js"), "utf8"), { window: root, URLSearchParams });
     await flush();
 
     const zonesEl = nodes.get("hold-zones");
@@ -645,7 +645,7 @@ test("selection summary reports invalid when total tickets exceed 8 across multi
 });
 
 test('real seated inventory groups rows without offering held, sold, or stale availability', () => {
-    const { seatRows } = require('../../main/webapp/assets/js/ticket-hold.js');
+    const { seatRows } = require('../../main/webapp/assets/js/order/ticket-selection.js');
     const zone = options().zones[1];
     const held = '40000000-0000-4000-8000-000000000002';
     const sold = '40000000-0000-4000-8000-000000000003';
@@ -692,7 +692,7 @@ async function bookingBrowserFixture(f=fixture()) {
     const root={document:{body,createElement:tag=>new Node(tag),getElementById:get},sessionStorage:f.storage,
         crypto:{randomUUID:()=> '60000000-0000-4000-8000-000000000001'},performance:{now:()=>0},location:{search:'?eventId='+EVENT,assign:url=>redirects.push(url)},
         fetch:f.create().fetch,setInterval:()=>1,clearInterval:()=>{},addEventListener:()=>{}};
-    vm.runInNewContext(fs.readFileSync(require.resolve('../../main/webapp/assets/js/ticket-hold.js'),'utf8'),{window:root,URLSearchParams});
+    vm.runInNewContext(fs.readFileSync(require.resolve('../../main/webapp/assets/js/order/ticket-selection.js'),'utf8'),{window:root,URLSearchParams});
     for(let i=0;i<6;i++)await new Promise(resolve=>setImmediate(resolve));
     return {...f,get,root,redirects,settle:async()=>{for(let i=0;i<10;i++)await new Promise(resolve=>setImmediate(resolve));}};
 }

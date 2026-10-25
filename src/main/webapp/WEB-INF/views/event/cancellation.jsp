@@ -116,6 +116,6 @@
         </main>
     </div>
     <jsp:include page="/WEB-INF/views/layout/footer.jsp" />
-    <script defer src="${pageContext.request.contextPath}/assets/js/event-cancellation-review.js"></script>
+    <script defer src="${pageContext.request.contextPath}/assets/js/event/cancellation-review.js"></script>
 </body>
 </html>

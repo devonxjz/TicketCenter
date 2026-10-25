@@ -4,7 +4,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
 const path=require('node:path');
-const script=fs.readFileSync(path.resolve(__dirname,'../../main/webapp/assets/js/finance-workbench.js'),'utf8');
+const script=fs.readFileSync(path.resolve(__dirname,'../../main/webapp/assets/js/finance/settlement-workbench.js'),'utf8');
 const flush=async()=>{for(let i=0;i<4;i++) await new Promise(resolve=>setImmediate(resolve));};
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no});return {promise,resolve,reject};};
 

@@ -167,7 +167,7 @@
         <noscript>Vui lòng bật JavaScript để tải thông tin sự kiện, chọn vị trí và giữ vé.</noscript>
     </main>
     <jsp:include page="/WEB-INF/views/layout/footer.jsp" />
-    <script defer src="${pageContext.request.contextPath}/assets/js/public-events.js"></script>
-    <script defer src="${pageContext.request.contextPath}/assets/js/ticket-hold.js?v=seat-coupon-9"></script>
+    <script defer src="${pageContext.request.contextPath}/assets/js/event/event-catalog.js"></script>
+    <script defer src="${pageContext.request.contextPath}/assets/js/order/ticket-selection.js?v=seat-coupon-9"></script>
 </body>
 </html>

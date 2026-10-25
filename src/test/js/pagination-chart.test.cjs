@@ -1,5 +1,5 @@
 const test=require('node:test'),assert=require('node:assert/strict');
-const {chartData}=require('../../main/webapp/assets/js/ui-components.js');
+const {chartData}=require('../../main/webapp/assets/js/core/pagination-chart.js');
 test('chart keeps exact database money above Number.MAX_SAFE_INTEGER',()=>{
  const [day]=chartData([{date:'2026-10-13',cohortGrossRevenue:'9007199254740993',netCashFlow:'4503599627370496'}]);
  assert.equal(day.revenue,9007199254740993n);assert.equal(day.revenueHeight,100);assert.equal(day.cashHeight,49);
@@ -14,7 +14,7 @@ test('empty and zero transaction days never fabricate chart values',()=>{
  assert.equal(day.revenueHeight,0);assert.equal(day.cashHeight,0);
 });
 
-const {paginationModel,renderPagination,paginateItems}=require('../../main/webapp/assets/js/ui-components.js');
+const {paginationModel,renderPagination,paginateItems}=require('../../main/webapp/assets/js/core/pagination-chart.js');
 test('pagination bounds selections and shows exact small page ranges',()=>{
  assert.deepEqual(paginationModel({page:-4,total:18,pageSize:6}),{page:1,totalPages:3,pages:[1,2,3]});
  assert.equal(paginationModel({page:99,total:18,pageSize:6}).page,3);

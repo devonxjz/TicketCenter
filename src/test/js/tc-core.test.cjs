@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const TC = require('../../main/webapp/assets/js/tc-core.js');
+const TC = require('../../main/webapp/assets/js/core/tc-core.js');
 
 test('TC.money formats BigInt and string numbers correctly in VND', () => {
     assert.equal(TC.money(100000), '100.000 đ');

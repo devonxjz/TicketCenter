@@ -4,7 +4,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
-const { OrderClient, checkout, orderSnapshot, eligibility } = require("../../main/webapp/assets/js/order-checkout.js");
+const { OrderClient, checkout, orderSnapshot, eligibility } = require("../../main/webapp/assets/js/order/checkout.js");
 
 const ACTOR = "10000000-0000-4000-8000-000000000001";
 const OTHER = "10000000-0000-4000-8000-000000000002";
@@ -310,13 +310,13 @@ function browserFixture(search = "") {
     const document = { body: { dataset: { context: "" } }, visibilityState: "visible", getElementById: id => elements[id], createElement: () => new Element(),
         addEventListener: (name, handler) => handlers.set("document:" + name, handler) };
     const redirects = [];
-    const window = { document, location: {assign: url => redirects.push(url), search}, TicketHold: require("../../main/webapp/assets/js/ticket-hold.js"), fetch: fixtureApi.create().fetch,
+    const window = { document, location: {assign: url => redirects.push(url), search}, TicketHold: require("../../main/webapp/assets/js/order/ticket-selection.js"), fetch: fixtureApi.create().fetch,
         sessionStorage: fixtureApi.storage, performance: { now: () => 0 }, crypto: { randomUUID: () => "60000000-0000-4000-8000-000000000123" },
         setTimeout: (fn, delay) => { const id = ++timerId; timers.set(id, { fn, delay }); return id; }, clearTimeout: id => timers.delete(id),
         addEventListener: (name, handler) => handlers.set(name, handler), MutationObserver: class {
             constructor(fn) { observer = fn; } observe() {}
         } };
-    vm.runInNewContext(fs.readFileSync(require.resolve("../../main/webapp/assets/js/order-checkout.js"), "utf8"), { window, URLSearchParams, URL });
+    vm.runInNewContext(fs.readFileSync(require.resolve("../../main/webapp/assets/js/order/checkout.js"), "utf8"), { window, URLSearchParams, URL });
     const settle = async () => { for (let i = 0; i < 10; i++) await new Promise(resolve => setImmediate(resolve)); };
     return { ...fixtureApi, redirects, elements, handlers, timers, document, settle, holdState: state => { document.body.dataset.holdState = state; observer(); },
         expired: () => { document.body.dataset.holdState = "expired"; observer(); } };

@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-function implementation() { return require('../../main/webapp/assets/js/public-events.js'); }
+function implementation() { return require('../../main/webapp/assets/js/event/event-catalog.js'); }
 test('detail accepts current and legacy event links but rejects invalid and zero IDs', () => {
   const { eventId } = implementation();
   const id = '5318d6e0-16fc-5da5-a40b-14cde62ac2f7';

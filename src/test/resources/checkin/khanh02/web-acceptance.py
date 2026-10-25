@@ -40,7 +40,7 @@ request(staff,'/api/events/'+event+'/check-ins?pageSize=20',200)
 request(staff,'/api/events/'+event+'/check-ins?pageSize=101',400)
 request(other,'/api/events/'+event+'/check-ins',403)
 request(other,'/organizer/checkin-scanner?eventId='+event,403)
-for path in ['/assets/checkin/scanner.js','/assets/checkin/vendor/html5-qrcode.min.js']:request(staff,path,200)
+for path in ['/assets/js/checkin/scanner.js','/assets/js/checkin/vendor/html5-qrcode.min.js']:request(staff,path,200)
 payload={'eventId':event,'qrContent':(ROOT/'target/khanh02-web-qr.txt').read_text()}
 key=str(uuid.uuid4());headers={'Content-Type':'application/json','X-CSRF-Token':csrf,'Idempotency-Key':key}
 request(staff,'/api/check-ins',403,payload,{'Content-Type':'application/json','Idempotency-Key':key})

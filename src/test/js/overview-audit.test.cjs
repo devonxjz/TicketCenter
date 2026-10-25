@@ -1,6 +1,6 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),vm=require('node:vm');
-const ui=require('../../main/webapp/assets/js/finance-admin-readside.js');
+const ui=require('../../main/webapp/assets/js/finance/overview-audit.js');
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 const actor='10000000-0000-0000-0000-000000000001';
 
@@ -29,7 +29,7 @@ function harness(page='audit'){
  const requests=[],document={getElementById:id=>ids[id],createElement:()=>new Element(),createElementNS:()=>new Element(),createTextNode:text=>({textContent:text})};
  const network=url=>new Promise(resolve=>requests.push({url,resolve}));
  const response=data=>new Response(JSON.stringify({data}),{headers:{'Content-Type':'application/json'}});
- vm.runInNewContext(fs.readFileSync(require.resolve('../../main/webapp/assets/js/finance-admin-readside.js'),'utf8'),{document,fetch:network,URLSearchParams,Date,Intl,BigInt,Option:class extends Element{constructor(text,value){super(value);this.textContent=text;}},FormData:class{entries(){return Object.entries({...Object.fromEntries(Object.entries(form.elements).map(([key,e])=>[key,e.value])),organizationId:ids.organization.value,eventId:ids.event.value})[Symbol.iterator]();}}});
+ vm.runInNewContext(fs.readFileSync(require.resolve('../../main/webapp/assets/js/finance/overview-audit.js'),'utf8'),{document,fetch:network,URLSearchParams,Date,Intl,BigInt,Option:class extends Element{constructor(text,value){super(value);this.textContent=text;}},FormData:class{entries(){return Object.entries({...Object.fromEntries(Object.entries(form.elements).map(([key,e])=>[key,e.value])),organizationId:ids.organization.value,eventId:ids.event.value})[Symbol.iterator]();}}});
  const audit=()=>response({rows:[{id:actor,action:'TEST_HTTP',entityType:'Event',entityId:actor,actorId:actor,createdAt:'2026-10-01T00:00:00Z'}],page:1,pageSize:20,total:1,from:'2026-10-01T00:00:00Z',to:'2026-10-02T00:00:00Z'});
  return {ids,requests,response,audit,async ready(){if(page==='audit'){requests[0].resolve(response({organizations:[],events:[]}));await tick();await tick();}},change(name,value){const e=form.elements[name]||ids[name];e.value=value;form.handlers.change({target:e});},detail(){return ids.rows.children[0].children.at(-1).children[0].handlers.click();}};
 }
@@ -91,7 +91,7 @@ function notificationApprovalHarness(pendingKind) {
   }
  };
  const window={},fetch=async(url,options)=>{requests.push({url,options});return {ok:true};};
- vm.runInNewContext(fs.readFileSync(require.resolve('../../main/webapp/assets/js/admin-notifications.js'),'utf8'),{document,window,fetch,console,setTimeout(){}});
+ vm.runInNewContext(fs.readFileSync(require.resolve('../../main/webapp/assets/js/admin/notification-bell.js'),'utf8'),{document,window,fetch,console,setTimeout(){}});
  return {window,financeRow,pendingRow,ids,requests};
 }
 test('shared notification approval preserves a finance audit row containing organization UUID',async()=>{

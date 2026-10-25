@@ -1,5 +1,5 @@
 const test = require('node:test'), assert = require('node:assert/strict'), vm = require('node:vm'), fs = require('node:fs');
-const source = fs.readFileSync(require.resolve('../../main/webapp/assets/js/live-pages.js'), 'utf8');
+const source = fs.readFileSync(require.resolve('../../main/webapp/assets/js/organizer/organizer-pages.js'), 'utf8');
 const flush = () => new Promise(resolve => setImmediate(resolve));
 class Element {
   constructor() { this.children=[]; this.listeners={}; this.value=''; this.textContent=''; this.hidden=false; }

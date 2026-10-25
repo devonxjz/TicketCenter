@@ -9,7 +9,8 @@ function fixture(kind, csrf = true){
  const window={tcCurrentOrgId:'org-a',crypto:{randomUUID:()=> 'test-key'},addEventListener(n,fn){events[n]=fn;}};
  const context={document,window,crypto:window.crypto,localStorage:{getItem(){return null;}},bootstrap:{Modal},Date,setTimeout(){},console:{error(){},warn(){}},fetch:(path,options)=>new Promise((resolve,reject)=>calls.push({path,options,resolve,reject}))};
  vm.createContext(context);
- let source=fs.readFileSync('src/main/webapp/assets/js/'+kind+'.js','utf8');
+ const file={'admin-organizations':'admin/organization-review','organization-members':'organizer/members'}[kind];
+ let source=fs.readFileSync('src/main/webapp/assets/js/'+file+'.js','utf8');
  // Expose existing lexical functions only in the test VM; ship no test hooks.
  if(kind==='organization-members')source=source.replace(/\}\)\(\);\s*$/, 'window.testActions={openChangeRoleModal,openDeactivateModal,handleActivateMember};})();');
  vm.runInContext(source,context);

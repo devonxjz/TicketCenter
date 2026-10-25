@@ -6,7 +6,7 @@ function fixture(payload,ok=true){
  const document={getElementById:get,querySelector:selector=>({getAttribute:()=>selector.includes('context-path')?'/app':'csrf'}),querySelectorAll:()=>[],addEventListener(){}};
  const crypto={randomUUID:()=> '11111111-1111-1111-1111-111111111111'};
  const context={document,window:{crypto},crypto,bootstrap:{Modal:class{show(){}hide(){}}},Date,setTimeout(){},console:{error(){}},fetch:async(path,options)=>{calls.push({path,options});return{ok,statusText:'Unavailable',json:async()=>payload};}};
- vm.createContext(context);vm.runInContext(fs.readFileSync('src/main/webapp/assets/js/admin-organizations.js','utf8'),context);
+ vm.createContext(context);vm.runInContext(fs.readFileSync('src/main/webapp/assets/js/admin/organization-review.js','utf8'),context);
  return{context,get,calls};
 }
 test('organization list renders the live API envelope and pagination count',async()=>{

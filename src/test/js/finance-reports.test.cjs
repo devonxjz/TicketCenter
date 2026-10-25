@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const ui = require('../../main/webapp/assets/js/finance-reports.js');
+const ui = require('../../main/webapp/assets/js/finance/reports.js');
 const vm=require('node:vm'),fs=require('node:fs');
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 test('report periods include historical sales and count recent UTC calendar days exactly',()=>{
@@ -33,7 +33,7 @@ function harness(){
  const requests=[];let downloads=0;const document={getElementById:id=>ids[id],createElement:()=>new Element(),body:new Element()};
  const network=url=>new Promise(resolve=>requests.push({url,resolve}));
  const response=data=>new Response(JSON.stringify({data}),{headers:{'Content-Type':'application/json'}});
- vm.runInNewContext(fs.readFileSync(require.resolve('../../main/webapp/assets/js/finance-reports.js'),'utf8'),{document,fetch:network,URLSearchParams,URL:{createObjectURL:()=> 'blob:test',revokeObjectURL(){}},Option:class extends Element{constructor(text,value){super(value);this.textContent=text;}},FormData:class{entries(){return Object.entries({...Object.fromEntries(Object.entries(form.elements).map(([key,input])=>[key,input.value])),organizationId:ids.organization.value,eventId:ids.event.value})[Symbol.iterator]();}},Date,Intl,BigInt,setTimeout:()=>0});
+ vm.runInNewContext(fs.readFileSync(require.resolve('../../main/webapp/assets/js/finance/reports.js'),'utf8'),{document,fetch:network,URLSearchParams,URL:{createObjectURL:()=> 'blob:test',revokeObjectURL(){}},Option:class extends Element{constructor(text,value){super(value);this.textContent=text;}},FormData:class{entries(){return Object.entries({...Object.fromEntries(Object.entries(form.elements).map(([key,input])=>[key,input.value])),organizationId:ids.organization.value,eventId:ids.event.value})[Symbol.iterator]();}},Date,Intl,BigInt,setTimeout:()=>0});
  return {ids,requests,response,get downloads(){return downloads;},async ready(){requests[0].resolve(response({organizations:[],events:[]}));await tick();await tick();},result(metric='COHORT_REVENUE'){return response({metric,rows:[{eventId:'Old report'}],summary:{totalEvents:1},topEvents:[],pageSize:20,total:1,timeBasis:''});},change(name,value){const target=form.elements[name]||ids[name];target.value=value;form.handlers.change?.({target});}};
 }
 
@@ -90,7 +90,7 @@ test('page initialization does not crash when optional UI elements are missing',
   if(ids['report-period'])ids['report-period'].value='all';const form=ids.filters;form.elements={from:new Element(),to:new Element(),metric:new Element('COHORT_REVENUE'),pageSize:new Element('20')};ids['finance-readside'].dataset={context:'/ticketscenter',admin:'true'};
   const document={getElementById:id=>ids[id]||null,createElement:()=>new Element(),body:new Element()};
   assert.doesNotThrow(() => {
-    vm.runInNewContext(fs.readFileSync(require.resolve('../../main/webapp/assets/js/finance-reports.js'),'utf8'),{
+    vm.runInNewContext(fs.readFileSync(require.resolve('../../main/webapp/assets/js/finance/reports.js'),'utf8'),{
       document,fetch:()=>new Promise(()=>{}),URLSearchParams,URL:{createObjectURL:()=>'blob:test',revokeObjectURL(){}},Option:class extends Element{constructor(text,value){super(value);this.textContent=text;}},FormData:class{entries(){return [][Symbol.iterator]();}},Date,Intl,BigInt,setTimeout:()=>0
     });
   });

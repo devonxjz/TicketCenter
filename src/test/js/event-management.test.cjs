@@ -34,7 +34,7 @@ function harness(delays={}){
   return response({data:event(id)});
  };
  const session=new Map();
- vm.runInNewContext(fs.readFileSync('src/main/webapp/assets/js/dong-events.js','utf8'),{
+ vm.runInNewContext(fs.readFileSync('src/main/webapp/assets/js/event/event-management.js','utf8'),{
   document,fetch,URL,URLSearchParams,TextEncoder,crypto:webcrypto,XMLHttpRequest:function(){},matchMedia:()=>({matches:false}),
   location:{search:'',origin:'http://localhost'},confirm:()=>true,
   sessionStorage:{getItem:k=>session.get(k),setItem:(k,v)=>session.set(k,v),removeItem:k=>session.delete(k)}

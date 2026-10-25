@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const http = require('node:http');
 
 test('logout sends a JSON request accepted by API content-type validation', async (t) => {
-    const { signOut } = require('../../main/webapp/assets/js/site-shell.js');
+    const { signOut } = require('../../main/webapp/assets/js/layout/site-header.js');
     const server = http.createServer(async (request, response) => {
         response.setHeader('Content-Type', 'application/json');
         if (request.url === '/ticketscenter/api/auth/csrf') {
@@ -29,7 +29,7 @@ test('logout sends a JSON request accepted by API content-type validation', asyn
 });
 
 test('logout uses session CSRF and never navigates on an unconfirmed failure', async () => {
-    const { signOut } = require('../../main/webapp/assets/js/site-shell.js');
+    const { signOut } = require('../../main/webapp/assets/js/layout/site-header.js');
     const calls = [];
     await signOut(async (path, options) => { calls.push({path, options}); return {ok:true,json:async()=>path.endsWith('/csrf')?{data:{token:'session-token'}}:{data:{loggedOut:true}}}; }, '/ticketscenter');
     assert.equal(calls[1].path, '/ticketscenter/api/auth/logout');
@@ -39,7 +39,7 @@ test('logout uses session CSRF and never navigates on an unconfirmed failure', a
 });
 
 test('buildSearchQuery constructs query string with sanitized category and keyword', () => {
-    const { buildSearchQuery } = require('../../main/webapp/assets/js/site-shell.js');
+    const { buildSearchQuery } = require('../../main/webapp/assets/js/layout/site-header.js');
     const q1 = buildSearchQuery({ categoryId: '65b09860-f9ae-55a4-aa0f-4915d4072a10' });
     assert.equal(q1.get('categoryId'), '65b09860-f9ae-55a4-aa0f-4915d4072a10');
     assert.equal(q1.get('pageSize'), '6');
@@ -57,7 +57,7 @@ test('buildSearchQuery constructs query string with sanitized category and keywo
 });
 
 test('formatPrice and formatEventTime format event metadata safely for UI', () => {
-    const { formatPrice, formatEventTime } = require('../../main/webapp/assets/js/site-shell.js');
+    const { formatPrice, formatEventTime } = require('../../main/webapp/assets/js/layout/site-header.js');
     assert.equal(formatPrice(null), 'Chưa có giá vé');
     assert.equal(formatPrice(undefined), 'Chưa có giá vé');
     assert.equal(formatPrice(0), 'Miễn phí');
@@ -73,7 +73,7 @@ test('formatPrice and formatEventTime format event metadata safely for UI', () =
 
 
 test('search dropdown escapes every untrusted event field', () => {
-    const { buildDropdownHtml } = require('../../main/webapp/assets/js/site-shell.js');
+    const { buildDropdownHtml } = require('../../main/webapp/assets/js/layout/site-header.js');
     const payload = '<img src=x onerror=alert(1)>';
     const html = buildDropdownHtml('/ticketscenter', 'Kết quả: "' + payload + '"', 1, [{
         eventId: 'e1" onmouseover="alert(1)',
@@ -91,7 +91,7 @@ test('search dropdown escapes every untrusted event field', () => {
 });
 
 test('search dropdown keeps javascript: and data: cover URLs out of img src', () => {
-    const { buildDropdownHtml } = require('../../main/webapp/assets/js/site-shell.js');
+    const { buildDropdownHtml } = require('../../main/webapp/assets/js/layout/site-header.js');
     for (const url of ['javascript:alert(1)', 'data:text/html,<script>alert(1)</script>', ' JaVaScRiPt:alert(1)']) {
         const html = buildDropdownHtml('', 't', 1, [{ eventId: 'e1', title: 'ok', coverImageUrl: url }]);
         assert.ok(!/<img\b/i.test(html), 'unsafe scheme must not render an <img>: ' + url);
@@ -101,7 +101,7 @@ test('search dropdown keeps javascript: and data: cover URLs out of img src', ()
 });
 
 test('search dropdown shows the empty state and keeps plain text readable', () => {
-    const { buildDropdownHtml } = require('../../main/webapp/assets/js/site-shell.js');
+    const { buildDropdownHtml } = require('../../main/webapp/assets/js/layout/site-header.js');
     assert.ok(buildDropdownHtml('', 't', 0, []).includes('Không tìm thấy sự kiện nào phù hợp.'));
     const html = buildDropdownHtml('', 't', 1, [{ eventId: 'e1', title: 'Rock & Roll "Live"', venueName: "Nhà hát O'Neil" }]);
     assert.ok(html.includes('Rock &amp; Roll &quot;Live&quot;'));

@@ -96,8 +96,8 @@
         </main>
     </div>
     <jsp:include page="/WEB-INF/views/layout/footer.jsp" />
-    <script defer src="${pageContext.request.contextPath}/assets/js/admin-notifications.js"></script>
+    <script defer src="${pageContext.request.contextPath}/assets/js/admin/notification-bell.js"></script>
     <script defer
-        src="${pageContext.request.contextPath}/assets/js/dong-events.js?v=review-opening-20261014"></script>
+        src="${pageContext.request.contextPath}/assets/js/event/event-management.js?v=review-opening-20261014"></script>
 </body>
 </html>

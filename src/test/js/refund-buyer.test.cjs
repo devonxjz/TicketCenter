@@ -6,7 +6,7 @@ const vm = require('node:vm');
 const {test} = require('node:test');
 
 const root = path.resolve(__dirname, '../../..');
-const source = name => fs.readFileSync(path.join(root, 'src/main/webapp/assets/refund', name), 'utf8');
+const source = name => fs.readFileSync(path.join(root, 'src/main/webapp/assets/js/refund', name), 'utf8');
 const flush = () => new Promise(resolve => setImmediate(resolve));
 
 class Element {

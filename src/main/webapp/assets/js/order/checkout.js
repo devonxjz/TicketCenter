@@ -1,7 +1,7 @@
 (function(root) {
     "use strict";
 
-    const holdApi = typeof module !== "undefined" && module.exports ? require("./ticket-hold.js") : root.TicketHold;
+    const holdApi = typeof module !== "undefined" && module.exports ? require("./ticket-selection.js") : root.TicketHold;
     const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const uuid = value => typeof value === "string" && UUID.test(value) && value !==
         "00000000-0000-0000-0000-000000000000";

@@ -91,6 +91,6 @@
         <noscript>Vui lòng bật JavaScript để xem hồ sơ.</noscript>
     </main>
     <jsp:include page="/WEB-INF/views/layout/footer.jsp" />
-    <script defer src="${pageContext.request.contextPath}/assets/js/live-pages.js"></script>
+    <script defer src="${pageContext.request.contextPath}/assets/js/organizer/organizer-pages.js"></script>
 </body>
 </html>

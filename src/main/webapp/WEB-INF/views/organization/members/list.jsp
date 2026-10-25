@@ -269,7 +269,7 @@
         </div>
     </div>
 
-    <script defer src="${pageContext.request.contextPath}/assets/js/organization-members.js"></script>
+    <script defer src="${pageContext.request.contextPath}/assets/js/organizer/members.js"></script>
 </body>
 
 </html>
