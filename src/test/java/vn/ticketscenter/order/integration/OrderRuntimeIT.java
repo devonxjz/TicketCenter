@@ -1,5 +1,6 @@
 package vn.ticketscenter.order.integration;
 
+import vn.ticketscenter.config.persistence.FeatureContext;
 import com.zaxxer.hikari.HikariDataSource;
 import jakarta.servlet.*;
 import org.junit.jupiter.api.Test;
@@ -37,7 +38,7 @@ class OrderRuntimeIT {
                 var service = OrderRuntime.resolve(context);
                 assertTrue(service.checkout(new OrderActor(fixture.actor.id(),0),hold).order().isEmpty());
                 assertSame(service,OrderRuntime.resolve(context));
-                pool = (HikariDataSource)context.getAttribute(OrderRuntime.class.getName()+".pool");
+                pool = (HikariDataSource)FeatureContext.resources(context,OrderRuntime.SERVICE_ATTRIBUTE).getFirst();
                 assertEquals(1,pool.getMaximumPoolSize()); assertEquals(0,pool.getMinimumIdle());
                 assertFalse(attributes.keySet().stream().anyMatch(key -> key.contains("worker")));
             } finally {

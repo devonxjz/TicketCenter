@@ -1,111 +1,70 @@
 package vn.ticketscenter.event.service;
 
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
-
-import jakarta.servlet.*;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletContextEvent;
+import jakarta.servlet.ServletContextListener;
 import jakarta.servlet.annotation.WebListener;
-
-import vn.ticketscenter.config.DatabaseConfig;
-import vn.ticketscenter.config.persistence.*;
+import vn.ticketscenter.config.persistence.ConnectionBudgets;
+import vn.ticketscenter.config.persistence.FeatureContext;
+import vn.ticketscenter.event.cache.EventIdempotencyStore;
 import vn.ticketscenter.event.dao.EventRepository;
-import vn.ticketscenter.storage.StorageService;
+import vn.ticketscenter.storage.LocalImageStorage;
 
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.logging.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
+
+import static vn.ticketscenter.config.persistence.DatabasePrincipal.BUYER;
+import static vn.ticketscenter.config.persistence.DatabasePrincipal.MANAGER;
+import static vn.ticketscenter.config.persistence.DatabasePrincipal.WORKER;
 
 @WebListener
 public final class EventRuntime implements ServletContextListener {
     public static final String SERVICE_ATTRIBUTE = EventService.class.getName();
-    private static final String POOLS_ATTRIBUTE = EventRuntime.class.getName() + ".pools";
     private static final Logger LOG = Logger.getLogger(EventRuntime.class.getName());
     private ScheduledExecutorService cleanup;
 
     public static EventService resolve(ServletContext context) {
-        synchronized (context) {
-            Object existing = context.getAttribute(SERVICE_ATTRIBUTE);
-            if (existing instanceof EventService service) return service;
-            List<HikariDataSource> pools = new ArrayList<>();
-            try {
-                HikariDataSource manager = pool(DatabasePrincipal.MANAGER);
-                pools.add(manager);
-                HikariDataSource buyer = pool(DatabasePrincipal.BUYER);
-                pools.add(buyer);
-                HikariDataSource worker = pool(DatabasePrincipal.WORKER);
-                pools.add(worker);
-                StorageService storage = resolveStorage();
-                vn.ticketscenter.event.cache.EventIdempotencyStore redis = resolveRedis();
-                EventService service =
-                        new EventService(
-                                new EventRepository(
-                                        ConnectionBudgets.wrap(manager),
-                                        ConnectionBudgets.wrap(buyer),
-                                        ConnectionBudgets.wrap(worker)),
-                                storage,
-                                redis);
-                context.setAttribute(POOLS_ATTRIBUTE, pools);
-                context.setAttribute(SERVICE_ATTRIBUTE, service);
-                return service;
-            } catch (RuntimeException e) {
-                pools.forEach(HikariDataSource::close);
-                throw e;
-            }
-        }
+        return FeatureContext.resolve(context, SERVICE_ATTRIBUTE, EventRuntime::create, failure -> failure);
     }
 
-    private static StorageService resolveStorage() {
-        return vn.ticketscenter.storage.LocalImageStorage.configured();
-    }
-
-    private static vn.ticketscenter.event.cache.EventIdempotencyStore resolveRedis() {
-        if (vn.ticketscenter.config.AppConfig.getBoolean("event.redis.enabled", false)) {
-            return new vn.ticketscenter.event.cache.RedisEventIdempotencyStore();
-        }
-        return new vn.ticketscenter.event.cache.InMemoryEventIdempotencyStore();
-    }
-
-    private static HikariDataSource pool(DatabasePrincipal principal) {
-        HikariConfig config = new HikariConfig();
-        config.setPoolName("event-images-" + principal.name().toLowerCase(Locale.ROOT));
-        config.setJdbcUrl(DatabaseConfig.getJdbcUrl());
-        config.setUsername(DatabaseConfig.getPrincipalUser(principal));
-        config.setPassword(DatabaseConfig.getPrincipalPassword(principal));
-        config.setMaximumPoolSize(1);
-        config.setMinimumIdle(0);
-        config.setConnectionTimeout(15_000);
-        config.setInitializationFailTimeout(-1);
-        config.setAutoCommit(false);
-        return new HikariDataSource(config);
+    private static EventService create(FeatureContext.Resources resources) {
+        var manager = resources.fallbackPool("event-images-manager", MANAGER, false, 15_000);
+        var buyer = resources.fallbackPool("event-images-buyer", BUYER, false, 15_000);
+        var worker = resources.fallbackPool("event-images-worker", WORKER, false, 15_000);
+        var repository =
+                new EventRepository(
+                        ConnectionBudgets.wrap(manager),
+                        ConnectionBudgets.wrap(buyer),
+                        ConnectionBudgets.wrap(worker));
+        return new EventService(
+                repository, LocalImageStorage.configured(), EventIdempotencyStore.configured());
     }
 
     @Override
     public void contextInitialized(ServletContextEvent event) {
+        ServletContext context = event.getServletContext();
+        FeatureContext.open(context, SERVICE_ATTRIBUTE);
         cleanup =
                 Executors.newSingleThreadScheduledExecutor(
                         Thread.ofPlatform().daemon(true).name("event-image-cleanup").factory());
-        cleanup.scheduleWithFixedDelay(
-                () -> {
-                    Object value = event.getServletContext().getAttribute(SERVICE_ATTRIBUTE);
-                    if (value instanceof EventService service)
-                        try {
-                            service.cleanup(10);
-                        } catch (RuntimeException e) {
-                            LOG.warning("Event image cleanup will retry");
-                        }
-                },
-                60,
-                60,
-                TimeUnit.SECONDS);
+        cleanup.scheduleWithFixedDelay(() -> cleanImages(context), 60, 60, TimeUnit.SECONDS);
     }
 
     @Override
     public void contextDestroyed(ServletContextEvent event) {
         if (cleanup != null) cleanup.shutdownNow();
-        Object value = event.getServletContext().getAttribute(POOLS_ATTRIBUTE);
-        if (value instanceof List<?> pools)
-            for (Object pool : pools) if (pool instanceof HikariDataSource source) source.close();
-        event.getServletContext().removeAttribute(SERVICE_ATTRIBUTE);
-        event.getServletContext().removeAttribute(POOLS_ATTRIBUTE);
+        FeatureContext.close(event.getServletContext(), SERVICE_ATTRIBUTE);
+    }
+
+    /** Only cleans once a request has built the service; the job never opens pools by itself. */
+    private static void cleanImages(ServletContext context) {
+        if (!(context.getAttribute(SERVICE_ATTRIBUTE) instanceof EventService service)) return;
+        try {
+            service.cleanup(10);
+        } catch (RuntimeException failure) {
+            LOG.warning("Event image cleanup will retry");
+        }
     }
 }

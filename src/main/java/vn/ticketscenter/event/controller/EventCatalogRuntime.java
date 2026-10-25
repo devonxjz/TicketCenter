@@ -1,12 +1,12 @@
 package vn.ticketscenter.event.controller;
 
 import jakarta.servlet.ServletContext;
-import vn.ticketscenter.config.persistence.DatabasePrincipal;
-import vn.ticketscenter.config.persistence.PersistenceListener;
-import vn.ticketscenter.config.persistence.PersistenceRegistry;
+import vn.ticketscenter.config.persistence.FeatureContext;
 import vn.ticketscenter.event.cache.RedisEventCatalogCache;
 import vn.ticketscenter.event.dao.EventCatalogRepository;
 import vn.ticketscenter.event.service.EventCatalogService;
+
+import static vn.ticketscenter.config.persistence.DatabasePrincipal.BUYER;
 
 public final class EventCatalogRuntime {
     public static final String SERVICE_ATTRIBUTE = EventCatalogService.class.getName();
@@ -15,29 +15,18 @@ public final class EventCatalogRuntime {
     private EventCatalogRuntime() {}
 
     public static EventCatalogService resolve(ServletContext context) {
-        synchronized (context) {
-            Object existing = context.getAttribute(SERVICE_ATTRIBUTE);
-            if (existing instanceof EventCatalogService service) return service;
-            Object value = context.getAttribute(PersistenceListener.REGISTRY_ATTRIBUTE);
-            if (!(value instanceof PersistenceRegistry registry)
-                    || !registry.hasPrincipal(DatabasePrincipal.BUYER))
-                throw new IllegalStateException("Event catalog unavailable");
-            var service =
-                    new EventCatalogService(
-                            new EventCatalogRepository(registry.transactionManager()),
-                            cache(context));
-            context.setAttribute(SERVICE_ATTRIBUTE, service);
-            return service;
-        }
+        return FeatureContext.cached(context, SERVICE_ATTRIBUTE, () -> create(context));
     }
 
     public static RedisEventCatalogCache cache(ServletContext context) {
-        synchronized (context) {
-            Object existing = context.getAttribute(CACHE_ATTRIBUTE);
-            if (existing instanceof RedisEventCatalogCache cache) return cache;
-            var cache = new RedisEventCatalogCache();
-            context.setAttribute(CACHE_ATTRIBUTE, cache);
-            return cache;
-        }
+        return FeatureContext.cached(context, CACHE_ATTRIBUTE, RedisEventCatalogCache::new);
+    }
+
+    private static EventCatalogService create(ServletContext context) {
+        var registry =
+                FeatureContext.registry(
+                        context, BUYER, () -> new IllegalStateException("Event catalog unavailable"));
+        return new EventCatalogService(
+                new EventCatalogRepository(registry.transactionManager()), cache(context));
     }
 }
