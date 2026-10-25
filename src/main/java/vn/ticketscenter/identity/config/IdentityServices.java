@@ -6,7 +6,7 @@ import vn.ticketscenter.config.persistence.PersistenceRegistry;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.identity.integration.mail.EmailSender;
-import vn.ticketscenter.identity.integration.mail.SmtpEmailSender;
+import vn.ticketscenter.identity.integration.mail.EmailSenderImpl;
 import vn.ticketscenter.identity.dao.OrganizationDecisionRepository;
 import vn.ticketscenter.identity.dao.OrganizationMembershipRepository;
 import vn.ticketscenter.identity.dao.OrganizationRepository;
@@ -14,16 +14,24 @@ import vn.ticketscenter.identity.dao.OtpRepository;
 import vn.ticketscenter.identity.dao.UserRepository;
 import vn.ticketscenter.identity.service.DemoInitialEventFactory;
 import vn.ticketscenter.identity.service.LoginService;
+import vn.ticketscenter.identity.service.LoginServiceImpl;
 import vn.ticketscenter.identity.service.OrganizationApprovalService;
+import vn.ticketscenter.identity.service.OrganizationApprovalServiceImpl;
 import vn.ticketscenter.identity.service.OrganizationMembershipService;
+import vn.ticketscenter.identity.service.OrganizationMembershipServiceImpl;
 import vn.ticketscenter.identity.service.OrganizationRequestIdempotency;
 import vn.ticketscenter.identity.service.OrganizationRequestService;
+import vn.ticketscenter.identity.service.OrganizationRequestServiceImpl;
 import vn.ticketscenter.identity.service.OtpHasher;
 import vn.ticketscenter.identity.service.OtpService;
+import vn.ticketscenter.identity.service.OtpServiceImpl;
 import vn.ticketscenter.identity.service.PasswordHasher;
 import vn.ticketscenter.identity.service.PasswordResetService;
+import vn.ticketscenter.identity.service.PasswordResetServiceImpl;
 import vn.ticketscenter.identity.service.ProfileService;
+import vn.ticketscenter.identity.service.ProfileServiceImpl;
 import vn.ticketscenter.identity.service.RegistrationService;
+import vn.ticketscenter.identity.service.RegistrationServiceImpl;
 import vn.ticketscenter.identity.service.ResetTokenCodec;
 import vn.ticketscenter.identity.service.SessionValidator;
 import vn.ticketscenter.identity.service.UserSessionCache;
@@ -63,24 +71,24 @@ public record IdentityServices(
         var organizations = new OrganizationRepository();
         var decisions = new OrganizationDecisionRepository();
         var otpService =
-                new OtpService(
+                new OtpServiceImpl(
                         transactions, new OtpRepository(), users, new OtpHasher(), resetTokens, emailSender);
         return new IdentityServices(
-                new RegistrationService(transactions, users, hasher),
-                new LoginService(transactions, users, memberships, hasher),
+                new RegistrationServiceImpl(transactions, users, hasher),
+                new LoginServiceImpl(transactions, users, memberships, hasher),
                 new SessionValidator(transactions, users, sessionCache),
-                new ProfileService(transactions, users),
+                new ProfileServiceImpl(transactions, users),
                 otpService,
-                new PasswordResetService(transactions, users, otpService, resetTokens, hasher, sessionCache),
-                new OrganizationRequestService(
+                new PasswordResetServiceImpl(transactions, users, otpService, resetTokens, hasher, sessionCache),
+                new OrganizationRequestServiceImpl(
                         transactions,
                         organizations,
                         users,
                         decisions,
                         OrganizationRequestIdempotency.redis(redis)),
-                new OrganizationApprovalService(
+                new OrganizationApprovalServiceImpl(
                         transactions, organizations, users, decisions, new DemoInitialEventFactory()),
-                new OrganizationMembershipService(transactions, memberships, users));
+                new OrganizationMembershipServiceImpl(transactions, memberships, users));
     }
 
     /**
@@ -96,7 +104,7 @@ public record IdentityServices(
             var registry = FeatureContext.registry(context).filter(PersistenceRegistry::isReady);
             if (registry.isEmpty()) return null;
             var transactions = registry.get().transactionManager();
-            var services = create(transactions, RedisClientProvider.getInstance(), new SmtpEmailSender());
+            var services = create(transactions, RedisClientProvider.getInstance(), new EmailSenderImpl());
             context.setAttribute(ATTRIBUTE, services);
             return services;
         }

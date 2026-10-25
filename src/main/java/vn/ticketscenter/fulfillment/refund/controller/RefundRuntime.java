@@ -3,9 +3,10 @@ package vn.ticketscenter.fulfillment.refund.controller;
 import jakarta.servlet.ServletContext;
 import vn.ticketscenter.config.persistence.FeatureContext;
 import vn.ticketscenter.fulfillment.refund.dao.RefundRequestRepository;
-import vn.ticketscenter.fulfillment.refund.service.RedisRefundRequestCache;
+import vn.ticketscenter.fulfillment.refund.service.RefundRequestCacheImpl;
 import vn.ticketscenter.fulfillment.refund.service.RefundException;
 import vn.ticketscenter.fulfillment.refund.service.RefundRequestService;
+import vn.ticketscenter.fulfillment.refund.service.RefundRequestServiceImpl;
 
 import java.time.Clock;
 
@@ -28,9 +29,9 @@ public final class RefundRuntime {
                         () ->
                                 new RefundException(
                                         503, "DATABASE_UNAVAILABLE", "Hệ thống hoàn vé chưa sẵn sàng."));
-        return new RefundRequestService(
+        return new RefundRequestServiceImpl(
                 new RefundRequestRepository(registry.transactionManager()),
-                new RedisRefundRequestCache(),
+                new RefundRequestCacheImpl(),
                 Clock.systemUTC());
     }
 }

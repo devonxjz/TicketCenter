@@ -7,7 +7,7 @@ import jakarta.servlet.annotation.WebListener;
 import vn.ticketscenter.config.persistence.ConnectionBudgets;
 import vn.ticketscenter.config.persistence.FeatureContext;
 import vn.ticketscenter.config.redis.RedisClientProvider;
-import vn.ticketscenter.fulfillment.ticket.cache.RedisTicketCache;
+import vn.ticketscenter.fulfillment.ticket.cache.TicketCacheImpl;
 import vn.ticketscenter.fulfillment.ticket.dao.TicketRepository;
 
 import static vn.ticketscenter.config.persistence.DatabasePrincipal.BUYER;
@@ -25,10 +25,10 @@ public final class TicketRuntime implements ServletContextListener {
         var buyer = resources.fallbackPool("ticket-buyer", BUYER, true, 10_000);
         var signer = SignedTicketQrSigner.configured();
         var redis = RedisClientProvider.getInstance();
-        return new TicketService(
+        return new TicketServiceImpl(
                 new TicketRepository(ConnectionBudgets.wrap(buyer)),
                 signer,
-                new RedisTicketCache(redis::getResource));
+                new TicketCacheImpl(redis::getResource));
     }
 
     @Override

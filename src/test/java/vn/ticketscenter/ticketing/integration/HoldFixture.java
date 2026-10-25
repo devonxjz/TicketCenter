@@ -8,6 +8,7 @@ import vn.ticketscenter.ticketing.cache.*;
 import vn.ticketscenter.ticketing.dto.*;
 import vn.ticketscenter.ticketing.dao.HoldRepository;
 import vn.ticketscenter.ticketing.service.HoldService;
+import vn.ticketscenter.ticketing.service.HoldServiceImpl;
 
 import javax.sql.DataSource;
 import java.io.PrintWriter;
@@ -48,7 +49,7 @@ final class HoldFixture implements AutoCloseable {
             if (!"PONG".equals(jedis.ping())) throw new IllegalStateException("Redis fixture unavailable");
         }
         cache = new RedisActiveHoldCache(redis, Clock.systemUTC());
-        service = new HoldService(repository, cache, new RedisHoldIdempotency(redis));
+        service = new HoldServiceImpl(repository, cache, new RedisHoldIdempotency(redis));
         sql("INSERT dbo.tc_organizations(id,name,contact_email,status) VALUES(?,'Hold fixture',?,'APPROVED')",
                 organization, organization + "@example.test");
         sql("INSERT dbo.tc_event_categories(id,name,slug) VALUES(?,'Hold fixture',?)", category, category.toString());

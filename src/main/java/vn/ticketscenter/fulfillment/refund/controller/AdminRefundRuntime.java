@@ -4,7 +4,8 @@ import jakarta.servlet.ServletContext;
 import vn.ticketscenter.config.persistence.FeatureContext;
 import vn.ticketscenter.fulfillment.refund.dao.AdminRefundRepository;
 import vn.ticketscenter.fulfillment.refund.service.AdminRefundDecisionService;
-import vn.ticketscenter.fulfillment.refund.service.RedisAdminRefundCache;
+import vn.ticketscenter.fulfillment.refund.service.AdminRefundDecisionServiceImpl;
+import vn.ticketscenter.fulfillment.refund.service.AdminRefundCacheImpl;
 import vn.ticketscenter.fulfillment.refund.service.RefundException;
 
 import static vn.ticketscenter.config.persistence.DatabasePrincipal.ADMIN;
@@ -28,7 +29,7 @@ public final class AdminRefundRuntime {
                                         503,
                                         "DATABASE_UNAVAILABLE",
                                         "Hệ thống quản trị hoàn tiền chưa sẵn sàng."));
-        return new AdminRefundDecisionService(
-                new AdminRefundRepository(registry.transactionManager()), new RedisAdminRefundCache());
+        return new AdminRefundDecisionServiceImpl(
+                new AdminRefundRepository(registry.transactionManager()), new AdminRefundCacheImpl());
     }
 }

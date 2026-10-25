@@ -26,7 +26,7 @@ public final class OrderRuntime implements ServletContextListener {
     private static OrderService create(FeatureContext.Resources resources) {
         var buyer = resources.strictPool("order-buyer", BUYER);
         var redis = RedisClientProvider.getInstance();
-        return new OrderService(
+        return new OrderServiceImpl(
                 new OrderRepository(ConnectionBudgets.wrap(buyer)),
                 new RedisOrderCache(redis::getResource, Clock.systemUTC()));
     }

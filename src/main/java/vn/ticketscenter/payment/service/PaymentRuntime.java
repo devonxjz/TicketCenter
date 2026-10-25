@@ -11,7 +11,7 @@ import vn.ticketscenter.config.persistence.FeatureContext;
 import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.config.worker.PaymentReconciliationJob;
 import vn.ticketscenter.payment.cache.RedisPaymentIdempotency;
-import vn.ticketscenter.payment.integration.PayosClient;
+import vn.ticketscenter.payment.integration.PayosGatewayImpl;
 import vn.ticketscenter.payment.integration.PayosGateway;
 import vn.ticketscenter.payment.dao.PaymentRepository;
 
@@ -106,13 +106,13 @@ public final class PaymentRuntime implements ServletContextListener {
                         "payOS is not configured (payos.client.id / payos.api.key / payos.checksum.key)");
                 throw PaymentException.unavailable();
             }
-            PayosGateway payos = resources.track(new PayosClient(PayosConfig.fromEnvironment()));
+            PayosGateway payos = resources.track(new PayosGatewayImpl(PayosConfig.fromEnvironment()));
             RedisPaymentIdempotency idempotency = newIdempotency();
             var buyer = resources.strictPool("payment-buyer", BUYER);
             var worker = resources.strictPool("payment-worker", WORKER);
             PaymentRepository repository =
                     new PaymentRepository(ConnectionBudgets.wrap(buyer), ConnectionBudgets.wrap(worker));
-            PaymentService service = new PaymentService(repository, payos, idempotency, Clock.systemUTC());
+            PaymentService service = new PaymentServiceImpl(repository, payos, idempotency, Clock.systemUTC());
             return new Components(service, repository, payos, idempotency);
         }
 

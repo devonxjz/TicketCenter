@@ -26,7 +26,7 @@ public class TicketCheckInSqlServerTest {
             "jakarta.persistence.jdbc.user",required("TC_SCAN_CHECKIN_USER"),"jakarta.persistence.jdbc.password",required("TC_SCAN_CHECKIN_PASSWORD"),
             "hibernate.hbm2ddl.auto","none"));
     }
-    public static TicketCheckInService service(EntityManagerFactory f){return new TicketCheckInService(
+    public static TicketCheckInService service(EntityManagerFactory f){return new TicketCheckInServiceImpl(
         new TicketCheckInRepository(new TransactionManager(Map.of(DatabasePrincipal.CHECK_IN,f))),
         new SignedQrDecoder(required("TC_TICKET_SIGNING_SECRET").getBytes(StandardCharsets.UTF_8)),NO_CACHE);}
     private CheckInScanResponseDto scan(ScanFixture f,UUID ticket)throws Exception{return service(factory).scan(f.staff,UUID.randomUUID(),new CheckInScanRequestDto(f.event,f.qr(ticket),null));}

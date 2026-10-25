@@ -4,13 +4,15 @@ import jakarta.servlet.ServletContext;
 import vn.ticketscenter.config.persistence.FeatureContext;
 import vn.ticketscenter.config.persistence.PersistenceRegistry;
 import vn.ticketscenter.fulfillment.checkin.CheckInException;
-import vn.ticketscenter.fulfillment.checkin.cache.RedisCheckInEventCache;
-import vn.ticketscenter.fulfillment.checkin.cache.RedisCheckInScanCache;
+import vn.ticketscenter.fulfillment.checkin.cache.CheckInEventCacheImpl;
+import vn.ticketscenter.fulfillment.checkin.cache.CheckInScanCacheImpl;
 import vn.ticketscenter.fulfillment.checkin.dao.CheckInEventRepository;
 import vn.ticketscenter.fulfillment.checkin.dao.TicketCheckInRepository;
 import vn.ticketscenter.fulfillment.checkin.security.SignedQrDecoder;
 import vn.ticketscenter.fulfillment.checkin.service.CheckInEventService;
+import vn.ticketscenter.fulfillment.checkin.service.CheckInEventServiceImpl;
 import vn.ticketscenter.fulfillment.checkin.service.TicketCheckInService;
+import vn.ticketscenter.fulfillment.checkin.service.TicketCheckInServiceImpl;
 
 import java.time.Clock;
 
@@ -27,10 +29,10 @@ public final class CheckInRuntime {
                 context,
                 SCANNER_ATTRIBUTE,
                 () ->
-                        new TicketCheckInService(
+                        new TicketCheckInServiceImpl(
                                 new TicketCheckInRepository(registry(context).transactionManager()),
                                 SignedQrDecoder.configured(),
-                                new RedisCheckInScanCache()));
+                                new CheckInScanCacheImpl()));
     }
 
     public static CheckInEventService resolve(ServletContext context) {
@@ -38,9 +40,9 @@ public final class CheckInRuntime {
                 context,
                 SERVICE_ATTRIBUTE,
                 () ->
-                        new CheckInEventService(
+                        new CheckInEventServiceImpl(
                                 new CheckInEventRepository(registry(context).transactionManager()),
-                                new RedisCheckInEventCache(),
+                                new CheckInEventCacheImpl(),
                                 Clock.systemUTC()));
     }
 

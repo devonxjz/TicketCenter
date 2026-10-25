@@ -3,6 +3,7 @@ package vn.ticketscenter.event.integration;
 import vn.ticketscenter.event.dto.*;
 import vn.ticketscenter.event.dao.EventRepository;
 import vn.ticketscenter.event.service.EventService;
+import vn.ticketscenter.event.service.EventServiceImpl;
 import vn.ticketscenter.identity.model.*;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.storage.*;
@@ -75,7 +76,7 @@ final class EventImageFixture implements AutoCloseable {
                     + " VALUES(?,?,'MANAGER')",
                 keeper,
                 organization);
-        service = new EventService(new EventRepository(source), storage);
+        service = new EventServiceImpl(new EventRepository(source), storage);
     }
 
     EventFields fields(String title) {

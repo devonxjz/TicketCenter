@@ -169,7 +169,7 @@ class EventServiceTest {
         EventDto old = r.saved;
         assertEquals(
                 old,
-                new EventService(r, s)
+                new EventServiceImpl(r, s)
                         .save(
                                 ACTOR,
                                 new EventSave(
@@ -188,7 +188,7 @@ class EventServiceTest {
         Repository r = new Repository();
         Storage s = new Storage();
         EventDto dto =
-                new EventService(r, s)
+                new EventServiceImpl(r, s)
                         .save(
                                 ACTOR,
                                 new EventSave(
@@ -213,7 +213,7 @@ class EventServiceTest {
                 assertThrows(
                                 EventException.class,
                                 () ->
-                                        new EventService(r, s)
+                                        new EventServiceImpl(r, s)
                                                 .save(
                                                         ACTOR,
                                                         new EventSave(
@@ -239,7 +239,7 @@ class EventServiceTest {
                 assertThrows(
                                 EventException.class,
                                 () ->
-                                        new EventService(r, s)
+                                        new EventServiceImpl(r, s)
                                                 .save(
                                                         ACTOR,
                                                         new EventSave(
@@ -264,7 +264,7 @@ class EventServiceTest {
                 assertThrows(
                                 EventException.class,
                                 () ->
-                                        new EventService(r, s)
+                                        new EventServiceImpl(r, s)
                                                 .save(
                                                         ACTOR,
                                                         new EventSave(
@@ -291,7 +291,7 @@ class EventServiceTest {
                 assertThrows(
                                 EventException.class,
                                 () ->
-                                        new EventService(r, s)
+                                        new EventServiceImpl(r, s)
                                                 .save(
                                                         ACTOR,
                                                         new EventSave(
@@ -313,7 +313,7 @@ class EventServiceTest {
         Repository r = new Repository();
         r.ambiguous = true;
         Storage s = new Storage();
-        EventService service = new EventService(r, s);
+        EventService service = new EventServiceImpl(r, s);
         EventSave command =
                 new EventSave(UUID.randomUUID(), EventSave.Kind.COVER, EVENT, 0, null, png());
         assertThrows(EventException.class, () -> service.save(ACTOR, command));
@@ -354,7 +354,7 @@ class EventServiceTest {
                 assertThrows(
                                 EventException.class,
                                 () ->
-                                        new EventService(new Repository(), new Storage())
+                                        new EventServiceImpl(new Repository(), new Storage())
                                                 .migrateCover(EVENT, 0, UUID.randomUUID(), png()))
                         .status());
     }
@@ -374,10 +374,10 @@ class EventServiceTest {
         EventSave b =
                 new EventSave(UUID.randomUUID(), EventSave.Kind.EDIT, EVENT, 0, FIELDS, png());
         assertEquals(
-                EventService.fingerprint(a, a.image()), EventService.fingerprint(b, b.image()));
+                EventServiceImpl.fingerprint(a, a.image()), EventServiceImpl.fingerprint(b, b.image()));
         assertNotEquals(
-                EventService.fingerprint(a, a.image()),
-                EventService.fingerprint(
+                EventServiceImpl.fingerprint(a, a.image()),
+                EventServiceImpl.fingerprint(
                         new EventSave(b.requestId(), b.kind(), EVENT, 1, FIELDS, png()),
                         b.image()));
     }
@@ -389,7 +389,7 @@ class EventServiceTest {
             public void completed(Lease lease,String hash,vn.ticketscenter.event.dao.EventManagementRepository.Result result){fail();}
             public void release(Lease lease){fail();}
         };
-        assertEquals(503,assertThrows(EventProblem.class,()->new EventService(repository,storage,leases).save(ACTOR,new EventSave(UUID.randomUUID(),EventSave.Kind.EDIT,EVENT,0,FIELDS,null))).status());
+        assertEquals(503,assertThrows(EventProblem.class,()->new EventServiceImpl(repository,storage,leases).save(ACTOR,new EventSave(UUID.randomUUID(),EventSave.Kind.EDIT,EVENT,0,FIELDS,null))).status());
         assertEquals(0,repository.finalizes);assertEquals(0,storage.uploads);assertEquals(1,repository.releases);assertFalse(repository.aborted);
     }
     @Test void redisCompletionFailurePreservesCommittedImageWorkflowResult() {
@@ -399,7 +399,7 @@ class EventServiceTest {
             public void completed(Lease lease,String hash,vn.ticketscenter.event.dao.EventManagementRepository.Result result){assertEquals(1,repository.finalizes);calls.add("completed");throw new IllegalStateException("Redis lost after commit");}
             public void release(Lease lease){calls.add("release");}
         };
-        assertEquals(repository.saved,new EventService(repository,storage,leases).save(ACTOR,new EventSave(UUID.randomUUID(),EventSave.Kind.EDIT,EVENT,0,FIELDS,null)));
+        assertEquals(repository.saved,new EventServiceImpl(repository,storage,leases).save(ACTOR,new EventSave(UUID.randomUUID(),EventSave.Kind.EDIT,EVENT,0,FIELDS,null)));
         assertEquals(List.of("acquire","completed","release"),calls);assertEquals(1,repository.finalizes);
     }
     @Test

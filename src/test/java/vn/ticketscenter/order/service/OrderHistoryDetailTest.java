@@ -37,7 +37,7 @@ class OrderHistoryDetailTest {
     @BeforeEach
     void setUp() {
         fakeRepo = new FakeOrderRepo();
-        orderService = new OrderService(fakeRepo, new vn.ticketscenter.order.cache.RedisOrderCache(() -> null, java.time.Clock.systemUTC()));
+        orderService = new OrderServiceImpl(fakeRepo, new vn.ticketscenter.order.cache.RedisOrderCache(() -> null, java.time.Clock.systemUTC()));
         servlet = new OrderApiServlet(orderService);
 
         buyerPrincipal = new UserPrincipal(BUYER_ID, PlatformRole.CUSTOMER, 1);

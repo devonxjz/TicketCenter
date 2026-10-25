@@ -235,7 +235,7 @@ class OrderSqlIT {
         try(Jedis jedis=f.redis.getResource()) { assertEquals(cached,jedis.get(RedisOrderCache.summaryKey(checkout.order()))); }
         f.buyer.unavailable=true;
         assertEquals(503,assertThrows(OrderException.class,() -> current(checkout)).status()); f.buyer.unavailable=false;
-        var outage=new OrderService(f.orders,new RedisOrderCache(() -> { throw new IllegalStateException("Redis unavailable"); },java.time.Clock.systemUTC()));
+        var outage=new OrderServiceImpl(f.orders,new RedisOrderCache(() -> { throw new IllegalStateException("Redis unavailable"); },java.time.Clock.systemUTC()));
         var command=change(checkout,null); var removed=outage.mutate(checkout.actor(),command);
         assertEquals("0",new JSONObject(removed.body()).getString("discountAmount")); assertEquals(removed.body(),outage.mutate(checkout.actor(),command).body());
         assertTrue(new JSONObject(outage.checkout(checkout.actor(),checkout.hold()).body()).getJSONObject("order").isNull("appliedCouponCode"));

@@ -7,6 +7,7 @@ import vn.ticketscenter.event.cache.EventCatalogCache;
 import vn.ticketscenter.event.dto.EventFilter;
 import vn.ticketscenter.event.dao.EventRepositoryFixture;
 import vn.ticketscenter.event.service.EventCatalogService;
+import vn.ticketscenter.event.service.EventCatalogServiceImpl;
 import java.lang.reflect.*;
 import java.sql.*;
 import java.util.*;
@@ -57,10 +58,10 @@ class EventCatalogSqlServerIT {
                 public Optional<String> get(String key) { return Optional.ofNullable(values.get(key)); }
                 public void put(String key, String json, int ttl) { values.put(key, json); }
             };
-            var service = new EventCatalogService(repository, cache);
+            var service = new EventCatalogServiceImpl(repository, cache);
             String json = service.events(firstFilter); int beforeHit = queries.get();
             assertEquals(json, service.events(firstFilter)); assertEquals(beforeHit, queries.get(), "Warm cache must avoid SQL queries");
-            var uncached = new EventCatalogService(repository, new EventCatalogCache() {
+            var uncached = new EventCatalogServiceImpl(repository, new EventCatalogCache() {
                 public Optional<String> get(String key) { throw new IllegalStateException("Redis unavailable"); }
                 public void put(String key, String value, int ttl) { throw new IllegalStateException("Redis unavailable"); }
             });

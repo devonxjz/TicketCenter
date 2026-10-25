@@ -6,6 +6,7 @@ import java.sql.*;
 import java.util.*;
 import vn.ticketscenter.audit.dto.AuditFilter;
 import vn.ticketscenter.audit.service.AuditService;
+import vn.ticketscenter.audit.service.AuditServiceImpl;
 import vn.ticketscenter.config.DatabaseConfig;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.security.UserPrincipal;
@@ -76,7 +77,7 @@ class AuditDatabaseScopeIntegrationTest {
         sql("UPDATE dbo.tc_users SET auth_version=1 WHERE id=?",admin);
         assertEquals(401,assertThrows(FinanceException.class,()->list(filters())).status());
     }
-    String list(Map<String,String> values) throws SQLException{return new AuditService(database).list(new UserPrincipal(admin,PlatformRole.ADMIN,0),AuditFilter.parse(values));}
+    String list(Map<String,String> values) throws SQLException{return new AuditServiceImpl(database).list(new UserPrincipal(admin,PlatformRole.ADMIN,0),AuditFilter.parse(values));}
     Map<String,String> filters(){return new HashMap<>(Map.of("from","2026-10-01T00:00:00Z","to","2026-10-02T00:00:00Z","pageSize","100"));}
     UUID[] financialEvent(UUID event,UUID org,UUID rule) throws Exception {
         UUID order=UUID.randomUUID(),payment=UUID.randomUUID(),payout=UUID.randomUUID();

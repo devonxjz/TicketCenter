@@ -145,7 +145,7 @@ class EventEpicSqlServerIT {
         f.service.mutate(f.actor,UUID.randomUUID().toString(),f.command("EDIT",event,null,Map.of("description","Updated description")));
         f.service.mutate(f.actor,UUID.randomUUID().toString(),f.command("SUBMIT",event,null,Map.of()));
         try(Connection c=DongSqlFixture.connection("dong_buyer")) {
-            var catalog=new EventCatalogService(EventRepositoryFixture.repository(c),f.cache);
+            var catalog=new EventCatalogServiceImpl(EventRepositoryFixture.repository(c),f.cache);
             var filter=EventFilter.parse(Map.of("categoryId",f.category.toString()));catalog.events(filter); // Warm hidden catalog.
             assertThrows(EventCatalogService.NotFound.class,()->catalog.event(event));
             assertEquals(400,assertThrows(EventProblem.class,()->f.service.mutate(f.adminActor,UUID.randomUUID().toString(),f.command("PUBLISH",event,null,Map.of("commissionRuleId",f.otherRule.toString())))).status());
@@ -196,7 +196,7 @@ class EventEpicSqlServerIT {
     @Test void failedForeignKeyDeleteRestoresAllChildrenAndDeleteReplayWorks() throws Exception {
         UUID event=f.draft();UUID zone=f.seated(event,"Delete zone",1,2);
         var storage=new DongSqlFixture.Storage();var orphans=new ArrayList<StoredAsset>();
-        var deleting=new EventManagementService(f.repository,f.idempotency,f.cache,(e,a)->orphans.add(a));
+        var deleting=new EventManagementServiceImpl(f.repository,f.idempotency,f.cache,(e,a)->orphans.add(a));
         f.covers(storage,(e,a)->{}).upload(f.actor,event,UUID.randomUUID().toString(),new ByteArrayInputStream(DongSqlFixture.png()));
         try(Connection c=DongSqlFixture.connection(null);var q=c.createStatement()) {
             q.execute("IF OBJECT_ID('dbo.tc_dong_delete_guard','U') IS NULL CREATE TABLE dbo.tc_dong_delete_guard(event_id uniqueidentifier NOT NULL REFERENCES dbo.tc_events(id))");
@@ -246,9 +246,9 @@ class EventEpicSqlServerIT {
         try(var redis=DongSqlFixture.redis()) {redis.setex(key,120,"{broken");assertTrue(f.cache.get(key).isEmpty());}
         String generation=f.cache.generation();f.cache.putIfGeneration(key,json,120,generation);assertEquals(json,f.cache.get(key).orElseThrow());
         f.cache.invalidateCommitted(null,null);f.cache.putIfGeneration(key,json,120,generation);assertTrue(f.cache.get(key).isEmpty(),"In-flight old reads cannot refill after invalidation");
-        var offline=new vn.ticketscenter.event.cache.RedisEventCatalogCache(()->{throw new IllegalStateException("Redis offline");});
+        var offline=new vn.ticketscenter.event.cache.EventCatalogCacheImpl(()->{throw new IllegalStateException("Redis offline");});
         assertTrue(offline.get(key).isEmpty());assertDoesNotThrow(()->offline.putIfGeneration(key,json,120,null));
-        var failClosed=new EventManagementService(f.repository,new vn.ticketscenter.event.cache.RedisEventIdempotencyStore(()->{throw new IllegalStateException("Redis offline");}),f.cache);
+        var failClosed=new EventManagementServiceImpl(f.repository,new vn.ticketscenter.event.cache.RedisEventIdempotencyStore(()->{throw new IllegalStateException("Redis offline");}),f.cache);
         String intent=UUID.randomUUID().toString();var command=f.create();assertEquals(503,assertThrows(EventProblem.class,()->failClosed.mutate(f.actor,intent,command)).status());assertTrue(f.repository.receipt(f.actor,"EVENT",intent,command.hash()).isEmpty());
     }
     @Test void replacedCoverIsJournaledAndReceiptSurvivesRedisEviction() throws Exception {

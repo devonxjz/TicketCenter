@@ -67,7 +67,7 @@ class FinanceTeamSchemaIntegrationTest {
         var own=new vn.ticketscenter.dashboard.dao.DashboardRepository().overview(connection,org,Instant.parse("2026-01-01T14:00:00Z"));
         assertEquals(new BigDecimal("100"),own.get("todayCohortGrossRevenue"));assertEquals(new BigDecimal("7"),own.get("todayCohortCommission"));
         assertEquals(7,((java.util.List<?>)rows.get("dailyMetrics")).size());
-        var service=new vn.ticketscenter.dashboard.service.DashboardService(database,java.time.Clock.fixed(Instant.parse("2026-01-01T14:00:00Z"),java.time.ZoneOffset.UTC));
+        var service=new vn.ticketscenter.dashboard.service.DashboardServiceImpl(database,java.time.Clock.fixed(Instant.parse("2026-01-01T14:00:00Z"),java.time.ZoneOffset.UTC));
         assertTrue(service.admin(principal).contains("\"timezone\":\"UTC\""));
         sql("UPDATE dbo.tc_users SET platform_role='CUSTOMER' WHERE id=?",admin);
         assertEquals(403,assertThrows(FinanceException.class,()->service.admin(principal)).status());
@@ -76,7 +76,7 @@ class FinanceTeamSchemaIntegrationTest {
         var summary=repository.recalculate(principal,event);assertEquals(new BigDecimal("93"),summary.get("netPayable"));
         UUID settlement=UUID.fromString(summary.get("settlementId").toString());
         assertEquals("CONFIRMED",repository.confirm(principal,settlement).get("status"));
-        var service=new PayoutExecutionService(repository,new SimulatedPayoutAdapter(database,"SUCCEEDED",false));
+        var service=new PayoutExecutionService(repository,new PayoutAdapterImpl(database,"SUCCEEDED",false));
         UUID key=UUID.randomUUID();var request=new PayoutRequestDto(new BigDecimal("40"),"123456789","TestBank","TestHolder","");
         var paid=service.execute(principal,settlement,key,request);assertEquals(new BigDecimal("40"),paid.get("paidAmount"));assertEquals(new BigDecimal("53"),paid.get("availableToPay"));
         assertEquals(true,service.execute(principal,settlement,key,request).get("isReplay"));
@@ -173,7 +173,7 @@ class FinanceTeamSchemaIntegrationTest {
         sql("INSERT dbo.tc_ticket_check_in_logs(event_id,ticket_id,actor_id,result,scanned_at) VALUES(?,?,?,'ALREADY_USED','2019-03-01')",event,active,admin);
         var filter=new ReportFilter(ReportFilter.Metric.EVENT_SALES,org,event,Instant.parse("2019-03-01T00:00:00Z"),Instant.parse("2019-03-03T00:00:00Z"),1,1);
         var report=new ReportRepository().page(connection,filter);var summary=(Map<?,?>)report.get("summary");assertEquals(2L,summary.get("ticketsCheckedInCount"));assertEquals(3L,summary.get("ticketCount"));assertEquals(new BigDecimal("100"),summary.get("grossRevenue"));
-        String json=new vn.ticketscenter.report.service.ReportService(database,vn.ticketscenter.report.service.ReportCache.none()).json(principal,filter);assertTrue(json.contains("\"ticketsCheckedInCount\":2"),json);
+        String json=new vn.ticketscenter.report.service.ReportServiceImpl(database,vn.ticketscenter.report.service.ReportCache.none()).json(principal,filter);assertTrue(json.contains("\"ticketsCheckedInCount\":2"),json);
         var output=new ByteArrayOutputStream();try(var cursor=new ReportRepository().cursor(connection,filter)){StreamingCsvExporter.write(output,cursor.headers(),cursor);}
         String csv=output.toString(java.nio.charset.StandardCharsets.UTF_8);assertTrue(csv.contains("\"ticketsCheckedInCount\""));assertTrue(csv.contains("\"3\",\"2\",\"1\",\"2\",\"100\""),csv);
         String reader="tc_report_"+UUID.randomUUID().toString().replace("-","");sql("CREATE USER ["+reader+"] WITHOUT LOGIN; ALTER ROLE tc_manager ADD MEMBER ["+reader+"]; DENY SELECT ON dbo.tc_tickets TO ["+reader+"];");

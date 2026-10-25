@@ -21,7 +21,7 @@ import vn.ticketscenter.config.persistence.SqlCall;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.event.cancellation.dto.CancellationProgressDto;
 import vn.ticketscenter.event.cancellation.dto.EventCancelRequestDto;
-import vn.ticketscenter.event.cancellation.service.EventCancellationStore;
+import vn.ticketscenter.event.cancellation.dao.EventCancellationStore;
 import vn.ticketscenter.fulfillment.refund.service.RefundException;
 import vn.ticketscenter.identity.security.UserPrincipal;
 

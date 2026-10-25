@@ -158,7 +158,7 @@ class OrganizationMembershipServiceTest {
             }
         };
 
-        service = new OrganizationMembershipService(tx, repo, userRepo, DatabasePrincipal.AUTH);
+        service = new OrganizationMembershipServiceImpl(tx, repo, userRepo, DatabasePrincipal.AUTH);
     }
 
     private static void setId(Object entity, UUID id) throws Exception {

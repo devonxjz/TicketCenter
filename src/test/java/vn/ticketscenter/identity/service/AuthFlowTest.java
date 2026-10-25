@@ -31,7 +31,7 @@ public class AuthFlowTest {
     @DisplayName("Đăng ký từ chối email không hợp lệ hoặc để trống")
     void testRegisterInvalidEmail() {
         RegistrationService service =
-                new RegistrationService(new TransactionManager(java.util.Map.of()), userRepository, passwordHasher);
+                new RegistrationServiceImpl(new TransactionManager(java.util.Map.of()), userRepository, passwordHasher);
 
         assertThrows(IllegalArgumentException.class, () ->
                 service.register(new RegisterRequestDto("validuser", "Full Name", "invalid-email", "StrongPass123!")));
@@ -44,7 +44,7 @@ public class AuthFlowTest {
     @DisplayName("Đăng ký từ chối mật khẩu dưới 12 ký tự")
     void testRegisterPasswordTooShort() {
         RegistrationService service =
-                new RegistrationService(new TransactionManager(java.util.Map.of()), userRepository, passwordHasher);
+                new RegistrationServiceImpl(new TransactionManager(java.util.Map.of()), userRepository, passwordHasher);
 
         assertThrows(IllegalArgumentException.class, () ->
                 service.register(new RegisterRequestDto("validuser", "Full Name", "user@test.vn", "Short123!")));
@@ -54,7 +54,7 @@ public class AuthFlowTest {
     @DisplayName("Đăng nhập từ chối thông tin rỗng")
     void testLoginNullOrBlankInputs() {
         LoginService service =
-                new LoginService(new TransactionManager(java.util.Map.of()), userRepository, passwordHasher);
+                new LoginServiceImpl(new TransactionManager(java.util.Map.of()), userRepository, passwordHasher);
 
         IdentityException blankIdentifier = assertThrows(IdentityException.class, () ->
                 service.login(new LoginRequestDto("", "password")));
@@ -133,10 +133,10 @@ public class AuthFlowTest {
 
         try {
             TransactionManager tm = registry.transactionManager();
-            RegistrationService registration = new RegistrationService(tm, userRepository, passwordHasher);
-            LoginService login = new LoginService(tm, userRepository, passwordHasher);
+            RegistrationService registration = new RegistrationServiceImpl(tm, userRepository, passwordHasher);
+            LoginService login = new LoginServiceImpl(tm, userRepository, passwordHasher);
             SessionValidator sessions = new SessionValidator(tm, userRepository);
-            ProfileService profiles = new ProfileService(tm, userRepository);
+            ProfileService profiles = new ProfileServiceImpl(tm, userRepository);
 
             String suffix = UUID.randomUUID().toString().substring(0, 8);
             String email = "test." + suffix + "@ticketscenter.vn";

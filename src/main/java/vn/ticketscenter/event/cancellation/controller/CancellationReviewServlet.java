@@ -10,9 +10,10 @@ import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.config.persistence.PersistenceListener;
 import vn.ticketscenter.config.persistence.PersistenceRegistry;
 import vn.ticketscenter.config.web.HttpResponses;
-import vn.ticketscenter.event.cancellation.service.CancellationProgressCacheHelper;
-import vn.ticketscenter.event.cancellation.service.CancellationReviewRepository;
+import vn.ticketscenter.event.cancellation.service.CancellationProgressCache;
+import vn.ticketscenter.event.cancellation.dao.CancellationReviewRepository;
 import vn.ticketscenter.event.cancellation.service.CancellationReviewService;
+import vn.ticketscenter.event.cancellation.service.CancellationReviewServiceImpl;
 import vn.ticketscenter.event.dao.EventCancellationRepository;
 import vn.ticketscenter.fulfillment.refund.service.RefundException;
 import vn.ticketscenter.identity.security.SecurityContext;
@@ -77,9 +78,9 @@ public final class CancellationReviewServlet extends HttpServlet {
                 throw new RefundException(
                         503, "DATABASE_UNAVAILABLE", "Hệ thống hủy chưa sẵn sàng.");
             }
-            var cache = new CancellationProgressCacheHelper();
+            var cache = new CancellationProgressCache();
             var service =
-                    new CancellationReviewService(
+                    new CancellationReviewServiceImpl(
                             new CancellationReviewRepository(registry.transactionManager()),
                             id -> {
                                 // The service invokes this after approval commits.

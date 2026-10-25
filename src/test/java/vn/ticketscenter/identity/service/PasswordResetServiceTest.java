@@ -64,8 +64,8 @@ public class PasswordResetServiceTest {
                 Assumptions.assumeTrue(false, "Database is not ready");
             }
             TransactionManager tm = registry.transactionManager();
-            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpHasher, resetTokens, emailSender);
-            PasswordResetService resetService = new PasswordResetService(tm, userRepository, otpService, resetTokens, passwordHasher, UserSessionCache.disabled());
+            OtpService otpService = new OtpServiceImpl(tm, otpRepository, userRepository, otpHasher, resetTokens, emailSender);
+            PasswordResetService resetService = new PasswordResetServiceImpl(tm, userRepository, otpService, resetTokens, passwordHasher, UserSessionCache.disabled());
 
             String suffix = UUID.randomUUID().toString().substring(0, 8);
             String existingEmail = "existing." + suffix + "@ticketscenter.vn";
@@ -104,8 +104,8 @@ public class PasswordResetServiceTest {
                 Assumptions.assumeTrue(false, "Database is not ready");
             }
             TransactionManager tm = registry.transactionManager();
-            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpHasher, resetTokens, emailSender);
-            PasswordResetService resetService = new PasswordResetService(tm, userRepository, otpService, resetTokens, passwordHasher, UserSessionCache.disabled());
+            OtpService otpService = new OtpServiceImpl(tm, otpRepository, userRepository, otpHasher, resetTokens, emailSender);
+            PasswordResetService resetService = new PasswordResetServiceImpl(tm, userRepository, otpService, resetTokens, passwordHasher, UserSessionCache.disabled());
 
             String suffix = UUID.randomUUID().toString().substring(0, 8);
             String email = "resetpwd." + suffix + "@ticketscenter.vn";

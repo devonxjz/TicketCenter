@@ -49,7 +49,7 @@ class FinanceRepositoryIntegrationTest {
         assertEquals(Instant.parse("2020-01-01T00:00:00Z"),repository.summary(principal,event).get("endTime"));
         assertEquals("CONFIRMED",repository.confirm(principal,sid).get("status"));
         assertEquals(true,repository.confirm(principal,sid).get("isReplay"));
-        var service=new PayoutExecutionService(repository,new SimulatedPayoutAdapter(db,"SUCCEEDED",false));
+        var service=new PayoutExecutionService(repository,new PayoutAdapterImpl(db,"SUCCEEDED",false));
         UUID key=UUID.randomUUID(); var request=new PayoutRequestDto(new BigDecimal("40"),"123456789","TestBank","TestHolder","");
         var paid=service.execute(principal,sid,key,request); assertEquals("SUCCEEDED",paid.get("status"));
         assertEquals(new BigDecimal("40"),paid.get("paidAmount")); assertEquals(new BigDecimal("53"),paid.get("availableToPay"));
@@ -61,14 +61,14 @@ class FinanceRepositoryIntegrationTest {
     @Test void providerTimeoutAfterDurableSuccessKeepsUnknownUntilReconciliation() throws Exception {
         UUID rule=UUID.fromString(repository.createRule(principal,org,UUID.randomUUID(),terms()).get("ruleId").toString()); paidEvent(rule);
         UUID sid=UUID.fromString(repository.recalculate(principal,event).get("settlementId").toString()); repository.confirm(principal,sid);
-        var service=new PayoutExecutionService(repository,new SimulatedPayoutAdapter(db,"SUCCEEDED",true));
+        var service=new PayoutExecutionService(repository,new PayoutAdapterImpl(db,"SUCCEEDED",true));
         var result=service.execute(principal,sid,UUID.randomUUID(),new PayoutRequestDto(new BigDecimal("40"),"123","TestBank","TestHolder",""));
         assertEquals("PENDING",result.get("status")); assertEquals("UNKNOWN",result.get("verificationState")); assertEquals(new BigDecimal("40"),result.get("pendingAmount"));
         assertEquals("PAYOUT_RECONCILIATION_REQUIRED",assertThrows(FinanceException.class,()->service.execute(principal,sid,UUID.randomUUID(),new PayoutRequestDto(new BigDecimal("40"),"123","TestBank","TestHolder",""))).code());
         UUID payoutId=UUID.fromString(result.get("payoutId").toString());
         // Recovery after a new page/process does not depend on retaining bank terms in memory.
         assertEquals("NOT_FOUND",assertThrows(FinanceException.class,()->repository.payoutForReconciliation(principal,sid,UUID.randomUUID())).code());
-        var verified=new vn.ticketscenter.settlement.service.FinanceMutationService(repository,new SimulatedPayoutAdapter(db,"SUCCEEDED",false)).reconcile(principal,sid,payoutId,null);
+        var verified=new vn.ticketscenter.settlement.service.FinanceMutationServiceImpl(repository,new PayoutAdapterImpl(db,"SUCCEEDED",false)).reconcile(principal,sid,payoutId,null);
         assertEquals("SUCCEEDED",verified.get("status")); assertEquals(new BigDecimal("40"),verified.get("paidAmount")); assertEquals(new BigDecimal("0"),verified.get("pendingAmount"));
     }
     @Test void staleSessionDeniedAndNoPaidOrdersCreateNoHeader() throws Exception {
@@ -80,7 +80,7 @@ class FinanceRepositoryIntegrationTest {
     @Test void resultWriteFailureCannotBeReplacedWithANewTransfer() throws Exception {
         UUID rule=UUID.fromString(repository.createRule(principal,org,UUID.randomUUID(),terms()).get("ruleId").toString());paidEvent(rule);
         UUID sid=UUID.fromString(repository.recalculate(principal,event).get("settlementId").toString());repository.confirm(principal,sid);
-        var provider=new SimulatedPayoutAdapter(db,"SUCCEEDED",false);
+        var provider=new PayoutAdapterImpl(db,"SUCCEEDED",false);
         PayoutStore interruptedStore=new PayoutStore() {
             public Map<String,Object> existing(UserPrincipal actor,UUID settlement,UUID payout,PayoutRequestDto request){return repository.existing(actor,settlement,payout,request);}
             public Map<String,Object> reserve(UserPrincipal actor,UUID settlement,UUID payout,PayoutRequestDto request){return repository.reserve(actor,settlement,payout,request);}
@@ -90,7 +90,7 @@ class FinanceRepositoryIntegrationTest {
         assertThrows(SQLException.class,()->new PayoutExecutionService(interruptedStore,provider).execute(principal,sid,payout,request));
         assertEquals("PENDING",repository.existing(principal,sid,payout,request).get("verificationState"));
         assertEquals("PAYOUT_RECONCILIATION_REQUIRED",assertThrows(FinanceException.class,()->new PayoutExecutionService(repository,provider).execute(principal,sid,UUID.randomUUID(),request)).code());
-        var recovered=new vn.ticketscenter.settlement.service.FinanceMutationService(repository,provider).reconcile(principal,sid,payout,null);
+        var recovered=new vn.ticketscenter.settlement.service.FinanceMutationServiceImpl(repository,provider).reconcile(principal,sid,payout,null);
         assertEquals("SUCCEEDED",recovered.get("status"));assertEquals(new BigDecimal("40"),recovered.get("paidAmount"));assertEquals(new BigDecimal("0"),recovered.get("pendingAmount"));
         try(var c=db.open();var q=c.prepareStatement("SELECT call_count FROM dbo.tc_vuong_simulated_transfers WHERE payout_id=?")) {
             FinanceJdbc.bind(q,payout);try(var rows=q.executeQuery()){assertTrue(rows.next());assertEquals(1,rows.getInt(1));}
@@ -121,7 +121,7 @@ class FinanceRepositoryIntegrationTest {
             public String get(String k){return cached.get(k);}public void put(String k,String v,int ttl){cached.put(k,v);}public void delete(String k){cached.remove(k);}
         });
         var mutations=new FinanceRepository(db,id->{},cache::invalidate);
-        var service=new vn.ticketscenter.settlement.service.FinanceMutationService(mutations,PayoutAdapter.unavailable(),vn.ticketscenter.settlement.commission.service.CommissionRuleCache.none(),cache);
+        var service=new vn.ticketscenter.settlement.service.FinanceMutationServiceImpl(mutations,PayoutAdapter.unavailable(),vn.ticketscenter.settlement.commission.service.CommissionRuleCache.none(),cache);
         assertTrue(service.readJson(principal,"summary",event).contains("\"settlementId\":null"));service.readJson(principal,"blockers",event);assertEquals(2,cached.size());
         UUID sid=UUID.fromString(mutations.recalculate(principal,event).get("settlementId").toString());assertTrue(cached.isEmpty());
         service.readJson(principal,"summary",event);mutations.confirm(principal,sid);assertTrue(cached.isEmpty());

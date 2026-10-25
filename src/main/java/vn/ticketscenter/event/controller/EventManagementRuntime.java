@@ -27,7 +27,7 @@ public final class EventManagementRuntime {
         var idempotency = EventIdempotencyStore.configured();
         var orphans = new EventCoverOrphanJournal();
         var management =
-                new EventManagementService(
+                new EventManagementServiceImpl(
                         repository, idempotency, EventCatalogRuntime.cache(context), orphans);
         // Missing provider credentials must not disable draft/inventory/review endpoints.
         StorageService storage =
@@ -55,10 +55,10 @@ public final class EventManagementRuntime {
                     }
                 };
         return new Services(
-                management, new EventCoverService(repository, idempotency, management, storage, orphans));
+                management, new EventCoverServiceImpl(repository, idempotency, management, storage, orphans));
     }
 
     private static StorageService resolveStorage() {
-        return LocalImageStorage.configured();
+        return StorageServiceImpl.configured();
     }
 }

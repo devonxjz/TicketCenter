@@ -28,7 +28,7 @@ class RefundRequestServletsTest {
     RefundRequestServletsTest(){
         body="{\"orderId\":\""+order+"\",\"ticketIds\":[\""+ticket+"\"],\"reason\":\"Không thể tham dự sự kiện.\"}";
         contextAttributes.put(IdentityServices.SESSION_VALIDATOR_ATTRIBUTE,new SessionValidator(new TransactionManager(Map.of()),new UserRepository()){@Override public boolean isSessionValid(UUID id,int version){return sessionValid;}});
-        contextAttributes.put(RefundRuntime.SERVICE_ATTRIBUTE,new RefundRequestService(new NoStore(),RefundRequestCache.NONE,Clock.systemUTC()){
+        contextAttributes.put(RefundRuntime.SERVICE_ATTRIBUTE,new RefundRequestServiceImpl(new NoStore(),RefundRequestCache.NONE,Clock.systemUTC()){
             @Override public RefundSummaryDto create(UserPrincipal a,CreateRefundRequestDto r,UUID k){creates++;assertEquals(actor,a);assertEquals(order,r.orderId());assertEquals(List.of(ticket),r.ticketIds());assertEquals(key,k);return new RefundSummaryDto(UUID.randomUUID(),order,"123456","REQUESTED",1,Instant.EPOCH,"Sự kiện","Không thể tham dự",null);}
         });
     }

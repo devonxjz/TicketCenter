@@ -11,13 +11,13 @@ class RefundWorkerRedisTest {
   return new Jedis(host,Integer.parseInt(System.getenv("REDIS_PORT")));
  }
  @Test void leaseIsExclusiveAndHas120SecondTtl(){
-  UUID id=UUID.randomUUID();var lease=new RedisRefundLease(RefundWorkerRedisTest::redis);String key=RedisRefundLease.key(id);
+  UUID id=UUID.randomUUID();var lease=new RefundLeaseImpl(RefundWorkerRedisTest::redis);String key=RefundLeaseImpl.key(id);
   try(var r=redis()){assertEquals("PONG",r.ping());try(var handle=lease.acquire(id).orElseThrow()){
    assertTrue(r.ttl(key)>115&&r.ttl(key)<=120);assertTrue(lease.acquire(id).isEmpty());
   }assertFalse(r.exists(key));}finally{try(var r=redis()){r.del(key);}}
  }
  @Test void oldOwnerCannotDeleteSuccessorLease(){
-  UUID id=UUID.randomUUID();var lease=new RedisRefundLease(RefundWorkerRedisTest::redis);String key=RedisRefundLease.key(id);var old=lease.acquire(id).orElseThrow();
+  UUID id=UUID.randomUUID();var lease=new RefundLeaseImpl(RefundWorkerRedisTest::redis);String key=RefundLeaseImpl.key(id);var old=lease.acquire(id).orElseThrow();
   try(var r=redis()){r.del(key);try(var successor=lease.acquire(id).orElseThrow()){String token=r.get(key);old.close();assertEquals(token,r.get(key));}}finally{old.close();try(var r=redis()){r.del(key);}}
  }
 }

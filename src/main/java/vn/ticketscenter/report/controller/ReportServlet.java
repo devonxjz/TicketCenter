@@ -10,6 +10,7 @@ import vn.ticketscenter.config.AppConfig;
 import vn.ticketscenter.report.dto.ReportFilter;
 import vn.ticketscenter.report.service.*;
 import vn.ticketscenter.dashboard.service.DashboardService;
+import vn.ticketscenter.dashboard.service.DashboardServiceImpl;
 import vn.ticketscenter.settlement.infrastructure.*;
 
 @WebServlet(
@@ -23,12 +24,12 @@ public final class ReportServlet extends HttpServlet {
     public void init() {
         var database = FinanceRuntime.database(getServletContext());
         reports =
-                new ReportService(
+                new ReportServiceImpl(
                         database,
                         AppConfig.getBoolean("finance.redis.enabled", true)
                                 ? ReportCache.redis()
                                 : ReportCache.none());
-        overview = new DashboardService(database);
+        overview = new DashboardServiceImpl(database);
     }
 
     @Override

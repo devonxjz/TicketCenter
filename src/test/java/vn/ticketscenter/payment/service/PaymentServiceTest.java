@@ -45,7 +45,7 @@ class PaymentServiceTest {
         idempotency = new RedisPaymentIdempotency(() -> jedis);
         gateway = new FakePayosGateway();
         repo = new StubPaymentRepository();
-        service = new PaymentService(repo, gateway, idempotency, Clock.fixed(NOW, ZoneOffset.UTC));
+        service = new PaymentServiceImpl(repo, gateway, idempotency, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     // ---------------------------------------------------------------- 1. Initiate

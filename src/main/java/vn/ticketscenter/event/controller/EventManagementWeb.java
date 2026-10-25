@@ -28,7 +28,7 @@ public final class EventManagementWeb {
                         EventCatalogRuntime.resolve(request.getServletContext())
                                 .image(EventCommand.uuid(p[3]));
                 URI target = URI.create(url);
-                if (!vn.ticketscenter.storage.LocalImageStorage.isLocalUrl(url)
+                if (!vn.ticketscenter.storage.StorageServiceImpl.isLocalUrl(url)
                         && (!Set.of("https", "http").contains(target.getScheme())
                                 || target.getHost() == null
                                 || target.getUserInfo() != null))

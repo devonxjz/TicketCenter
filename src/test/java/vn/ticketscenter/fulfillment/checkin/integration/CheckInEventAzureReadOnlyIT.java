@@ -9,6 +9,7 @@ import vn.ticketscenter.fulfillment.checkin.CheckInException;
 import vn.ticketscenter.fulfillment.checkin.cache.CheckInEventCache;
 import vn.ticketscenter.fulfillment.checkin.dao.CheckInEventRepository;
 import vn.ticketscenter.fulfillment.checkin.service.CheckInEventService;
+import vn.ticketscenter.fulfillment.checkin.service.CheckInEventServiceImpl;
 import javax.sql.DataSource;
 import java.lang.reflect.Proxy;
 import java.sql.*;
@@ -61,10 +62,10 @@ class CheckInEventAzureReadOnlyIT {
                 public void putWindow(CheckInEventRepository.EventInfo eventInfo){windows.put(eventInfo.eventId(),eventInfo);}
                 public void invalidate(UUID eventId,UUID orgId){windows.remove(eventId);}
             };
-            var open = new CheckInEventService(repository, cache, Clock.fixed(info.windowStart(), ZoneOffset.UTC));
+            var open = new CheckInEventServiceImpl(repository, cache, Clock.fixed(info.windowStart(), ZoneOffset.UTC));
             assertTrue(open.window(actor, event).isOpen());
-            assertFalse(new CheckInEventService(repository, cache, Clock.fixed(info.windowStart().minusSeconds(60), ZoneOffset.UTC)).window(actor, event).isOpen());
-            assertFalse(new CheckInEventService(repository, cache, Clock.fixed(info.endTime(), ZoneOffset.UTC)).window(actor, event).isOpen());
+            assertFalse(new CheckInEventServiceImpl(repository, cache, Clock.fixed(info.windowStart().minusSeconds(60), ZoneOffset.UTC)).window(actor, event).isOpen());
+            assertFalse(new CheckInEventServiceImpl(repository, cache, Clock.fixed(info.endTime(), ZoneOffset.UTC)).window(actor, event).isOpen());
             var summary = open.events(actor, info.organizationId()).stream().filter(e -> e.eventId().equals(event)).findFirst().orElseThrow();
             assertTrue(summary.isCheckInOpen()); assertTrue(summary.totalTicketsIssued() >= summary.totalCheckedIn());
             assertEquals(403, assertThrows(CheckInException.class, () -> open.window(UUID.randomUUID(), event)).httpStatus());

@@ -15,7 +15,7 @@ class DashboardCacheTest {
     final UserPrincipal admin=new UserPrincipal(UUID.randomUUID(),PlatformRole.ADMIN,0);
     final Clock clock=Clock.fixed(Instant.parse("2026-10-01T14:00:00Z"),ZoneOffset.UTC);
     @Test void cacheMissLoadsSqlAndStoresSixtySecondGlobalProjectionThenHitReloadsAuthority()throws Exception{
-        var db=new Sql();var store=new Memory();var service=new DashboardService(db::connection,new DashboardCache(store),clock);
+        var db=new Sql();var store=new Memory();var service=new DashboardServiceImpl(db::connection,new DashboardCache(store),clock);
         String first=service.admin(admin);int readQueries=db.aggregations;
         assertTrue(first.contains("\"totalUsers\":7"),first);
         assertEquals(first,store.values.get("tc:admin:overview:v1"));assertEquals(60,store.ttl);
@@ -24,12 +24,12 @@ class DashboardCacheTest {
     }
     @Test void staleAuthorityCannotUsePreviouslyCachedAdminPayload(){
         var db=new Sql();db.version=1;var store=new Memory();store.values.put("tc:admin:overview:v1","secret cached projection");
-        assertEquals(401,assertThrows(FinanceException.class,()->new DashboardService(db::connection,new DashboardCache(store),clock).admin(admin)).status());
+        assertEquals(401,assertThrows(FinanceException.class,()->new DashboardServiceImpl(db::connection,new DashboardCache(store),clock).admin(admin)).status());
         assertEquals(0,store.reads);assertEquals(0,db.aggregations);
     }
     @Test void demotedAdminCannotReadGlobalCache(){
         var db=new Sql();db.role="CUSTOMER";var store=new Memory();store.values.put("tc:admin:overview:v1","secret cached projection");
-        assertEquals(403,assertThrows(FinanceException.class,()->new DashboardService(db::connection,new DashboardCache(store),clock).admin(admin)).status());
+        assertEquals(403,assertThrows(FinanceException.class,()->new DashboardServiceImpl(db::connection,new DashboardCache(store),clock).admin(admin)).status());
         assertEquals(0,store.reads);assertEquals(0,db.aggregations);
     }
     @Test void cacheOutageFallsBackToAuthorizedSqlIncludingChart()throws Exception{
@@ -38,7 +38,7 @@ class DashboardCacheTest {
             public void set(String key,String value,int ttl){throw new IllegalStateException("offline");}
             public void delete(String key){throw new IllegalStateException("offline");}
         };
-        String result=new DashboardService(db::connection,new DashboardCache(offline),clock).admin(admin);
+        String result=new DashboardServiceImpl(db::connection,new DashboardCache(offline),clock).admin(admin);
         assertTrue(result.contains("\"dailyMetrics\""),result);assertTrue(result.contains("\"activeOrganizations\":7"),result);
         assertEquals(1,db.authorizations);assertTrue(db.aggregations>0);
     }
@@ -47,7 +47,7 @@ class DashboardCacheTest {
     }
     @Test void organizationOverviewBypassesGlobalAdminCache()throws Exception{
         var db=new Sql();var store=new Memory();store.values.put("tc:admin:overview:v1","wrong global projection");
-        String result=new DashboardService(db::connection,new DashboardCache(store),clock).organization(admin,UUID.randomUUID());
+        String result=new DashboardServiceImpl(db::connection,new DashboardCache(store),clock).organization(admin,UUID.randomUUID());
         assertFalse(result.contains("wrong global projection"));assertTrue(result.contains("\"eventCount\":7"),result);assertEquals(0,store.reads);
     }
     static final class Memory implements DashboardCache.Backend {
@@ -78,7 +78,7 @@ class DashboardCacheTest {
     }
     @Test void historicalRevenueRemainsVisibleWhenRecentPeriodHasNoTransactions()throws Exception{
         var db=new Sql();db.zeroRecent=true;
-        String result=new DashboardService(db::connection,clock).admin(admin);
+        String result=new DashboardServiceImpl(db::connection,clock).admin(admin);
         assertTrue(result.contains("\"todayCohortGrossRevenue\":\"0\""),result);
         assertTrue(result.contains("\"cumulativeGrossRevenue\":\"10\""),result);
         assertTrue(result.contains("\"cumulativeNetCashFlow\":\"10\""),result);

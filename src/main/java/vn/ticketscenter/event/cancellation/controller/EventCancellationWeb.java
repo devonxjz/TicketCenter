@@ -12,8 +12,9 @@ import vn.ticketscenter.config.persistence.PersistenceRegistry;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.config.web.JsonObjectParser;
 import vn.ticketscenter.event.cancellation.dto.EventCancelRequestDto;
-import vn.ticketscenter.event.cancellation.service.CancellationProgressCacheHelper;
+import vn.ticketscenter.event.cancellation.service.CancellationProgressCache;
 import vn.ticketscenter.event.cancellation.service.EventCancellationService;
+import vn.ticketscenter.event.cancellation.service.EventCancellationServiceImpl;
 import vn.ticketscenter.event.dao.EventCancellationRepository;
 import vn.ticketscenter.fulfillment.refund.service.RefundException;
 import vn.ticketscenter.identity.security.SecurityContext;
@@ -113,9 +114,9 @@ final class EventCancellationWeb {
                         503, "DATABASE_UNAVAILABLE", "Hệ thống hủy sự kiện chưa sẵn sàng.");
             }
             var service =
-                    new EventCancellationService(
+                    new EventCancellationServiceImpl(
                             new EventCancellationRepository(registry.transactionManager()),
-                            new CancellationProgressCacheHelper());
+                            new CancellationProgressCache());
             context.setAttribute(EventCancellationService.class.getName(), service);
             return service;
         }

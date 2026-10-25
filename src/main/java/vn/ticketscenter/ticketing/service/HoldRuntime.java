@@ -35,7 +35,7 @@ public final class HoldRuntime implements ServletContextListener {
         var buyer = resources.strictPool("hold-buyer", BUYER);
         var worker = resources.strictPool("hold-worker", WORKER);
         var redis = RedisClientProvider.getInstance();
-        return new HoldService(
+        return new HoldServiceImpl(
                 new HoldRepository(ConnectionBudgets.wrap(buyer), ConnectionBudgets.wrap(worker)),
                 new RedisActiveHoldCache(redis::getResource, Clock.systemUTC()),
                 new RedisHoldIdempotency(redis::getResource));

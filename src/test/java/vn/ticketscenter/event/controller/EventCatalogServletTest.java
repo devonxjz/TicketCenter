@@ -6,6 +6,7 @@ import vn.ticketscenter.event.cache.EventCatalogCache;
 import vn.ticketscenter.event.dto.*;
 import vn.ticketscenter.event.dao.EventCatalogRepository;
 import vn.ticketscenter.event.service.EventCatalogService;
+import vn.ticketscenter.event.service.EventCatalogServiceImpl;
 import java.io.*;
 import java.lang.reflect.Proxy;
 import java.util.*;
@@ -49,7 +50,7 @@ class EventCatalogServletTest {
                     case "getWriter" -> new PrintWriter(body);
                     default -> null;
                 });
-        new EventCatalogServlet(new EventCatalogService(repository(broken), noCache)).doGet(req, resp);
+        new EventCatalogServlet(new EventCatalogServiceImpl(repository(broken), noCache)).doGet(req, resp);
     }
     @Test void anonymousCatalogSupportsContextPathAndPaginationEnvelope() throws Exception {
         request("/api/events", Map.of(), false); assertEquals(200, status);

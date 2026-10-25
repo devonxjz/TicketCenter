@@ -6,6 +6,7 @@ import java.io.*;
 import java.sql.SQLException;
 import vn.ticketscenter.audit.dto.AuditFilter;
 import vn.ticketscenter.audit.service.AuditService;
+import vn.ticketscenter.audit.service.AuditServiceImpl;
 import vn.ticketscenter.report.controller.ReadsideHttp;
 import vn.ticketscenter.report.dto.ReportFilter;
 import vn.ticketscenter.settlement.infrastructure.*;
@@ -18,7 +19,7 @@ public final class AuditServlet extends HttpServlet {
 
     @Override
     public void init() {
-        service = new AuditService(FinanceRuntime.database(getServletContext()));
+        service = new AuditServiceImpl(FinanceRuntime.database(getServletContext()));
     }
 
     @Override

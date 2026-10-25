@@ -15,6 +15,7 @@ import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.identity.service.OrganizationMembershipService;
+import vn.ticketscenter.identity.service.OrganizationMembershipServiceImpl;
 
 import java.io.BufferedReader;
 import java.io.PrintWriter;
@@ -118,7 +119,7 @@ class OrganizationMembersServletTest {
     @Test
     @DisplayName("MyMembershipsServlet: GET /api/me/memberships trả về 200 OK")
     void testMyMembershipsServlet_Success() throws Exception {
-        OrganizationMembershipService fakeService = new OrganizationMembershipService() {
+        OrganizationMembershipService fakeService = new OrganizationMembershipServiceImpl() {
             @Override
             public List<MembershipSummaryDto> getMyMemberships(UUID actor) {
                 return List.of(new MembershipSummaryDto(orgId, "Cty Âm Nhạc", OrganizationRole.MANAGER, true));
@@ -140,7 +141,7 @@ class OrganizationMembersServletTest {
     @Test
     @DisplayName("OrganizationMembersServlet: GET /api/organizations/{orgId}/members thành công")
     void testOrganizationMembersServlet_GetMembers_Success() throws Exception {
-        OrganizationMembershipService fakeService = new OrganizationMembershipService() {
+        OrganizationMembershipService fakeService = new OrganizationMembershipServiceImpl() {
             @Override
             public List<OrganizationMemberDto> getOrganizationMembers(UUID actor, UUID oId) {
                 return List.of(new OrganizationMemberDto(
@@ -165,7 +166,7 @@ class OrganizationMembersServletTest {
     @Test
     @DisplayName("OrganizationMembersServlet: POST thêm thành viên thành công (201 Created)")
     void testOrganizationMembersServlet_AddMember_Success() throws Exception {
-        OrganizationMembershipService fakeService = new OrganizationMembershipService() {
+        OrganizationMembershipService fakeService = new OrganizationMembershipServiceImpl() {
             @Override
             public OrganizationMemberDto addMember(UUID actor, UUID oId, AddMemberRequestDto dto) {
                 return new OrganizationMemberDto(
@@ -190,7 +191,7 @@ class OrganizationMembersServletTest {
     @Test
     @DisplayName("OrganizationMembersServlet: POST thêm thành viên trùng lặp -> 409 Conflict")
     void testOrganizationMembersServlet_AddMember_Conflict() throws Exception {
-        OrganizationMembershipService fakeService = new OrganizationMembershipService() {
+        OrganizationMembershipService fakeService = new OrganizationMembershipServiceImpl() {
             @Override
             public OrganizationMemberDto addMember(UUID actor, UUID oId, AddMemberRequestDto dto) {
                 throw new IllegalStateException("MEMBER_ALREADY_EXISTS: Thành viên đã đang hoạt động trong tổ chức");
@@ -212,7 +213,7 @@ class OrganizationMembersServletTest {
     @Test
     @DisplayName("OrganizationMembersServlet: Hạ quyền Manager cuối cùng -> 400 Bad Request CANNOT_DEACTIVATE_LAST_MANAGER")
     void testMemberRoleServlet_DemoteLastManager_Throws400() throws Exception {
-        OrganizationMembershipService fakeService = new OrganizationMembershipService() {
+        OrganizationMembershipService fakeService = new OrganizationMembershipServiceImpl() {
             @Override
             public OrganizationMemberDto changeRole(UUID actor, UUID oId, UUID target, ChangeMemberRoleRequestDto dto) {
                 throw new IllegalStateException("CANNOT_DEACTIVATE_LAST_MANAGER: Không thể hạ quyền Quản lý duy nhất còn lại của tổ chức");
@@ -234,7 +235,7 @@ class OrganizationMembersServletTest {
     @Test
     @DisplayName("OrganizationMembersServlet: Vô hiệu hóa Manager cuối cùng -> 400 Bad Request CANNOT_DEACTIVATE_LAST_MANAGER")
     void testMemberStatusServlet_DeactivateLastManager_Throws400() throws Exception {
-        OrganizationMembershipService fakeService = new OrganizationMembershipService() {
+        OrganizationMembershipService fakeService = new OrganizationMembershipServiceImpl() {
             @Override
             public OrganizationMemberDto deactivateMember(UUID actor, UUID oId, UUID target) {
                 throw new IllegalStateException("CANNOT_DEACTIVATE_LAST_MANAGER: Không thể vô hiệu hóa Quản lý duy nhất còn lại của tổ chức");

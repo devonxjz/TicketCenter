@@ -15,8 +15,9 @@ import vn.ticketscenter.event.controller.HomeServlet;
 import vn.ticketscenter.event.dto.EventSave;
 import vn.ticketscenter.event.dao.EventRepository;
 import vn.ticketscenter.event.service.EventService;
+import vn.ticketscenter.event.service.EventServiceImpl;
 import vn.ticketscenter.identity.security.SecurityContext;
-import vn.ticketscenter.storage.LocalImageStorage;
+import vn.ticketscenter.storage.StorageServiceImpl;
 
 import java.io.IOException;
 import java.net.URL;
@@ -35,8 +36,8 @@ public final class EventImageWebFixture {
         if (args.length != 1 || !args[0].equals("serve-local-test"))
             throw new IllegalArgumentException("Pass serve-local-test");
         try (EventImageFixture fixture = new EventImageFixture()) {
-            var storage = LocalImageStorage.fromConfiguration();
-            EventService service = new EventService(new EventRepository(fixture.source), storage);
+            var storage = StorageServiceImpl.fromConfiguration();
+            EventService service = new EventServiceImpl(new EventRepository(fixture.source), storage);
             var published =
                     service.save(
                             fixture.actor,

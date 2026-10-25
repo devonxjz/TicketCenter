@@ -7,7 +7,7 @@ import jakarta.servlet.annotation.WebListener;
 import vn.ticketscenter.config.persistence.ConnectionBudgets;
 import vn.ticketscenter.config.persistence.FeatureContext;
 import vn.ticketscenter.config.redis.RedisClientProvider;
-import vn.ticketscenter.order.coupon.repository.CouponAdminRepository;
+import vn.ticketscenter.order.coupon.dao.CouponAdminRepository;
 import vn.ticketscenter.order.service.OrderException;
 
 import static vn.ticketscenter.config.persistence.DatabasePrincipal.ADMIN;
@@ -26,7 +26,7 @@ public final class CouponAdminRuntime implements ServletContextListener {
         var manager = resources.strictPool("coupon-manager", MANAGER);
         var admin = resources.strictPool("coupon-admin", ADMIN);
         var redis = RedisClientProvider.getInstance();
-        return new CouponAdminService(
+        return new CouponAdminServiceImpl(
                 new CouponAdminRepository(ConnectionBudgets.wrap(manager), ConnectionBudgets.wrap(admin)),
                 redis::getResource);
     }

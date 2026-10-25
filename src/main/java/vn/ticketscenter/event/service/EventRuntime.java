@@ -8,7 +8,7 @@ import vn.ticketscenter.config.persistence.ConnectionBudgets;
 import vn.ticketscenter.config.persistence.FeatureContext;
 import vn.ticketscenter.event.cache.EventIdempotencyStore;
 import vn.ticketscenter.event.dao.EventRepository;
-import vn.ticketscenter.storage.LocalImageStorage;
+import vn.ticketscenter.storage.StorageServiceImpl;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -38,8 +38,8 @@ public final class EventRuntime implements ServletContextListener {
                         ConnectionBudgets.wrap(manager),
                         ConnectionBudgets.wrap(buyer),
                         ConnectionBudgets.wrap(worker));
-        return new EventService(
-                repository, LocalImageStorage.configured(), EventIdempotencyStore.configured());
+        return new EventServiceImpl(
+                repository, StorageServiceImpl.configured(), EventIdempotencyStore.configured());
     }
 
     @Override

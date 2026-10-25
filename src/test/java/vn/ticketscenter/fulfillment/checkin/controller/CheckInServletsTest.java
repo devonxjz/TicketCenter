@@ -11,6 +11,7 @@ import vn.ticketscenter.fulfillment.checkin.dto.*;
 import vn.ticketscenter.fulfillment.checkin.dao.CheckInEventRepository;
 import vn.ticketscenter.fulfillment.checkin.dao.CheckInEventRepository.EventInfo;
 import vn.ticketscenter.fulfillment.checkin.service.CheckInEventService;
+import vn.ticketscenter.fulfillment.checkin.service.CheckInEventServiceImpl;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.dao.UserRepository;
 import vn.ticketscenter.identity.security.*;
@@ -35,7 +36,7 @@ class CheckInServletsTest {
         case "getNamedDispatcher" -> dispatcher("named:"+a[0]);
         default -> null;
     });
-    private final CheckInEventService service=new CheckInEventService(new CheckInEventRepository(null),new EmptyCache(),Clock.systemUTC()) {
+    private final CheckInEventService service=new CheckInEventServiceImpl(new CheckInEventRepository(null),new EmptyCache(),Clock.systemUTC()) {
         @Override public List<CheckInEventSummaryDto> events(UUID actor,UUID org){
             serviceCalls++;if(failure!=null)throw failure;assertEquals(ACTOR,actor);
             return List.of(new CheckInEventSummaryDto(EVENT,"<script>\"Nhạc\"</script>","Nhà hát",Instant.EPOCH,Instant.EPOCH.plusSeconds(7200),Instant.EPOCH.minusSeconds(3600),true,5,2,"OPEN"));
