@@ -8,6 +8,7 @@ function fixture(kind, csrf = true){
  const document={readyState:'loading',getElementById:get,querySelector:s=>s.includes('meta')?{getAttribute:()=>s.includes('context-path')?'/app':csrf?'csrf':''}:null,querySelectorAll:s=>s==='#orgStatusTabs button'?tabs:[],createElement:()=>({innerHTML:''}),addEventListener(){}};
  const window={tcCurrentOrgId:'org-a',crypto:{randomUUID:()=> 'test-key'},addEventListener(n,fn){events[n]=fn;}};
  const context={document,window,crypto:window.crypto,localStorage:{getItem(){return null;}},bootstrap:{Modal},Date,setTimeout(){},console:{error(){},warn(){}},fetch:(path,options)=>new Promise((resolve,reject)=>calls.push({path,options,resolve,reject}))};
+ context.TC=require('../../main/webapp/assets/js/core/tc-core.js');
  vm.createContext(context);
  const file={'admin-organizations':'admin/organization-review','organization-members':'organizer/members'}[kind];
  let source=fs.readFileSync('src/main/webapp/assets/js/'+file+'.js','utf8');

@@ -17,22 +17,6 @@
         deactivateModal: ['btnDeactivateSubmit', '<i class="fa-solid fa-user-slash me-1"></i> Xác nhận vô hiệu hóa']
     };
 
-    function escapeHtml(str) {
-        if (str == null) return '';
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-    }
-
-    function formatDate(instantStr) {
-        if (!instantStr) return '—';
-        const d = new Date(instantStr);
-        return isNaN(d.getTime()) ? instantStr : d.toLocaleString('vi-VN');
-    }
-
     function getActiveOrgId() {
         if (window.tcCurrentOrgId !== undefined) return window.tcCurrentOrgId;
         return window.TcOrgContext?.getCurrentOrgId() || localStorage?.getItem('tc_current_organization_id');
@@ -68,7 +52,7 @@
         const icon = type === 'success' ? 'fa-circle-check' : 'fa-triangle-exclamation';
         container.innerHTML = `
             <div class="alert alert-${type} alert-dismissible fade show rounded-0" role="alert">
-                <i class="fa-solid ${icon} me-2"></i> ${escapeHtml(msg)}
+                <i class="fa-solid ${icon} me-2"></i> ${TC.escapeHtml(msg)}
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng"></button>
             </div>
         `;
@@ -137,7 +121,7 @@
             } else if (role === 'CHECK_IN_STAFF') {
                 roleBadgeHtml = '<span class="badge badge-staff px-2 py-1"><i class="fa-solid fa-qrcode me-1"></i>Soát vé tại cửa</span>';
             } else {
-                roleBadgeHtml = `<span class="badge bg-secondary px-2 py-1">${escapeHtml(role)}</span>`;
+                roleBadgeHtml = `<span class="badge bg-secondary px-2 py-1">${TC.escapeHtml(role)}</span>`;
             }
 
             // Status badge
@@ -156,7 +140,7 @@
             if (isActive) {
                 actionsHtml = `
                     <div class="btn-group btn-group-sm">
-                        <button type="button" class="btn btn-outline-dark rounded-0 px-2 py-1 btn-change-role" data-user-id="${escapeHtml(userId)}">
+                        <button type="button" class="btn btn-outline-dark rounded-0 px-2 py-1 btn-change-role" data-user-id="${TC.escapeHtml(userId)}">
                             <i class="fa-solid fa-user-gear me-1"></i>Đổi vai trò
                         </button>
                 `;
@@ -171,7 +155,7 @@
                     `;
                 } else {
                     actionsHtml += `
-                        <button type="button" class="btn btn-outline-danger rounded-0 px-2 py-1 btn-deactivate" data-user-id="${escapeHtml(userId)}">
+                        <button type="button" class="btn btn-outline-danger rounded-0 px-2 py-1 btn-deactivate" data-user-id="${TC.escapeHtml(userId)}">
                             <i class="fa-solid fa-user-slash me-1"></i>Vô hiệu hóa
                         </button>
                     `;
@@ -180,7 +164,7 @@
                 actionsHtml += `</div>`;
             } else {
                 actionsHtml = `
-                    <button type="button" class="btn btn-sm btn-outline-success rounded-0 px-2 py-1 btn-activate" data-user-id="${escapeHtml(userId)}">
+                    <button type="button" class="btn btn-sm btn-outline-success rounded-0 px-2 py-1 btn-activate" data-user-id="${TC.escapeHtml(userId)}">
                         <i class="fa-solid fa-user-check me-1"></i>Kích hoạt lại
                     </button>
                 `;
@@ -192,13 +176,13 @@
 
             tr.innerHTML = `
                 <td>
-                    <strong class="d-block text-dark">${escapeHtml(fullName)} ${soleLockBadge}</strong>
-                    <span class="small text-muted font-monospace"><i class="fa-regular fa-user me-1"></i>${escapeHtml(userName)}</span>
+                    <strong class="d-block text-dark">${TC.escapeHtml(fullName)} ${soleLockBadge}</strong>
+                    <span class="small text-muted font-monospace"><i class="fa-regular fa-user me-1"></i>${TC.escapeHtml(userName)}</span>
                 </td>
-                <td><span class="text-body">${escapeHtml(email)}</span></td>
+                <td><span class="text-body">${TC.escapeHtml(email)}</span></td>
                 <td>${roleBadgeHtml}</td>
                 <td>${statusBadgeHtml}</td>
-                <td><span class="small text-muted">${formatDate(joinedAt)}</span></td>
+                <td><span class="small text-muted">${TC.date(joinedAt)}</span></td>
                 <td class="text-end">${actionsHtml}</td>
             `;
 
@@ -373,7 +357,7 @@
                     <tr>
                         <td colspan="6" class="text-center py-4 text-danger">
                             <i class="fa-solid fa-circle-exclamation me-2"></i>
-                            ${escapeHtml(err.message || 'Không thể tải danh sách thành viên.')}
+                            ${TC.escapeHtml(err.message || 'Không thể tải danh sách thành viên.')}
                         </td>
                     </tr>
                 `;
