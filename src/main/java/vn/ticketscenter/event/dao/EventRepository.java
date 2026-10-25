@@ -30,7 +30,6 @@ public class EventRepository {
             String publicId,
             String originalCoverUrl) {}
 
-    private static final UUID MAINTENANCE = new UUID(0, 0);
     private static final String COLUMNS =
             "e.id,e.organization_id,e.category_id,e.title,e.description,e.venue_name,"
                     + "e.venue_address,e.sale_start,e.sale_end,e.start_time,e.end_time,e.status,e.version,"

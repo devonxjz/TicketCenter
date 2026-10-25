@@ -8,7 +8,6 @@ import vn.ticketscenter.fulfillment.checkin.dto.CheckInScanResponseDto;
 import vn.ticketscenter.fulfillment.checkin.dto.RecentCheckInLogDto;
 
 import java.sql.CallableStatement;
-import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
