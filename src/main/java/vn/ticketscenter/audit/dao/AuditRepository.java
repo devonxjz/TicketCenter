@@ -43,29 +43,16 @@ public final class AuditRepository {
                     " AND EXISTS (SELECT 1 FROM dbo.fn_AuditOrganizationMatch(?,a.entity_type,a.entity_id,a.metadata_json))";
             params.add(f.organizationId());
         }
-        long total;
-        try (var query = db.prepareStatement("SELECT COUNT_BIG(*)" + where)) {
-            ReadProjection.bind(query, params);
-            try (var row = query.executeQuery()) {
-                row.next();
-                total = row.getLong(1);
-            }
-        }
-        var rows = new ArrayList<Map<String, Object>>();
-        try (var query =
-                db.prepareStatement(
-                        "SELECT "
-                                + COLUMNS
-                                + where
-                                + " ORDER BY a.created_at DESC,a.id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY")) {
-            var all = new ArrayList<>(params);
-            all.add(f.offset());
-            all.add(f.pageSize());
-            ReadProjection.bind(query, all);
-            try (var row = query.executeQuery()) {
-                while (row.next()) rows.add(project(row));
-            }
-        }
+        long total = ReadProjection.first(db, "SELECT COUNT_BIG(*)" + where, params, row -> row.getLong(1));
+        var all = new ArrayList<>(params);
+        all.add(f.offset());
+        all.add(f.pageSize());
+        var rows =
+                ReadProjection.list(
+                        db,
+                        "SELECT " + COLUMNS + where + " ORDER BY a.created_at DESC,a.id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY",
+                        all,
+                        this::project);
         return Map.of(
                 "rows",
                 rows,

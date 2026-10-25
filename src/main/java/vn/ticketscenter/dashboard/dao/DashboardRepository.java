@@ -83,56 +83,40 @@ public final class DashboardRepository {
 
     private Map<String, Object> cash(Connection db, UUID org, Instant from, Instant to)
             throws SQLException {
-        String sql =
-                "SELECT COALESCE(SUM(ticket_captured),0) ticket_captured,COALESCE(SUM(compensation_captured),0) compensation_captured,COALESCE(SUM(ticket_refund),0) ticket_refund,COALESCE(SUM(compensation_refund),0) compensation_refund,COALESCE(SUM(net_cash_flow),0) net_cash_flow FROM dbo.fn_GetOrganizationCashFlow(?,?,?)";
-        try (var query = db.prepareStatement(sql)) {
-            ReadProjection.bind(query, parameters(org, from, to));
-            try (var row = query.executeQuery()) {
-                row.next();
-                return ReadProjection.row(
-                        row,
-                        List.of(
-                                "ticket_captured",
-                                "compensation_captured",
-                                "ticket_refund",
-                                "compensation_refund",
-                                "net_cash_flow"));
-            }
-        }
+        var columns =
+                List.of("ticket_captured", "compensation_captured", "ticket_refund", "compensation_refund", "net_cash_flow");
+        String sums = String.join(",", columns.stream().map(c -> "COALESCE(SUM(" + c + "),0) " + c).toList());
+        return ReadProjection.first(
+                db,
+                "SELECT " + sums + " FROM dbo.fn_GetOrganizationCashFlow(?,?,?)",
+                parameters(org, from, to),
+                row -> ReadProjection.row(row, columns));
     }
 
     private Map<String, Object> cohort(Connection db, UUID org, Instant from, Instant to)
             throws SQLException {
-        String sql =
-                "SELECT COALESCE(SUM(gross_revenue),0) gross_revenue,COALESCE(SUM(total_commission),0) total_commission FROM dbo.fn_GetOrganizationRevenue(?,?,?)";
-        try (var query = db.prepareStatement(sql)) {
-            ReadProjection.bind(query, parameters(org, from, to));
-            try (var row = query.executeQuery()) {
-                row.next();
-                return ReadProjection.row(row, List.of("gross_revenue", "total_commission"));
-            }
-        }
+        return ReadProjection.first(
+                db,
+                "SELECT COALESCE(SUM(gross_revenue),0) gross_revenue,COALESCE(SUM(total_commission),0) total_commission FROM dbo.fn_GetOrganizationRevenue(?,?,?)",
+                parameters(org, from, to),
+                row -> ReadProjection.row(row, List.of("gross_revenue", "total_commission")));
     }
 
+    /** Arrays.asList keeps a null organization (platform-wide) that List.of would reject. */
     private List<Object> parameters(UUID org, Instant from, Instant to) {
-        var result = new ArrayList<Object>();
-        result.add(org);
-        result.add(from);
-        result.add(to);
-        return result;
+        return Arrays.asList(org, from, to);
     }
 
     private long[] counts(Connection db, String sql, List<Object> values, int columns)
             throws SQLException {
-        try (var query = db.prepareStatement(sql)) {
-            ReadProjection.bind(query, values);
-            try (var row = query.executeQuery()) {
-                row.next();
-                long[] result = new long[columns];
-                for (int index = 0; index < columns; index++)
-                    result[index] = row.getLong(index + 1);
-                return result;
-            }
-        }
+        return ReadProjection.first(
+                db,
+                sql,
+                values,
+                row -> {
+                    long[] result = new long[columns];
+                    for (int index = 0; index < columns; index++) result[index] = row.getLong(index + 1);
+                    return result;
+                });
     }
 }
