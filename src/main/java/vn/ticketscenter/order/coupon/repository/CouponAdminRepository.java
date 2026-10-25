@@ -1,5 +1,6 @@
 package vn.ticketscenter.order.coupon.repository;
 
+import vn.ticketscenter.config.persistence.SqlCall;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.order.coupon.dto.CouponAdminDto;
 import vn.ticketscenter.order.coupon.dto.CreateCouponRequest;
@@ -7,17 +8,16 @@ import vn.ticketscenter.order.coupon.dto.UpdateCouponRequest;
 import vn.ticketscenter.order.service.OrderException;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.sql.Types;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+
+import static vn.ticketscenter.config.persistence.SqlCall.instant;
+import static vn.ticketscenter.config.persistence.SqlCall.orNull;
 
 public class CouponAdminRepository {
     private final DataSource manager;
@@ -33,24 +33,36 @@ public class CouponAdminRepository {
         this.admin = null;
     }
 
+    /** THROW numbers of the coupon procedures, plus unique-key and foreign-key violations. */
+    private static final SqlCall.ErrorTable ERRORS =
+            SqlCall.ErrorTable.of()
+                    .on(51520, m -> error(401, "UNAUTHENTICATED", "A current session is required."))
+                    .on(51521, m -> error(403, "FORBIDDEN", "Coupon management permission is required."))
+                    .on(51523, m -> error(404, "COUPON_NOT_FOUND", "Coupon was not found."))
+                    .on(51524, m -> error(409, "COUPON_IN_USE", "Coupon has existing usage."))
+                    .on(51107, m -> error(409, "COUPON_USAGE_CONFLICT", "Coupon max uses is below current usage."))
+                    .on(new int[] {2601, 2627}, m -> error(409, "COUPON_CODE_CONFLICT", "Coupon code already exists."))
+                    .on(547, m -> error(409, "COUPON_IN_USE", "Coupon is referenced by another record."))
+                    .fallback((code, message) -> OrderException.unavailable());
+
+    private static OrderException error(int status, String code, String message) {
+        return new OrderException(status, code, message);
+    }
+
     private DataSource source(UserPrincipal principal) {
         return principal.isAdmin() ? admin : manager;
     }
 
     public boolean isManagerOrAdmin(UserPrincipal principal, UUID organizationId) {
-        try (Connection connection = source(principal).getConnection();
-                PreparedStatement statement =
-                        connection.prepareStatement(
-                                "EXEC dbo.usp_CanManageCouponOrganization ?, ?, ?")) {
-            statement.setObject(1, principal.actorId());
-            statement.setInt(2, principal.authVersion());
-            statement.setObject(3, organizationId);
-            try (ResultSet rows = statement.executeQuery()) {
-                return rows.next() && rows.getBoolean("allowed");
-            }
-        } catch (SQLException failure) {
-            throw mapFailure(failure);
-        }
+        Boolean allowed =
+                call(
+                        principal,
+                        "EXEC dbo.usp_CanManageCouponOrganization ?, ?, ?",
+                        rows -> rows.getBoolean("allowed"),
+                        principal.actorId(),
+                        principal.authVersion(),
+                        organizationId);
+        return Boolean.TRUE.equals(allowed);
     }
 
     public List<CouponAdminDto> getCouponsByOrganization(
@@ -60,159 +72,97 @@ public class CouponAdminRepository {
 
     public List<CouponAdminDto> getAllCoupons(
             UserPrincipal principal, int page, int size, UUID filterOrgId) {
-        try (Connection connection = source(principal).getConnection();
-                PreparedStatement statement =
-                        connection.prepareStatement(
-                                "EXEC dbo.usp_ListManagedCoupons ?, ?, ?, ?, ?")) {
-            statement.setObject(1, principal.actorId());
-            statement.setInt(2, principal.authVersion());
-            statement.setObject(3, filterOrgId);
-            statement.setInt(4, Math.max(1, page));
-            statement.setInt(5, Math.min(100, Math.max(1, size)));
-            List<CouponAdminDto> result = new ArrayList<>();
-            try (ResultSet rows = statement.executeQuery()) {
-                while (rows.next()) result.add(mapCoupon(rows));
-            }
-            return result;
-        } catch (SQLException failure) {
-            throw mapFailure(failure);
-        }
+        return SqlCall.onConnection(
+                source(principal),
+                connection ->
+                        SqlCall.queryList(
+                                connection,
+                                "EXEC dbo.usp_ListManagedCoupons ?, ?, ?, ?, ?",
+                                CouponAdminRepository::mapCoupon,
+                                ERRORS,
+                                principal.actorId(),
+                                principal.authVersion(),
+                                filterOrgId,
+                                Math.max(1, page),
+                                Math.min(100, Math.max(1, size))),
+                ERRORS);
     }
 
     public Optional<CouponAdminDto> findById(UserPrincipal principal, UUID couponId) {
-        try (Connection connection = source(principal).getConnection();
-                PreparedStatement statement =
-                        connection.prepareStatement("EXEC dbo.usp_ReadManagedCoupon ?, ?, ?")) {
-            statement.setObject(1, couponId);
-            statement.setObject(2, principal.actorId());
-            statement.setInt(3, principal.authVersion());
-            try (ResultSet rows = statement.executeQuery()) {
-                return rows.next() ? Optional.of(mapCoupon(rows)) : Optional.empty();
-            }
-        } catch (SQLException failure) {
-            throw mapFailure(failure);
-        }
+        return Optional.ofNullable(
+                call(
+                        principal,
+                        "EXEC dbo.usp_ReadManagedCoupon ?, ?, ?",
+                        CouponAdminRepository::mapCoupon,
+                        couponId,
+                        principal.actorId(),
+                        principal.authVersion()));
     }
 
     public UUID createCoupon(
             UserPrincipal principal, UUID organizationId, CreateCouponRequest request) {
-        try (Connection connection = source(principal).getConnection();
-                PreparedStatement statement =
-                        connection.prepareStatement(
-                                "EXEC dbo.usp_CreateManagedCoupon ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?")) {
-            statement.setObject(1, organizationId);
-            statement.setObject(2, principal.actorId());
-            statement.setInt(3, principal.authVersion());
-            statement.setString(4, request.code());
-            statement.setString(5, request.discountType());
-            setDecimal(statement, 6, request.percentageValue());
-            setDecimal(statement, 7, request.fixedAmount());
-            setDecimal(statement, 8, request.maxDiscountAmount());
-            statement.setInt(9, request.maxUses());
-            statement.setTimestamp(10, Timestamp.from(request.validFrom()), utc());
-            statement.setTimestamp(11, Timestamp.from(request.validTo()), utc());
-            try (ResultSet rows = statement.executeQuery()) {
-                if (!rows.next())
-                    throw new IllegalStateException("Coupon creation returned no identifier");
-                return UUID.fromString(rows.getString("id"));
-            }
-        } catch (SQLException failure) {
-            throw mapFailure(failure);
-        }
+        UUID id =
+                call(
+                        principal,
+                        "EXEC dbo.usp_CreateManagedCoupon ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?",
+                        rows -> UUID.fromString(rows.getString("id")),
+                        organizationId,
+                        principal.actorId(),
+                        principal.authVersion(),
+                        request.code(),
+                        request.discountType(),
+                        orNull(request.percentageValue(), Types.DECIMAL),
+                        orNull(request.fixedAmount(), Types.DECIMAL),
+                        orNull(request.maxDiscountAmount(), Types.DECIMAL),
+                        request.maxUses(),
+                        request.validFrom(),
+                        request.validTo());
+        if (id == null) throw new IllegalStateException("Coupon creation returned no identifier");
+        return id;
     }
 
     public void updateCoupon(UserPrincipal principal, UUID couponId, UpdateCouponRequest request) {
-        execute(
+        call(
                 principal,
                 "EXEC dbo.usp_UpdateManagedCoupon ?, ?, ?, ?, ?, ?",
-                statement -> {
-                    statement.setObject(1, couponId);
-                    statement.setObject(2, principal.actorId());
-                    statement.setInt(3, principal.authVersion());
-                    if (request.maxUses() == null) statement.setNull(4, Types.INTEGER);
-                    else statement.setInt(4, request.maxUses());
-                    if (request.validTo() == null) statement.setNull(5, Types.TIMESTAMP);
-                    else statement.setTimestamp(5, Timestamp.from(request.validTo()), utc());
-                    setDecimal(statement, 6, request.maxDiscountAmount());
-                });
+                null,
+                couponId,
+                principal.actorId(),
+                principal.authVersion(),
+                orNull(request.maxUses(), Types.INTEGER),
+                orNull(request.validTo(), Types.TIMESTAMP),
+                orNull(request.maxDiscountAmount(), Types.DECIMAL));
     }
 
     public void setActive(UserPrincipal principal, UUID couponId, boolean active) {
-        execute(
+        call(
                 principal,
                 "EXEC dbo.usp_SetManagedCouponActive ?, ?, ?, ?",
-                statement -> {
-                    statement.setObject(1, couponId);
-                    statement.setObject(2, principal.actorId());
-                    statement.setInt(3, principal.authVersion());
-                    statement.setBoolean(4, active);
-                });
+                null,
+                couponId,
+                principal.actorId(),
+                principal.authVersion(),
+                active);
     }
 
     public void deleteCoupon(UserPrincipal principal, UUID couponId) {
-        execute(
+        call(
                 principal,
                 "EXEC dbo.usp_DeleteManagedCoupon ?, ?, ?",
-                statement -> {
-                    statement.setObject(1, couponId);
-                    statement.setObject(2, principal.actorId());
-                    statement.setInt(3, principal.authVersion());
-                });
+                null,
+                couponId,
+                principal.actorId(),
+                principal.authVersion());
     }
 
-    private void execute(UserPrincipal principal, String sql, Bind bind) {
-        try (Connection connection = source(principal).getConnection();
-                PreparedStatement statement = connection.prepareStatement(sql)) {
-            bind.apply(statement);
-            statement.execute();
-        } catch (SQLException failure) {
-            throw mapFailure(failure);
-        }
-    }
-
-    private static OrderException mapFailure(SQLException failure) {
-        for (SQLException current = failure;
-                current != null;
-                current = current.getNextException()) {
-            switch (current.getErrorCode()) {
-                case 51520:
-                    return new OrderException(
-                            401, "UNAUTHENTICATED", "A current session is required.");
-                case 51521:
-                    return new OrderException(
-                            403, "FORBIDDEN", "Coupon management permission is required.");
-                case 51523:
-                    return new OrderException(404, "COUPON_NOT_FOUND", "Coupon was not found.");
-                case 51524:
-                    return new OrderException(409, "COUPON_IN_USE", "Coupon has existing usage.");
-                case 51107:
-                    return new OrderException(
-                            409,
-                            "COUPON_USAGE_CONFLICT",
-                            "Coupon max uses is below current usage.");
-                case 2601, 2627:
-                    return new OrderException(
-                            409, "COUPON_CODE_CONFLICT", "Coupon code already exists.");
-                case 547:
-                    return new OrderException(
-                            409, "COUPON_IN_USE", "Coupon is referenced by another record.");
-                default:
-                    break;
-            }
-        }
-        return OrderException.unavailable();
-    }
-
-    private static void setDecimal(
-            PreparedStatement statement, int index, java.math.BigDecimal value)
-            throws SQLException {
-        if (value == null) statement.setNull(index, Types.DECIMAL);
-        else statement.setBigDecimal(index, value);
+    /** One call on the caller's principal pool; answers with the first row mapped, or null without one. */
+    private <T> T call(
+            UserPrincipal principal, String sql, SqlCall.ResultSetExtractor<T> read, Object... args) {
+        return SqlCall.onConnection(
+                source(principal), connection -> SqlCall.call(connection, sql, read, ERRORS, args), ERRORS);
     }
 
     private static CouponAdminDto mapCoupon(ResultSet rows) throws SQLException {
-        Timestamp from = rows.getTimestamp("valid_from", utc());
-        Timestamp to = rows.getTimestamp("valid_to", utc());
         return new CouponAdminDto(
                 UUID.fromString(rows.getString("id")),
                 UUID.fromString(rows.getString("organization_id")),
@@ -226,18 +176,9 @@ public class CouponAdminRepository {
                 rows.getInt("reserved_uses"),
                 rows.getInt("consumed_uses"),
                 rows.getInt("available_uses"),
-                from == null ? null : from.toInstant(),
-                to == null ? null : to.toInstant(),
+                instant(rows, "valid_from"),
+                instant(rows, "valid_to"),
                 rows.getBoolean("active"),
                 rows.getLong("version"));
-    }
-
-    @FunctionalInterface
-    private interface Bind {
-        void apply(PreparedStatement statement) throws SQLException;
-    }
-
-    private static java.util.Calendar utc() {
-        return java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"));
     }
 }

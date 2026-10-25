@@ -260,4 +260,30 @@ class SqlCallTest {
         var unknown = new IllegalStateException(new SQLException("deadlock", "40001", 1205));
         assertSame(unavailable, SqlCall.failure(unknown, errors, () -> unavailable));
     }
+
+    @Test
+    void typedNullsKeepTheirSqlTypeWhileBareNullsStayUntyped() {
+        Map<Integer, Integer> nullTypes = new HashMap<>();
+        PreparedStatement statement = (PreparedStatement) Proxy.newProxyInstance(
+                getClass().getClassLoader(),
+                new Class<?>[]{PreparedStatement.class},
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "setNull" -> nullTypes.put((Integer) args[0], (Integer) args[1]);
+                    case "execute", "getMoreResults" -> false;
+                    case "getUpdateCount" -> -1;
+                    default -> null;
+                });
+        Connection connection = (Connection) Proxy.newProxyInstance(
+                getClass().getClassLoader(),
+                new Class<?>[]{Connection.class},
+                (proxy, method, args) -> "prepareStatement".equals(method.getName()) ? statement : null);
+
+        SqlCall.execute(connection, "EXEC dbo.usp_Example ?,?,?,?", null,
+                null,
+                SqlCall.orNull(null, Types.TIMESTAMP),
+                SqlCall.orNull(null, Types.INTEGER),
+                SqlCall.orNull(7, Types.INTEGER));
+
+        assertEquals(Map.of(1, Types.NULL, 2, Types.TIMESTAMP, 3, Types.INTEGER), nullTypes);
+    }
 }

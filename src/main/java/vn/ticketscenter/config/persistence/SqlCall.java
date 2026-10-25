@@ -53,6 +53,16 @@ public final class SqlCall {
         T run(Connection connection) throws SQLException;
     }
 
+    /**
+     * A typed NULL. A bare null is sent as varbinary, which SQL Server will not convert to datetime2, int or
+     * decimal parameters.
+     */
+    public record NullParam(int sqlType) {}
+
+    public static Object orNull(Object value, int sqlType) {
+        return value != null ? value : new NullParam(sqlType);
+    }
+
     public record OutParam(int sqlType) {
         public static OutParam of(int sqlType) {
             return new OutParam(sqlType);
@@ -321,6 +331,8 @@ public final class SqlCall {
 
             if (arg == null) {
                 statement.setNull(parameterIndex, Types.NULL);
+            } else if (arg instanceof NullParam typedNull) {
+                statement.setNull(parameterIndex, typedNull.sqlType());
             } else if (arg instanceof OutParam outParam) {
                 if (statement instanceof CallableStatement callable) {
                     callable.registerOutParameter(parameterIndex, outParam.sqlType());
