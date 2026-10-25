@@ -2,7 +2,6 @@
 # TicketsCenter — application.properties.example
 # File mẫu cấu hình hệ thống TicketsCenter (Không chứa mật khẩu thật)
 # Copy thành src/main/resources/application.properties. File thật được Git bỏ qua và không đóng gói vào WAR.
-# ./tools/run-web.ps1 đọc trực tiếp file này; không cần azure.properties.
 # ===================================================================
 
 # 1. Cơ sở dữ liệu Microsoft SQL Server (Azure SQL / Local)

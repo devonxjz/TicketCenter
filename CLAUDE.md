@@ -11,7 +11,6 @@ TicketsCenter: a Java 25 / Servlet 6.1 (`jakarta.*`) / JSP+JSTL WAR for Tomcat 1
 - Build + unit tests: `mvn -B test` (surefire runs `*Test.java` plus `Day01IT`, `Day05IT`, `PasswordResetIT`). Single test: `mvn -B test -Dtest=ClassName#method`.
 - Real SQL Server integration tests: `mvn -B -Psqlserver-it -Dit.test=SomeIT verify` (needs a loopback `TC_Vuong_Test_*` fixture DB; external-service ITs are skipped by default, and a skip is not acceptance).
 - Package: `mvn -B package` (WAR; `application.properties` is excluded from the artifact). Quick dev server: `mvn jetty-ee11:run`.
-- Full local run (Windows/PowerShell 7.4+, JDK 25 required): `./tools/local/setup.ps1 -Database TC_Vuong_Test_Local_Demo` once, then `./tools/local/run.ps1 -TomcatHome <path>` (`-Smoke` runs acceptance and exits). Serves on `http://127.0.0.1:18082/ticketscenter/`. Never run setup against Azure/shared DBs.
 - Config: copy `src/main/resources/application.properties.example` to the git-ignored `application.properties`. Java does not read `.env`.
 
 ## Architecture
