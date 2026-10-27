@@ -61,3 +61,8 @@ transaction của bên gọi, cho phép ADMIN nền tảng, tái kích hoạt th
 `MEMBER_ACTIVATED`/`MEMBER_DEACTIVATED` và trả về dòng membership. `OrganizationMembershipService` gọi hai procedure
 này dưới principal `MANAGER`; áp migration này trước khi triển khai bản Java tương ứng. Quy tắc "Quản lý cuối cùng"
 vẫn do `trg_Membership_ProtectLastManager` giữ (mã lỗi 51106).
+
+`071_event_submit_requires_cover.sql` thêm điều kiện ảnh bìa vào nhánh `SUBMIT` của `usp_EventCommand` (THROW 52000
+`Event requires a cover image`), sửa tại chỗ như `061` nên phần còn lại của procedure giữ nguyên và chạy lại không đổi gì.
+Ứng dụng không còn tự sinh ảnh placeholder khi tạo sự kiện; áp migration này cùng lúc với bản Java đó để sự kiện
+chưa có ảnh không vào được hàng chờ duyệt qua API.
