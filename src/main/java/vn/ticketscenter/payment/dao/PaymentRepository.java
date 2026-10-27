@@ -1,10 +1,10 @@
 package vn.ticketscenter.payment.dao;
 
 import vn.ticketscenter.config.error.AppException;
+import vn.ticketscenter.config.persistence.SqlCall;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-import vn.ticketscenter.config.persistence.SqlErrors;
 import vn.ticketscenter.payment.dto.PaymentStatusResult;
 import vn.ticketscenter.payment.service.PaymentException;
 
@@ -18,12 +18,14 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 
+import static vn.ticketscenter.config.persistence.SqlCall.instant;
+import static vn.ticketscenter.config.persistence.SqlCall.uuid;
+
 /**
  * Payment reads go through views, writes through procedures. The buyer principal opens payments for its own
  * orders; only the worker principal may apply a provider result ({@code usp_ApplyPaymentResult}).
  */
 public class PaymentRepository {
-    private static final Calendar UTC = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private final DataSource buyer;
@@ -55,152 +57,163 @@ public class PaymentRepository {
         }
     }
 
+    /** THROW numbers of the payment procedures; every other database failure means "try again later". */
+    private static final SqlCall.ErrorTable ERRORS =
+            SqlCall.ErrorTable.of()
+                    .on(new int[] {51280, 51395}, m -> PaymentException.orderNotPayable())
+                    .on(51281, m -> PaymentException.eventUnavailable())
+                    .on(51392, m -> PaymentException.orderNotFound())
+                    .on(51393, m -> PaymentException.forbidden())
+                    .on(new int[] {51232, 51389}, m -> PaymentException.paymentUnresolved())
+                    .fallback((code, message) -> PaymentException.unavailable());
+
+    private static final SqlCall.ErrorTable UNAVAILABLE =
+            SqlCall.ErrorTable.of().fallback((code, message) -> PaymentException.unavailable());
+
+    private static final SqlCall.ErrorTable ACCESS_ERRORS =
+            SqlCall.ErrorTable.of()
+                    .on(51403, m -> PaymentException.forbidden())
+                    .on(51404, m -> PaymentException.orderNotFound())
+                    .fallback((code, message) -> PaymentException.unavailable());
+
     // ---------------------------------------------------------------- Buyer: start paying
 
     public PaymentIntent beginOrderPayment(UUID orderId, UUID actorId) {
         Objects.requireNonNull(orderId, "orderId is required");
         Objects.requireNonNull(actorId, "actorId is required");
-
         Duration holdRemaining = checkOrderIsPayable(orderId, actorId);
-        return withRetry(
-                () -> {
-                    try (Connection conn = buyer.getConnection();
-                            PreparedStatement ps =
-                                    conn.prepareStatement("EXEC dbo.usp_BeginOrderPayment ?, ?")) {
-                        conn.setAutoCommit(true);
-                        ps.setQueryTimeout(20);
-                        ps.setString(1, orderId.toString());
-                        ps.setString(2, actorId.toString());
-                        try (ResultSet rs = ps.executeQuery()) {
-                            if (!rs.next()) throw PaymentException.unavailable();
-                            return new PaymentIntent(
-                                    UUID.fromString(rs.getString("payment_id")),
-                                    rs.getString("txn_ref"),
-                                    rs.getBigDecimal("amount"),
-                                    holdRemaining);
-                        }
-                    }
-                });
+        return SqlCall.callWithRetry(
+                buyer,
+                "EXEC dbo.usp_BeginOrderPayment ?, ?",
+                rs ->
+                        new PaymentIntent(
+                                UUID.fromString(rs.getString("payment_id")),
+                                rs.getString("txn_ref"),
+                                rs.getBigDecimal("amount"),
+                                holdRemaining),
+                ERRORS,
+                PaymentException::unavailable,
+                orderId,
+                actorId);
     }
+
+    private record PayableOrder(
+            BigDecimal total, Instant expiresAt, String orderStatus, String holdStatus, String eventStatus) {}
 
     /** @return how long the seat hold still lasts; throws when the order cannot be paid now */
     private Duration checkOrderIsPayable(UUID orderId, UUID actorId) {
-        try (Connection conn = buyer.getConnection();
-                PreparedStatement ps =
-                        conn.prepareStatement(
-                                """
-                     SELECT total_amount, expires_at, order_status, hold_status, event_status
-                     FROM dbo.vw_PaymentOrderContext WHERE order_id = ? AND user_id = ?
-                     """)) {
-            ps.setObject(1, orderId);
-            ps.setObject(2, actorId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (!rs.next()) {
-                    assertOrderAccess(conn, orderId);
-                    throw PaymentException.orderNotFound();
-                }
-                if (!"PENDING_PAYMENT".equals(rs.getString("order_status"))
-                        || !"ACTIVE".equals(rs.getString("hold_status"))) {
-                    throw PaymentException.orderNotPayable();
-                }
-                if (!"PUBLISHED".equals(rs.getString("event_status")))
-                    throw PaymentException.eventUnavailable();
-
-                long remainingMs =
-                        rs.getTimestamp("expires_at", UTC).getTime() - System.currentTimeMillis();
-                if (remainingMs <= 0) throw PaymentException.orderNotPayable();
-                if (rs.getBigDecimal("total_amount").signum() == 0)
-                    throw new ZeroOrderDetectedException();
-                return Duration.ofMillis(remainingMs);
-            }
-        } catch (SQLException failure) {
-            throw toPaymentException(failure);
-        }
+        PayableOrder order =
+                SqlCall.onConnection(
+                        buyer,
+                        conn -> {
+                            var row =
+                                    SqlCall.queryOptional(
+                                            conn,
+                                            """
+                                            SELECT total_amount, expires_at, order_status, hold_status, event_status
+                                            FROM dbo.vw_PaymentOrderContext WHERE order_id = ? AND user_id = ?
+                                            """,
+                                            rs ->
+                                                    new PayableOrder(
+                                                            rs.getBigDecimal("total_amount"),
+                                                            instant(rs, "expires_at"),
+                                                            rs.getString("order_status"),
+                                                            rs.getString("hold_status"),
+                                                            rs.getString("event_status")),
+                                            ERRORS,
+                                            orderId,
+                                            actorId);
+                            if (row.isEmpty()) {
+                                assertOrderAccess(conn, orderId);
+                                throw PaymentException.orderNotFound();
+                            }
+                            return row.get();
+                        },
+                        ERRORS);
+        if (!"PENDING_PAYMENT".equals(order.orderStatus()) || !"ACTIVE".equals(order.holdStatus()))
+            throw PaymentException.orderNotPayable();
+        if (!"PUBLISHED".equals(order.eventStatus())) throw PaymentException.eventUnavailable();
+        long remainingMs = order.expiresAt().toEpochMilli() - System.currentTimeMillis();
+        if (remainingMs <= 0) throw PaymentException.orderNotPayable();
+        if (order.total().signum() == 0) throw new ZeroOrderDetectedException();
+        return Duration.ofMillis(remainingMs);
     }
 
     public void completeZeroOrder(UUID orderId, UUID actorId) {
         Objects.requireNonNull(orderId, "orderId is required");
         Objects.requireNonNull(actorId, "actorId is required");
         String tickets = newTicketIdentities(orderId, buyer);
-        try (Connection conn = buyer.getConnection();
-                CallableStatement cs =
-                        conn.prepareCall("{call dbo.usp_CompleteFreeOrder(?, ?, ?)}")) {
-            cs.setObject(1, orderId);
-            cs.setObject(2, actorId);
-            cs.setString(3, tickets);
-            cs.execute();
-        } catch (SQLException failure) {
-            throw toPaymentException(failure);
-        }
+        SqlCall.onConnection(
+                buyer,
+                conn -> {
+                    SqlCall.execute(
+                            conn, "{call dbo.usp_CompleteFreeOrder(?, ?, ?)}", ERRORS, orderId, actorId, tickets);
+                    return null;
+                },
+                ERRORS);
     }
 
     public Optional<PaymentStatusResult> getOrderPaymentStatus(UUID orderId, UUID actorId) {
         Objects.requireNonNull(orderId, "orderId is required");
         Objects.requireNonNull(actorId, "actorId is required");
-        try (Connection conn = buyer.getConnection();
-                PreparedStatement ps =
-                        conn.prepareStatement(
-                                """
-                     SELECT TOP 1 o.order_id, o.order_status, o.total_amount,
-                            p.payment_id, p.payment_status, p.amount AS payment_amount, p.currency, p.paid_at
-                     FROM dbo.vw_PaymentOrderContext o
-                     LEFT JOIN dbo.vw_PaymentRuntimeDetails p ON p.order_id = o.order_id
-                     WHERE o.order_id = ? AND o.user_id = ?
-                     ORDER BY p.created_at DESC
-                     """)) {
-            ps.setObject(1, orderId);
-            ps.setObject(2, actorId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (!rs.next()) {
-                    assertOrderAccess(conn, orderId);
-                    return Optional.empty();
-                }
-                BigDecimal amount =
-                        Optional.ofNullable(rs.getBigDecimal("payment_amount"))
-                                .orElse(
-                                        Optional.ofNullable(rs.getBigDecimal("total_amount"))
-                                                .orElse(BigDecimal.ZERO));
-                String currency = rs.getString("currency");
-                return Optional.of(
-                        new PaymentStatusResult(
-                                UUID.fromString(rs.getString("order_id")),
-                                rs.getString("order_status"),
-                                Optional.ofNullable(rs.getString("payment_id"))
-                                        .map(UUID::fromString),
-                                Optional.ofNullable(rs.getString("payment_status")),
-                                amount,
-                                currency == null ? "VND" : currency.trim(),
-                                Optional.ofNullable(rs.getTimestamp("paid_at", UTC))
-                                        .map(Timestamp::toInstant)));
-            }
-        } catch (SQLException failure) {
-            throw toPaymentException(failure);
-        }
+        return SqlCall.onConnection(
+                buyer,
+                conn -> {
+                    var status =
+                            SqlCall.queryOptional(
+                                    conn,
+                                    """
+                                    SELECT TOP 1 o.order_id, o.order_status, o.total_amount,
+                                           p.payment_id, p.payment_status, p.amount AS payment_amount, p.currency, p.paid_at
+                                    FROM dbo.vw_PaymentOrderContext o
+                                    LEFT JOIN dbo.vw_PaymentRuntimeDetails p ON p.order_id = o.order_id
+                                    WHERE o.order_id = ? AND o.user_id = ?
+                                    ORDER BY p.created_at DESC
+                                    """,
+                                    PaymentRepository::paymentStatus,
+                                    ERRORS,
+                                    orderId,
+                                    actorId);
+                    if (status.isEmpty()) assertOrderAccess(conn, orderId);
+                    return status;
+                },
+                ERRORS);
     }
 
-    // ---------------------------------------------------------------- Worker: settle with the
-    // payOS result
+    private static PaymentStatusResult paymentStatus(ResultSet rs) throws SQLException {
+        BigDecimal amount = rs.getBigDecimal("payment_amount");
+        if (amount == null) amount = rs.getBigDecimal("total_amount");
+        String currency = rs.getString("currency");
+        return new PaymentStatusResult(
+                UUID.fromString(rs.getString("order_id")),
+                rs.getString("order_status"),
+                Optional.ofNullable(uuid(rs, "payment_id")),
+                Optional.ofNullable(rs.getString("payment_status")),
+                amount == null ? BigDecimal.ZERO : amount,
+                currency == null ? "VND" : currency.trim(),
+                Optional.ofNullable(instant(rs, "paid_at")));
+    }
+
+    // ---------------------------------------------------------------- Worker: settle with the payOS result
 
     public Optional<PaymentRecord> findPaymentByTxnRef(String txnRef) {
         if (txnRef == null || txnRef.isBlank()) return Optional.empty();
-        try (Connection conn = worker.getConnection();
-                PreparedStatement ps =
-                        conn.prepareStatement(
-                                "SELECT payment_id, order_id, txn_ref, amount, payment_status FROM dbo.vw_PaymentRuntimeDetails WHERE txn_ref = ?")) {
-            ps.setString(1, txnRef.trim());
-            try (ResultSet rs = ps.executeQuery()) {
-                if (!rs.next()) return Optional.empty();
-                return Optional.of(
-                        new PaymentRecord(
-                                UUID.fromString(rs.getString("payment_id")),
-                                UUID.fromString(rs.getString("order_id")),
-                                rs.getString("txn_ref"),
-                                rs.getBigDecimal("amount"),
-                                rs.getString("payment_status")));
-            }
-        } catch (SQLException failure) {
-            throw toPaymentException(failure);
-        }
+        return SqlCall.onConnection(
+                worker,
+                conn ->
+                        SqlCall.queryOptional(
+                                conn,
+                                "SELECT payment_id, order_id, txn_ref, amount, payment_status FROM dbo.vw_PaymentRuntimeDetails WHERE txn_ref = ?",
+                                rs ->
+                                        new PaymentRecord(
+                                                UUID.fromString(rs.getString("payment_id")),
+                                                UUID.fromString(rs.getString("order_id")),
+                                                rs.getString("txn_ref"),
+                                                rs.getBigDecimal("amount"),
+                                                rs.getString("payment_status")),
+                                ERRORS,
+                                txnRef.trim()),
+                ERRORS);
     }
 
     /**
@@ -210,48 +223,45 @@ public class PaymentRepository {
     public Optional<PaymentRecord> findPaymentByTxnRefPrefix(String txnRefPrefix) {
         if (txnRefPrefix == null || !txnRefPrefix.matches("[A-Za-z0-9-]{1,90}"))
             return Optional.empty();
-        Optional<String> txnRef;
-        try (Connection conn = worker.getConnection();
-                PreparedStatement ps =
-                        conn.prepareStatement(
-                                "SELECT TOP 2 txn_ref FROM dbo.vw_PaymentRuntimeDetails WHERE txn_ref LIKE ?")) {
-            ps.setString(1, txnRefPrefix + "%");
-            ps.setQueryTimeout(15);
-            try (ResultSet rs = ps.executeQuery()) {
-                txnRef = rs.next() ? Optional.of(rs.getString("txn_ref")) : Optional.empty();
-                if (rs.next()) txnRef = Optional.empty();
-            }
-        } catch (SQLException failure) {
-            throw PaymentException.unavailable();
-        }
-        // The worker pool may hold a single connection: look the payment up only after closing the
-        // first one.
-        return txnRef.flatMap(this::findPaymentByTxnRef);
+        List<String> matches =
+                SqlCall.onConnection(
+                        worker,
+                        conn ->
+                                SqlCall.call(
+                                        conn,
+                                        "SELECT TOP 2 txn_ref FROM dbo.vw_PaymentRuntimeDetails WHERE txn_ref LIKE ?",
+                                        rows -> {
+                                            List<String> refs = new ArrayList<>();
+                                            do refs.add(rows.getString("txn_ref"));
+                                            while (rows.next());
+                                            return refs;
+                                        },
+                                        UNAVAILABLE,
+                                        txnRefPrefix + "%"),
+                        UNAVAILABLE);
+        // The worker pool may hold a single connection: look the payment up only after closing the first one.
+        return matches != null && matches.size() == 1
+                ? findPaymentByTxnRef(matches.getFirst())
+                : Optional.empty();
     }
 
     public List<ReconcileCandidate> findPaymentsToReconcile(int limit) {
-        try (Connection conn = worker.getConnection();
-                PreparedStatement ps =
-                        conn.prepareStatement(
-                                "SELECT TOP (?) id, order_id, txn_ref, amount, created_at FROM dbo.vw_PaymentsToReconcile ORDER BY created_at")) {
-            ps.setInt(1, limit);
-            ps.setQueryTimeout(20);
-            List<ReconcileCandidate> candidates = new ArrayList<>();
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    candidates.add(
-                            new ReconcileCandidate(
-                                    UUID.fromString(rs.getString("id")),
-                                    UUID.fromString(rs.getString("order_id")),
-                                    rs.getString("txn_ref"),
-                                    rs.getBigDecimal("amount"),
-                                    rs.getTimestamp("created_at", UTC).toInstant()));
-                }
-            }
-            return candidates;
-        } catch (SQLException failure) {
-            throw PaymentException.unavailable();
-        }
+        return SqlCall.onConnection(
+                worker,
+                conn ->
+                        SqlCall.queryList(
+                                conn,
+                                "SELECT TOP (?) id, order_id, txn_ref, amount, created_at FROM dbo.vw_PaymentsToReconcile ORDER BY created_at",
+                                rs ->
+                                        new ReconcileCandidate(
+                                                UUID.fromString(rs.getString("id")),
+                                                UUID.fromString(rs.getString("order_id")),
+                                                rs.getString("txn_ref"),
+                                                rs.getBigDecimal("amount"),
+                                                instant(rs, "created_at")),
+                                UNAVAILABLE,
+                                limit),
+                UNAVAILABLE);
     }
 
     /** @param status CAPTURED, FAILED or UNKNOWN; tickets are generated only for CAPTURED */
@@ -262,8 +272,7 @@ public class PaymentRepository {
         Objects.requireNonNull(status, "status is required");
 
         String tickets = "CAPTURED".equals(status) ? newTicketIdentities(orderId, worker) : "[]";
-        // "0" is a placeholder some gateways send for cancelled transactions, not a provider
-        // identity.
+        // "0" is a placeholder some gateways send for cancelled transactions, not a provider identity.
         boolean noReference =
                 providerReference == null
                         || providerReference.isBlank()
@@ -273,53 +282,48 @@ public class PaymentRepository {
                         .put("status", status)
                         .put("providerReference", noReference ? JSONObject.NULL : providerReference)
                         .toString();
-
-        try (Connection conn = worker.getConnection();
-                CallableStatement cs =
-                        conn.prepareCall("{call dbo.usp_ApplyPaymentResult(?, ?, ?, ?, ?)}")) {
-            cs.setObject(1, orderId);
-            cs.setNull(2, Types.OTHER);
-            cs.setObject(3, paymentId);
-            cs.setString(4, verifiedResult);
-            cs.setString(5, tickets);
-            cs.execute();
-        } catch (SQLException failure) {
-            throw toPaymentException(failure);
-        }
+        SqlCall.onConnection(
+                worker,
+                conn -> {
+                    SqlCall.execute(
+                            conn,
+                            "{call dbo.usp_ApplyPaymentResult(?, ?, ?, ?, ?)}",
+                            ERRORS,
+                            orderId,
+                            null,
+                            paymentId,
+                            verifiedResult,
+                            tickets);
+                    return null;
+                },
+                ERRORS);
     }
 
     // ---------------------------------------------------------------- Helpers
 
     /** One ticket code + SHA-256 of a random QR secret per ticket the order contains. */
     private static String newTicketIdentities(UUID orderId, DataSource source) {
-        int quantity = 0;
-        try (Connection conn = source.getConnection();
-                PreparedStatement ps =
-                        conn.prepareStatement(
-                                "SELECT quantity FROM dbo.vw_OrderTicketQuantity WHERE order_id = ?")) {
-            ps.setObject(1, orderId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) quantity = rs.getInt(1);
-            }
-        } catch (SQLException failure) {
-            throw PaymentException.unavailable();
-        }
-        if (quantity < 1) throw PaymentException.unavailable();
+        Integer quantity =
+                SqlCall.onConnection(
+                        source,
+                        conn ->
+                                SqlCall.call(
+                                        conn,
+                                        "SELECT quantity FROM dbo.vw_OrderTicketQuantity WHERE order_id = ?",
+                                        rows -> rows.getInt(1),
+                                        UNAVAILABLE,
+                                        orderId),
+                        UNAVAILABLE);
+        if (quantity == null || quantity < 1) throw PaymentException.unavailable();
 
         JSONArray tickets = new JSONArray();
         for (int i = 0; i < quantity; i++) {
             byte[] secret = new byte[32];
             RANDOM.nextBytes(secret);
+            String code = UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
             tickets.put(
                     new JSONObject()
-                            .put(
-                                    "ticketCode",
-                                    "TC-"
-                                            + UUID.randomUUID()
-                                                    .toString()
-                                                    .replace("-", "")
-                                                    .substring(0, 12)
-                                                    .toUpperCase())
+                            .put("ticketCode", "TC-" + code)
                             .put("qrSecretHashHex", HexFormat.of().formatHex(sha256(secret))));
         }
         return tickets.toString();
@@ -335,60 +339,6 @@ public class PaymentRepository {
 
     /** Throws forbidden / not found for an order the caller may not see. */
     private static void assertOrderAccess(Connection conn, UUID orderId) {
-        try (CallableStatement cs = conn.prepareCall("{call dbo.usp_AssertOrderAccess(?)}")) {
-            cs.setObject(1, orderId);
-            cs.execute();
-        } catch (SQLException failure) {
-            throw switch (failure.getErrorCode()) {
-                case 51403 -> PaymentException.forbidden();
-                case 51404 -> PaymentException.orderNotFound();
-                default -> PaymentException.unavailable();
-            };
-        }
-    }
-
-    @FunctionalInterface
-    private interface SqlCall<T> {
-        T run() throws SQLException;
-    }
-
-    /** Retries deadlocks, lock timeouts and dropped connections up to 3 times. */
-    private static <T> T withRetry(SqlCall<T> call) {
-        for (int attempt = 1; ; attempt++) {
-            try {
-                return call.run();
-            } catch (SQLException failure) {
-                PaymentException mapped = domainError(failure);
-                if (mapped != null) throw mapped;
-                if (attempt == 3 || !SqlErrors.isTransient(failure))
-                    throw PaymentException.unavailable();
-            }
-        }
-    }
-
-    private static PaymentException toPaymentException(SQLException failure) {
-        PaymentException mapped = domainError(failure);
-        return mapped != null ? mapped : PaymentException.unavailable();
-    }
-
-    /** THROW numbers of the payment procedures. */
-    private static PaymentException domainError(SQLException failure) {
-        for (SQLException error = failure; error != null; error = error.getNextException()) {
-            switch (error.getErrorCode()) {
-                case 51280, 51395:
-                    return PaymentException.orderNotPayable();
-                case 51281:
-                    return PaymentException.eventUnavailable();
-                case 51392:
-                    return PaymentException.orderNotFound();
-                case 51393:
-                    return PaymentException.forbidden();
-                case 51232, 51389:
-                    return PaymentException.paymentUnresolved();
-                default:
-                    break;
-            }
-        }
-        return null;
+        SqlCall.execute(conn, "{call dbo.usp_AssertOrderAccess(?)}", ACCESS_ERRORS, orderId);
     }
 }

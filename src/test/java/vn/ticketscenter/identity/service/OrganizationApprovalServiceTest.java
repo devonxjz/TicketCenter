@@ -48,7 +48,7 @@ public class OrganizationApprovalServiceTest {
         userRepository = new FakeUserRepository();
         organizationRepository = new FakeOrganizationRepository();
         decisions = new FakeDecisionRepository(organizationRepository, userRepository);
-        service = new OrganizationApprovalService(createFakeTransactionManager(new ArrayList<>()),
+        service = new OrganizationApprovalServiceImpl(createFakeTransactionManager(new ArrayList<>()),
                 organizationRepository, userRepository, decisions);
     }
 

@@ -15,7 +15,7 @@ const flush=()=>new Promise(resolve=>setImmediate(resolve));
 function dashboardHarness({gate,fail=false}={}) {
  const elements=new Map();
  const get=id=>{if(!elements.has(id))elements.set(id,new Element(id==='organization'?'select':'div'));return elements.get(id);};
- vm.runInNewContext(fs.readFileSync('src/main/webapp/assets/js/live-pages.js','utf8'),{
+ vm.runInNewContext(fs.readFileSync('src/main/webapp/assets/js/organizer/organizer-pages.js','utf8'),{
   document:{body:{dataset:{livePage:'organizer-dashboard',context:'/tickets'}},getElementById:get,createElement:tag=>new Element(tag)},
   Node:Element, URLSearchParams,location:{search:'',pathname:'/tickets/organizer/dashboard'},
   fetch:async url=>{

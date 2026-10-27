@@ -39,62 +39,43 @@ public final class ReportRepository {
 
     public Map<String, Object> page(Connection db, ReportFilter filter) throws SQLException {
         Query q = query(filter);
-        long total;
-        try (var count =
-                db.prepareStatement("SELECT COUNT_BIG(*) FROM (" + q.sql + ") report_rows")) {
-            ReadProjection.bind(count, q.parameters);
-            try (var row = count.executeQuery()) {
-                row.next();
-                total = row.getLong(1);
-            }
-        }
-        var rows = new ArrayList<Map<String, Object>>();
-        try (var statement =
-                db.prepareStatement(
-                        q.sql + " ORDER BY " + q.order + " OFFSET ? ROWS FETCH NEXT ? ROWS ONLY")) {
-            var params = new ArrayList<>(q.parameters);
-            params.add(filter.offset());
-            params.add(filter.pageSize());
-            ReadProjection.bind(statement, params);
-            try (var data = statement.executeQuery()) {
-                while (data.next()) rows.add(ReadProjection.row(data, q.columns));
-            }
-        }
+        long total =
+                ReadProjection.first(
+                        db,
+                        "SELECT COUNT_BIG(*) FROM (" + q.sql + ") report_rows",
+                        q.parameters,
+                        row -> row.getLong(1));
+        var params = new ArrayList<>(q.parameters);
+        params.add(filter.offset());
+        params.add(filter.pageSize());
+        var rows =
+                ReadProjection.list(
+                        db,
+                        q.sql + " ORDER BY " + q.order + " OFFSET ? ROWS FETCH NEXT ? ROWS ONLY",
+                        params,
+                        row -> ReadProjection.row(row, q.columns));
         var summary = new LinkedHashMap<String, Object>();
         summary.put("totalEvents", total);
         var totals =
                 q.columns.stream().filter(c -> c.endsWith("_count") || MONEY.contains(c)).toList();
-        if (!totals.isEmpty())
-            try (var statement =
-                    db.prepareStatement(
-                            "SELECT "
-                                    + String.join(
-                                            ",",
-                                            totals.stream()
-                                                    .map(c -> "COALESCE(SUM(" + c + "),0) " + c)
-                                                    .toList())
-                                    + " FROM ("
-                                    + q.sql
-                                    + ") report_rows")) {
-                ReadProjection.bind(statement, q.parameters);
-                try (var result = statement.executeQuery()) {
-                    result.next();
-                    summary.putAll(ReadProjection.row(result, totals));
-                }
-            }
-        var top = new ArrayList<Map<String, Object>>();
-        if (q.columns.contains("gross_revenue"))
-            try (var statement =
-                    db.prepareStatement(
-                            "SELECT TOP(5) * FROM ("
-                                    + q.sql
-                                    + ") report_rows ORDER BY gross_revenue DESC,"
-                                    + q.order)) {
-                ReadProjection.bind(statement, q.parameters);
-                try (var result = statement.executeQuery()) {
-                    while (result.next()) top.add(ReadProjection.row(result, q.columns));
-                }
-            }
+        if (!totals.isEmpty()) {
+            String sums =
+                    String.join(",", totals.stream().map(c -> "COALESCE(SUM(" + c + "),0) " + c).toList());
+            summary.putAll(
+                    ReadProjection.first(
+                            db,
+                            "SELECT " + sums + " FROM (" + q.sql + ") report_rows",
+                            q.parameters,
+                            row -> ReadProjection.row(row, totals)));
+        }
+        List<Map<String, Object>> top =
+                q.columns.contains("gross_revenue")
+                        ? ReadProjection.list(
+                                db,
+                                "SELECT TOP(5) * FROM (" + q.sql + ") report_rows ORDER BY gross_revenue DESC," + q.order,
+                                q.parameters,
+                                row -> ReadProjection.row(row, q.columns))
+                        : new ArrayList<>();
         var data = new LinkedHashMap<String, Object>();
         data.put("metric", filter.metric().name());
         data.put("timeBasis", timeBasis(filter));

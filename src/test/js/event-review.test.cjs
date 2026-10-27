@@ -14,7 +14,7 @@ async function harness(){
  const elements=new Map(),requests=[];
  const get=id=>{if(!elements.has(id))elements.set(id,new Element());return elements.get(id);};
  get('filter-status').value='PENDING_APPROVAL';
- vm.runInNewContext(fs.readFileSync('src/main/webapp/assets/js/dong-events.js','utf8'),{
+ vm.runInNewContext(fs.readFileSync('src/main/webapp/assets/js/event/event-management.js','utf8'),{
   document:{body:{dataset:{context:'/tickets',dongPage:'review'}},getElementById:get,createElement:()=>new Element()},URLSearchParams,URL,matchMedia:()=>({matches:false}),location:{search:'',origin:'http://localhost'},
   fetch:(url,options)=>{if(url.includes('?'))return Promise.resolve({ok:true,json:async()=>({data:['a','b'].map(eventId=>({eventId,title:eventId,organizationName:'Org',status:'PENDING_APPROVAL'})),total:2,pageSize:6})});return new Promise(resolve=>requests.push({url,options,resolve}));}
  });

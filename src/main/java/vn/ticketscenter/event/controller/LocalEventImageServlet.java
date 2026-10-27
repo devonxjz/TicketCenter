@@ -2,7 +2,7 @@ package vn.ticketscenter.event.controller;
 
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
-import vn.ticketscenter.storage.LocalImageStorage;
+import vn.ticketscenter.storage.StorageServiceImpl;
 import java.io.IOException;
 import java.nio.file.*;
 
@@ -24,7 +24,7 @@ public final class LocalEventImageServlet extends HttpServlet {
             throws IOException {
         String path = request.getPathInfo();
         var image =
-                LocalImageStorage.fromConfiguration().file(path == null ? null : path.substring(1));
+                StorageServiceImpl.fromConfiguration().file(path == null ? null : path.substring(1));
         if (image.isEmpty()) {
             response.sendError(404);
             return;

@@ -7,9 +7,10 @@ import vn.ticketscenter.config.AppConfig;
 import vn.ticketscenter.config.DatabaseConfig;
 import vn.ticketscenter.config.persistence.*;
 import vn.ticketscenter.fulfillment.checkin.CheckInException;
-import vn.ticketscenter.fulfillment.checkin.cache.RedisCheckInEventCache;
+import vn.ticketscenter.fulfillment.checkin.cache.CheckInEventCacheImpl;
 import vn.ticketscenter.fulfillment.checkin.dao.CheckInEventRepository;
 import vn.ticketscenter.fulfillment.checkin.service.CheckInEventService;
+import vn.ticketscenter.fulfillment.checkin.service.CheckInEventServiceImpl;
 import java.sql.*;
 import java.time.*;
 import java.util.*;
@@ -20,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class CheckInEventAcceptanceIT {
     EntityManagerFactory factory;
     CheckInEventRepository repository;
-    final RedisCheckInEventCache cache=new RedisCheckInEventCache(CheckInEventAcceptanceIT::redis);
+    final CheckInEventCacheImpl cache=new CheckInEventCacheImpl(CheckInEventAcceptanceIT::redis);
     UUID actor,manager,outsider,org,event,cancelled,foreign;
     @BeforeAll void connect() {
         assertEquals("TicketCenter_Khanh01_Test",DatabaseConfig.getDatabaseName(),"Mutating acceptance requires dedicated local fixture");
@@ -89,16 +90,16 @@ class CheckInEventAcceptanceIT {
         var info=repository.withTicketCounts(repository.accessibleEvent(actor,event));
         cache.putEvents(actor,org,List.of(info));cache.putEvents(manager,org,List.of(info));cache.putWindow(info);
         try(var redis=redis()) {
-            var listKey=RedisCheckInEventCache.eventsKey(actor,org);var windowKey=RedisCheckInEventCache.windowKey(event);
+            var listKey=CheckInEventCacheImpl.eventsKey(actor,org);var windowKey=CheckInEventCacheImpl.windowKey(event);
             assertTrue(redis.ttl(listKey)>0&&redis.ttl(listKey)<=60);
             assertTrue(redis.ttl(windowKey)>0&&redis.ttl(windowKey)<=30);
             String json=redis.get(listKey);assertFalse(json.contains("price"));assertFalse(json.contains("paid_amount"));assertFalse(json.contains("revenue"));
             redis.pexpire(listKey,1);Thread.sleep(15);assertTrue(cache.events(actor,org).isEmpty());
-            cache.invalidate(event,org);assertFalse(redis.exists(windowKey));assertFalse(redis.exists(RedisCheckInEventCache.eventsKey(manager,org)));
+            cache.invalidate(event,org);assertFalse(redis.exists(windowKey));assertFalse(redis.exists(CheckInEventCacheImpl.eventsKey(manager,org)));
         }
     }
     @Test void corruptRedisDataFallsBackToRealSql() {
-        try(var redis=redis()){redis.setex(RedisCheckInEventCache.eventsKey(actor,org),60,"invalid-json");}
+        try(var redis=redis()){redis.setex(CheckInEventCacheImpl.eventsKey(actor,org),60,"invalid-json");}
         assertFalse(service(Instant.now()).events(actor,org).isEmpty());
     }
     @Test void checkInPrincipalCannotReadMoneyOrWriteEvents() throws Exception {
@@ -109,7 +110,7 @@ class CheckInEventAcceptanceIT {
         }
     }
     static Jedis redis(){return new Jedis(AppConfig.get("redis.host"),AppConfig.getInt("redis.port",16379),1000);}
-    CheckInEventService service(Instant now){return new CheckInEventService(repository,cache,Clock.fixed(now,ZoneOffset.UTC));}
+    CheckInEventService service(Instant now){return new CheckInEventServiceImpl(repository,cache,Clock.fixed(now,ZoneOffset.UTC));}
     static UUID id(String kind){return UUID.fromString(Objects.requireNonNull(AppConfig.get("TC_CHECKIN_TEST_"+kind+"_ID")));}
     static void assertError(int status,Runnable action){assertEquals(status,assertThrows(CheckInException.class,action::run).status());}
     static void change(String sql,UUID... ids)throws Exception {

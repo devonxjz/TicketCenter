@@ -2,6 +2,7 @@ package vn.ticketscenter.report.dao;
 
 import java.sql.*;
 import java.util.*;
+import vn.ticketscenter.config.persistence.SqlCall;
 
 /** Explicit scalar columns only; never serializes a JDBC/persistence object graph. */
 public final class ReadProjection {
@@ -63,6 +64,30 @@ public final class ReadProjection {
                         "pending_amount",
                         "available_to_pay")
                 .contains(c);
+    }
+
+    /** Maps the first row of a query that always answers (COUNT, SUM, a table function total). */
+    public static <T> T first(Connection db, String sql, List<Object> parameters, SqlCall.RowMapper<T> mapper)
+            throws SQLException {
+        try (var statement = db.prepareStatement(sql)) {
+            bind(statement, parameters);
+            try (var row = statement.executeQuery()) {
+                row.next();
+                return mapper.map(row);
+            }
+        }
+    }
+
+    public static <T> List<T> list(Connection db, String sql, List<Object> parameters, SqlCall.RowMapper<T> mapper)
+            throws SQLException {
+        try (var statement = db.prepareStatement(sql)) {
+            bind(statement, parameters);
+            var rows = new ArrayList<T>();
+            try (var row = statement.executeQuery()) {
+                while (row.next()) rows.add(mapper.map(row));
+            }
+            return rows;
+        }
     }
 
     public static void bind(PreparedStatement statement, List<Object> parameters)

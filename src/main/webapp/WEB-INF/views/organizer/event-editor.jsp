@@ -179,7 +179,7 @@
         </main>
     </div>
     <jsp:include page="/WEB-INF/views/layout/footer.jsp" />
-    <script defer src="${pageContext.request.contextPath}/assets/js/dong-events.js"></script>
+    <script defer src="${pageContext.request.contextPath}/assets/js/event/event-management.js"></script>
 </body>
 
 </html>

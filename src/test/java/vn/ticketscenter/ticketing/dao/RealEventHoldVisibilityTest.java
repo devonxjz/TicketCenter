@@ -28,7 +28,13 @@ class RealEventHoldVisibilityTest {
                     String sql = (String) values[0]; statements.add(sql);
                     boolean[] consumed = {false};
                     return proxy(PreparedStatement.class, (operation, parameters) -> {
-                        if (!operation.equals("executeQuery")) return null;
+                        switch (operation) {
+                            case "execute": return true;
+                            case "getMoreResults": return false;
+                            case "getUpdateCount": return -1;
+                            case "executeQuery", "getResultSet": break;
+                            default: return null;
+                        }
                         return proxy(ResultSet.class, (read, columns) -> switch (read) {
                             case "next" -> { boolean result = !consumed[0] && (visible || sql.startsWith("EXEC")); consumed[0] = true; yield result; }
                             case "getString" -> sql.contains("usp_ReadActiveHold")

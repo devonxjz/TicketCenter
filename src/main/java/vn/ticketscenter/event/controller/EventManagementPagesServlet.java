@@ -3,6 +3,7 @@ package vn.ticketscenter.event.controller;
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
+import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.identity.security.SecurityContext;
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -29,7 +30,7 @@ public class EventManagementPagesServlet extends HttpServlet {
                             + URLEncoder.encode(path, StandardCharsets.UTF_8));
             return;
         }
-        String path = request.getRequestURI().substring(request.getContextPath().length());
+        String path = ApiRequest.path(request);
         response.setHeader("Cache-Control", "no-store");
         if (path.equals("/events/review") && !user.get().isAdmin()) {
             vn.ticketscenter.config.web.HttpResponses.error(

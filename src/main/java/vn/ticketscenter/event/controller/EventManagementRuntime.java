@@ -7,6 +7,7 @@ import vn.ticketscenter.event.dao.*;
 import vn.ticketscenter.event.service.*;
 import vn.ticketscenter.storage.*;
 import java.io.*;
+import java.util.Optional;
 
 public final class EventManagementRuntime {
     public record Services(EventManagementService management, EventCoverService cover) {}
@@ -16,51 +17,48 @@ public final class EventManagementRuntime {
     private EventManagementRuntime() {}
 
     public static Services resolve(ServletContext context) {
-        synchronized (context) {
-            Object existing = context.getAttribute(ATTRIBUTE);
-            if (existing instanceof Services services) return services;
-            Object value = context.getAttribute(PersistenceListener.REGISTRY_ATTRIBUTE);
-            if (!(value instanceof PersistenceRegistry registry)) throw EventProblem.unavailable();
-            var repository =
-                    new EventManagementRepository(
-                            new EventTransactions(registry.transactionManager()));
-            EventIdempotencyStore idempotency = EventRuntime.idempotencyStore();
-            var orphans = new EventCoverOrphanJournal();
-            var management =
-                    new EventManagementService(
-                            repository, idempotency, EventCatalogRuntime.cache(context), orphans);
-            // Missing provider credentials must not disable draft/inventory/review endpoints.
-            StorageService storage =
-                    new StorageService() {
-                        public StoredAsset upload(InputStream content, String folder)
-                                throws IOException {
-                            return LocalImageStorage.configured().upload(content, folder);
-                        }
+        return FeatureContext.cached(context, ATTRIBUTE, () -> create(context));
+    }
 
-                        public StoredAsset ensure(InputStream content, String id)
-                                throws IOException {
-                            return LocalImageStorage.configured().ensure(content, id);
-                        }
+    private static Services create(ServletContext context) {
+        var registry = FeatureContext.registry(context, null, EventProblem::unavailable);
+        var repository =
+                new EventManagementRepository(new EventTransactions(registry.transactionManager()));
+        var idempotency = EventIdempotencyStore.configured();
+        var orphans = new EventCoverOrphanJournal();
+        var management =
+                new EventManagementServiceImpl(
+                        repository, idempotency, EventCatalogRuntime.cache(context), orphans);
+        // Missing provider credentials must not disable draft/inventory/review endpoints.
+        StorageService storage =
+                new StorageService() {
+                    public StoredAsset upload(InputStream content, String folder)
+                            throws IOException {
+                        return resolveStorage().upload(content, folder);
+                    }
 
-                        public java.util.Optional<StoredAsset> find(String id) throws IOException {
-                            return LocalImageStorage.configured().find(id);
-                        }
+                    public StoredAsset ensure(InputStream content, String id)
+                            throws IOException {
+                        return resolveStorage().ensure(content, id);
+                    }
 
-                        public void delete(String publicId) throws IOException {
-                            LocalImageStorage.configured().delete(publicId);
-                        }
+                    public Optional<StoredAsset> find(String id) throws IOException {
+                        return resolveStorage().find(id);
+                    }
 
-                        public String getUrl(String publicId) {
-                            return LocalImageStorage.configured().getUrl(publicId);
-                        }
-                    };
-            var services =
-                    new Services(
-                            management,
-                            new EventCoverService(
-                                    repository, idempotency, management, storage, orphans));
-            context.setAttribute(ATTRIBUTE, services);
-            return services;
-        }
+                    public void delete(String publicId) throws IOException {
+                        resolveStorage().delete(publicId);
+                    }
+
+                    public String getUrl(String publicId) {
+                        return resolveStorage().getUrl(publicId);
+                    }
+                };
+        return new Services(
+                management, new EventCoverServiceImpl(repository, idempotency, management, storage, orphans));
+    }
+
+    private static StorageService resolveStorage() {
+        return StorageServiceImpl.configured();
     }
 }

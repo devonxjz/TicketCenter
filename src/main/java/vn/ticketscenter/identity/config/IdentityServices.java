@@ -1,12 +1,12 @@
 package vn.ticketscenter.identity.config;
 
 import jakarta.servlet.ServletContext;
-import vn.ticketscenter.config.persistence.PersistenceListener;
+import vn.ticketscenter.config.persistence.FeatureContext;
 import vn.ticketscenter.config.persistence.PersistenceRegistry;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.identity.integration.mail.EmailSender;
-import vn.ticketscenter.identity.integration.mail.SmtpEmailSender;
+import vn.ticketscenter.identity.integration.mail.EmailSenderImpl;
 import vn.ticketscenter.identity.dao.OrganizationDecisionRepository;
 import vn.ticketscenter.identity.dao.OrganizationMembershipRepository;
 import vn.ticketscenter.identity.dao.OrganizationRepository;
@@ -14,16 +14,24 @@ import vn.ticketscenter.identity.dao.OtpRepository;
 import vn.ticketscenter.identity.dao.UserRepository;
 import vn.ticketscenter.identity.service.DemoInitialEventFactory;
 import vn.ticketscenter.identity.service.LoginService;
+import vn.ticketscenter.identity.service.LoginServiceImpl;
 import vn.ticketscenter.identity.service.OrganizationApprovalService;
+import vn.ticketscenter.identity.service.OrganizationApprovalServiceImpl;
 import vn.ticketscenter.identity.service.OrganizationMembershipService;
+import vn.ticketscenter.identity.service.OrganizationMembershipServiceImpl;
 import vn.ticketscenter.identity.service.OrganizationRequestIdempotency;
 import vn.ticketscenter.identity.service.OrganizationRequestService;
+import vn.ticketscenter.identity.service.OrganizationRequestServiceImpl;
 import vn.ticketscenter.identity.service.OtpHasher;
 import vn.ticketscenter.identity.service.OtpService;
+import vn.ticketscenter.identity.service.OtpServiceImpl;
 import vn.ticketscenter.identity.service.PasswordHasher;
 import vn.ticketscenter.identity.service.PasswordResetService;
+import vn.ticketscenter.identity.service.PasswordResetServiceImpl;
 import vn.ticketscenter.identity.service.ProfileService;
+import vn.ticketscenter.identity.service.ProfileServiceImpl;
 import vn.ticketscenter.identity.service.RegistrationService;
+import vn.ticketscenter.identity.service.RegistrationServiceImpl;
 import vn.ticketscenter.identity.service.ResetTokenCodec;
 import vn.ticketscenter.identity.service.SessionValidator;
 import vn.ticketscenter.identity.service.UserSessionCache;
@@ -35,7 +43,16 @@ import java.util.Objects;
  * {@link ServletContext}. Servlets and filters look services up with {@link #from(ServletContext)} instead
  * of building their own.
  */
-public final class IdentityServices {
+public record IdentityServices(
+        RegistrationService registrationService,
+        LoginService loginService,
+        SessionValidator sessionValidator,
+        ProfileService profileService,
+        OtpService otpService,
+        PasswordResetService passwordResetService,
+        OrganizationRequestService organizationRequestService,
+        OrganizationApprovalService organizationApprovalService,
+        OrganizationMembershipService organizationMembershipService) {
 
     public static final String ATTRIBUTE = "vn.ticketscenter.identity.SERVICES";
 
@@ -43,60 +60,35 @@ public final class IdentityServices {
     public static final String SESSION_VALIDATOR_ATTRIBUTE =
             "vn.ticketscenter.identity.SESSION_VALIDATOR";
 
-    private final RegistrationService registrationService;
-    private final LoginService loginService;
-    private final SessionValidator sessionValidator;
-    private final ProfileService profileService;
-    private final OtpService otpService;
-    private final PasswordResetService passwordResetService;
-    private final OrganizationRequestService organizationRequestService;
-    private final OrganizationApprovalService organizationApprovalService;
-    private final OrganizationMembershipService organizationMembershipService;
-
-    public IdentityServices(
+    public static IdentityServices create(
             TransactionManager transactions, RedisClientProvider redis, EmailSender emailSender) {
         Objects.requireNonNull(transactions, "transactions must not be null");
-        UserRepository users = new UserRepository();
-        PasswordHasher hasher = new PasswordHasher();
-        OtpHasher otpHasher = new OtpHasher();
-        ResetTokenCodec resetTokens = new ResetTokenCodec();
-
-        UserSessionCache sessionCache = new UserSessionCache(redis);
-        OrganizationMembershipRepository memberships = new OrganizationMembershipRepository();
-
-        this.registrationService = new RegistrationService(transactions, users, hasher);
-        this.loginService = new LoginService(transactions, users, memberships, hasher);
-        this.sessionValidator = new SessionValidator(transactions, users, sessionCache);
-        this.profileService = new ProfileService(transactions, users);
-        this.otpService =
-                new OtpService(
-                        transactions,
-                        new OtpRepository(),
-                        users,
-                        otpHasher,
-                        resetTokens,
-                        emailSender);
-        this.passwordResetService =
-                new PasswordResetService(
-                        transactions, users, otpService, resetTokens, hasher, sessionCache);
-        OrganizationRepository organizations = new OrganizationRepository();
-        OrganizationDecisionRepository decisions = new OrganizationDecisionRepository();
-        this.organizationRequestService =
-                new OrganizationRequestService(
+        var users = new UserRepository();
+        var hasher = new PasswordHasher();
+        var resetTokens = new ResetTokenCodec();
+        var sessionCache = new UserSessionCache(redis);
+        var memberships = new OrganizationMembershipRepository();
+        var organizations = new OrganizationRepository();
+        var decisions = new OrganizationDecisionRepository();
+        var otpService =
+                new OtpServiceImpl(
+                        transactions, new OtpRepository(), users, new OtpHasher(), resetTokens, emailSender);
+        return new IdentityServices(
+                new RegistrationServiceImpl(transactions, users, hasher),
+                new LoginServiceImpl(transactions, users, memberships, hasher),
+                new SessionValidator(transactions, users, sessionCache),
+                new ProfileServiceImpl(transactions, users),
+                otpService,
+                new PasswordResetServiceImpl(transactions, users, otpService, resetTokens, hasher, sessionCache),
+                new OrganizationRequestServiceImpl(
                         transactions,
                         organizations,
                         users,
                         decisions,
-                        OrganizationRequestIdempotency.redis(redis));
-        this.organizationApprovalService =
-                new OrganizationApprovalService(
-                        transactions,
-                        organizations,
-                        users,
-                        decisions,
-                        new DemoInitialEventFactory());
-        this.organizationMembershipService =
-                new OrganizationMembershipService(transactions, memberships, users);
+                        OrganizationRequestIdempotency.redis(redis)),
+                new OrganizationApprovalServiceImpl(
+                        transactions, organizations, users, decisions, new DemoInitialEventFactory()),
+                new OrganizationMembershipServiceImpl(transactions, memberships, users));
     }
 
     /**
@@ -105,30 +97,17 @@ public final class IdentityServices {
      * @return the services, or {@code null} while the database is not available
      */
     public static IdentityServices from(ServletContext context) {
-        if (context == null) {
-            return null;
-        }
-        Object existing = context.getAttribute(ATTRIBUTE);
-        if (existing instanceof IdentityServices services) {
+        if (context == null) return null;
+        if (context.getAttribute(ATTRIBUTE) instanceof IdentityServices services) return services;
+        synchronized (context) {
+            if (context.getAttribute(ATTRIBUTE) instanceof IdentityServices services) return services;
+            var registry = FeatureContext.registry(context).filter(PersistenceRegistry::isReady);
+            if (registry.isEmpty()) return null;
+            var transactions = registry.get().transactionManager();
+            var services = create(transactions, RedisClientProvider.getInstance(), new EmailSenderImpl());
+            context.setAttribute(ATTRIBUTE, services);
             return services;
         }
-        synchronized (context) {
-            existing = context.getAttribute(ATTRIBUTE);
-            if (existing instanceof IdentityServices services) {
-                return services;
-            }
-            Object registry = context.getAttribute(PersistenceListener.REGISTRY_ATTRIBUTE);
-            if (registry instanceof PersistenceRegistry ready && ready.isReady()) {
-                IdentityServices services =
-                        new IdentityServices(
-                                ready.transactionManager(),
-                                RedisClientProvider.getInstance(),
-                                new SmtpEmailSender());
-                context.setAttribute(ATTRIBUTE, services);
-                return services;
-            }
-        }
-        return null;
     }
 
     /**
@@ -136,46 +115,10 @@ public final class IdentityServices {
      * takes precedence, which lets a test replace the real one.
      */
     public static SessionValidator sessionValidator(ServletContext context) {
-        if (context == null) {
-            return null;
-        }
-        if (context.getAttribute(SESSION_VALIDATOR_ATTRIBUTE)
-                instanceof SessionValidator override) {
+        if (context == null) return null;
+        if (context.getAttribute(SESSION_VALIDATOR_ATTRIBUTE) instanceof SessionValidator override)
             return override;
-        }
         IdentityServices services = from(context);
-        return services == null ? null : services.sessionValidator;
-    }
-
-    public RegistrationService registrationService() {
-        return registrationService;
-    }
-
-    public LoginService loginService() {
-        return loginService;
-    }
-
-    public ProfileService profileService() {
-        return profileService;
-    }
-
-    public OtpService otpService() {
-        return otpService;
-    }
-
-    public PasswordResetService passwordResetService() {
-        return passwordResetService;
-    }
-
-    public OrganizationRequestService organizationRequestService() {
-        return organizationRequestService;
-    }
-
-    public OrganizationApprovalService organizationApprovalService() {
-        return organizationApprovalService;
-    }
-
-    public OrganizationMembershipService organizationMembershipService() {
-        return organizationMembershipService;
+        return services == null ? null : services.sessionValidator();
     }
 }

@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
+import vn.ticketscenter.config.web.ApiRequest;
 
 @WebServlet(
         name = "AdminServlet",
@@ -29,7 +30,7 @@ public class AdminServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        String path = req.getRequestURI().substring(req.getContextPath().length());
+        String path = ApiRequest.path(req);
 
         // Exact routing: pages that moved to another module redirect there instead of rendering a
         // local view.

@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
+import vn.ticketscenter.config.web.ApiRequest;
 
 @WebServlet(
         name = "OrganizerServlet",
@@ -30,7 +31,7 @@ public class OrganizerServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        String path = req.getRequestURI().substring(req.getContextPath().length());
+        String path = ApiRequest.path(req);
 
         // Check-in and reports are served by their own modules; every view here loads its data from
         // the API.

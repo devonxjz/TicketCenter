@@ -112,7 +112,7 @@
             <noscript>Vui lòng bật JavaScript để quản lý mã giảm giá.</noscript>
         </main>
     </div>
-    <script defer src="${pageContext.request.contextPath}/assets/js/live-pages.js"></script>
+    <script defer src="${pageContext.request.contextPath}/assets/js/organizer/organizer-pages.js"></script>
 
 </body>
 

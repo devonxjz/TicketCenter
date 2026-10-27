@@ -16,6 +16,7 @@ import vn.ticketscenter.event.dto.EventDto;
 import vn.ticketscenter.event.model.Event;
 import vn.ticketscenter.event.dao.EventRepository;
 import vn.ticketscenter.event.service.EventService;
+import vn.ticketscenter.event.service.EventServiceImpl;
 import vn.ticketscenter.identity.dto.LoginRequestDto;
 import vn.ticketscenter.identity.model.Organization;
 import vn.ticketscenter.identity.model.OrganizationMembership;
@@ -29,9 +30,12 @@ import vn.ticketscenter.identity.security.CsrfFilter;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.identity.service.LoginService;
+import vn.ticketscenter.identity.service.LoginServiceImpl;
 import vn.ticketscenter.identity.dao.OrganizationDecisionRepository;
 import vn.ticketscenter.identity.service.OrganizationApprovalService;
+import vn.ticketscenter.identity.service.OrganizationApprovalServiceImpl;
 import vn.ticketscenter.identity.service.OrganizationRequestService;
+import vn.ticketscenter.identity.service.OrganizationRequestServiceImpl;
 import vn.ticketscenter.identity.service.PasswordHasher;
 import vn.ticketscenter.persistence.model.BaseEntity;
 
@@ -183,14 +187,14 @@ public class AdminOrganizationApprovalAndScheduleE2ETest {
         };
 
         transactionManager = createTransactionManager();
-        organizationRequestService = new OrganizationRequestService(transactionManager, organizationRepository, userRepository,
+        organizationRequestService = new OrganizationRequestServiceImpl(transactionManager, organizationRepository, userRepository,
                 inMemoryDecisions());
-        organizationApprovalService = new OrganizationApprovalService(transactionManager, organizationRepository,
+        organizationApprovalService = new OrganizationApprovalServiceImpl(transactionManager, organizationRepository,
                 userRepository, inMemoryDecisions());
         servlet = new OrganizationRequestServlet(organizationRequestService);
         adminServlet = new AdminOrganizationApprovalServlet(organizationApprovalService);
         csrfFilter = new CsrfFilter();
-        loginService = new LoginService(transactionManager, userRepository, passwordHasher);
+        loginService = new LoginServiceImpl(transactionManager, userRepository, passwordHasher);
 
         EventRepository eventRepository = new EventRepository((DataSource) Proxy.newProxyInstance(
                 getClass().getClassLoader(),
@@ -229,7 +233,7 @@ public class AdminOrganizationApprovalAndScheduleE2ETest {
                 new Class<?>[]{vn.ticketscenter.storage.StorageService.class},
                 (proxy, method, args) -> null
         );
-        eventService = new EventService(eventRepository, storageService);
+        eventService = new EventServiceImpl(eventRepository, storageService);
     }
 
     @Test

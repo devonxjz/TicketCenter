@@ -7,7 +7,7 @@ import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.PersistenceRegistry;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.identity.dto.OtpSendRequestDto;
-import vn.ticketscenter.identity.integration.mail.SmtpEmailSender;
+import vn.ticketscenter.identity.integration.mail.EmailSenderImpl;
 import vn.ticketscenter.identity.model.Otp;
 import vn.ticketscenter.identity.model.OtpPurpose;
 import vn.ticketscenter.identity.model.User;
@@ -15,6 +15,7 @@ import vn.ticketscenter.identity.dao.OtpRepository;
 import vn.ticketscenter.identity.dao.UserRepository;
 import vn.ticketscenter.identity.service.OtpHasher;
 import vn.ticketscenter.identity.service.OtpService;
+import vn.ticketscenter.identity.service.OtpServiceImpl;
 import vn.ticketscenter.identity.service.PasswordHasher;
 import vn.ticketscenter.identity.service.ResetTokenCodec;
 
@@ -38,9 +39,9 @@ public class PasswordResetIT {
             OtpRepository otpRepository = new OtpRepository();
             OtpHasher otpHasher = new OtpHasher();
             ResetTokenCodec resetTokens = new ResetTokenCodec();
-            SmtpEmailSender smtpEmailSender = new SmtpEmailSender();
+            EmailSenderImpl smtpEmailSender = new EmailSenderImpl();
 
-            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpHasher, resetTokens, smtpEmailSender);
+            OtpService otpService = new OtpServiceImpl(tm, otpRepository, userRepository, otpHasher, resetTokens, smtpEmailSender);
 
             String targetEmail = "recipient@fixture.invalid";
 

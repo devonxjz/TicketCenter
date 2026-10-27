@@ -74,7 +74,7 @@
         <noscript>Vui lòng bật JavaScript để tải dữ liệu sự kiện và đặt vé.</noscript>
     </main>
     <jsp:include page="/WEB-INF/views/layout/footer.jsp" />
-    <script defer src="${pageContext.request.contextPath}/assets/js/public-events.js"></script>
+    <script defer src="${pageContext.request.contextPath}/assets/js/event/event-catalog.js"></script>
 </body>
 
 </html>

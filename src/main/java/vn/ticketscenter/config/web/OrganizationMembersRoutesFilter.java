@@ -21,7 +21,7 @@ public final class OrganizationMembersRoutesFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
         HttpServletRequest http = (HttpServletRequest) request;
-        String path = http.getRequestURI().substring(http.getContextPath().length());
+        String path = ApiRequest.path(http);
 
         if (path.matches("^/api/organizations/[^/]+/members(?:/.*)?$")) {
             var dispatcher =

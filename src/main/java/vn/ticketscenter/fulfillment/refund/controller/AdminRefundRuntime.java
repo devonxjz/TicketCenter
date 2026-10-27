@@ -1,9 +1,14 @@
 package vn.ticketscenter.fulfillment.refund.controller;
 
 import jakarta.servlet.ServletContext;
-import vn.ticketscenter.config.persistence.*;
+import vn.ticketscenter.config.persistence.FeatureContext;
 import vn.ticketscenter.fulfillment.refund.dao.AdminRefundRepository;
-import vn.ticketscenter.fulfillment.refund.service.*;
+import vn.ticketscenter.fulfillment.refund.service.AdminRefundDecisionService;
+import vn.ticketscenter.fulfillment.refund.service.AdminRefundDecisionServiceImpl;
+import vn.ticketscenter.fulfillment.refund.service.AdminRefundCacheImpl;
+import vn.ticketscenter.fulfillment.refund.service.RefundException;
+
+import static vn.ticketscenter.config.persistence.DatabasePrincipal.ADMIN;
 
 public final class AdminRefundRuntime {
     public static final String SERVICE_ATTRIBUTE = AdminRefundDecisionService.class.getName();
@@ -11,20 +16,20 @@ public final class AdminRefundRuntime {
     private AdminRefundRuntime() {}
 
     public static AdminRefundDecisionService resolve(ServletContext context) {
-        synchronized (context) {
-            var value = context.getAttribute(SERVICE_ATTRIBUTE);
-            if (value instanceof AdminRefundDecisionService service) return service;
-            var configured = context.getAttribute(PersistenceListener.REGISTRY_ATTRIBUTE);
-            if (!(configured instanceof PersistenceRegistry registry)
-                    || !registry.hasPrincipal(DatabasePrincipal.ADMIN))
-                throw new RefundException(
-                        503, "DATABASE_UNAVAILABLE", "Hệ thống quản trị hoàn tiền chưa sẵn sàng.");
-            var service =
-                    new AdminRefundDecisionService(
-                            new AdminRefundRepository(registry.transactionManager()),
-                            new RedisAdminRefundCache());
-            context.setAttribute(SERVICE_ATTRIBUTE, service);
-            return service;
-        }
+        return FeatureContext.cached(context, SERVICE_ATTRIBUTE, () -> create(context));
+    }
+
+    private static AdminRefundDecisionService create(ServletContext context) {
+        var registry =
+                FeatureContext.registry(
+                        context,
+                        ADMIN,
+                        () ->
+                                new RefundException(
+                                        503,
+                                        "DATABASE_UNAVAILABLE",
+                                        "Hệ thống quản trị hoàn tiền chưa sẵn sàng."));
+        return new AdminRefundDecisionServiceImpl(
+                new AdminRefundRepository(registry.transactionManager()), new AdminRefundCacheImpl());
     }
 }

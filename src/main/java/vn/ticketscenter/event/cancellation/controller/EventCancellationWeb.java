@@ -5,14 +5,16 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.UUID;
+import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.PersistenceListener;
 import vn.ticketscenter.config.persistence.PersistenceRegistry;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.config.web.JsonObjectParser;
 import vn.ticketscenter.event.cancellation.dto.EventCancelRequestDto;
-import vn.ticketscenter.event.cancellation.service.CancellationProgressCacheHelper;
+import vn.ticketscenter.event.cancellation.service.CancellationProgressCache;
 import vn.ticketscenter.event.cancellation.service.EventCancellationService;
+import vn.ticketscenter.event.cancellation.service.EventCancellationServiceImpl;
 import vn.ticketscenter.event.dao.EventCancellationRepository;
 import vn.ticketscenter.fulfillment.refund.service.RefundException;
 import vn.ticketscenter.identity.security.SecurityContext;
@@ -24,12 +26,7 @@ final class EventCancellationWeb {
     private EventCancellationWeb() {}
 
     static UUID id(String value) {
-        if (value == null
-                || !value.matches(
-                        "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")) {
-            throw invalid();
-        }
-        return UUID.fromString(value);
+        return ApiRequest.uuid(value).orElseThrow(EventCancellationWeb::invalid);
     }
 
     static RefundException invalid() {
@@ -38,7 +35,7 @@ final class EventCancellationWeb {
     }
 
     static UUID target(HttpServletRequest request, String action) {
-        String path = request.getRequestURI().substring(request.getContextPath().length());
+        String path = ApiRequest.path(request);
         String[] pieces = path.split("/", -1);
         if (pieces.length != 6
                 || !pieces[1].equals("api")
@@ -66,9 +63,7 @@ final class EventCancellationWeb {
         if (!SecurityContext.validateCsrfToken(request)) {
             throw new RefundException(403, "CSRF_INVALID", "Mã bảo vệ phiên không hợp lệ.");
         }
-        String contentType = request.getContentType();
-        if (contentType == null
-                || !contentType.split(";", 2)[0].strip().equalsIgnoreCase("application/json")) {
+        if (!ApiRequest.isJson(request)) {
             throw new RefundException(415, "JSON_REQUIRED", "Yêu cầu phải sử dụng JSON.");
         }
         return id(request.getHeader("Idempotency-Key"));
@@ -119,9 +114,9 @@ final class EventCancellationWeb {
                         503, "DATABASE_UNAVAILABLE", "Hệ thống hủy sự kiện chưa sẵn sàng.");
             }
             var service =
-                    new EventCancellationService(
+                    new EventCancellationServiceImpl(
                             new EventCancellationRepository(registry.transactionManager()),
-                            new CancellationProgressCacheHelper());
+                            new CancellationProgressCache());
             context.setAttribute(EventCancellationService.class.getName(), service);
             return service;
         }

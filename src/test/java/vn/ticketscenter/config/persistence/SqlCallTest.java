@@ -245,6 +245,49 @@ class SqlCallTest {
     }
 
     @Test
+    void failureKeepsARaisedAppExceptionThenMapsTheFirstKnownSqlErrorThenFallsBack() {
+        var errors = SqlCall.ErrorTable.of().on(53004, 404, "ORDER_NOT_FOUND", "missing");
+        var raised = new AppException(409, "CONFLICT", "raised");
+        var unavailable = new AppException(503, "DATABASE_UNAVAILABLE", "down");
+
+        assertSame(raised, SqlCall.failure(new IllegalStateException(raised), errors, () -> unavailable));
+
+        var mapped = SqlCall.failure(
+                new IllegalStateException(new SQLException("order gone", "S0001", 53004)), errors, () -> unavailable);
+        assertEquals(404, mapped.status());
+        assertEquals("order gone", mapped.getMessage());
+
+        var unknown = new IllegalStateException(new SQLException("deadlock", "40001", 1205));
+        assertSame(unavailable, SqlCall.failure(unknown, errors, () -> unavailable));
+    }
+
+    @Test
+    void typedNullsKeepTheirSqlTypeWhileBareNullsStayUntyped() {
+        Map<Integer, Integer> nullTypes = new HashMap<>();
+        PreparedStatement statement = (PreparedStatement) Proxy.newProxyInstance(
+                getClass().getClassLoader(),
+                new Class<?>[]{PreparedStatement.class},
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "setNull" -> nullTypes.put((Integer) args[0], (Integer) args[1]);
+                    case "execute", "getMoreResults" -> false;
+                    case "getUpdateCount" -> -1;
+                    default -> null;
+                });
+        Connection connection = (Connection) Proxy.newProxyInstance(
+                getClass().getClassLoader(),
+                new Class<?>[]{Connection.class},
+                (proxy, method, args) -> "prepareStatement".equals(method.getName()) ? statement : null);
+
+        SqlCall.execute(connection, "EXEC dbo.usp_Example ?,?,?,?", null,
+                null,
+                SqlCall.orNull(null, Types.TIMESTAMP),
+                SqlCall.orNull(null, Types.INTEGER),
+                SqlCall.orNull(7, Types.INTEGER));
+
+        assertEquals(Map.of(1, Types.NULL, 2, Types.TIMESTAMP, 3, Types.INTEGER), nullTypes);
+    }
+
+    @Test
     void fromCauseFindsTheFirstDomainErrorInTheChain() {
         var errors = SqlCall.ErrorTable.of()
                 .on(53005, 400, "REFUND_NOT_ELIGIBLE", "Vé không đủ điều kiện hoàn trả.")

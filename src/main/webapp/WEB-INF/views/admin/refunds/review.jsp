@@ -9,7 +9,7 @@
     <title>Xử lý hoàn tiền · TicketCenter</title>
     <jsp:include page="/WEB-INF/views/layout/meta-head.jsp" />
     <link rel="stylesheet" href="<c:url value='/assets/css/admin-ui.css'/>">
-    <script defer src="<c:url value='/assets/refund/admin-refunds.js'/>"></script>
+    <script defer src="<c:url value='/assets/js/refund/admin-refunds.js'/>"></script>
 </head>
 <body class="admin-workspace refund-portal" data-page="review"
     data-context="<c:out value='${pageContext.request.contextPath}'/>" data-refund="<c:out value='${refundId}'/>">
@@ -78,6 +78,6 @@
             </dialog>
         </main>
     </div>
-    <script defer src="<c:url value='/assets/js/admin-notifications.js'/>"></script>
+    <script defer src="<c:url value='/assets/js/admin/notification-bell.js'/>"></script>
 </body>
 </html>

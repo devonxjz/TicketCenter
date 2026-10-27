@@ -4,6 +4,7 @@ import java.io.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.*;
+import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.config.web.JsonObjectParser;
 import vn.ticketscenter.settlement.commission.dto.CommissionRuleCreateDto;
 import vn.ticketscenter.settlement.infrastructure.FinanceException;
@@ -13,11 +14,7 @@ public final class FinanceRequest {
     private FinanceRequest() {}
 
     public static UUID id(String value) {
-        if (value == null
-                || !value.matches(
-                        "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"))
-            throw invalid();
-        return UUID.fromString(value);
+        return ApiRequest.uuid(value).orElseThrow(FinanceRequest::invalid);
     }
 
     public static Instant instant(String value) {

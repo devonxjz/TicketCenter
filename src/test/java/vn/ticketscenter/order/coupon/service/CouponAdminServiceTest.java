@@ -7,7 +7,7 @@ import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.order.coupon.dto.CouponAdminDto;
 import vn.ticketscenter.order.coupon.dto.CreateCouponRequest;
 import vn.ticketscenter.order.coupon.dto.UpdateCouponRequest;
-import vn.ticketscenter.order.coupon.repository.CouponAdminRepository;
+import vn.ticketscenter.order.coupon.dao.CouponAdminRepository;
 import vn.ticketscenter.order.service.OrderException;
 
 import java.math.BigDecimal;
@@ -39,7 +39,7 @@ class CouponAdminServiceTest {
         customerPrincipal = new UserPrincipal(CUSTOMER_ID, PlatformRole.CUSTOMER, 1);
 
         fakeRepo = new FakeCouponAdminRepository();
-        service = new CouponAdminService(fakeRepo, null);
+        service = new CouponAdminServiceImpl(fakeRepo, null);
     }
 
     @Test

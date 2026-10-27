@@ -8,7 +8,7 @@ import java.io.IOException;
 import vn.ticketscenter.config.persistence.PersistenceListener;
 import vn.ticketscenter.config.persistence.PersistenceRegistry;
 import vn.ticketscenter.config.web.HttpResponses;
-import vn.ticketscenter.event.cancellation.service.CancellationReviewRepository;
+import vn.ticketscenter.event.cancellation.dao.CancellationReviewRepository;
 import vn.ticketscenter.fulfillment.refund.service.RefundException;
 
 @WebServlet(name = "CancellationQueueServlet", urlPatterns = "/api/admin/event-cancellations")

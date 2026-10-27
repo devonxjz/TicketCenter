@@ -19,6 +19,7 @@ import vn.ticketscenter.identity.security.CsrfFilter;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.identity.service.OrganizationRequestService;
+import vn.ticketscenter.identity.service.OrganizationRequestServiceImpl;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -137,7 +138,7 @@ public class OrganizationRequestWebFlowTest {
                 actorId, Instant.now(), null
         );
 
-        OrganizationRequestService mockService = new OrganizationRequestService(
+        OrganizationRequestService mockService = new OrganizationRequestServiceImpl(
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
             @Override
             public OrganizationRequestDetailDto submitRequest(UUID id, OrganizationRequestCreateDto dto, String key) {
@@ -181,7 +182,7 @@ public class OrganizationRequestWebFlowTest {
         sessionAttributes.put(SecurityContext.CSRF_TOKEN_ATTRIBUTE, csrfToken);
         requestHeaders.put("X-CSRF-Token", csrfToken);
 
-        OrganizationRequestService mockService = new OrganizationRequestService(
+        OrganizationRequestService mockService = new OrganizationRequestServiceImpl(
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
             @Override
             public OrganizationRequestDetailDto submitRequest(UUID id, OrganizationRequestCreateDto dto, String key) {
@@ -222,7 +223,7 @@ public class OrganizationRequestWebFlowTest {
         sessionAttributes.put(SecurityContext.CSRF_TOKEN_ATTRIBUTE, csrfToken);
         requestHeaders.put("X-CSRF-Token", csrfToken);
 
-        OrganizationRequestService mockService = new OrganizationRequestService(
+        OrganizationRequestService mockService = new OrganizationRequestServiceImpl(
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
             @Override
             public OrganizationRequestDetailDto submitRequest(UUID id, OrganizationRequestCreateDto dto, String key) {
@@ -261,7 +262,7 @@ public class OrganizationRequestWebFlowTest {
         // Session has a token, but request header does NOT provide it
         sessionAttributes.put(SecurityContext.CSRF_TOKEN_ATTRIBUTE, UUID.randomUUID().toString());
 
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(new OrganizationRequestService(
+        OrganizationRequestServlet servlet = new OrganizationRequestServlet(new OrganizationRequestServiceImpl(
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()));
         CsrfFilter csrfFilter = new CsrfFilter();
 
@@ -298,7 +299,7 @@ public class OrganizationRequestWebFlowTest {
                 OrganizationStatus.PENDING_APPROVAL, userB, Instant.now(), null
         );
 
-        OrganizationRequestService mockService = new OrganizationRequestService(
+        OrganizationRequestService mockService = new OrganizationRequestServiceImpl(
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
             @Override
             public OrganizationRequestDetailDto getRequestDetail(UUID actorId, boolean isAdmin, UUID targetId) {

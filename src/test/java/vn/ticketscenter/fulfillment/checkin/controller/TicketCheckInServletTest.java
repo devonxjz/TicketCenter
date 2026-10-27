@@ -13,6 +13,7 @@ import vn.ticketscenter.fulfillment.checkin.cache.CheckInScanCache;
 import vn.ticketscenter.fulfillment.checkin.security.SignedQrDecoder;
 import vn.ticketscenter.fulfillment.checkin.dao.TicketCheckInRepository;
 import vn.ticketscenter.fulfillment.checkin.service.TicketCheckInService;
+import vn.ticketscenter.fulfillment.checkin.service.TicketCheckInServiceImpl;
 import java.lang.reflect.*;
 import java.io.*;
 import java.time.Instant;
@@ -24,7 +25,7 @@ class TicketCheckInServletTest {
     private final StringWriter output=new StringWriter();
     private final ServletContext context=proxy(ServletContext.class,(m,a)->switch(m){case "getAttribute"->contextAttrs.get(a[0]);case "getNamedDispatcher"->dispatcher((String)a[0]);default->null;});
     private final HttpSession session=proxy(HttpSession.class,(m,a)->m.equals("getAttribute")?sessionAttrs.get(a[0]):null);
-    private final TicketCheckInService service=new TicketCheckInService(new TicketCheckInRepository(null),new SignedQrDecoder(new byte[32]),new CheckInScanCache(){public Lease lock(UUID id){return ()->{};}public void completed(UUID a,UUID k,CheckInScanResponseDto r){}}){
+    private final TicketCheckInService service=new TicketCheckInServiceImpl(new TicketCheckInRepository(null),new SignedQrDecoder(new byte[32]),new CheckInScanCache(){public Lease lock(UUID id){return ()->{};}public void completed(UUID a,UUID k,CheckInScanResponseDto r){}}){
         @Override public CheckInScanResponseDto scan(UUID a,UUID k,CheckInScanRequestDto r){calls++;assertEquals(actor,a);return new CheckInScanResponseDto("CHECKED_IN_SUCCESS",UUID.randomUUID(),"CODE","<script>Khách</script>","Khu A",null,Instant.EPOCH,Instant.EPOCH,event);}
         @Override public List<RecentCheckInLogDto> recent(UUID a,UUID e,int limit){calls++;return List.of();}
     };

@@ -26,7 +26,7 @@ class RefundRequestServiceTest {
         public Lease lock(List<UUID> ids){calls.add("lock");return ()->calls.add("release");}
         public void committed(UUID a,UUID k,List<UUID> ids,RefundSummaryDto r){assertEquals(result,r);calls.add("invalidate");}
     };
-    RefundRequestService service(RefundRequestCache c){return new RefundRequestService(store,c);}
+    RefundRequestService service(RefundRequestCache c){return new RefundRequestServiceImpl(store,c);}
     CreateRefundRequestDto request(){return new CreateRefundRequestDto(order,List.of(ticket),"Không thể tham dự sự kiện.");}
     @Test void invalidationIsStrictlyAfterStoreCommit(){assertEquals(result,service(cache).create(actor,request(),UUID.randomUUID()));assertEquals(List.of("auth","lock","commit","invalidate","release"),calls);}
     @Test void failedMutationDoesNotInvalidateOrCache(){failure=new RefundException(400,"REFUND_NOT_ELIGIBLE","Vé đã được sử dụng.");assertEquals(400,assertThrows(RefundException.class,()->service(cache).create(actor,request(),UUID.randomUUID())).status());assertEquals(List.of("auth","lock","commit","release"),calls);}

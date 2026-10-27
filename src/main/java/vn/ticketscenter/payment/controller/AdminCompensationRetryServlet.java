@@ -1,5 +1,6 @@
 package vn.ticketscenter.payment.controller;
 
+import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.config.error.AppException;
 
 import jakarta.servlet.annotation.WebServlet;
@@ -44,7 +45,7 @@ public class AdminCompensationRetryServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         Matcher route =
-                ROUTE.matcher(request.getRequestURI().substring(request.getContextPath().length()));
+                ROUTE.matcher(ApiRequest.path(request));
         if (!route.matches()) {
             HttpResponses.error(response, 404, "ROUTE_NOT_FOUND", "Đường dẫn không hợp lệ.");
             return;

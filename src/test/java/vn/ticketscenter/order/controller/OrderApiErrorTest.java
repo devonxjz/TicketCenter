@@ -9,6 +9,7 @@ import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.order.cache.RedisOrderCache;
 import vn.ticketscenter.order.dao.OrderRepository;
 import vn.ticketscenter.order.service.OrderService;
+import vn.ticketscenter.order.service.OrderServiceImpl;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -28,7 +29,7 @@ class OrderApiErrorTest {
                 throw new IllegalStateException(privateDetail);
             }
         };
-        var servlet = new OrderApiServlet(new OrderService(repository, new RedisOrderCache(() -> null, Clock.systemUTC())));
+        var servlet = new OrderApiServlet(new OrderServiceImpl(repository, new RedisOrderCache(() -> null, Clock.systemUTC())));
         var actor = new UserPrincipal(UUID.randomUUID(), PlatformRole.CUSTOMER, 1);
         var request = (HttpServletRequest) Proxy.newProxyInstance(getClass().getClassLoader(),
                 new Class<?>[]{HttpServletRequest.class}, (proxy, method, args) -> switch (method.getName()) {

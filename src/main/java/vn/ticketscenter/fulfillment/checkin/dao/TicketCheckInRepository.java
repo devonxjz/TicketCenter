@@ -1,14 +1,13 @@
 package vn.ticketscenter.fulfillment.checkin.dao;
 
-import org.hibernate.Session;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
+import vn.ticketscenter.config.persistence.SqlCall;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.fulfillment.checkin.CheckInException;
 import vn.ticketscenter.fulfillment.checkin.dto.CheckInScanResponseDto;
 import vn.ticketscenter.fulfillment.checkin.dto.RecentCheckInLogDto;
 
 import java.sql.CallableStatement;
-import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
@@ -19,7 +18,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import static vn.ticketscenter.config.persistence.SqlCall.uuid;
+
 public class TicketCheckInRepository {
+    /** THROW numbers of sp_ticket_check_in and sp_checkin_recent_logs. */
+    private static final SqlCall.ErrorTable ERRORS =
+            SqlCall.ErrorTable.of()
+                    .on(53201, m -> new CheckInException(403, "CHECK_IN_FORBIDDEN", "Bạn không có quyền soát vé tại sự kiện này."))
+                    .on(53202, m -> new CheckInException(404, "EVENT_NOT_FOUND", "Sự kiện không tồn tại."))
+                    .on(53203, m -> new CheckInException(409, "IDEMPOTENCY_CONFLICT", "Mã yêu cầu đã dùng cho một thao tác khác."));
+
     private final TransactionManager transactions;
 
     public TicketCheckInRepository(TransactionManager transactions) {
@@ -53,14 +61,14 @@ public class TicketCheckInRepository {
                             if (!rows.next()) throw new SQLException("Check-in result missing");
                             return new CheckInScanResponseDto(
                                     rows.getString("result"),
-                                    id(rows, "ticket_id"),
+                                    uuid(rows, "ticket_id"),
                                     rows.getString("ticket_code"),
                                     rows.getString("customer_name"),
                                     rows.getString("zone_name"),
                                     rows.getString("seat_label"),
                                     instant(rows, "checked_in_at"),
                                     instant(rows, "scanned_at"),
-                                    id(rows, "organization_id"));
+                                    uuid(rows, "organization_id"));
                         }
                     }
                 });
@@ -80,8 +88,8 @@ public class TicketCheckInRepository {
                             while (rows.next()) {
                                 logs.add(
                                         new RecentCheckInLogDto(
-                                                id(rows, "id"),
-                                                id(rows, "ticket_id"),
+                                                uuid(rows, "id"),
+                                                uuid(rows, "ticket_id"),
                                                 rows.getString("result"),
                                                 instant(rows, "scanned_at"),
                                                 rows.getString("staff_name"),
@@ -94,46 +102,19 @@ public class TicketCheckInRepository {
                 });
     }
 
-    private <T> T work(SqlWork<T> work) {
+    private <T> T work(SqlCall.SqlWork<T> work) {
         try {
-            return transactions.execute(
-                    DatabasePrincipal.CHECK_IN,
-                    entityManager ->
-                            entityManager.unwrap(Session.class).doReturningWork(work::run));
-        } catch (RuntimeException exception) {
-            for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
-                if (!(cause instanceof SQLException sql)) continue;
-                switch (sql.getErrorCode()) {
-                    case 53201 ->
-                            throw new CheckInException(
-                                    403,
-                                    "CHECK_IN_FORBIDDEN",
-                                    "Bạn không có quyền soát vé tại sự kiện này.");
-                    case 53202 ->
-                            throw new CheckInException(
-                                    404, "EVENT_NOT_FOUND", "Sự kiện không tồn tại.");
-                    case 53203 ->
-                            throw new CheckInException(
-                                    409,
-                                    "IDEMPOTENCY_CONFLICT",
-                                    "Mã yêu cầu đã dùng cho một thao tác khác.");
-                }
-            }
-            throw new CheckInException(
-                    503,
-                    "CHECK_IN_UNAVAILABLE",
-                    "Hệ thống soát vé tạm thời không khả dụng. Hãy thử lại cùng mã yêu cầu.");
+            return SqlCall.inSession(transactions, DatabasePrincipal.CHECK_IN, work);
+        } catch (RuntimeException failure) {
+            throw SqlCall.failure(failure, ERRORS, TicketCheckInRepository::unavailable);
         }
     }
 
-    @FunctionalInterface
-    private interface SqlWork<T> {
-        T run(Connection connection) throws SQLException;
-    }
-
-    private static UUID id(ResultSet rows, String column) throws SQLException {
-        String value = rows.getString(column);
-        return value == null ? null : UUID.fromString(value);
+    private static CheckInException unavailable() {
+        return new CheckInException(
+                503,
+                "CHECK_IN_UNAVAILABLE",
+                "Hệ thống soát vé tạm thời không khả dụng. Hãy thử lại cùng mã yêu cầu.");
     }
 
     private static Instant instant(ResultSet rows, String column) throws SQLException {

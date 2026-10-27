@@ -1,8 +1,7 @@
 package vn.ticketscenter.identity.dao;
 
-import org.hibernate.Session;
-import org.hibernate.jdbc.ReturningWork;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
+import vn.ticketscenter.config.persistence.SqlCall;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.identity.error.IdentityError;
 import vn.ticketscenter.identity.error.IdentityException;
@@ -39,7 +38,7 @@ public class OrganizationDecisionRepository {
             String contactEmail,
             String contactPhone,
             String description) {
-        return inSession(
+        return SqlCall.inSession(
                 transactions,
                 DatabasePrincipal.BUYER,
                 connection -> {
@@ -69,7 +68,7 @@ public class OrganizationDecisionRepository {
             UUID adminId,
             CommissionPolicy policy,
             InitialEvent event) {
-        return inSession(
+        return SqlCall.inSession(
                 transactions,
                 DatabasePrincipal.ADMIN,
                 connection -> {
@@ -121,7 +120,7 @@ public class OrganizationDecisionRepository {
 
     public void reject(
             TransactionManager transactions, UUID organizationId, UUID adminId, String reason) {
-        inSession(
+        SqlCall.inSession(
                 transactions,
                 DatabasePrincipal.ADMIN,
                 connection -> {
@@ -138,11 +137,6 @@ public class OrganizationDecisionRepository {
                 });
     }
 
-    private static <T> T inSession(
-            TransactionManager transactions, DatabasePrincipal principal, ReturningWork<T> work) {
-        return transactions.execute(
-                principal, em -> em.unwrap(Session.class).doReturningWork(work));
-    }
 
     /** Maps the procedures' THROW numbers onto the exceptions the service has always raised. */
     static RuntimeException translate(SQLException failure) {

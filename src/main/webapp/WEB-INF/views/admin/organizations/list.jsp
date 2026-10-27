@@ -52,7 +52,7 @@
     </style>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/production-ui.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/admin-ui.css">
-    <script defer src="${pageContext.request.contextPath}/assets/js/ui-components.js"></script>
+    <script defer src="${pageContext.request.contextPath}/assets/js/core/pagination-chart.js"></script>
 </head>
 <body class="bg-light min-h-screen admin-workspace">
 
@@ -299,8 +299,8 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="${pageContext.request.contextPath}/assets/js/admin-notifications.js"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/admin/notification-bell.js"></script>
 
-    <script src="${pageContext.request.contextPath}/assets/js/admin-organizations.js"></script>
+    <script src="${pageContext.request.contextPath}/assets/js/admin/organization-review.js"></script>
 </body>
 </html>

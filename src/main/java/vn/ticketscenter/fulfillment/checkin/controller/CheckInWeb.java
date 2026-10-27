@@ -2,6 +2,7 @@ package vn.ticketscenter.fulfillment.checkin.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.fulfillment.checkin.CheckInException;
 import vn.ticketscenter.identity.config.IdentityServices;
@@ -35,12 +36,8 @@ final class CheckInWeb {
     }
 
     static UUID id(String value) {
-        if (value == null
-                || !value.matches(
-                        "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")) {
-            throw new CheckInException(400, "INVALID_ID", "Mã định danh không hợp lệ.");
-        }
-        return UUID.fromString(value);
+        return ApiRequest.uuid(value)
+                .orElseThrow(() -> new CheckInException(400, "INVALID_ID", "Mã định danh không hợp lệ."));
     }
 
     static void error(HttpServletResponse response, RuntimeException exception) throws IOException {

@@ -1,6 +1,5 @@
 package vn.ticketscenter.identity.integration.mail;
 
-import vn.ticketscenter.config.error.AppException;
 
 import vn.ticketscenter.config.error.UpstreamException;
 

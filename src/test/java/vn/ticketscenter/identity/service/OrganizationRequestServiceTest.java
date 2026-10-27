@@ -48,7 +48,7 @@ public class OrganizationRequestServiceTest {
         persistedEntities = new ArrayList<>();
         transactionManager = createFakeTransactionManager(persistedEntities);
         decisions = new FakeDecisionRepository(organizationRepository, userRepository);
-        service = new OrganizationRequestService(transactionManager, organizationRepository, userRepository, decisions,
+        service = new OrganizationRequestServiceImpl(transactionManager, organizationRepository, userRepository, decisions,
                 OrganizationRequestIdempotency.withStore(redisStore));
     }
 
@@ -317,18 +317,18 @@ public class OrganizationRequestServiceTest {
     @DisplayName("Constructors initialize service dependencies properly")
     void testConstructorOverloads() {
         assertThrows(NullPointerException.class, () ->
-                new OrganizationRequestService(null, organizationRepository, userRepository));
+                new OrganizationRequestServiceImpl(null, organizationRepository, userRepository));
         assertThrows(NullPointerException.class, () ->
-                new OrganizationRequestService(transactionManager, null, userRepository));
+                new OrganizationRequestServiceImpl(transactionManager, null, userRepository));
         assertThrows(NullPointerException.class, () ->
-                new OrganizationRequestService(transactionManager, organizationRepository, null));
+                new OrganizationRequestServiceImpl(transactionManager, organizationRepository, null));
 
-        OrganizationRequestService directService = new OrganizationRequestService(
+        OrganizationRequestService directService = new OrganizationRequestServiceImpl(
                 transactionManager, organizationRepository, userRepository
         );
         assertNotNull(directService);
 
-        OrganizationRequestService noCacheService = new OrganizationRequestService(
+        OrganizationRequestService noCacheService = new OrganizationRequestServiceImpl(
                 transactionManager, organizationRepository, userRepository, decisions,
                 OrganizationRequestIdempotency.redis(null)
         );

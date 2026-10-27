@@ -19,8 +19,11 @@ import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.SessionValidationFilter;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.identity.service.LoginService;
+import vn.ticketscenter.identity.service.LoginServiceImpl;
 import vn.ticketscenter.identity.service.ProfileService;
+import vn.ticketscenter.identity.service.ProfileServiceImpl;
 import vn.ticketscenter.identity.service.RegistrationService;
+import vn.ticketscenter.identity.service.RegistrationServiceImpl;
 import vn.ticketscenter.identity.service.SessionValidator;
 import vn.ticketscenter.identity.service.PasswordHasher;
 
@@ -302,7 +305,7 @@ public class IdentityWebFlowTest {
         UserPrincipal principal = new UserPrincipal(actorId, PlatformRole.CUSTOMER, 1);
         sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, principal);
 
-        ProfileService mockService = new ProfileService(
+        ProfileService mockService = new ProfileServiceImpl(
                 new TransactionManager(Map.of()), new UserRepository()) {
             @Override
             public CurrentUserDto getCurrentUser(UUID id) {
@@ -384,7 +387,7 @@ public class IdentityWebFlowTest {
         UUID actorId = UUID.randomUUID();
         UserPrincipal principal = new UserPrincipal(actorId, PlatformRole.CUSTOMER, 0);
 
-        LoginService mockService = new LoginService(
+        LoginService mockService = new LoginServiceImpl(
                 new TransactionManager(Map.of()), new UserRepository(), new PasswordHasher()) {
             @Override
             public UserPrincipal login(LoginRequestDto request) {
@@ -415,7 +418,7 @@ public class IdentityWebFlowTest {
         UUID actorId = UUID.randomUUID();
         UserPrincipal admin = new UserPrincipal(actorId, PlatformRole.ADMIN, 0);
 
-        LoginService mockService = new LoginService(
+        LoginService mockService = new LoginServiceImpl(
                 new TransactionManager(Map.of()), new UserRepository(), new PasswordHasher()) {
             @Override
             public UserPrincipal login(LoginRequestDto request) {
@@ -443,7 +446,7 @@ public class IdentityWebFlowTest {
         UUID actorId = UUID.randomUUID();
         UserPrincipal staff = new UserPrincipal(actorId, PlatformRole.CUSTOMER, 0, vn.ticketscenter.identity.model.OrganizationRole.CHECK_IN_STAFF);
 
-        LoginService mockService = new LoginService(
+        LoginService mockService = new LoginServiceImpl(
                 new TransactionManager(Map.of()), new UserRepository(), new PasswordHasher()) {
             @Override
             public UserPrincipal login(LoginRequestDto request) {
@@ -471,7 +474,7 @@ public class IdentityWebFlowTest {
         UUID actorId = UUID.randomUUID();
         UserPrincipal manager = new UserPrincipal(actorId, PlatformRole.CUSTOMER, 0, vn.ticketscenter.identity.model.OrganizationRole.MANAGER);
 
-        LoginService mockService = new LoginService(
+        LoginService mockService = new LoginServiceImpl(
                 new TransactionManager(Map.of()), new UserRepository(), new PasswordHasher()) {
             @Override
             public UserPrincipal login(LoginRequestDto request) {
@@ -496,7 +499,7 @@ public class IdentityWebFlowTest {
     @Test
     @DisplayName("LoginServlet trả về 401 ACCOUNT_DISABLED khi tài khoản bị khóa")
     void testLoginServletAccountDisabled() throws Exception {
-        LoginService mockService = new LoginService(
+        LoginService mockService = new LoginServiceImpl(
                 new TransactionManager(Map.of()), new UserRepository(), new PasswordHasher()) {
             @Override
             public UserPrincipal login(LoginRequestDto request) {
@@ -520,7 +523,7 @@ public class IdentityWebFlowTest {
     @Test
     @DisplayName("RegisterServlet trả về 200 registered: true khi thông tin hợp lệ")
     void testRegisterServletSuccess() throws Exception {
-        RegistrationService mockService = new RegistrationService(
+        RegistrationService mockService = new RegistrationServiceImpl(
                 new TransactionManager(Map.of()), new UserRepository(), new PasswordHasher()) {
             @Override
             public boolean register(vn.ticketscenter.identity.dto.RegisterRequestDto request) {
@@ -546,7 +549,7 @@ public class IdentityWebFlowTest {
     @Test
     @DisplayName("RegisterServlet trả về 400 VALIDATION_FAILED khi dữ liệu không hợp lệ")
     void testRegisterServletValidationFailed() throws Exception {
-        RegistrationService mockService = new RegistrationService(
+        RegistrationService mockService = new RegistrationServiceImpl(
                 new TransactionManager(Map.of()), new UserRepository(), new PasswordHasher()) {
             @Override
             public boolean register(vn.ticketscenter.identity.dto.RegisterRequestDto request) {

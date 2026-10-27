@@ -4,6 +4,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.*;
 import jakarta.servlet.http.*;
 
+import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.event.EventException;
 import vn.ticketscenter.event.dto.*;
@@ -155,7 +156,7 @@ public class EventApiServlet extends HttpServlet {
     }
 
     private static String path(HttpServletRequest request) {
-        return request.getRequestURI().substring(request.getContextPath().length());
+        return ApiRequest.path(request);
     }
 
     private static String last(String path) {

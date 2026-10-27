@@ -1,6 +1,7 @@
 package vn.ticketscenter.event.dao;
 
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
+import vn.ticketscenter.config.persistence.SqlCall;
 import vn.ticketscenter.event.dto.EventCommand;
 
 import java.sql.*;
@@ -44,80 +45,74 @@ public class EventManagementRepository {
         return transactions.run(
                 principal(admin),
                 actor.id(),
-                c -> {
-                    try (var q = c.prepareCall("{call dbo.usp_EventRead(?,?,?,?,?,?,?,?,?,?)}")) {
-                        q.setQueryTimeout(10);
-                        q.setString(1, actor.id().toString());
-                        q.setInt(2, actor.authVersion());
-                        q.setBoolean(3, admin);
-                        q.setString(4, kind);
-                        id(q, 5, org);
-                        id(q, 6, event);
-                        id(q, 7, zone);
-                        q.setString(8, status);
-                        q.setInt(9, page);
-                        q.setInt(10, size);
-                        try (var rows = q.executeQuery()) {
-                            if (!rows.next()) throw new SQLException("Missing Event projection");
-                            return rows.getString(1);
-                        }
-                    }
-                });
+                c ->
+                        eventRead(
+                                c, actor, admin, kind, org, event, zone, status, page, size,
+                                "Missing Event projection", rows -> rows.getString(1)));
     }
 
     public Context authorize(Actor actor, EventCommand command) {
+        boolean review = command.scope().equals("EVENT_REVIEW");
         return transactions.run(
-                principal(command.scope().equals("EVENT_REVIEW")),
+                principal(review),
                 actor.id(),
-                c -> {
-                    try (var q = c.prepareCall("{call dbo.usp_EventRead(?,?,?,?,?,?,?,?,?,?)}")) {
-                        q.setQueryTimeout(10);
-                        q.setString(1, actor.id().toString());
-                        q.setInt(2, actor.authVersion());
-                        q.setBoolean(3, command.scope().equals("EVENT_REVIEW"));
-                        q.setString(4, "AUTHORIZE");
-                        id(q, 5, command.organizationId());
-                        id(q, 6, command.eventId());
-                        id(q, 7, command.zoneId());
-                        q.setString(8, null);
-                        q.setInt(9, 1);
-                        q.setInt(10, 20);
-                        try (var rows = q.executeQuery()) {
-                            if (!rows.next()) throw new SQLException("Missing Event authorization");
-                            return new Context(uuid(rows.getString(1)), uuid(rows.getString(2)));
-                        }
-                    }
-                });
+                c ->
+                        eventRead(
+                                c, actor, review, "AUTHORIZE",
+                                command.organizationId(), command.eventId(), command.zoneId(), null, 1, 20,
+                                "Missing Event authorization",
+                                rows -> new Context(uuid(rows.getString(1)), uuid(rows.getString(2)))));
     }
 
     public CoverContext coverContext(Actor actor, UUID event) {
         return transactions.run(
                 DatabasePrincipal.MANAGER,
                 actor.id(),
-                c -> {
-                    try (var q = c.prepareCall("{call dbo.usp_EventRead(?,?,?,?,?,?,?,?,?,?)}")) {
-                        q.setQueryTimeout(10);
-                        q.setString(1, actor.id().toString());
-                        q.setInt(2, actor.authVersion());
-                        q.setBoolean(3, false);
-                        q.setString(4, "COVER_CONTEXT");
-                        id(q, 5, null);
-                        id(q, 6, event);
-                        id(q, 7, null);
-                        q.setString(8, null);
-                        q.setInt(9, 1);
-                        q.setInt(10, 20);
-                        try (var rows = q.executeQuery()) {
-                            if (!rows.next()) throw new SQLException("Missing Event cover context");
-                            return new CoverContext(
-                                    uuid(rows.getString(1)),
-                                    rows.getString(2),
-                                    rows.getLong(3),
-                                    rows.getString(4),
-                                    rows.getString(5));
-                        }
-                    }
-                });
+                c ->
+                        eventRead(
+                                c, actor, false, "COVER_CONTEXT", null, event, null, null, 1, 20,
+                                "Missing Event cover context",
+                                rows ->
+                                        new CoverContext(
+                                                uuid(rows.getString(1)),
+                                                rows.getString(2),
+                                                rows.getLong(3),
+                                                rows.getString(4),
+                                                rows.getString(5))));
+    }
+
+    /** usp_EventRead answers every read kind with one row; a missing row is a database failure. */
+    private static <T> T eventRead(
+            Connection c,
+            Actor actor,
+            boolean admin,
+            String kind,
+            UUID org,
+            UUID event,
+            UUID zone,
+            String status,
+            int page,
+            int size,
+            String missing,
+            SqlCall.RowMapper<T> mapper)
+            throws SQLException {
+        try (var q = c.prepareCall("{call dbo.usp_EventRead(?,?,?,?,?,?,?,?,?,?)}")) {
+            q.setQueryTimeout(10);
+            q.setString(1, actor.id().toString());
+            q.setInt(2, actor.authVersion());
+            q.setBoolean(3, admin);
+            q.setString(4, kind);
+            id(q, 5, org);
+            id(q, 6, event);
+            id(q, 7, zone);
+            q.setString(8, status);
+            q.setInt(9, page);
+            q.setInt(10, size);
+            try (var rows = q.executeQuery()) {
+                if (!rows.next()) throw new SQLException(missing);
+                return mapper.map(rows);
+            }
+        }
     }
 
     public Optional<Result> receipt(Actor actor, String scope, String key, String hash) {

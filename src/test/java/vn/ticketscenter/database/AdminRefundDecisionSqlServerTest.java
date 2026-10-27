@@ -19,7 +19,7 @@ public class AdminRefundDecisionSqlServerTest {
     public record Case(UUID admin,UUID buyer,UUID event,UUID order,UUID ticket,UUID refund,UUID zone) {
         public UserPrincipal actor(){return new UserPrincipal(admin,PlatformRole.ADMIN,0);}
         public AdminRefundRepository repository(){return new AdminRefundRepository(source("admin",admin));}
-        public AdminRefundDecisionService service(){return new AdminRefundDecisionService(repository(),(a,k,r)->{});}
+        public AdminRefundDecisionService service(){return new AdminRefundDecisionServiceImpl(repository(),(a,k,r)->{});}
     }
     public static Case fixture(boolean free)throws Exception {
         var f=SqlReportSafetyIT.fixture();

@@ -156,7 +156,7 @@ def main():
             assert 'Yêu cầu hoàn tiền' in call(admin, 'list JSP compiled', '/admin/refund-requests')
             assert 'Xử lý yêu cầu hoàn tiền' in call(admin, 'review JSP compiled', '/admin/refund-requests/' + fixture['approve'])
             assert 'Yêu cầu hoàn tiền' in call(admin, 'existing admin navigation', '/admin/refunds/approval')
-            assert 'crypto.randomUUID' in call(admin, 'production JS asset', '/assets/refund/admin-refunds.js')
+            assert 'crypto.randomUUID' in call(admin, 'production JS asset', '/assets/js/refund/admin-refunds.js')
             path = '/api/admin/refund-requests/' + fixture['approve'] + '/decision'
             key = str(uuid.uuid4())
             headers = {'Content-Type': 'application/json', 'X-CSRF-Token': token, 'Idempotency-Key': key}

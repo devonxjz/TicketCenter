@@ -6,8 +6,8 @@ const vm = require('node:vm');
 const {test} = require('node:test');
 
 const root = path.resolve(__dirname, '../../..');
-const source = name => fs.readFileSync(path.join(root, 'src/main/webapp/assets/refund', name), 'utf8');
-const core = fs.readFileSync(path.join(root, 'src/main/webapp/assets/js/tc-core.js'), 'utf8');
+const source = name => fs.readFileSync(path.join(root, 'src/main/webapp/assets/js/refund', name), 'utf8');
+const core = fs.readFileSync(path.join(root, 'src/main/webapp/assets/js/core/tc-core.js'), 'utf8');
 const metas = {'context-path': '/tc', 'csrf-token': 'csrf-token'};
 const metaTags = selector => {
   const name = /^meta\[name="([^"]+)"\]$/.exec(selector)?.[1];

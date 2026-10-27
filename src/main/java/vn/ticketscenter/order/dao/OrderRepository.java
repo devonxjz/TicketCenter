@@ -2,7 +2,7 @@ package vn.ticketscenter.order.dao;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-import vn.ticketscenter.config.persistence.SqlErrors;
+import vn.ticketscenter.config.persistence.SqlCall;
 import vn.ticketscenter.order.dto.*;
 import vn.ticketscenter.order.model.OrderStatus;
 import vn.ticketscenter.order.service.OrderException;
@@ -13,12 +13,39 @@ import java.sql.*;
 import java.time.Instant;
 import java.util.*;
 
+import static vn.ticketscenter.config.persistence.SqlCall.instant;
 import static vn.ticketscenter.config.web.Json.array;
 import static vn.ticketscenter.config.web.Json.field;
 import static vn.ticketscenter.config.web.Json.number;
 import static vn.ticketscenter.config.web.Json.object;
+import static vn.ticketscenter.config.persistence.SqlCall.uuid;
 
 public class OrderRepository {
+    private static final SqlCall.ErrorTable UNAVAILABLE =
+            SqlCall.ErrorTable.of().fallback((code, message) -> OrderException.unavailable());
+
+    /** THROW numbers of the order procedures. */
+    private static final SqlCall.ErrorTable ERRORS =
+            SqlCall.ErrorTable.of()
+                    .on(51301, m -> error(401, "UNAUTHENTICATED", "A current session is required."))
+                    .on(new int[] {51303, 51403}, m -> error(403, "FORBIDDEN", "A current verified owner is required."))
+                    .on(51400, m -> error(400, "HOLD_INVALID", "An active unexpired Hold is required."))
+                    .on(51404, m -> error(404, "ORDER_NOT_FOUND", "Order was not found."))
+                    .on(51408, m -> error(409, "IDEMPOTENCY_CONFLICT", "Use a new key for a changed request."))
+                    .on(51406, m -> error(409, "ORDER_CONFLICT", "Refresh checkout before changing the Order."))
+                    .on(51407, m -> error(409, "PAYMENT_UNRESOLVED", "Payment must be resolved before changing the Coupon."))
+                    .on(51405, m -> error(400, couponCode(m), "Coupon is not eligible for this Order."));
+
+    private static final SqlCall.ErrorTable ACCESS_ERRORS =
+            SqlCall.ErrorTable.of()
+                    .on(51403, m -> error(403, "FORBIDDEN", "You do not own this order."))
+                    .on(51404, m -> error(404, "ORDER_NOT_FOUND", "Order was not found."))
+                    .fallback((code, message) -> OrderException.unavailable());
+
+    private static OrderException error(int status, String code, String message) {
+        return new OrderException(status, code, message);
+    }
+
     private final DataSource buyer;
 
     public OrderRepository(DataSource buyer) {
@@ -138,72 +165,41 @@ public class OrderRepository {
         int targetSize = Math.min(50, Math.max(1, size));
         int offset = (targetPage - 1) * targetSize;
 
-        String countSql =
-                """
-                SELECT COUNT_BIG(*) FROM dbo.vw_BuyerOrderDetails o
-                WHERE o.buyer_id = ? AND (? IS NULL OR o.status = ?)
-                """;
+        String filter = "FROM dbo.vw_BuyerOrderDetails o WHERE o.buyer_id = ? AND (? IS NULL OR o.status = ?)";
         String selectSql =
                 """
                 SELECT o.id, o.order_code, o.event_id, o.event_title, o.venue_name, o.start_time,
                        o.subtotal_amount, o.discount_amount, o.total_amount, o.status,
                        o.created_at, o.paid_at, o.coupon_code, o.ticket_count
-                FROM dbo.vw_BuyerOrderDetails o
-                WHERE o.buyer_id = ? AND (? IS NULL OR o.status = ?)
-                ORDER BY o.created_at DESC
-                OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
-                """;
-
-        long total = 0;
-        List<OrderHistoryItemDto> items = new ArrayList<>();
-
-        try (Connection conn = buyer.getConnection()) {
-            try (PreparedStatement countPs = conn.prepareStatement(countSql)) {
-                countPs.setObject(1, buyerId);
-                countPs.setString(2, statusFilter);
-                countPs.setString(3, statusFilter);
-                try (ResultSet rs = countPs.executeQuery()) {
-                    if (rs.next()) total = rs.getLong(1);
-                }
-            }
-
-            try (PreparedStatement selectPs = conn.prepareStatement(selectSql)) {
-                selectPs.setObject(1, buyerId);
-                selectPs.setString(2, statusFilter);
-                selectPs.setString(3, statusFilter);
-                selectPs.setInt(4, offset);
-                selectPs.setInt(5, targetSize);
-                try (ResultSet rs = selectPs.executeQuery()) {
-                    while (rs.next()) {
-                        Timestamp startTs = rs.getTimestamp("start_time", utc());
-                        Timestamp createdTs = rs.getTimestamp("created_at", utc());
-                        Timestamp paidTs = rs.getTimestamp("paid_at", utc());
-                        items.add(
-                                new OrderHistoryItemDto(
-                                        UUID.fromString(rs.getString("id")),
-                                        rs.getString("order_code"),
-                                        rs.getString("event_id") != null
-                                                ? UUID.fromString(rs.getString("event_id"))
-                                                : null,
-                                        rs.getString("event_title"),
-                                        rs.getString("venue_name"),
-                                        startTs != null ? startTs.toInstant() : null,
-                                        rs.getBigDecimal("subtotal_amount"),
-                                        rs.getBigDecimal("discount_amount"),
-                                        rs.getBigDecimal("total_amount"),
-                                        rs.getString("status"),
-                                        createdTs != null ? createdTs.toInstant() : null,
-                                        paidTs != null ? paidTs.toInstant() : null,
-                                        rs.getString("coupon_code"),
-                                        rs.getLong("ticket_count")));
-                    }
-                }
-            }
-        } catch (SQLException e) {
-            throw OrderException.unavailable();
-        }
-
-        return new OrderHistoryPage(targetPage, targetSize, total, items);
+                """
+                        + filter
+                        + " ORDER BY o.created_at DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        return SqlCall.onConnection(
+                buyer,
+                conn -> {
+                    long total =
+                            SqlCall.call(
+                                    conn,
+                                    "SELECT COUNT_BIG(*) " + filter,
+                                    rows -> rows.getLong(1),
+                                    UNAVAILABLE,
+                                    buyerId,
+                                    statusFilter,
+                                    statusFilter);
+                    var items =
+                            SqlCall.queryList(
+                                    conn,
+                                    selectSql,
+                                    OrderRepository::historyItem,
+                                    UNAVAILABLE,
+                                    buyerId,
+                                    statusFilter,
+                                    statusFilter,
+                                    offset,
+                                    targetSize);
+                    return new OrderHistoryPage(targetPage, targetSize, total, items);
+                },
+                UNAVAILABLE);
     }
 
     public Optional<OrderDetailDto> findOrderDetail(UUID orderId) {
@@ -212,167 +208,175 @@ public class OrderRepository {
 
     public Optional<OrderDetailDto> findOrderDetail(UUID orderId, UUID actorId, int authVersion) {
         Objects.requireNonNull(orderId, "orderId is required");
-        String orderSql =
-                """
-                SELECT o.id, o.buyer_id, o.order_code, o.event_id, o.event_title,
-                       o.venue_name, o.venue_address, o.start_time, o.end_time,
-                       o.subtotal_amount, o.discount_amount, o.total_amount, o.status,
-                       o.created_at, o.paid_at, o.coupon_code,
-                       o.payment_status, o.txn_ref, o.provider_reference, o.captured_at
-                FROM dbo.vw_BuyerOrderDetails o
-                WHERE o.id = ?
-                """;
-        String itemsSql =
-                """
-                SELECT oi.id, oi.zone_name_snapshot, oi.seat_label_snapshot, oi.quantity, oi.unit_price,
-                       (oi.quantity * oi.unit_price) as line_total
-                FROM dbo.vw_BuyerOrderItems oi
-                WHERE oi.order_id = ?
-                """;
-        String ticketsSql =
-                """
-                SELECT t.id, t.ticket_code, t.status, t.paid_amount
-                FROM dbo.vw_TicketRuntimeDetails t
-                WHERE t.order_id = ?
-                ORDER BY t.issued_at ASC
-                """;
+        return SqlCall.onConnection(
+                buyer,
+                conn -> {
+                    var header =
+                            SqlCall.queryOptional(
+                                    conn,
+                                    """
+                                    SELECT o.id, o.buyer_id, o.order_code, o.event_id, o.event_title,
+                                           o.venue_name, o.venue_address, o.start_time, o.end_time,
+                                           o.subtotal_amount, o.discount_amount, o.total_amount, o.status,
+                                           o.created_at, o.paid_at, o.coupon_code,
+                                           o.payment_status, o.txn_ref, o.provider_reference, o.captured_at
+                                    FROM dbo.vw_BuyerOrderDetails o
+                                    WHERE o.id = ?
+                                    """,
+                                    OrderHeader::read,
+                                    UNAVAILABLE,
+                                    orderId);
+                    if (header.isEmpty()) return Optional.empty();
+                    var items =
+                            SqlCall.queryList(
+                                    conn,
+                                    """
+                                    SELECT oi.id, oi.zone_name_snapshot, oi.seat_label_snapshot, oi.quantity, oi.unit_price,
+                                           (oi.quantity * oi.unit_price) as line_total
+                                    FROM dbo.vw_BuyerOrderItems oi
+                                    WHERE oi.order_id = ?
+                                    """,
+                                    rows ->
+                                            new OrderDetailDto.OrderItemDetail(
+                                                    UUID.fromString(rows.getString("id")),
+                                                    rows.getString("zone_name_snapshot"),
+                                                    rows.getString("seat_label_snapshot"),
+                                                    rows.getInt("quantity"),
+                                                    rows.getBigDecimal("unit_price"),
+                                                    rows.getBigDecimal("line_total")),
+                                    UNAVAILABLE,
+                                    orderId);
+                    var tickets =
+                            SqlCall.queryList(
+                                    conn,
+                                    """
+                                    SELECT t.id, t.ticket_code, t.status, t.paid_amount
+                                    FROM dbo.vw_TicketRuntimeDetails t
+                                    WHERE t.order_id = ?
+                                    ORDER BY t.issued_at ASC
+                                    """,
+                                    rows ->
+                                            new OrderDetailDto.OrderTicketDetail(
+                                                    UUID.fromString(rows.getString("id")),
+                                                    rows.getString("ticket_code"),
+                                                    rows.getString("status"),
+                                                    rows.getLong("paid_amount")),
+                                    UNAVAILABLE,
+                                    orderId);
+                    return Optional.of(header.get().toDetail(orderId, items, tickets));
+                },
+                UNAVAILABLE);
+    }
 
-        try (Connection conn = buyer.getConnection()) {
-            UUID buyerId;
+    private static OrderHistoryItemDto historyItem(ResultSet rs) throws SQLException {
+        return new OrderHistoryItemDto(
+                UUID.fromString(rs.getString("id")),
+                rs.getString("order_code"),
+                uuid(rs, "event_id"),
+                rs.getString("event_title"),
+                rs.getString("venue_name"),
+                instant(rs, "start_time"),
+                rs.getBigDecimal("subtotal_amount"),
+                rs.getBigDecimal("discount_amount"),
+                rs.getBigDecimal("total_amount"),
+                rs.getString("status"),
+                instant(rs, "created_at"),
+                instant(rs, "paid_at"),
+                rs.getString("coupon_code"),
+                rs.getLong("ticket_count"));
+    }
+
+    /** The order row of vw_BuyerOrderDetails; items and tickets are read separately. */
+    private record OrderHeader(
+            UUID buyerId,
             String orderCode,
+            UUID eventId,
+            String eventTitle,
+            String venueName,
+            String venueAddress,
+            Instant startTime,
+            Instant endTime,
+            BigDecimal subtotal,
+            BigDecimal discount,
+            BigDecimal total,
+            String status,
+            Instant createdAt,
+            Instant paidAt,
+            String couponCode,
+            String paymentStatus,
+            String txnRef,
+            String providerRef,
+            Instant capturedAt) {
+
+        static OrderHeader read(ResultSet rs) throws SQLException {
+            return new OrderHeader(
+                    UUID.fromString(rs.getString("buyer_id")),
+                    rs.getString("order_code"),
+                    uuid(rs, "event_id"),
+                    rs.getString("event_title"),
+                    rs.getString("venue_name"),
+                    rs.getString("venue_address"),
+                    instant(rs, "start_time"),
+                    instant(rs, "end_time"),
+                    rs.getBigDecimal("subtotal_amount"),
+                    rs.getBigDecimal("discount_amount"),
+                    rs.getBigDecimal("total_amount"),
+                    rs.getString("status"),
+                    instant(rs, "created_at"),
+                    instant(rs, "paid_at"),
+                    rs.getString("coupon_code"),
+                    rs.getString("payment_status"),
+                    rs.getString("txn_ref"),
+                    rs.getString("provider_reference"),
+                    instant(rs, "captured_at"));
+        }
+
+        OrderDetailDto toDetail(
+                UUID orderId,
+                List<OrderDetailDto.OrderItemDetail> items,
+                List<OrderDetailDto.OrderTicketDetail> tickets) {
+            return new OrderDetailDto(
+                    orderId,
+                    buyerId,
+                    orderCode,
+                    eventId,
                     eventTitle,
                     venueName,
                     venueAddress,
+                    startTime,
+                    endTime,
+                    subtotal,
+                    discount,
+                    total,
                     status,
+                    createdAt,
+                    paidAt,
                     couponCode,
                     paymentStatus,
                     txnRef,
-                    providerRef;
-            UUID eventId;
-            BigDecimal subtotal, discount, total;
-            Instant startTime, endTime, createdAt, paidAt, paymentCapturedAt;
-
-            try (PreparedStatement ps = conn.prepareStatement(orderSql)) {
-                ps.setObject(1, orderId);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (!rs.next()) return Optional.empty();
-                    buyerId = UUID.fromString(rs.getString("buyer_id"));
-                    orderCode = rs.getString("order_code");
-                    eventId =
-                            rs.getString("event_id") != null
-                                    ? UUID.fromString(rs.getString("event_id"))
-                                    : null;
-                    eventTitle = rs.getString("event_title");
-                    venueName = rs.getString("venue_name");
-                    venueAddress = rs.getString("venue_address");
-                    Timestamp st = rs.getTimestamp("start_time", utc());
-                    startTime = st != null ? st.toInstant() : null;
-                    Timestamp et = rs.getTimestamp("end_time", utc());
-                    endTime = et != null ? et.toInstant() : null;
-                    subtotal = rs.getBigDecimal("subtotal_amount");
-                    discount = rs.getBigDecimal("discount_amount");
-                    total = rs.getBigDecimal("total_amount");
-                    status = rs.getString("status");
-                    Timestamp ct = rs.getTimestamp("created_at", utc());
-                    createdAt = ct != null ? ct.toInstant() : null;
-                    Timestamp pt = rs.getTimestamp("paid_at", utc());
-                    paidAt = pt != null ? pt.toInstant() : null;
-                    couponCode = rs.getString("coupon_code");
-                    paymentStatus = rs.getString("payment_status");
-                    txnRef = rs.getString("txn_ref");
-                    providerRef = rs.getString("provider_reference");
-                    Timestamp cap = rs.getTimestamp("captured_at", utc());
-                    paymentCapturedAt = cap != null ? cap.toInstant() : null;
-                }
-            }
-
-            List<OrderDetailDto.OrderItemDetail> items = new ArrayList<>();
-            try (PreparedStatement ps = conn.prepareStatement(itemsSql)) {
-                ps.setObject(1, orderId);
-                try (ResultSet rs = ps.executeQuery()) {
-                    while (rs.next()) {
-                        items.add(
-                                new OrderDetailDto.OrderItemDetail(
-                                        UUID.fromString(rs.getString("id")),
-                                        rs.getString("zone_name_snapshot"),
-                                        rs.getString("seat_label_snapshot"),
-                                        rs.getInt("quantity"),
-                                        rs.getBigDecimal("unit_price"),
-                                        rs.getBigDecimal("line_total")));
-                    }
-                }
-            }
-
-            List<OrderDetailDto.OrderTicketDetail> tickets = new ArrayList<>();
-            try (PreparedStatement ps = conn.prepareStatement(ticketsSql)) {
-                ps.setObject(1, orderId);
-                try (ResultSet rs = ps.executeQuery()) {
-                    while (rs.next()) {
-                        tickets.add(
-                                new OrderDetailDto.OrderTicketDetail(
-                                        UUID.fromString(rs.getString("id")),
-                                        rs.getString("ticket_code"),
-                                        rs.getString("status"),
-                                        rs.getLong("paid_amount")));
-                    }
-                }
-            }
-
-            return Optional.of(
-                    new OrderDetailDto(
-                            orderId,
-                            buyerId,
-                            orderCode,
-                            eventId,
-                            eventTitle,
-                            venueName,
-                            venueAddress,
-                            startTime,
-                            endTime,
-                            subtotal,
-                            discount,
-                            total,
-                            status,
-                            createdAt,
-                            paidAt,
-                            couponCode,
-                            paymentStatus,
-                            txnRef,
-                            providerRef,
-                            paymentCapturedAt,
-                            items,
-                            tickets));
-        } catch (SQLException e) {
-            throw OrderException.unavailable();
+                    providerRef,
+                    capturedAt,
+                    items,
+                    tickets);
         }
     }
 
     public void assertOrderAccess(Connection conn, UUID orderId) {
         if (conn == null) return;
         Objects.requireNonNull(orderId, "orderId is required");
-        try (CallableStatement cs = conn.prepareCall("{call dbo.usp_AssertOrderAccess(?)}")) {
-            cs.setObject(1, orderId);
-            cs.execute();
-        } catch (SQLException e) {
-            int code = e.getErrorCode();
-            if (code == 51403) {
-                throw new OrderException(403, "FORBIDDEN", "You do not own this order.");
-            }
-            if (code == 51404) {
-                throw new OrderException(404, "ORDER_NOT_FOUND", "Order was not found.");
-            }
-            throw OrderException.unavailable();
-        }
+        SqlCall.execute(conn, "{call dbo.usp_AssertOrderAccess(?)}", ACCESS_ERRORS, orderId);
     }
 
     public void assertOrderAccess(UUID orderId, UUID actorId) {
         if (buyer == null) return;
         Objects.requireNonNull(orderId, "orderId is required");
-        try (Connection conn = buyer.getConnection()) {
-            assertOrderAccess(conn, orderId);
-        } catch (SQLException e) {
-            throw OrderException.unavailable();
-        }
+        SqlCall.onConnection(
+                buyer,
+                conn -> {
+                    assertOrderAccess(conn, orderId);
+                    return null;
+                },
+                UNAVAILABLE);
     }
 
     public static CurrentCheckout checkout(String body) {
@@ -474,81 +478,8 @@ public class OrderRepository {
         return body;
     }
 
-    @FunctionalInterface
-    private interface Read<T> {
-        T read(ResultSet rows) throws SQLException;
-    }
-
-    private <T> T call(String sql, Read<T> read, Object... args) {
-        for (int attempt = 0; attempt < 3; attempt++) {
-            try (Connection connection = buyer.getConnection()) {
-                connection.setAutoCommit(true);
-                try (PreparedStatement statement = connection.prepareStatement(sql)) {
-                    statement.setQueryTimeout(20);
-                    for (int i = 0; i < args.length; i++)
-                        statement.setObject(
-                                i + 1, args[i] instanceof UUID id ? id.toString() : args[i]);
-                    try (ResultSet rows = statement.executeQuery()) {
-                        if (!rows.next()) throw OrderException.unavailable();
-                        return read.read(rows);
-                    }
-                }
-            } catch (SQLException failure) {
-                OrderException mapped = domain(failure);
-                if (mapped != null) throw mapped;
-                if (attempt == 2 || !SqlErrors.isTransient(failure, 51309))
-                    throw OrderException.unavailable();
-            } catch (OrderException failure) {
-                throw failure;
-            } catch (RuntimeException invalidResponse) {
-                throw OrderException.unavailable();
-            }
-        }
-        throw OrderException.unavailable();
-    }
-
-    private static OrderException domain(SQLException failure) {
-        for (SQLException error = failure; error != null; error = error.getNextException()) {
-            OrderException mapped =
-                    switch (error.getErrorCode()) {
-                        case 51301 ->
-                                new OrderException(
-                                        401, "UNAUTHENTICATED", "A current session is required.");
-                        case 51303, 51403 ->
-                                new OrderException(
-                                        403, "FORBIDDEN", "A current verified owner is required.");
-                        case 51400 ->
-                                new OrderException(
-                                        400,
-                                        "HOLD_INVALID",
-                                        "An active unexpired Hold is required.");
-                        case 51404 ->
-                                new OrderException(404, "ORDER_NOT_FOUND", "Order was not found.");
-                        case 51408 ->
-                                new OrderException(
-                                        409,
-                                        "IDEMPOTENCY_CONFLICT",
-                                        "Use a new key for a changed request.");
-                        case 51406 ->
-                                new OrderException(
-                                        409,
-                                        "ORDER_CONFLICT",
-                                        "Refresh checkout before changing the Order.");
-                        case 51407 ->
-                                new OrderException(
-                                        409,
-                                        "PAYMENT_UNRESOLVED",
-                                        "Payment must be resolved before changing the Coupon.");
-                        case 51405 ->
-                                new OrderException(
-                                        400,
-                                        couponCode(error.getMessage()),
-                                        "Coupon is not eligible for this Order.");
-                        default -> null;
-                    };
-            if (mapped != null) return mapped;
-        }
-        return null;
+    private <T> T call(String sql, SqlCall.ResultSetExtractor<T> read, Object... args) {
+        return SqlCall.callWithRetry(buyer, sql, read, ERRORS, OrderException::unavailable, args);
     }
 
     private static String couponCode(String message) {
@@ -563,9 +494,5 @@ public class OrderRepository {
                         "INVALID_CONFIGURATION"))
             if (message.contains("COUPON_" + reason)) return "COUPON_" + reason;
         return "COUPON_INVALID";
-    }
-
-    private static java.util.Calendar utc() {
-        return java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"));
     }
 }

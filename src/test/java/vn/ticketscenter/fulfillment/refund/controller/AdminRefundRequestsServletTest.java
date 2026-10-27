@@ -42,7 +42,7 @@ class AdminRefundRequestsServletTest {
         contextAttributes.put(IdentityServices.SESSION_VALIDATOR_ATTRIBUTE, new SessionValidator(new TransactionManager(Map.of()), new UserRepository()) {
             @Override public boolean isSessionValid(UUID id, int version) { return sessionValid; }
         });
-        contextAttributes.put(AdminRefundRuntime.SERVICE_ATTRIBUTE, new AdminRefundDecisionService(store, (a, b, c) -> {}));
+        contextAttributes.put(AdminRefundRuntime.SERVICE_ATTRIBUTE, new AdminRefundDecisionServiceImpl(store, (a, b, c) -> {}));
     }
 
     void loginAdmin() {

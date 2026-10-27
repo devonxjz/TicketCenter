@@ -5,6 +5,7 @@ import jakarta.servlet.http.*;
 import java.io.*;
 import java.sql.SQLException;
 import vn.ticketscenter.dashboard.service.DashboardService;
+import vn.ticketscenter.dashboard.service.DashboardServiceImpl;
 import vn.ticketscenter.dashboard.service.DashboardCache;
 import vn.ticketscenter.report.controller.ReadsideHttp;
 import vn.ticketscenter.settlement.infrastructure.*;
@@ -16,7 +17,7 @@ public final class DashboardServlet extends HttpServlet {
     @Override
     public void init() {
         service =
-                new DashboardService(
+                new DashboardServiceImpl(
                         FinanceRuntime.database(getServletContext()), DashboardCache.configured());
     }
 

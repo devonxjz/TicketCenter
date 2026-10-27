@@ -5,6 +5,7 @@ import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.util.Set;
+import vn.ticketscenter.config.web.ApiRequest;
 
 /** Dispatch only Event-owned actions; preserve the existing catalog and other domains. */
 @WebFilter(
@@ -19,7 +20,7 @@ public final class EventManagementRoutesFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
         var req = (HttpServletRequest) request;
-        String path = req.getRequestURI().substring(req.getContextPath().length());
+        String path = ApiRequest.path(req);
         String[] p = path.split("/", -1);
         boolean event =
                 p.length == 5

@@ -4,6 +4,7 @@ import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.config.web.HttpResponses;
 
 import java.io.IOException;
@@ -37,7 +38,7 @@ public final class CsrfFilter implements Filter {
 
         if (MUTATING_METHODS.contains(method)) {
             String path =
-                    httpRequest.getRequestURI().substring(httpRequest.getContextPath().length());
+                    ApiRequest.path(httpRequest);
 
             // Webhook payOS gọi server-to-server và được xác thực bằng chữ ký checksum riêng
             if (path.equals(vn.ticketscenter.config.PayosConfig.WEBHOOK_PATH)) {

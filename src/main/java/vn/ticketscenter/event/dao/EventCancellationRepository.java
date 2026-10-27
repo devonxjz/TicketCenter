@@ -17,20 +17,18 @@ import java.util.UUID;
 import javax.sql.DataSource;
 import org.hibernate.Session;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
+import vn.ticketscenter.config.persistence.SqlCall;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.event.cancellation.dto.CancellationProgressDto;
 import vn.ticketscenter.event.cancellation.dto.EventCancelRequestDto;
-import vn.ticketscenter.event.cancellation.service.EventCancellationStore;
+import vn.ticketscenter.event.cancellation.dao.EventCancellationStore;
 import vn.ticketscenter.fulfillment.refund.service.RefundException;
 import vn.ticketscenter.identity.security.UserPrincipal;
 
+import static vn.ticketscenter.config.persistence.SqlCall.uuid;
+
 public class EventCancellationRepository implements EventCancellationStore {
     public record Work(UUID eventId, UUID orderId) {}
-
-    @FunctionalInterface
-    private interface SqlWork<T> {
-        T run(Connection connection) throws SQLException;
-    }
 
     private final TransactionManager transactions;
     private final DataSource supplied;
@@ -192,12 +190,10 @@ public class EventCancellationRepository implements EventCancellationStore {
         entityManager.clear();
     }
 
-    private <T> T admin(SqlWork<T> work) {
+    private <T> T admin(SqlCall.SqlWork<T> work) {
         try {
             if (transactions != null) {
-                return transactions.execute(
-                        DatabasePrincipal.ADMIN,
-                        em -> em.unwrap(Session.class).doReturningWork(work::run));
+                return SqlCall.inSession(transactions, DatabasePrincipal.ADMIN, work);
             }
             try (var connection = supplied.getConnection()) {
                 connection.setAutoCommit(false);
@@ -272,11 +268,6 @@ public class EventCancellationRepository implements EventCancellationStore {
                 throw new RefundException(
                         403, "ADMIN_REQUIRED", "Bạn không còn quyền quản trị viên.");
         }
-    }
-
-    private static UUID uuid(ResultSet result, String name) throws SQLException {
-        String value = result.getString(name);
-        return value == null ? null : UUID.fromString(value);
     }
 
     private static Instant instant(ResultSet result, String name) throws SQLException {

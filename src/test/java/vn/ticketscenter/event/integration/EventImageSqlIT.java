@@ -8,6 +8,7 @@ import vn.ticketscenter.event.EventException;
 import vn.ticketscenter.event.dto.*;
 import vn.ticketscenter.event.dao.EventRepository;
 import vn.ticketscenter.event.service.EventService;
+import vn.ticketscenter.event.service.EventServiceImpl;
 import vn.ticketscenter.storage.StoredAsset;
 
 import java.lang.reflect.InvocationTargetException;
@@ -349,7 +350,7 @@ class EventImageSqlIT {
         }
         try {
             EventService service =
-                    new EventService(
+                    new EventServiceImpl(
                             new EventRepository(
                                     roleSource(users.get("tc_manager")),
                                     roleSource(users.get("tc_buyer")),

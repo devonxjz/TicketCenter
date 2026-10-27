@@ -72,16 +72,16 @@ class SingleConnectionPoolSettingsTest {
     }
 
     @Test void orderRuntimePool() {
-        withRuntime(new OrderRuntime(), attributes -> assertSingleConnection(attributes.get(OrderRuntime.class.getName() + ".pool"), "order-buyer", "buyer"), OrderRuntime::resolve);
+        withRuntime(new OrderRuntime(), attributes -> assertSingleConnection(pools(attributes, OrderRuntime.SERVICE_ATTRIBUTE).get(0), "order-buyer", "buyer"), OrderRuntime::resolve);
     }
 
     @Test void ticketRuntimePool() {
-        withRuntime(new TicketRuntime(), attributes -> assertSingleConnection(attributes.get(TicketRuntime.class.getName() + ".pool"), "ticket-buyer", "buyer"), TicketRuntime::resolve);
+        withRuntime(new TicketRuntime(), attributes -> assertSingleConnection(pools(attributes, TicketRuntime.SERVICE_ATTRIBUTE).get(0), "ticket-buyer", "buyer"), TicketRuntime::resolve);
     }
 
     @Test void holdRuntimePools() {
         withRuntime(new HoldRuntime(), attributes -> {
-            List<?> pools = (List<?>) attributes.get(HoldRuntime.class.getName() + ".pools");
+            List<?> pools = pools(attributes, HoldRuntime.SERVICE_ATTRIBUTE);
             assertEquals(2, pools.size());
             assertSingleConnection(pools.get(0), "hold-buyer", "buyer");
             assertSingleConnection(pools.get(1), "hold-worker", "worker");
@@ -90,27 +90,24 @@ class SingleConnectionPoolSettingsTest {
 
     @Test void couponAdminRuntimePools() {
         withRuntime(new CouponAdminRuntime(), attributes -> {
-            assertSingleConnection(attributes.get(CouponAdminRuntime.class.getName() + ".managerPool"), "coupon-manager", "manager");
-            assertSingleConnection(attributes.get(CouponAdminRuntime.class.getName() + ".adminPool"), "coupon-admin", "admin");
+            assertSingleConnection(pools(attributes, CouponAdminRuntime.class.getName() + ".service").get(0), "coupon-manager", "manager");
+            assertSingleConnection(pools(attributes, CouponAdminRuntime.class.getName() + ".service").get(1), "coupon-admin", "admin");
         }, CouponAdminRuntime::resolve);
     }
 
     @Test void paymentRuntimePools() {
         withRuntime(new PaymentRuntime(), attributes -> {
-            Object components = attributes.get(PaymentRuntime.class.getName() + ".components");
-            assertNotNull(components);
-            assertSingleConnection(component(components, "buyerPool"), "payment-buyer", "buyer");
-            assertSingleConnection(component(components, "workerPool"), "payment-worker", "worker");
+            List<?> pools = pools(attributes, PaymentRuntime.class.getName() + ".components");
+            assertEquals(2, pools.size());
+            assertSingleConnection(pools.get(0), "payment-buyer", "buyer");
+            assertSingleConnection(pools.get(1), "payment-worker", "worker");
         }, PaymentRuntime::resolve);
     }
 
-    private static Object component(Object record, String name) {
-        try {
-            var accessor = record.getClass().getDeclaredMethod(name);
-            accessor.setAccessible(true);
-            return accessor.invoke(record);
-        } catch (ReflectiveOperationException failure) {
-            throw new AssertionError(failure);
-        }
+    /** The pools a runtime opened, in opening order, as FeatureContext keeps them beside the service. */
+    private static List<?> pools(Map<String, Object> attributes, String key) {
+        var resources = (FeatureContext.Resources) attributes.get(key + ".resources");
+        assertNotNull(resources);
+        return resources.opened().stream().filter(HikariDataSource.class::isInstance).toList();
     }
 }

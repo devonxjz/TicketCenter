@@ -10,7 +10,7 @@ globalThis.document = {
     },
     createElement: tag => ({tag, dataset: {}, children: [], append(...c) { this.children.push(...c); }})
 };
-const TC = require('../../main/webapp/assets/js/tc-core.js');
+const TC = require('../../main/webapp/assets/js/core/tc-core.js');
 
 test('TC.money formats exact VND amounts', () => {
     assert.equal(TC.money(100000), '100.000 ₫');

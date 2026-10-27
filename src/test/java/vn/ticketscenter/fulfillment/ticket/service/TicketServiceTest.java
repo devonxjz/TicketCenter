@@ -93,7 +93,7 @@ class TicketServiceTest {
         repository = new StubTicketRepository();
         cache = new StubTicketCache();
         signer = new SignedTicketQrSigner(SECRET);
-        service = new TicketService(repository, signer, cache);
+        service = new TicketServiceImpl(repository, signer, cache);
     }
 
     @Test

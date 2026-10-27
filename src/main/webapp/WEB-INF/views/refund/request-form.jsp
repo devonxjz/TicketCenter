@@ -45,7 +45,7 @@
             <button id="cancel" type="button">Quay lại</button>
         </dialog>
     </main>
-    <script defer src="${pageContext.request.contextPath}/assets/refund/request-form.js"></script>
+    <script defer src="${pageContext.request.contextPath}/assets/js/refund/request-form.js"></script>
     <jsp:include page="/WEB-INF/views/layout/footer.jsp" />
 </body>
 </html>

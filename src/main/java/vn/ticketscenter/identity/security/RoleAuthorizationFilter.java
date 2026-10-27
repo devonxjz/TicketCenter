@@ -8,6 +8,7 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.identity.security.RouteAccessPolicy.Decision;
 
 import java.io.IOException;
@@ -34,7 +35,7 @@ public final class RoleAuthorizationFilter implements Filter {
             return;
         }
 
-        String path = httpRequest.getRequestURI().substring(httpRequest.getContextPath().length());
+        String path = ApiRequest.path(httpRequest);
         Decision decision = RouteAccessPolicy.decide(user.get(), path);
         switch (decision) {
             case ALLOW -> chain.doFilter(request, response);

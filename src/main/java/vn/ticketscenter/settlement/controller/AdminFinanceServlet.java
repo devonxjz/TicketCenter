@@ -4,6 +4,7 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.util.*;
+import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.config.AppConfig;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.identity.security.*;
@@ -11,6 +12,7 @@ import vn.ticketscenter.settlement.infrastructure.*;
 import vn.ticketscenter.settlement.payout.*;
 import vn.ticketscenter.settlement.dao.FinanceRepository;
 import vn.ticketscenter.settlement.service.FinanceMutationService;
+import vn.ticketscenter.settlement.service.FinanceMutationServiceImpl;
 import vn.ticketscenter.settlement.commission.service.CommissionRuleCache;
 import vn.ticketscenter.report.service.ReportCache;
 import vn.ticketscenter.dashboard.service.DashboardCache;
@@ -42,7 +44,7 @@ public final class AdminFinanceServlet extends HttpServlet {
                     PayoutAdapter adapter = PayoutAdapter.unavailable();
                     if ("fixture-simulated".equals(AppConfig.get("payout.adapter", "unavailable")))
                         adapter =
-                                new SimulatedPayoutAdapter(
+                                new PayoutAdapterImpl(
                                         database,
                                         AppConfig.get("payout.simulated.outcome", "SUCCEEDED"),
                                         AppConfig.getBoolean(
@@ -63,7 +65,7 @@ public final class AdminFinanceServlet extends HttpServlet {
                                     },
                                     settlementCache::invalidate);
                     service =
-                            new FinanceMutationService(repository, adapter, cache, settlementCache);
+                            new FinanceMutationServiceImpl(repository, adapter, cache, settlementCache);
                 }
             }
         return service;
@@ -89,7 +91,7 @@ public final class AdminFinanceServlet extends HttpServlet {
                             .orElseThrow(() -> new FinanceException("UNAUTHENTICATED", 401));
             if (mutation && !SecurityContext.validateCsrfToken(request))
                 throw new FinanceException("CSRF_INVALID", 403);
-            String path = request.getRequestURI().substring(request.getContextPath().length());
+            String path = ApiRequest.path(request);
             String[] p = path.substring(1).split("/", -1);
             boolean rules =
                     p.length == 5

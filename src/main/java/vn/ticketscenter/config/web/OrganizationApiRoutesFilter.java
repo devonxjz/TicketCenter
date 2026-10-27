@@ -17,7 +17,7 @@ public final class OrganizationApiRoutesFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
         var http = (HttpServletRequest) request;
-        String path = http.getRequestURI().substring(http.getContextPath().length());
+        String path = ApiRequest.path(http);
         if (!path.matches("/api/organizations/[^/]+/reports")) {
             chain.doFilter(request, response);
             return;

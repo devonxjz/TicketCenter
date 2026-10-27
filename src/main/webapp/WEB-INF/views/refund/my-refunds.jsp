@@ -52,7 +52,7 @@
             <button type="button" id="close">Đóng</button>
         </dialog>
     </main>
-    <script defer src="${pageContext.request.contextPath}/assets/refund/my-refunds.js"></script>
+    <script defer src="${pageContext.request.contextPath}/assets/js/refund/my-refunds.js"></script>
     <jsp:include page="/WEB-INF/views/layout/footer.jsp" />
 </body>
 </html>

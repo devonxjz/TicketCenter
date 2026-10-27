@@ -5,6 +5,7 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
@@ -18,6 +19,8 @@ import vn.ticketscenter.order.service.OrderException;
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 /**
@@ -35,6 +38,8 @@ import java.util.stream.Collectors;
         name = "CouponAdminServlet",
         urlPatterns = {"/api/admin/coupons", "/api/coupons/*"})
 public class CouponAdminServlet extends HttpServlet {
+    private static final Logger LOG = Logger.getLogger(CouponAdminServlet.class.getName());
+
     private final CouponAdminService suppliedService;
 
     public CouponAdminServlet() {
@@ -48,12 +53,9 @@ public class CouponAdminServlet extends HttpServlet {
     @Override
     protected void service(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        response.setCharacterEncoding("UTF-8");
-        response.setContentType("application/json;charset=UTF-8");
-        response.setHeader("Cache-Control", "no-store");
-
+        ApiRequest.prepareJson(response);
         String method = request.getMethod();
-        String path = request.getRequestURI().substring(request.getContextPath().length());
+        String path = ApiRequest.path(request);
 
         try {
             UserPrincipal principal =
@@ -77,8 +79,7 @@ public class CouponAdminServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             HttpResponses.error(response, 400, "BAD_REQUEST", e.getMessage());
         } catch (Exception e) {
-            java.util.logging.Logger.getLogger(CouponAdminServlet.class.getName())
-                    .log(java.util.logging.Level.SEVERE, "Coupon request failed", e);
+            LOG.log(Level.SEVERE, "Coupon request failed", e);
             HttpResponses.error(response, 500, "INTERNAL_ERROR", "Đã xảy ra lỗi hệ thống.");
         }
     }
@@ -89,8 +90,8 @@ public class CouponAdminServlet extends HttpServlet {
             UserPrincipal principal,
             String path)
             throws IOException {
-        int page = parsePositiveInt(request.getParameter("page"), 1);
-        int size = parsePositiveInt(request.getParameter("size"), 20);
+        int page = ApiRequest.positiveInt(request.getParameter("page"), 1);
+        int size = ApiRequest.positiveInt(request.getParameter("size"), 20);
 
         if ("/api/admin/coupons".equals(path)) {
             String orgParam = request.getParameter("organizationId");
@@ -196,13 +197,4 @@ public class CouponAdminServlet extends HttpServlet {
         }
     }
 
-    private static int parsePositiveInt(String val, int def) {
-        if (val != null && !val.isBlank()) {
-            try {
-                int parsed = Integer.parseInt(val);
-                if (parsed > 0) return parsed;
-            } catch (NumberFormatException ignored) {}
-        }
-        return def;
-    }
 }

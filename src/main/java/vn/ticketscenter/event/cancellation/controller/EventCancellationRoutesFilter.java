@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Set;
+import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.identity.security.DatabaseActorFilter;
 
@@ -23,7 +24,7 @@ public final class EventCancellationRoutesFilter implements Filter {
             throws IOException, ServletException {
         var req = (HttpServletRequest) request;
         var res = (HttpServletResponse) response;
-        String path = req.getRequestURI().substring(req.getContextPath().length());
+        String path = ApiRequest.path(req);
         String[] pieces = path.split("/", -1);
         boolean review =
                 (pieces.length == 5

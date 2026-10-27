@@ -13,7 +13,9 @@ import vn.ticketscenter.report.dto.ReportFilter;
 import vn.ticketscenter.report.service.*;
 import vn.ticketscenter.audit.dto.AuditFilter;
 import vn.ticketscenter.audit.service.AuditService;
+import vn.ticketscenter.audit.service.AuditServiceImpl;
 import vn.ticketscenter.dashboard.service.DashboardService;
+import vn.ticketscenter.dashboard.service.DashboardServiceImpl;
 import vn.ticketscenter.dashboard.dao.DashboardRepository;
 import vn.ticketscenter.settlement.infrastructure.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -47,32 +49,32 @@ class ReadsideDatabaseIntegrationTest {
     @AfterEach void rollback()throws Exception{if(connection!=null){try{connection.rollback();}finally{connection.close();}}}
     ReportFilter filter(String metric,UUID org){return ReportFilter.parse(Map.of("metric",metric,"from","2026-10-01T00:00:00Z","to","2026-10-02T00:00:00Z"),org);}
     @Test void cohortCashFlowAndCsvUseCorrectHalfOpenHistoricalDefinitions()throws Exception{
-        var service=new ReportService(database,ReportCache.none());String cohort=service.json(managerActor(),filter("COHORT_REVENUE",orgA));
+        var service=new ReportServiceImpl(database,ReportCache.none());String cohort=service.json(managerActor(),filter("COHORT_REVENUE",orgA));
         assertTrue(cohort.contains("\"grossRevenue\":\"100\""),cohort);assertTrue(cohort.contains("\"totalRefund\":\"0\""),cohort);assertTrue(cohort.contains(zeroA.toString()),cohort);
         String cash=service.json(managerActor(),filter("CASH_FLOW",orgA));assertTrue(cash.contains("\"ticketCaptured\":\"100\""),cash);assertTrue(cash.contains("\"ticketRefund\":\"10\""),cash);assertTrue(cash.contains("\"compensationCaptured\":\"20\""),cash);assertTrue(cash.contains("\"compensationRefund\":\"20\""),cash);assertTrue(cash.contains("\"netCashFlow\":\"90\""),cash);
         var output=new ByteArrayOutputStream();service.export(managerActor(),filter("CASH_FLOW",orgA),output);String csv=output.toString(java.nio.charset.StandardCharsets.UTF_8);assertTrue(csv.startsWith("\uFEFF"));assertTrue(csv.contains("\"100\",\"20\",\"10\",\"20\",\"90\""),csv);assertFalse(csv.contains(eventB.toString()));
     }
     @Test void exactTenantAndCurrentAuthorityPrecedeAnyOutput()throws Exception{
-        var service=new ReportService(database,ReportCache.none());var bytes=new ByteArrayOutputStream();assertEquals(403,assertThrows(FinanceException.class,()->service.export(managerActor(),filter("CASH_FLOW",orgB),bytes)).status());assertEquals(0,bytes.size());
+        var service=new ReportServiceImpl(database,ReportCache.none());var bytes=new ByteArrayOutputStream();assertEquals(403,assertThrows(FinanceException.class,()->service.export(managerActor(),filter("CASH_FLOW",orgB),bytes)).status());assertEquals(0,bytes.size());
         var values=new HashMap<>(Map.of("from","2026-10-01T00:00:00Z","to","2026-10-02T00:00:00Z","eventId",eventB.toString()));assertEquals(404,assertThrows(FinanceException.class,()->service.json(managerActor(),ReportFilter.parse(values,orgA))).status());
         sql("UPDATE dbo.tc_users SET auth_version=1 WHERE id=?",manager);assertEquals(401,assertThrows(FinanceException.class,()->service.export(managerActor(),filter("COHORT_REVENUE",orgA),bytes)).status());assertEquals(0,bytes.size());
     }
     @Test void auditListDetailAreBoundAndRedactedWithStablePagination()throws Exception{
-        var service=new AuditService(database);var params=new HashMap<>(Map.of("from","2026-10-01T00:00:00Z","to","2026-10-02T00:00:00Z","action","TEST_READSIDE","organizationId",orgA.toString(),"pageSize","1"));
+        var service=new AuditServiceImpl(database);var params=new HashMap<>(Map.of("from","2026-10-01T00:00:00Z","to","2026-10-02T00:00:00Z","action","TEST_READSIDE","organizationId",orgA.toString(),"pageSize","1"));
         String rows=service.list(adminActor(),AuditFilter.parse(params));assertTrue(rows.contains(auditId.toString()),rows);assertFalse(rows.contains("DO_NOT_EXPOSE"));assertFalse(rows.contains("123456"));String detail=service.detail(adminActor(),auditId);assertTrue(detail.contains("\"amount\":\"100\""),detail);assertFalse(detail.contains("metadataJson"));assertEquals(403,assertThrows(FinanceException.class,()->service.detail(managerActor(),auditId)).status());
     }
     @Test void actualOverviewAndAllOrganizationAdminScopeComeFromDatabase()throws Exception{
-        var overview=new DashboardService(database,Clock.fixed(Instant.parse("2026-10-01T14:00:00Z"),ZoneOffset.UTC));String json=overview.admin(adminActor());assertTrue(json.contains("\"draftSettlements\""),json);assertTrue(json.contains("\"todayCashFlow\""),json);
+        var overview=new DashboardServiceImpl(database,Clock.fixed(Instant.parse("2026-10-01T14:00:00Z"),ZoneOffset.UTC));String json=overview.admin(adminActor());assertTrue(json.contains("\"draftSettlements\""),json);assertTrue(json.contains("\"todayCashFlow\""),json);
         String organization=overview.organization(managerActor(),orgA);assertTrue(organization.contains("\"eventCount\":2"),organization);
-        var bytes=new ByteArrayOutputStream();new ReportService(database,ReportCache.none()).export(adminActor(),filter("COHORT_REVENUE",null),bytes);String all=bytes.toString(java.nio.charset.StandardCharsets.UTF_8);assertTrue(all.contains(eventA.toString()),all);assertTrue(all.contains(eventB.toString()),all);
+        var bytes=new ByteArrayOutputStream();new ReportServiceImpl(database,ReportCache.none()).export(adminActor(),filter("COHORT_REVENUE",null),bytes);String all=bytes.toString(java.nio.charset.StandardCharsets.UTF_8);assertTrue(all.contains(eventA.toString()),all);assertTrue(all.contains(eventB.toString()),all);
     }
     @Test void currentEventAndSettlementViewsExecuteAgainstFrozenColumns()throws Exception{
-        var service=new ReportService(database,ReportCache.none());assertTrue(service.json(managerActor(),filter("EVENT_SALES",orgA)).contains(zeroA.toString()));
+        var service=new ReportServiceImpl(database,ReportCache.none());assertTrue(service.json(managerActor(),filter("EVENT_SALES",orgA)).contains(zeroA.toString()));
         sql("EXEC dbo.usp_RecalculateSettlement @event_id=?,@actor_id=?,@emit_result=0",eventA,admin);
         String json=service.json(managerActor(),filter("SETTLEMENT_BALANCE",orgA));assertTrue(json.contains("\"netPayable\":\"109\""),json);
     }
     @Test void organizationOverviewReloadsMembershipAndUserAuthorityAndRejectsMissingOrganization()throws Exception{
-        var overview=new DashboardService(database,Clock.fixed(Instant.parse("2026-10-01T14:00:00Z"),ZoneOffset.UTC));
+        var overview=new DashboardServiceImpl(database,Clock.fixed(Instant.parse("2026-10-01T14:00:00Z"),ZoneOffset.UTC));
         assertEquals(403,assertThrows(FinanceException.class,()->overview.organization(managerActor(),orgB)).status());
         var own=new org.json.JSONObject(overview.organization(managerActor(),orgA)).getJSONObject("data");
         assertEquals(orgA.toString(),own.getString("organizationId"));assertEquals(2,own.getInt("eventCount"));assertEquals(3,own.getInt("paidOrders"));
@@ -85,7 +87,7 @@ class ReadsideDatabaseIntegrationTest {
         assertEquals(404,assertThrows(FinanceException.class,()->overview.organization(adminActor(),UUID.randomUUID())).status());
     }
     @Test void selectorOptionsAndAdminEndpointRespectCurrentTenantAuthority()throws Exception{
-        var service=new ReportService(database,ReportCache.none());
+        var service=new ReportServiceImpl(database,ReportCache.none());
         String options=service.options(managerActor(),orgA);
         assertTrue(options.contains(orgA.toString()),options);assertTrue(options.contains(eventA.toString()),options);
         assertFalse(options.contains(orgB.toString()),options);assertFalse(options.contains(eventB.toString()),options);
@@ -109,7 +111,7 @@ class ReadsideDatabaseIntegrationTest {
         assertEquals(new java.math.BigDecimal("100"),days.get(6).get("cohortGrossRevenue"));
         assertEquals(new java.math.BigDecimal("100"),result.get("todayCohortGrossRevenue"));
         assertEquals(new java.math.BigDecimal("90"),days.get(6).get("netCashFlow"));
-        String json=new DashboardService(database,Clock.fixed(Instant.parse("2026-10-01T14:00:00Z"),ZoneOffset.UTC)).organization(managerActor(),orgA);
+        String json=new DashboardServiceImpl(database,Clock.fixed(Instant.parse("2026-10-01T14:00:00Z"),ZoneOffset.UTC)).organization(managerActor(),orgA);
         assertTrue(json.contains("\"cohortGrossRevenue\":\"9007199254740993\""),json);
     }
     @Test void adminKpisCountAllUsersAndOnlyApprovedOperationalOrganizations()throws Exception{
@@ -128,7 +130,7 @@ class ReadsideDatabaseIntegrationTest {
             public void setex(String key,int ttl,String json){assertEquals(60,ttl);value[0]=json;}
             public void delete(String key){value[0]=null;}
         });
-        var service=new DashboardService(database,cache,Clock.fixed(Instant.parse("2026-10-01T14:00:00Z"),ZoneOffset.UTC));
+        var service=new DashboardServiceImpl(database,cache,Clock.fixed(Instant.parse("2026-10-01T14:00:00Z"),ZoneOffset.UTC));
         String first=service.admin(adminActor());assertEquals(first,service.admin(adminActor()));assertEquals(2,reads[0]);
         sql("UPDATE dbo.tc_users SET platform_role='CUSTOMER' WHERE id=?",admin);
         assertEquals(403,assertThrows(FinanceException.class,()->service.admin(adminActor())).status());assertEquals(2,reads[0]);
@@ -150,13 +152,13 @@ class ReadsideDatabaseIntegrationTest {
         var data=new vn.ticketscenter.report.dao.ReportRepository().page(connection,filter("EVENT_SALES",orgA));var summary=(Map<?,?>)data.get("summary");assertNotNull(summary);
         assertEquals(3L,summary.get("ticketCount"));assertEquals(2L,summary.get("ticketsCheckedInCount"));assertEquals(new java.math.BigDecimal("155"),summary.get("grossRevenue"));
         var rows=(List<Map<String,Object>>)data.get("rows");var event=rows.stream().filter(r->r.get("eventId").equals(eventA.toString())).findFirst().orElseThrow();assertEquals(2L,event.get("ticketsCheckedInCount"));
-        var out=new ByteArrayOutputStream();new ReportService(database,ReportCache.none()).export(managerActor(),filter("EVENT_SALES",orgA),out);assertTrue(out.toString(java.nio.charset.StandardCharsets.UTF_8).contains("\"ticketsCheckedInCount\""));
+        var out=new ByteArrayOutputStream();new ReportServiceImpl(database,ReportCache.none()).export(managerActor(),filter("EVENT_SALES",orgA),out);assertTrue(out.toString(java.nio.charset.StandardCharsets.UTF_8).contains("\"ticketsCheckedInCount\""));
     }
     @Test void tenThousandEventRowsStreamThroughActualJdbcWithoutCollectingCsv()throws Exception{
         sql("WITH n AS (SELECT TOP (10000) ROW_NUMBER() OVER(ORDER BY (SELECT NULL)) n FROM sys.all_objects a CROSS JOIN sys.all_objects b) INSERT dbo.tc_events(id,organization_id,title,end_time) SELECT NEWID(),?,'Bulk streaming row','2026-10-01T12:00:00' FROM n",orgA);
         class Sink extends OutputStream {long bytes,lines; public void write(int value){bytes++;if(value=='\n')lines++;} public void write(byte[] data,int offset,int length){bytes+=length;for(int i=offset;i<offset+length;i++)if(data[i]=='\n')lines++;}}
         var sink=new Sink();long before=java.lang.management.ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed(),started=System.nanoTime();
-        new ReportService(database,ReportCache.none()).export(managerActor(),filter("EVENT_SALES",orgA),sink);
+        new ReportServiceImpl(database,ReportCache.none()).export(managerActor(),filter("EVENT_SALES",orgA),sink);
         assertEquals(10003,sink.lines,"Header plus 10,000 new events and two seeded events; no pagination cutoff");assertTrue(sink.bytes>1_000_000);
         long after=java.lang.management.ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed();assertTrue(after-before<64L*1024*1024,"Actual JDBC export must not retain the whole CSV");
         System.out.printf("REPORT_CSV rows=10002 bytes=%d exportMs=%d heapBefore=%d heapAfter=%d%n",sink.bytes,(System.nanoTime()-started)/1_000_000,before,after);

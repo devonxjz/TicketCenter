@@ -114,8 +114,8 @@
         <noscript>Vui lòng bật JavaScript để xem và thanh toán vé đang giữ.</noscript>
     </main>
     <jsp:include page="/WEB-INF/views/layout/footer.jsp" />
-    <script src="${pageContext.request.contextPath}/assets/js/ticket-hold.js?v=seat-coupon-10" defer></script>
-    <script src="${pageContext.request.contextPath}/assets/js/order-checkout.js?v=coupon-select-11"
+    <script src="${pageContext.request.contextPath}/assets/js/order/ticket-selection.js?v=seat-coupon-10" defer></script>
+    <script src="${pageContext.request.contextPath}/assets/js/order/checkout.js?v=coupon-select-11"
         defer></script>
 </body>
 </html>

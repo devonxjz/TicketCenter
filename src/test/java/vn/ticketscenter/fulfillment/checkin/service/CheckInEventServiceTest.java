@@ -17,7 +17,7 @@ class CheckInEventServiceTest {
     private final FakeRepository repository = new FakeRepository();
     private final MemoryCache cache = new MemoryCache();
     private final MutableClock clock = new MutableClock(START.minusSeconds(3600));
-    private final CheckInEventService service = new CheckInEventService(repository, cache, clock);
+    private final CheckInEventService service = new CheckInEventServiceImpl(repository, cache, clock);
 
     @Test void sixtyOneMinutesBeforeStartIsClosed() {
         clock.now=START.minusSeconds(3660);

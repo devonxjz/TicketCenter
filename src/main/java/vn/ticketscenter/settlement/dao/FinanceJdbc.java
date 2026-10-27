@@ -84,6 +84,15 @@ public final class FinanceJdbc {
         return results;
     }
 
+    /** Prepares, binds and reads every row of one query. */
+    public static List<Map<String, Object>> list(Connection connection, String sql, Object... values)
+            throws SQLException {
+        try (var query = connection.prepareStatement(sql)) {
+            bind(query, values);
+            return list(query);
+        }
+    }
+
     public static Map<String, Object> call(Connection connection, String sql, Object... values)
             throws SQLException {
         try (var query = connection.prepareCall(sql)) {
