@@ -1,4 +1,4 @@
-package vn.ticketscenter.fulfillment.refund.service;
+package vn.ticketscenter.fulfillment.refund.cache;
 
 import java.util.*;
 import java.util.function.Supplier;
@@ -7,8 +7,8 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.params.*;
 import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.config.redis.RedisOwnedLease;
-import vn.ticketscenter.config.redis.RedisScan;
 import vn.ticketscenter.fulfillment.refund.dto.RefundSummaryDto;
+import vn.ticketscenter.fulfillment.ticket.cache.TicketCacheImpl;
 
 /** Redis reduces contention and clears display caches; SQL owns all financial decisions. */
 public final class RefundRequestCacheImpl implements RefundRequestCache {
@@ -47,12 +47,9 @@ public final class RefundRequestCacheImpl implements RefundRequestCache {
     @Override
     public void committed(UUID actor, UUID key, List<UUID> tickets, RefundSummaryDto result) {
         try (var redis = connections.get()) {
-            for (UUID ticket : tickets) {
-                redis.del("tc:ticket:detail:v1:" + ticket);
-                RedisScan.deleteMatching(redis, "tc:ticket:qr:v1:" + ticket + ":*");
-            }
-            RedisScan.deleteMatching(redis, "tc:user:tickets:v1:" + actor + ":*");
-            redis.del("tc:admin:pending_refunds_count");
+            for (UUID ticket : tickets) TicketCacheImpl.evict(redis, ticket);
+            TicketCacheImpl.evictUserTickets(redis, actor);
+            redis.del(AdminRefundCacheImpl.PENDING_COUNT_KEY);
             redis.setex(idemKey(actor, key), IDEMPOTENCY_TTL, result.json());
         } catch (RuntimeException ignored) {
             /* The mutation has already committed; never report it as failed. */

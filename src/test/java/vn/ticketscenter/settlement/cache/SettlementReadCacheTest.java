@@ -1,4 +1,4 @@
-package vn.ticketscenter.settlement.service;
+package vn.ticketscenter.settlement.cache;
 import vn.ticketscenter.config.redis.RedisKeyValueBackend;
 import org.junit.jupiter.api.Test;
 import java.util.*;

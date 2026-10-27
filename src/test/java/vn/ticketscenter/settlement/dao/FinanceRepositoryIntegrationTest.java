@@ -117,11 +117,11 @@ class FinanceRepositoryIntegrationTest {
     @Test void cachedEventReadsInvalidateAfterCommitAndRefuseStaleAuthority() throws Exception {
         UUID rule=UUID.fromString(repository.createRule(principal,org,UUID.randomUUID(),terms()).get("ruleId").toString());paidEvent(rule);
         var cached=new HashMap<String,String>();
-        var cache=new vn.ticketscenter.settlement.service.SettlementReadCache(new vn.ticketscenter.config.redis.RedisKeyValueBackend(){
+        var cache=new vn.ticketscenter.settlement.cache.SettlementReadCache(new vn.ticketscenter.config.redis.RedisKeyValueBackend(){
             public String get(String k){return cached.get(k);}public void setex(String k,int ttl,String v){cached.put(k,v);}public void delete(String k){cached.remove(k);}
         });
         var mutations=new FinanceRepository(db,id->{},cache::invalidate);
-        var service=new vn.ticketscenter.settlement.service.FinanceMutationServiceImpl(mutations,PayoutAdapter.unavailable(),vn.ticketscenter.settlement.commission.service.CommissionRuleCache.none(),cache);
+        var service=new vn.ticketscenter.settlement.service.FinanceMutationServiceImpl(mutations,PayoutAdapter.unavailable(),vn.ticketscenter.settlement.commission.cache.CommissionRuleCache.none(),cache);
         assertTrue(service.readJson(principal,"summary",event).contains("\"settlementId\":null"));service.readJson(principal,"blockers",event);assertEquals(2,cached.size());
         UUID sid=UUID.fromString(mutations.recalculate(principal,event).get("settlementId").toString());assertTrue(cached.isEmpty());
         service.readJson(principal,"summary",event);mutations.confirm(principal,sid);assertTrue(cached.isEmpty());

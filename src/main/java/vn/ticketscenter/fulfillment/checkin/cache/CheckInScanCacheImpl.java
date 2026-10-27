@@ -4,10 +4,9 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.params.SetParams;
 import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.config.redis.RedisOwnedLease;
-import vn.ticketscenter.config.redis.RedisScan;
 import vn.ticketscenter.fulfillment.checkin.dto.CheckInScanResponseDto;
+import vn.ticketscenter.fulfillment.ticket.cache.TicketCacheImpl;
 
-import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -42,13 +41,8 @@ public final class CheckInScanCacheImpl implements CheckInScanCache {
         try (Jedis redis = connections.get()) {
             redis.setex("tc:idem:checkin:" + actor + ":" + key, 3600, result.toJson());
             if (!result.success()) return;
-            redis.del("tc:ticket:detail:v1:" + result.ticketId());
-            for (String pattern :
-                    List.of(
-                            "tc:ticket:qr:v1:" + result.ticketId() + ":*",
-                            "tc:checkin:events:v1:*:" + result.organizationId())) {
-                RedisScan.deleteMatching(redis, pattern);
-            }
+            TicketCacheImpl.evict(redis, result.ticketId());
+            CheckInEventCacheImpl.evictOrganizationEvents(redis, result.organizationId());
         } catch (RuntimeException ignored) {
             // SQL preserves correctness and durable replay during Redis outages.
         }

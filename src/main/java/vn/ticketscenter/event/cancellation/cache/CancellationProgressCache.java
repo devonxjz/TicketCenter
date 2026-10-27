@@ -1,4 +1,4 @@
-package vn.ticketscenter.event.cancellation.service;
+package vn.ticketscenter.event.cancellation.cache;
 
 import java.io.StringReader;
 import java.math.BigDecimal;
@@ -11,15 +11,17 @@ import java.util.UUID;
 import java.util.function.Supplier;
 import redis.clients.jedis.Jedis;
 import vn.ticketscenter.config.redis.RedisClientProvider;
-import vn.ticketscenter.config.redis.RedisScan;
 import vn.ticketscenter.config.web.JsonObjectParser;
 import vn.ticketscenter.event.cache.EventCatalogCacheImpl;
 import vn.ticketscenter.event.cancellation.dto.CancellationProgressDto;
 import vn.ticketscenter.fulfillment.checkin.cache.CheckInEventCacheImpl;
+import vn.ticketscenter.fulfillment.refund.cache.AdminRefundCacheImpl;
+import vn.ticketscenter.fulfillment.ticket.cache.TicketCacheImpl;
+import vn.ticketscenter.order.cache.RedisOrderCache;
+import vn.ticketscenter.ticketing.cache.RedisActiveHoldCache;
 
 public class CancellationProgressCache {
     private static final String PROGRESS_PREFIX = "tc:event:cancel-progress:";
-    private static final String PENDING_REFUNDS_KEY = "tc:admin:pending_refunds_count";
     private static final Set<String> PROGRESS_FIELDS =
             Set.of(
                     "eventId",
@@ -44,13 +46,6 @@ public class CancellationProgressCache {
                     "unknownRefunds",
                     "pendingRefunds",
                     "usedTicketExceptions");
-    private static final List<String> TICKET_PROJECTIONS =
-            List.of(
-                    "tc:user:active-hold:*",
-                    "tc:order:summary:*",
-                    "tc:ticket:detail:v1:*",
-                    "tc:ticket:qr:v1:*",
-                    "tc:user:tickets:v1:*");
     private final Supplier<Jedis> connections;
 
     public CancellationProgressCache() {
@@ -108,7 +103,7 @@ public class CancellationProgressCache {
         try (var redis = connections.get()) {
             // Remove stale purchase/refund actions; mutations still verify their authority in SQL.
             clearTicketProjections(redis);
-            redis.del(PROGRESS_PREFIX + progress.eventId(), PENDING_REFUNDS_KEY);
+            redis.del(PROGRESS_PREFIX + progress.eventId(), AdminRefundCacheImpl.PENDING_COUNT_KEY);
         }
     }
 
@@ -132,8 +127,8 @@ public class CancellationProgressCache {
     }
 
     private static void clearTicketProjections(Jedis redis) {
-        for (String pattern : TICKET_PROJECTIONS) {
-            RedisScan.deleteMatching(redis, pattern);
-        }
+        RedisActiveHoldCache.evictAll(redis);
+        RedisOrderCache.evictAllSummaries(redis);
+        TicketCacheImpl.evictAll(redis);
     }
 }

@@ -35,6 +35,11 @@ public final class CheckInEventCacheImpl implements CheckInEventCache {
         return "tc:checkin:window:v1:" + eventId;
     }
 
+    /** Xóa danh sách sự kiện check-in của tổ chức cho mọi actor. */
+    public static void evictOrganizationEvents(Jedis redis, UUID organizationId) {
+        RedisScan.deleteMatching(redis, "tc:checkin:events:v1:*:" + organizationId);
+    }
+
     @Override
     public Optional<List<EventInfo>> events(UUID actorId, UUID organizationId) {
         try (Jedis redis = connections.get()) {
@@ -86,7 +91,7 @@ public final class CheckInEventCacheImpl implements CheckInEventCache {
     public void invalidate(UUID eventId, UUID organizationId) {
         try (Jedis redis = connections.get()) {
             redis.del(windowKey(eventId));
-            RedisScan.deleteMatching(redis, "tc:checkin:events:v1:*:" + organizationId);
+            evictOrganizationEvents(redis, organizationId);
         } catch (RuntimeException ignored) {
         }
     }

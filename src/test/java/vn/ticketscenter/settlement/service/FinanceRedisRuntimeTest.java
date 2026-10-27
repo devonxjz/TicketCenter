@@ -5,12 +5,13 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import vn.ticketscenter.config.redis.RedisClientProvider;
-import vn.ticketscenter.dashboard.service.DashboardCache;
+import vn.ticketscenter.dashboard.cache.DashboardCache;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.report.dto.ReportFilter;
-import vn.ticketscenter.report.service.ReportCache;
-import vn.ticketscenter.settlement.commission.service.CommissionRuleCache;
+import vn.ticketscenter.report.cache.ReportCache;
+import vn.ticketscenter.settlement.cache.SettlementReadCache;
+import vn.ticketscenter.settlement.commission.cache.CommissionRuleCache;
 import static org.junit.jupiter.api.Assertions.*;
 
 /** Explicit standalone ephemeral Redis only; shuts down this marked fixture after assertions. */

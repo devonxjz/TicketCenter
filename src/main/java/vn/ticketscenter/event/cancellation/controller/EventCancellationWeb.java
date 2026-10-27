@@ -12,7 +12,7 @@ import vn.ticketscenter.config.persistence.PersistenceRegistry;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.config.web.JsonObjectParser;
 import vn.ticketscenter.event.cancellation.dto.EventCancelRequestDto;
-import vn.ticketscenter.event.cancellation.service.CancellationProgressCache;
+import vn.ticketscenter.event.cancellation.cache.CancellationProgressCache;
 import vn.ticketscenter.event.cancellation.service.EventCancellationService;
 import vn.ticketscenter.event.cancellation.service.EventCancellationServiceImpl;
 import vn.ticketscenter.event.dao.EventCancellationRepository;

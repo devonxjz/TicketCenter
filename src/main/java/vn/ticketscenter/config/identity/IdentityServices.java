@@ -19,7 +19,7 @@ import vn.ticketscenter.identity.service.OrganizationApprovalService;
 import vn.ticketscenter.identity.service.OrganizationApprovalServiceImpl;
 import vn.ticketscenter.identity.service.OrganizationMembershipService;
 import vn.ticketscenter.identity.service.OrganizationMembershipServiceImpl;
-import vn.ticketscenter.identity.service.OrganizationRequestIdempotency;
+import vn.ticketscenter.identity.cache.OrganizationRequestIdempotency;
 import vn.ticketscenter.identity.service.OrganizationRequestService;
 import vn.ticketscenter.identity.service.OrganizationRequestServiceImpl;
 import vn.ticketscenter.identity.service.OtpHasher;
@@ -34,7 +34,7 @@ import vn.ticketscenter.identity.service.RegistrationService;
 import vn.ticketscenter.identity.service.RegistrationServiceImpl;
 import vn.ticketscenter.identity.service.ResetTokenCodec;
 import vn.ticketscenter.identity.service.SessionValidator;
-import vn.ticketscenter.identity.service.UserSessionCache;
+import vn.ticketscenter.identity.cache.UserSessionCache;
 
 import java.util.Objects;
 

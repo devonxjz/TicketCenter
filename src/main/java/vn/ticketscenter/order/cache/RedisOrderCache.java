@@ -3,6 +3,7 @@ package vn.ticketscenter.order.cache;
 import org.json.JSONObject;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.params.SetParams;
+import vn.ticketscenter.config.redis.RedisScan;
 import vn.ticketscenter.order.dto.*;
 import vn.ticketscenter.order.dao.OrderRepository;
 
@@ -142,6 +143,11 @@ public final class RedisOrderCache {
         } catch (RuntimeException unavailable) {
             return false;
         }
+    }
+
+    /** Xóa order summary đã cache của mọi đơn (hủy sự kiện). */
+    public static void evictAllSummaries(Jedis redis) {
+        RedisScan.deleteMatching(redis, "tc:order:summary:*");
     }
 
     public static String summaryKey(UUID orderId) {

@@ -1,4 +1,4 @@
-package vn.ticketscenter.report.service;
+package vn.ticketscenter.report.cache;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -48,20 +48,11 @@ public final class ReportCache {
     }
 
     public String get(String key) {
-        if (key == null) return null;
-        try {
-            return backend.get(key);
-        } catch (RuntimeException e) {
-            return null;
-        }
+        return backend.getQuietly(key);
     }
 
     public void put(String key, String json) {
-        if (key == null || json.length() > 1_000_000) return;
-        try {
-            backend.setex(key, 60, json);
-        } catch (RuntimeException ignored) {
-        }
+        backend.putQuietly(key, 60, json);
     }
 
     /** Call only after committed financial writes; global and tenant pages share generations. */

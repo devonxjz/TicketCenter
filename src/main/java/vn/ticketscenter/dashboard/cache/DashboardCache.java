@@ -1,4 +1,4 @@
-package vn.ticketscenter.dashboard.service;
+package vn.ticketscenter.dashboard.cache;
 
 import java.util.Objects;
 import vn.ticketscenter.config.AppConfig;
@@ -27,26 +27,15 @@ public final class DashboardCache {
     }
 
     public String get() {
-        try {
-            return backend.get(KEY);
-        } catch (RuntimeException ignored) {
-            return null;
-        }
+        return backend.getQuietly(KEY);
     }
 
     public void put(String json) {
-        if (json == null || json.length() > 1_000_000) return;
-        try {
-            backend.setex(KEY, 60, json);
-        } catch (RuntimeException ignored) {
-        }
+        backend.putQuietly(KEY, 60, json);
     }
 
     public void invalidate() {
-        try {
-            backend.delete(KEY);
-        } catch (RuntimeException ignored) {
-        }
+        backend.deleteQuietly(KEY);
     }
 
     /** Root calls only after a committed finance write; never during an open write transaction. */

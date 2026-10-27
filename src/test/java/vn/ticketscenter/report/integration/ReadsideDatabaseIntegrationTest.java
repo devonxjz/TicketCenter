@@ -17,6 +17,7 @@ import vn.ticketscenter.audit.service.AuditServiceImpl;
 import vn.ticketscenter.dashboard.service.DashboardService;
 import vn.ticketscenter.dashboard.service.DashboardServiceImpl;
 import vn.ticketscenter.dashboard.dao.DashboardRepository;
+import vn.ticketscenter.report.cache.ReportCache;
 import vn.ticketscenter.settlement.infrastructure.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -125,7 +126,7 @@ class ReadsideDatabaseIntegrationTest {
     }
     @Test void cachedOverviewStillRejectsRevokedRoleAndStaleAuthVersionUsingActualDatabase()throws Exception{
         String[] value={null};int[] reads={0};
-        var cache=new vn.ticketscenter.dashboard.service.DashboardCache(new vn.ticketscenter.config.redis.RedisKeyValueBackend(){
+        var cache=new vn.ticketscenter.dashboard.cache.DashboardCache(new vn.ticketscenter.config.redis.RedisKeyValueBackend(){
             public String get(String key){reads[0]++;return value[0];}
             public void setex(String key,int ttl,String json){assertEquals(60,ttl);value[0]=json;}
             public void delete(String key){value[0]=null;}

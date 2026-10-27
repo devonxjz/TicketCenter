@@ -1,6 +1,7 @@
-package vn.ticketscenter.dashboard.service;
+package vn.ticketscenter.dashboard.cache;
 
 import vn.ticketscenter.config.redis.RedisKeyValueBackend;
+import vn.ticketscenter.dashboard.service.DashboardServiceImpl;
 import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
 import java.sql.*;

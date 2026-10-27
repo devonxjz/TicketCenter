@@ -1,4 +1,4 @@
-package vn.ticketscenter.settlement.commission.service;
+package vn.ticketscenter.settlement.commission.cache;
 
 import java.util.*;
 import java.util.function.Supplier;
@@ -21,28 +21,12 @@ public final class CommissionRuleCache {
     }
 
     public String read(UUID org, Supplier<String> current) {
-        try {
-            var cached = backend.get(key(org));
-            if (cached != null) return cached;
-        } catch (RuntimeException unavailable) {
-            /* Database fallback. */
-        }
-        String json = current.get();
-        if (json.length() <= 1_000_000)
-            try {
-                backend.setex(key(org), 300, json);
-            } catch (RuntimeException unavailable) {
-                /* Database is authoritative. */
-            }
-        return json;
+        return backend.readThrough(key(org), 300, current);
     }
 
+    /** Bounded TTL; no financial authority in Redis. */
     public void invalidate(UUID org) {
-        try {
-            backend.delete(key(org));
-        } catch (RuntimeException unavailable) {
-            /* Bounded TTL; no financial authority in Redis. */
-        }
+        backend.deleteQuietly(key(org));
     }
 
     private static String key(UUID org) {

@@ -1,4 +1,4 @@
-package vn.ticketscenter.identity.service;
+package vn.ticketscenter.identity.cache;
 
 import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.config.redis.RedisKeyValueBackend;
@@ -53,7 +53,7 @@ public class OrganizationRequestIdempotency {
                 RedisKeyValueBackend.redis(provider::getResource));
     }
 
-    static OrganizationRequestIdempotency withStore(RedisKeyValueBackend store) {
+    public static OrganizationRequestIdempotency withStore(RedisKeyValueBackend store) {
         return new OrganizationRequestIdempotency(store);
     }
 

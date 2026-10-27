@@ -2,6 +2,7 @@ package vn.ticketscenter.ticketing.cache;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.params.SetParams;
+import vn.ticketscenter.config.redis.RedisScan;
 import vn.ticketscenter.ticketing.dto.ActiveHoldProjection;
 
 import java.io.ByteArrayInputStream;
@@ -134,6 +135,11 @@ public final class RedisActiveHoldCache {
         } catch (RuntimeException unavailable) {
             return false;
         }
+    }
+
+    /** Xóa active hold đã cache của mọi người dùng (hủy sự kiện). */
+    public static void evictAll(Jedis redis) {
+        RedisScan.deleteMatching(redis, "tc:user:active-hold:*");
     }
 
     public static String redisKey(UUID actorId) {

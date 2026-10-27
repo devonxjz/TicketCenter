@@ -1,4 +1,4 @@
-package vn.ticketscenter.identity.service;
+package vn.ticketscenter.identity.cache;
 
 import vn.ticketscenter.config.identity.IdentityConfig;
 import redis.clients.jedis.Jedis;

@@ -1,4 +1,4 @@
-package vn.ticketscenter.settlement.service;
+package vn.ticketscenter.settlement.cache;
 
 import java.util.*;
 import java.util.function.Supplier;
@@ -33,27 +33,11 @@ public final class SettlementReadCache {
     }
 
     public String read(UUID event, Kind kind, Supplier<String> authoritative) {
-        String key = key(event, kind);
-        try {
-            String hit = backend.get(key);
-            if (hit != null) return hit;
-        } catch (RuntimeException unavailable) {
-        }
-        String json = authoritative.get();
-        if (json.length() <= 1_000_000)
-            try {
-                backend.setex(key, kind.ttl, json);
-            } catch (RuntimeException unavailable) {
-            }
-        return json;
+        return backend.readThrough(key(event, kind), kind.ttl, authoritative);
     }
 
     public void invalidate(UUID event) {
-        for (Kind kind : Kind.values())
-            try {
-                backend.delete(key(event, kind));
-            } catch (RuntimeException unavailable) {
-            }
+        for (Kind kind : Kind.values()) backend.deleteQuietly(key(event, kind));
     }
 
     private static String key(UUID event, Kind kind) {

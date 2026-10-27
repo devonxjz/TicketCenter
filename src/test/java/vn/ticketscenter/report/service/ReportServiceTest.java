@@ -4,6 +4,7 @@ import vn.ticketscenter.config.redis.RedisKeyValueBackend;
 import org.junit.jupiter.api.Test;
 import vn.ticketscenter.identity.model.*;
 import vn.ticketscenter.identity.security.UserPrincipal;
+import vn.ticketscenter.report.cache.ReportCache;
 import vn.ticketscenter.report.dto.ReportFilter;
 import vn.ticketscenter.settlement.infrastructure.FinanceException;
 import java.io.*;
