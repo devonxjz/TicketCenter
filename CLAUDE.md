@@ -25,7 +25,7 @@ TicketsCenter: a Java 25 / Servlet 6.1 (`jakarta.*`) / JSP+JSTL WAR for Tomcat 1
 
 ## Migrations (`database/migrations/`)
 
-- Never rename or edit an applied migration. The shared Azure DB records applied files by **name** in `dbo.tc_schema_migrations(version, checksum_sha256)` (checksum = SHA-256 with LF-normalised line endings). Duplicate numbers (027, 028, 029, 030, 043, 045) are intentional; `APPLY_ORDER.md` gives the required order for a fresh DB. From 046 on, one file per number, applied numerically.
+- Never rename or edit an applied migration. The shared Azure DB records applied files by **name** in `dbo.tc_schema_migrations(version, checksum_sha256)` (checksum = SHA-256 with LF-normalised line endings). Duplicate numbers (027, 028, 029, 030, 043, 045, 061, 069, 070) are intentional; `APPLY_ORDER.md` gives the required order for a fresh DB and explains the remaining ledger/checksum differences. From 046 on, apply numerically (by file name within a shared number); new migrations take one file per number.
 - New migration: next unused number (check unmerged branches too), one file per number. Runbook: `docs/backend/database-runbook.md`.
 - This Linux machine has no `sqlcmd`/`pwsh`/Docker; migrations have been applied with a small JDBC runner (split on `GO`, one transaction, dry-run then commit). Ask before applying anything to the shared Azure DB in a new session.
 
