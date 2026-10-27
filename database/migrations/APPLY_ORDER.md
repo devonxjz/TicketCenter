@@ -33,16 +33,21 @@ Lưu ý lịch sử: `045_order_ticket_access_assertions.sql` được áp **tr�
 
 ## Đối chiếu ledger Azure (`ticketcenter-backup`, 27/10/2026)
 
-Sau lần đồng bộ ngày 27/10/2026, mọi file trong thư mục này đều có hiệu lực trên DB. Các chênh lệch còn lại giữa tên
-file/checksum và `dbo.tc_schema_migrations` là có chủ đích:
+Sau lần đồng bộ ngày 27/10/2026, mọi file trong thư mục này đều có hiệu lực trên DB và checksum trong ledger khớp
+file trong repo. Các chênh lệch tên còn lại là có chủ đích:
 
 | Ledger | Repo | Giải thích |
 |---|---|---|
 | `027_vuong_finance.azure.sql` | `027_vuong_finance.sql` | Bản điều chỉnh cho Azure được áp thay cho file trong repo. |
 | `048_azure_persistence_compatibility.sql`, `azure-bootstrap-v1` | — | Bước bootstrap chỉ dành cho Azure, không có trong repo (xem `docs/backend/migration-request-048-049.md`). |
-| `043_coupon_admin.sql` (checksum cũ) | `043_coupon_admin.sql` | File bị sửa sau khi áp (`8efd22e`, thêm `db_owner`/`dbo`); DB đã có nội dung mới, ledger giữ checksum bản `58aa09d`. |
-| `069_auth_membership_reads` | `069_auth_membership_reads.sql` | File gốc được áp 16/10 nhưng không commit; file trong repo được dựng lại từ DB nên checksum khác. |
-| `070_legacy_payment_provenance_names` | `070_legacy_payment_provenance_names.sql` | Tương tự, áp 21/10; đổi tên các đối tượng VNPAY của `063` sang Legacy. Đã kiểm tra trên bản sao trạng thái `063` trong transaction: kết quả trùng DB và chạy lại không đổi gì. |
+
+Ba dòng ledger đã được cập nhật checksum cho khớp repo ngày 27/10/2026; checksum cũ giữ lại để tra cứu:
+
+| Ledger | Checksum cũ | Lý do |
+|---|---|---|
+| `043_coupon_admin.sql` | `552d7562c45b72f883af63835cebc674387c3e0ec8ecfb3d6814de0e7ad20d06` | File bị sửa sau khi áp (`8efd22e`, thêm `db_owner`/`dbo`); DB đã có nội dung mới. Checksum cũ là bản `58aa09d`. |
+| `069_auth_membership_reads` | `e5ec51acec440f5cf3077c93e8a7338c901173a376d467516b333fbbe22cd5d2` | File gốc áp 16/10 nhưng không commit; file trong repo được dựng lại từ DB (cùng quyền). |
+| `070_legacy_payment_provenance_names` | `143fbf5d4a23081b11f15ddc860007a2d94dc1767929edd761daa7fbfe3edf9c` | File gốc áp 21/10 nhưng không commit; dựng lại từ DB. Đã kiểm tra trên bản sao trạng thái `063` trong transaction: kết quả trùng DB và chạy lại không đổi gì. |
 
 `069_event_checkin_open_override` và `070_membership_commands` được áp lên DB ngày 27/10/2026 (trước đó Java đã cần
 cột `checkin_open_at` và chữ ký mới của `usp_AddMember`/`usp_ChangeMemberRole`). Từ 13/10 ledger ghi tên **không có**
