@@ -173,7 +173,7 @@ class FinanceTeamSchemaIntegrationTest {
         sql("INSERT dbo.tc_ticket_check_in_logs(event_id,ticket_id,actor_id,result,scanned_at) VALUES(?,?,?,'ALREADY_USED','2019-03-01')",event,active,admin);
         var filter=new ReportFilter(ReportFilter.Metric.EVENT_SALES,org,event,Instant.parse("2019-03-01T00:00:00Z"),Instant.parse("2019-03-03T00:00:00Z"),1,1);
         var report=new ReportRepository().page(connection,filter);var summary=(Map<?,?>)report.get("summary");assertEquals(2L,summary.get("ticketsCheckedInCount"));assertEquals(3L,summary.get("ticketCount"));assertEquals(new BigDecimal("100"),summary.get("grossRevenue"));
-        String json=new vn.ticketscenter.report.service.ReportServiceImpl(database,vn.ticketscenter.report.service.ReportCache.none()).json(principal,filter);assertTrue(json.contains("\"ticketsCheckedInCount\":2"),json);
+        String json=new vn.ticketscenter.report.service.ReportServiceImpl(database,vn.ticketscenter.report.cache.ReportCache.none()).json(principal,filter);assertTrue(json.contains("\"ticketsCheckedInCount\":2"),json);
         var output=new ByteArrayOutputStream();try(var cursor=new ReportRepository().cursor(connection,filter)){StreamingCsvExporter.write(output,cursor.headers(),cursor);}
         String csv=output.toString(java.nio.charset.StandardCharsets.UTF_8);assertTrue(csv.contains("\"ticketsCheckedInCount\""));assertTrue(csv.contains("\"3\",\"2\",\"1\",\"2\",\"100\""),csv);
         String reader="tc_report_"+UUID.randomUUID().toString().replace("-","");sql("CREATE USER ["+reader+"] WITHOUT LOGIN; ALTER ROLE tc_manager ADD MEMBER ["+reader+"]; DENY SELECT ON dbo.tc_tickets TO ["+reader+"];");

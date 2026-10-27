@@ -1,6 +1,6 @@
 package vn.ticketscenter.fulfillment.checkin.security;
 
-import vn.ticketscenter.config.TicketQrConfig;
+import vn.ticketscenter.config.fulfillment.TicketQrConfig;
 import vn.ticketscenter.config.web.JsonObjectParser;
 import vn.ticketscenter.fulfillment.checkin.CheckInException;
 

@@ -2,7 +2,6 @@ package vn.ticketscenter.event.service;
 
 import vn.ticketscenter.event.EventException;
 import vn.ticketscenter.event.dto.*;
-import vn.ticketscenter.event.image.EventImagePlaceholders;
 import vn.ticketscenter.event.dao.EventRepository;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.storage.*;
@@ -67,7 +66,6 @@ public class EventServiceImpl implements EventService {
 
     private EventDto saveInternal(UserPrincipal actor, EventSave command, boolean maintenanceCall) {
         byte[] image = command.image();
-        boolean defaultImage = image == null && command.kind() == EventSave.Kind.CREATE;
         try {
             if (image != null)
                 image = ImageContentValidator.readAndValidate(new ByteArrayInputStream(image));
@@ -80,7 +78,7 @@ public class EventServiceImpl implements EventService {
                         actor,
                         command,
                         fingerprint,
-                        image != null || defaultImage,
+                        image != null,
                         maintenanceCall);
         if (claim.replay() != null) return claim.replay();
         vn.ticketscenter.event.cache.EventIdempotencyStore.Lease redisLease = null;
@@ -100,17 +98,9 @@ public class EventServiceImpl implements EventService {
         }
         try {
             StoredAsset asset = null;
-            if (image != null || defaultImage) {
+            if (image != null) {
                 try {
-                    if (defaultImage) {
-                        asset = storage.find(claim.publicId()).orElse(null);
-                        if (asset == null)
-                            image =
-                                    EventImagePlaceholders.png(
-                                            repository.categorySlug(command.fields().categoryId()));
-                    }
-                    if (asset == null)
-                        asset = storage.ensure(new ByteArrayInputStream(image), claim.publicId());
+                    asset = storage.ensure(new ByteArrayInputStream(image), claim.publicId());
                 } catch (EventException e) {
                     release(claim, e.status() < 500);
                     throw e;

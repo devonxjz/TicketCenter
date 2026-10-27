@@ -1,5 +1,6 @@
 package vn.ticketscenter.event.cancellation.service;
 
+import vn.ticketscenter.event.cancellation.cache.CancellationProgressCache;
 import vn.ticketscenter.event.cancellation.dao.EventCancellationStore;
 import java.util.Objects;
 import java.util.UUID;

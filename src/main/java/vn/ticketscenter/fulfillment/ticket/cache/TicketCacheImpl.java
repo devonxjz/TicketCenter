@@ -6,6 +6,7 @@ import vn.ticketscenter.fulfillment.ticket.dto.TicketDetailDto;
 
 import java.time.Instant;
 import java.util.Base64;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -34,6 +35,25 @@ public final class TicketCacheImpl implements TicketCache {
 
     public static String qrKey(UUID ticketId, long version) {
         return "tc:ticket:qr:v1:" + ticketId + ":" + version;
+    }
+
+    /** Xóa chi tiết và mọi version QR của một vé trên kết nối của bên gọi (refund, check-in). */
+    public static void evict(Jedis redis, UUID ticketId) {
+        redis.del(detailKey(ticketId));
+        RedisScan.deleteMatching(redis, "tc:ticket:qr:v1:" + ticketId + ":*");
+    }
+
+    /** Xóa danh sách vé đã cache của một người mua. */
+    public static void evictUserTickets(Jedis redis, UUID actorId) {
+        RedisScan.deleteMatching(redis, "tc:user:tickets:v1:" + actorId + ":*");
+    }
+
+    /** Xóa toàn bộ projection vé (hủy sự kiện). */
+    public static void evictAll(Jedis redis) {
+        for (String pattern :
+                List.of("tc:ticket:detail:v1:*", "tc:ticket:qr:v1:*", "tc:user:tickets:v1:*")) {
+            RedisScan.deleteMatching(redis, pattern);
+        }
     }
 
     @Override
@@ -85,9 +105,7 @@ public final class TicketCacheImpl implements TicketCache {
     public void invalidate(UUID ticketId) {
         if (ticketId == null) return;
         try (Jedis redis = connections.get()) {
-            redis.del(detailKey(ticketId));
-            // Xóa tất cả version của QR thuộc vé này
-            RedisScan.deleteMatching(redis, "tc:ticket:qr:v1:" + ticketId + ":*");
+            evict(redis, ticketId);
         } catch (Exception ignored) {
             // Lỗi cache không làm gián đoạn hệ thống
         }

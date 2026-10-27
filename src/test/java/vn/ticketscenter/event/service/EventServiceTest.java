@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 
 import vn.ticketscenter.event.*;
 import vn.ticketscenter.event.dto.*;
-import vn.ticketscenter.event.image.EventImagePlaceholders;
 import vn.ticketscenter.event.dao.EventRepository;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.security.UserPrincipal;
@@ -115,11 +114,6 @@ class EventServiceTest {
             releases++;
             aborted = abort;
         }
-
-        @Override
-        public String categorySlug(UUID category) {
-            return "concert";
-        }
     }
 
     private static final class Storage implements StorageService {
@@ -156,7 +150,12 @@ class EventServiceTest {
 
     private static byte[] png() {
         try {
-            return EventImagePlaceholders.png("concert");
+            var output = new ByteArrayOutputStream();
+            javax.imageio.ImageIO.write(
+                    new java.awt.image.BufferedImage(16, 9, java.awt.image.BufferedImage.TYPE_INT_RGB),
+                    "png",
+                    output);
+            return output.toByteArray();
         } catch (IOException e) {
             throw new AssertionError(e);
         }
@@ -184,23 +183,17 @@ class EventServiceTest {
     }
 
     @Test
-    void createWithoutFileUploadsCategoryPlaceholder() {
+    void createWithoutFileLeavesCoverForLaterUpload() {
         Repository r = new Repository();
         Storage s = new Storage();
-        EventDto dto =
-                new EventServiceImpl(r, s)
-                        .save(
-                                ACTOR,
-                                new EventSave(
-                                        UUID.randomUUID(),
-                                        EventSave.Kind.CREATE,
-                                        ORG,
-                                        0,
-                                        FIELDS,
-                                        null));
-        assertEquals(1, s.uploads);
-        assertTrue(dto.coverImageUrl().startsWith("https://res.cloudinary.com/"));
+        new EventServiceImpl(r, s)
+                .save(
+                        ACTOR,
+                        new EventSave(
+                                UUID.randomUUID(), EventSave.Kind.CREATE, ORG, 0, FIELDS, null));
+        assertEquals(0, s.uploads);
         assertEquals(1, r.finalizes);
+        assertNull(r.received.image());
     }
 
     @Test

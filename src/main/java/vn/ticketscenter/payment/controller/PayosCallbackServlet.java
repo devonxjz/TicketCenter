@@ -6,7 +6,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import vn.ticketscenter.config.web.ApiRequest;
-import vn.ticketscenter.config.PayosConfig;
+import vn.ticketscenter.config.payment.PayosConfig;
 import vn.ticketscenter.payment.dto.PaymentReturnResult;
 import vn.ticketscenter.payment.dto.PayosWebhookResult;
 import vn.ticketscenter.payment.service.PaymentRuntime;

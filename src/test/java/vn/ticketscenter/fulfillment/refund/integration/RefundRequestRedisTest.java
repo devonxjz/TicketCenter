@@ -8,6 +8,7 @@ import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import redis.clients.jedis.Jedis;
 import vn.ticketscenter.config.persistence.*;
+import vn.ticketscenter.fulfillment.refund.cache.RefundRequestCacheImpl;
 import vn.ticketscenter.fulfillment.refund.dto.*;
 import vn.ticketscenter.fulfillment.refund.dao.*;
 import vn.ticketscenter.fulfillment.refund.service.*;

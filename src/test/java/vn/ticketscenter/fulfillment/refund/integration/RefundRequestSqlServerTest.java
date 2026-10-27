@@ -7,6 +7,7 @@ import java.util.concurrent.*;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import vn.ticketscenter.config.persistence.*;
+import vn.ticketscenter.fulfillment.refund.cache.RefundRequestCache;
 import vn.ticketscenter.fulfillment.refund.dto.*;
 import vn.ticketscenter.fulfillment.refund.dao.*;
 import vn.ticketscenter.fulfillment.refund.service.*;

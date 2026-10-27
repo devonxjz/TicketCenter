@@ -4,6 +4,7 @@ import java.io.*;
 import java.sql.*;
 import java.util.*;
 import vn.ticketscenter.identity.security.UserPrincipal;
+import vn.ticketscenter.report.cache.ReportCache;
 import vn.ticketscenter.report.csv.StreamingCsvExporter;
 import vn.ticketscenter.report.dto.ReportFilter;
 import vn.ticketscenter.report.dao.ReadProjection;

@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.math.BigDecimal;
 import javax.sql.DataSource;
 import vn.ticketscenter.fulfillment.checkin.integration.ScanFixture;
+import vn.ticketscenter.fulfillment.refund.cache.RefundLeaseImpl;
 import vn.ticketscenter.fulfillment.refund.worker.*;
 import vn.ticketscenter.payment.integration.*;
 import static org.junit.jupiter.api.Assertions.*;

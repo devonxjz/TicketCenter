@@ -130,8 +130,9 @@ class EventEpicSqlServerIT {
         assertTrue(layout.contains("AA2"));assertTrue(layout.contains("\"totalCapacity\":54"));assertTrue(layout.contains("\"basePrice\":\"0\""));
         try(Connection c=DongSqlFixture.connection(null)){DongSqlFixture.execute(c,"UPDATE dbo.tc_zones SET held_quantity=60,sold_quantity=20 WHERE id=?",standing);}
         assertEquals(409,assertThrows(EventProblem.class,()->f.service.mutate(f.actor,"below-quota",f.command("ZONE_EDIT",null,standing,Map.of("basePrice","0","capacity","79")))).status());
+        assertEquals(400,assertThrows(EventProblem.class,()->f.service.mutate(f.actor,UUID.randomUUID().toString(),f.command("SUBMIT",event,null,Map.of()))).status(),"071: a cover is required before submission");
+        f.covers(new DongSqlFixture.Storage(),(e,a)->{}).upload(f.actor,event,UUID.randomUUID().toString(),new ByteArrayInputStream(DongSqlFixture.png()));
         f.service.mutate(f.actor,UUID.randomUUID().toString(),f.command("SUBMIT",event,null,Map.of()));
-        assertEquals(400,assertThrows(EventProblem.class,()->f.service.mutate(f.adminActor,UUID.randomUUID().toString(),f.command("PUBLISH",event,null,Map.of("commissionRuleId",f.rule.toString())))).status());
         assertEquals(409,assertThrows(EventProblem.class,()->f.service.mutate(f.actor,UUID.randomUUID().toString(),f.command("ZONE_DELETE",null,zone,Map.of()))).status());
     }
     @Test void coverSubmitRejectResubmitPublishAndImmediatePublicCache() throws Exception {
@@ -170,6 +171,7 @@ class EventEpicSqlServerIT {
     }
     @Test void submitRacesWithZoneDeleteWithoutPublishingEmptyInventory() throws Exception {
         UUID event=f.draft(),zone=f.seated(event,"Race zone",1,2);
+        f.covers(new DongSqlFixture.Storage(),(e,a)->{}).upload(f.actor,event,UUID.randomUUID().toString(),new ByteArrayInputStream(DongSqlFixture.png()));
         var results=race(()->f.service.mutate(f.actor,UUID.randomUUID().toString(),f.command("SUBMIT",event,null,Map.of())),
             ()->f.service.mutate(f.actor,UUID.randomUUID().toString(),f.command("ZONE_DELETE",null,zone,Map.of())));
         assertEquals(1,results.stream().filter(Result.class::isInstance).count());

@@ -1,6 +1,6 @@
 package vn.ticketscenter.identity.service;
 
-import vn.ticketscenter.config.IdentityConfig;
+import vn.ticketscenter.config.identity.IdentityConfig;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.identity.dto.LoginRequestDto;

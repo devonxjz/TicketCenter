@@ -2,6 +2,7 @@ package vn.ticketscenter.fulfillment.refund.worker;
 
 import java.util.*;
 import java.util.logging.Logger;
+import vn.ticketscenter.fulfillment.refund.cache.RefundLease;
 import vn.ticketscenter.payment.integration.RefundGateway;
 
 /** First dispatch submits; recovery queries the same attempt. */

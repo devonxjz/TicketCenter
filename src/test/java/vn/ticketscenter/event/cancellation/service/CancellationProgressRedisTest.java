@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import java.util.*;
 import redis.clients.jedis.Jedis;
+import vn.ticketscenter.event.cancellation.cache.CancellationProgressCache;
 import static org.junit.jupiter.api.Assertions.*;
 
 @EnabledIfEnvironmentVariable(named="TC_CANCELLATION_REDIS_TEST",matches="true")

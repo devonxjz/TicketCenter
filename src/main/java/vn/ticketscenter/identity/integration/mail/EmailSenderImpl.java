@@ -1,6 +1,6 @@
 package vn.ticketscenter.identity.integration.mail;
 
-import vn.ticketscenter.config.MailConfig;
+import vn.ticketscenter.config.mail.MailConfig;
 
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;

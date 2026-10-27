@@ -1,9 +1,10 @@
 # Thứ tự áp migration
 
-Các số `027`, `028`, `029`, `030`, `043`, `045`, `061` bị dùng cho nhiều file. Các file **không được đổi tên**: bảng
+Các số `027`, `028`, `029`, `030`, `043`, `045`, `061`, `069`, `070` bị dùng cho nhiều file. Các file **không được đổi tên**: bảng
 `dbo.tc_schema_migrations` trên Azure SQL ghi nhận migration theo tên file, và CI, `tools/acceptance` cùng các
 nhánh khác tham chiếu những tên này. Thứ tự dưới đây mô tả lịch sử trên DB dùng chung, không phải một bộ cài
-database rỗng có thể chạy nguyên từng file theo số. Các file từ `046` áp theo số, với hai file `061` riêng biệt.
+database rỗng có thể chạy nguyên từng file theo số. Các file từ `046` áp theo số; khi một số có hai file
+(`061`, `069`, `070`) thì áp theo thứ tự tên file.
 
 | # | File |
 |---|---|
@@ -29,6 +30,28 @@ database rỗng có thể chạy nguyên từng file theo số. Các file từ `
 
 Lưu ý lịch sử: `045_order_ticket_access_assertions.sql` được áp **trước** `044`, và `043_khanh04_admin_refund.sql`
 được ghi nhận **sau** `047` trên DB đã có các đối tượng nền tương ứng.
+
+## Đối chiếu ledger Azure (`ticketcenter-backup`, 27/10/2026)
+
+Sau lần đồng bộ ngày 27/10/2026, mọi file trong thư mục này đều có hiệu lực trên DB và checksum trong ledger khớp
+file trong repo. Các chênh lệch tên còn lại là có chủ đích:
+
+| Ledger | Repo | Giải thích |
+|---|---|---|
+| `027_vuong_finance.azure.sql` | `027_vuong_finance.sql` | Bản điều chỉnh cho Azure được áp thay cho file trong repo. |
+| `048_azure_persistence_compatibility.sql`, `azure-bootstrap-v1` | — | Bước bootstrap chỉ dành cho Azure, không có trong repo (xem `docs/backend/migration-request-048-049.md`). |
+
+Ba dòng ledger đã được cập nhật checksum cho khớp repo ngày 27/10/2026; checksum cũ giữ lại để tra cứu:
+
+| Ledger | Checksum cũ | Lý do |
+|---|---|---|
+| `043_coupon_admin.sql` | `552d7562c45b72f883af63835cebc674387c3e0ec8ecfb3d6814de0e7ad20d06` | File bị sửa sau khi áp (`8efd22e`, thêm `db_owner`/`dbo`); DB đã có nội dung mới. Checksum cũ là bản `58aa09d`. |
+| `069_auth_membership_reads` | `e5ec51acec440f5cf3077c93e8a7338c901173a376d467516b333fbbe22cd5d2` | File gốc áp 16/10 nhưng không commit; file trong repo được dựng lại từ DB (cùng quyền). |
+| `070_legacy_payment_provenance_names` | `143fbf5d4a23081b11f15ddc860007a2d94dc1767929edd761daa7fbfe3edf9c` | File gốc áp 21/10 nhưng không commit; dựng lại từ DB. Đã kiểm tra trên bản sao trạng thái `063` trong transaction: kết quả trùng DB và chạy lại không đổi gì. |
+
+`069_event_checkin_open_override` và `070_membership_commands` được áp lên DB ngày 27/10/2026 (trước đó Java đã cần
+cột `checkin_open_at` và chữ ký mới của `usp_AddMember`/`usp_ChangeMemberRole`). Từ 13/10 ledger ghi tên **không có**
+đuôi `.sql`.
 
 ## Dựng mới môi trường kiểm thử trên máy
 
@@ -61,3 +84,8 @@ transaction của bên gọi, cho phép ADMIN nền tảng, tái kích hoạt th
 `MEMBER_ACTIVATED`/`MEMBER_DEACTIVATED` và trả về dòng membership. `OrganizationMembershipService` gọi hai procedure
 này dưới principal `MANAGER`; áp migration này trước khi triển khai bản Java tương ứng. Quy tắc "Quản lý cuối cùng"
 vẫn do `trg_Membership_ProtectLastManager` giữ (mã lỗi 51106).
+
+`071_event_submit_requires_cover.sql` thêm điều kiện ảnh bìa vào nhánh `SUBMIT` của `usp_EventCommand` (THROW 52000
+`Event requires a cover image`), sửa tại chỗ như `061` nên phần còn lại của procedure giữ nguyên và chạy lại không đổi gì.
+Ứng dụng không còn tự sinh ảnh placeholder khi tạo sự kiện; áp migration này cùng lúc với bản Java đó để sự kiện
+chưa có ảnh không vào được hàng chờ duyệt qua API.

@@ -5,7 +5,7 @@ import vn.ticketscenter.config.persistence.FeatureContext;
 import vn.ticketscenter.fulfillment.refund.dao.AdminRefundRepository;
 import vn.ticketscenter.fulfillment.refund.service.AdminRefundDecisionService;
 import vn.ticketscenter.fulfillment.refund.service.AdminRefundDecisionServiceImpl;
-import vn.ticketscenter.fulfillment.refund.service.AdminRefundCacheImpl;
+import vn.ticketscenter.fulfillment.refund.cache.AdminRefundCacheImpl;
 import vn.ticketscenter.fulfillment.refund.service.RefundException;
 
 import static vn.ticketscenter.config.persistence.DatabasePrincipal.ADMIN;

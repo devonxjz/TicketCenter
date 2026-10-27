@@ -24,7 +24,7 @@ import vn.ticketscenter.identity.service.PasswordHasher;
 import vn.ticketscenter.identity.service.PasswordResetService;
 import vn.ticketscenter.identity.service.PasswordResetServiceImpl;
 import vn.ticketscenter.identity.service.ResetTokenCodec;
-import vn.ticketscenter.identity.service.UserSessionCache;
+import vn.ticketscenter.identity.cache.UserSessionCache;
 
 import java.io.BufferedReader;
 import java.io.PrintWriter;

@@ -2,7 +2,7 @@ package vn.ticketscenter.fulfillment.checkin.controller;
 import org.junit.jupiter.api.Test;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
-import vn.ticketscenter.identity.config.IdentityServices;
+import vn.ticketscenter.config.identity.IdentityServices;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.identity.security.*;
 import vn.ticketscenter.identity.service.*;
