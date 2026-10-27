@@ -1,9 +1,11 @@
-package vn.ticketscenter.config;
+package vn.ticketscenter.config.payment;
 
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
 import vn.payos.PayOS;
 import vn.payos.core.ClientOptions;
+import vn.ticketscenter.config.AppConfig;
+import vn.ticketscenter.config.ServerConfig;
 
 import java.time.Duration;
 import java.util.Locale;

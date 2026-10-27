@@ -1,4 +1,6 @@
-package vn.ticketscenter.config;
+package vn.ticketscenter.config.fulfillment;
+
+import vn.ticketscenter.config.AppConfig;
 
 import java.nio.charset.StandardCharsets;
 

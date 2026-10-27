@@ -41,7 +41,7 @@ public final class CsrfFilter implements Filter {
                     ApiRequest.path(httpRequest);
 
             // Webhook payOS gọi server-to-server và được xác thực bằng chữ ký checksum riêng
-            if (path.equals(vn.ticketscenter.config.PayosConfig.WEBHOOK_PATH)) {
+            if (path.equals(vn.ticketscenter.config.payment.PayosConfig.WEBHOOK_PATH)) {
                 chain.doFilter(request, response);
                 return;
             }

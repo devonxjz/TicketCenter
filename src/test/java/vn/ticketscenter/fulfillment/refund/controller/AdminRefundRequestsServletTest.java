@@ -11,7 +11,7 @@ import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.fulfillment.refund.dao.AdminRefundStore;
 import vn.ticketscenter.fulfillment.refund.dto.*;
 import vn.ticketscenter.fulfillment.refund.service.*;
-import vn.ticketscenter.identity.config.IdentityServices;
+import vn.ticketscenter.config.identity.IdentityServices;
 import vn.ticketscenter.identity.dao.UserRepository;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.security.SecurityContext;

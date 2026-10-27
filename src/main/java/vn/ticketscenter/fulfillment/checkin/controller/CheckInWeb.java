@@ -5,7 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.fulfillment.checkin.CheckInException;
-import vn.ticketscenter.identity.config.IdentityServices;
+import vn.ticketscenter.config.identity.IdentityServices;
 import vn.ticketscenter.identity.security.SecurityContext;
 import java.io.IOException;
 import java.util.UUID;

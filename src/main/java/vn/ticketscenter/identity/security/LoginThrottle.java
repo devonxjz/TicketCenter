@@ -1,6 +1,6 @@
 package vn.ticketscenter.identity.security;
 
-import vn.ticketscenter.config.IdentityConfig;
+import vn.ticketscenter.config.identity.IdentityConfig;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;

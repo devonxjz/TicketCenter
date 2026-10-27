@@ -1,6 +1,6 @@
 package vn.ticketscenter.identity.service;
 
-import vn.ticketscenter.config.IdentityConfig;
+import vn.ticketscenter.config.identity.IdentityConfig;
 import redis.clients.jedis.Jedis;
 import vn.ticketscenter.config.redis.RedisClientProvider;
 import vn.ticketscenter.identity.model.UserStatus;

@@ -1,4 +1,6 @@
-package vn.ticketscenter.config;
+package vn.ticketscenter.config.identity;
+
+import vn.ticketscenter.config.AppConfig;
 
 /**
  * Cấu hình của module identity (OTP, đặt lại mật khẩu, chống dò mật khẩu, cache phiên, tài khoản admin).

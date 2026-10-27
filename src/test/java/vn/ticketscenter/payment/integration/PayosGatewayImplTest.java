@@ -4,7 +4,7 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import vn.payos.PayOS;
 import vn.payos.crypto.CryptoProviderImpl;
-import vn.ticketscenter.config.PayosConfig;
+import vn.ticketscenter.config.payment.PayosConfig;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

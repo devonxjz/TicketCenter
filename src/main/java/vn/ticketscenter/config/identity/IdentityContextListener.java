@@ -1,4 +1,4 @@
-package vn.ticketscenter.identity.config;
+package vn.ticketscenter.config.identity;
 
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletContextEvent;

@@ -12,7 +12,7 @@ import vn.payos.model.v2.paymentRequests.CreatePaymentLinkResponse;
 import vn.payos.model.v2.paymentRequests.PaymentLink;
 import vn.payos.model.v2.paymentRequests.PaymentLinkItem;
 import vn.payos.model.webhooks.WebhookData;
-import vn.ticketscenter.config.PayosConfig;
+import vn.ticketscenter.config.payment.PayosConfig;
 
 import java.time.Instant;
 import java.util.Map;

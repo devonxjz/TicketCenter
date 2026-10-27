@@ -1,4 +1,6 @@
-package vn.ticketscenter.config;
+package vn.ticketscenter.config.mail;
+
+import vn.ticketscenter.config.AppConfig;
 
 /**
  * Cấu hình dịch vụ gửi email (SMTP).

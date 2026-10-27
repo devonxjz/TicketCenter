@@ -5,7 +5,7 @@ import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
 import jakarta.servlet.annotation.WebListener;
 import vn.ticketscenter.config.AppConfig;
-import vn.ticketscenter.config.PayosConfig;
+import vn.ticketscenter.config.payment.PayosConfig;
 import vn.ticketscenter.config.persistence.ConnectionBudgets;
 import vn.ticketscenter.config.persistence.FeatureContext;
 import vn.ticketscenter.config.redis.RedisClientProvider;

@@ -30,7 +30,7 @@ public final class SignedTicketQrSigner {
     private final String secretKey;
 
     public static SignedTicketQrSigner configured() {
-        return new SignedTicketQrSigner(vn.ticketscenter.config.TicketQrConfig.signingSecret());
+        return new SignedTicketQrSigner(vn.ticketscenter.config.fulfillment.TicketQrConfig.signingSecret());
     }
 
     public SignedTicketQrSigner(String secretKey) {
