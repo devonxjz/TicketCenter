@@ -261,22 +261,6 @@ public class EventRepository {
                 });
     }
 
-    public String categorySlug(UUID categoryId) {
-        return tx(
-                manager,
-                c -> {
-                    try (PreparedStatement q =
-                                    query(
-                                            c,
-                                            "SELECT slug FROM dbo.vw_EventCategories WHERE id=?",
-                                            categoryId);
-                            ResultSet r = q.executeQuery()) {
-                        if (!r.next()) throw failure(400, "CATEGORY_NOT_FOUND", "Unknown category");
-                        return r.getString(1);
-                    }
-                });
-    }
-
     public List<MigrationImage> migrationInventory() {
         return tx(
                 manager,

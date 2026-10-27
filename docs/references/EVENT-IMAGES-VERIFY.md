@@ -7,7 +7,7 @@ Use a dedicated local database named `TicketCenter_LIEM43_Test`. Do not run the 
 3. Run the focused unit tests.
 
 ```powershell
-mvn -B '-Dtest=EventServiceTest,EventMultipartParserTest,EventImagePlaceholdersTest,EventNavigationWebFlowTest,EventJdbcTest,SecurityContextTest' test
+mvn -B '-Dtest=EventServiceTest,EventMultipartParserTest,EventNavigationWebFlowTest,EventJdbcTest,SecurityContextTest' test
 node --test src/test/js/event-images.test.cjs
 ```
 
