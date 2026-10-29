@@ -1,8 +1,8 @@
 package vn.ticketscenter.identity.integration.mail;
 
 /**
- * Mẫu HTML cho email chứa mã OTP. Dùng table + inline style vì các mail client
- * (Gmail, Outlook) bỏ qua thẻ style và layout flex/grid.
+ * HTML template of the OTP email. It uses tables and inline styles because mail clients
+ * (Gmail, Outlook) ignore style tags and flex/grid layout.
  */
 public final class OtpEmailTemplate {
 
@@ -43,7 +43,7 @@ public final class OtpEmailTemplate {
             """;
 
     private OtpEmailTemplate() {
-        // Utility class không cho phép khởi tạo instance
+        // utility class
     }
 
     public static String render(
@@ -60,7 +60,9 @@ public final class OtpEmailTemplate {
     }
 
     private static String escape(String value) {
-        if (value == null) return "";
+        if (value == null) {
+            return "";
+        }
         return value.replace("&", "&amp;")
                 .replace("<", "&lt;")
                 .replace(">", "&gt;")

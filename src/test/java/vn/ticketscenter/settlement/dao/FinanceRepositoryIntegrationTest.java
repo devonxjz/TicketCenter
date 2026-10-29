@@ -1,5 +1,6 @@
 package vn.ticketscenter.settlement.dao;
 
+import vn.ticketscenter.settlement.service.FinanceException;
 import org.junit.jupiter.api.*;
 import java.sql.*;
 import java.util.*;
@@ -9,7 +10,6 @@ import vn.ticketscenter.config.DatabaseConfig;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.settlement.commission.dto.CommissionRuleCreateDto;
-import vn.ticketscenter.settlement.infrastructure.*;
 import vn.ticketscenter.settlement.payout.*;
 import static org.junit.jupiter.api.Assertions.*;
 

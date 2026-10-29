@@ -78,7 +78,9 @@ public class CheckInEventRepository {
                         query.setString(1, actorId.toString());
                         try (ResultSet rows = query.executeQuery()) {
                             List<UUID> ids = new ArrayList<>();
-                            while (rows.next()) ids.add(UUID.fromString(rows.getString(1)));
+                            while (rows.next()) {
+                                ids.add(UUID.fromString(rows.getString(1)));
+                            }
                             ids.sort(Comparator.comparing(UUID::toString));
                             return List.copyOf(ids);
                         }
@@ -102,7 +104,9 @@ public class CheckInEventRepository {
                         query.setString(3, actorId.toString());
                         try (ResultSet rows = query.executeQuery()) {
                             List<EventInfo> events = new ArrayList<>();
-                            while (rows.next()) events.add(event(rows));
+                            while (rows.next()) {
+                                events.add(event(rows));
+                            }
                             return List.copyOf(events);
                         }
                     }
@@ -116,9 +120,10 @@ public class CheckInEventRepository {
                             prepare(connection, EVENT_COLUMNS + " WHERE e.id=?")) {
                         query.setString(1, eventId.toString());
                         try (ResultSet rows = query.executeQuery()) {
-                            if (!rows.next())
+                            if (!rows.next()) {
                                 throw new CheckInException(
                                         404, "EVENT_NOT_FOUND", "Sự kiện không tồn tại.");
+                            }
                             EventInfo event = event(rows);
                             try (PreparedStatement access =
                                     prepare(
@@ -129,11 +134,12 @@ public class CheckInEventRepository {
                                 access.setString(1, actorId.toString());
                                 access.setString(2, event.organizationId().toString());
                                 try (ResultSet membership = access.executeQuery()) {
-                                    if (!membership.next())
+                                    if (!membership.next()) {
                                         throw new CheckInException(
                                                 403,
                                                 "CHECK_IN_FORBIDDEN",
                                                 "Bạn không có quyền soát vé tại sự kiện này.");
+                                    }
                                 }
                             }
                             return event;
@@ -194,14 +200,16 @@ public class CheckInEventRepository {
                                         : cached.checkInOpenAt());
                         query.setString(7, eventId.toString());
                         try (ResultSet rows = query.executeQuery()) {
-                            if (!rows.next())
+                            if (!rows.next()) {
                                 throw new CheckInException(
                                         404, "EVENT_NOT_FOUND", "Sự kiện không tồn tại.");
-                            if (!rows.getBoolean(1))
+                            }
+                            if (!rows.getBoolean(1)) {
                                 throw new CheckInException(
                                         403,
                                         "CHECK_IN_FORBIDDEN",
                                         "Bạn không có quyền soát vé tại sự kiện này.");
+                            }
                             return cached.eventId().equals(eventId) && rows.getBoolean(2);
                         }
                     }
@@ -216,8 +224,9 @@ public class CheckInEventRepository {
                         query.setString(1, eventId.toString());
                         utc(query, 2, now);
                         try (ResultSet rows = query.executeQuery()) {
-                            if (!rows.next())
+                            if (!rows.next()) {
                                 throw new SQLException("Missing check-in window result");
+                            }
                             return rows.getBoolean(1);
                         }
                     }
@@ -253,8 +262,9 @@ public class CheckInEventRepository {
     private static Instant instant(ResultSet row, int index) throws SQLException {
         // SQL Server datetimeoffset must retain its offset; LocalDateTime is converted
         // by the driver into the JVM's timezone and can shift the window by seven hours.
-        if (row.getMetaData().getColumnType(index) == -155) // SQL Server DATETIMEOFFSET JDBC type
+        if (row.getMetaData().getColumnType(index) == -155) { // SQL Server DATETIMEOFFSET JDBC type
         return row.getObject(index, OffsetDateTime.class).toInstant();
+        }
         return row.getObject(index, LocalDateTime.class).toInstant(ZoneOffset.UTC);
     }
 

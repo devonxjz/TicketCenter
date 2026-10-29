@@ -1,5 +1,6 @@
 package vn.ticketscenter.event.cancellation.controller;
 
+import vn.ticketscenter.identity.security.UserPrincipal;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,7 +19,7 @@ public final class CancellationQueueServlet extends HttpServlet {
             throws IOException {
         response.setHeader("Cache-Control", "no-store");
         try {
-            var actor = EventCancellationWeb.actor(request);
+            UserPrincipal actor = EventCancellationWeb.actor(request);
             Object configured =
                     request.getServletContext()
                             .getAttribute(PersistenceListener.REGISTRY_ATTRIBUTE);
@@ -28,7 +29,9 @@ public final class CancellationQueueServlet extends HttpServlet {
             }
             int page = number(request, "page", 1);
             int size = number(request, "pageSize", 6);
-            if (page > 50000 || size > 100) throw EventCancellationWeb.invalid();
+            if (page > 50000 || size > 100) {
+                throw EventCancellationWeb.invalid();
+            }
             size = Math.min(6, size);
             HttpResponses.data(
                     response,
@@ -41,9 +44,12 @@ public final class CancellationQueueServlet extends HttpServlet {
 
     private static int number(HttpServletRequest request, String name, int fallback) {
         String[] values = request.getParameterValues(name);
-        if (values == null) return fallback;
-        if (values.length != 1 || !values[0].matches("[1-9][0-9]{0,5}"))
+        if (values == null) {
+            return fallback;
+        }
+        if (values.length != 1 || !values[0].matches("[1-9][0-9]{0,5}")) {
             throw EventCancellationWeb.invalid();
+        }
         return Integer.parseInt(values[0]);
     }
 }

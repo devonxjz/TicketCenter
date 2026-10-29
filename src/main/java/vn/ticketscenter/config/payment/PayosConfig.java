@@ -11,9 +11,9 @@ import java.time.Duration;
 import java.util.Locale;
 
 /**
- * Cấu hình payOS (thay cho {@code @Bean PayOS} của bản demo Spring Boot).
- * Khóa đọc qua {@link AppConfig}: System property, biến môi trường (PAYOS_CLIENT_ID, PAYOS_API_KEY,
- * PAYOS_CHECKSUM_KEY, ...) rồi tới application.properties.
+ * payOS settings (in place of the {@code @Bean PayOS} of the Spring Boot demo).
+ * Keys are read through {@link AppConfig}: system property, environment variable (PAYOS_CLIENT_ID, PAYOS_API_KEY,
+ * PAYOS_CHECKSUM_KEY, ...), then application.properties.
  */
 public record PayosConfig(
         String clientId,
@@ -104,11 +104,15 @@ public record PayosConfig(
     }
 
     private static String trimSlash(String url) {
-        if (url == null || url.isBlank()) return null;
+        if (url == null || url.isBlank()) {
+            return null;
+        }
         return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
     }
 
     private static void requireValue(String value, String name) {
-        if (!present(value)) throw new IllegalStateException(name + " is not configured");
+        if (!present(value)) {
+            throw new IllegalStateException(name + " is not configured");
+        }
     }
 }

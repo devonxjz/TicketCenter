@@ -1,5 +1,6 @@
 package vn.ticketscenter.order.service;
 
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
@@ -24,8 +25,8 @@ public final class OrderRuntime implements ServletContextListener {
     }
 
     private static OrderService create(FeatureContext.Resources resources) {
-        var buyer = resources.strictPool("order-buyer", BUYER);
-        var redis = RedisClientProvider.getInstance();
+        HikariDataSource buyer = resources.strictPool("order-buyer", BUYER);
+        RedisClientProvider redis = RedisClientProvider.getInstance();
         return new OrderServiceImpl(
                 new OrderRepository(ConnectionBudgets.wrap(buyer)),
                 new RedisOrderCache(redis::getResource, Clock.systemUTC()));

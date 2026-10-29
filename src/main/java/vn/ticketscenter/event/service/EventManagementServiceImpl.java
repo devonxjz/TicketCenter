@@ -1,5 +1,6 @@
 package vn.ticketscenter.event.service;
 
+import java.util.logging.Logger;
 import vn.ticketscenter.event.cache.*;
 import vn.ticketscenter.event.dto.EventCommand;
 import vn.ticketscenter.event.dto.EventResponseValues;
@@ -9,8 +10,8 @@ import vn.ticketscenter.event.dao.EventManagementRepository.*;
 import java.util.*;
 
 public final class EventManagementServiceImpl implements EventManagementService {
-    private static final java.util.logging.Logger LOGGER =
-            java.util.logging.Logger.getLogger(EventManagementService.class.getName());
+    private static final Logger LOGGER =
+            Logger.getLogger(EventManagementService.class.getName());
     private final EventManagementRepository repository;
     private final EventIdempotencyStore idempotency;
     private final EventCacheInvalidator invalidation;
@@ -52,15 +53,15 @@ public final class EventManagementServiceImpl implements EventManagementService 
     public Result mutate(Actor actor, String key, EventCommand command) {
         EventManagementService.validateKey(key);
         String hash = command.hash();
-        var old = repository.receipt(actor, command.scope(), key, hash);
+        Optional<EventManagementRepository.Result> old = repository.receipt(actor, command.scope(), key, hash);
         if (old.isPresent()) {
             committed(old.get());
             return old.get();
         }
         repository.authorize(actor, command);
-        var lease = idempotency.acquire(EventManagementService.redisKey(actor, command.scope(), key), hash);
+        EventIdempotencyStore.Lease lease = idempotency.acquire(EventManagementService.redisKey(actor, command.scope(), key), hash);
         try {
-            var result = repository.command(actor, key, hash, command);
+            EventManagementRepository.Result result = repository.command(actor, key, hash, command);
             committed(result);
             try {
                 idempotency.completed(lease, hash, result);
@@ -78,12 +79,16 @@ public final class EventManagementServiceImpl implements EventManagementService 
 
     private void committed(Result result) {
         invalidate(result);
-        if (result.cleanupJson() == null || result.eventId() == null) return;
+        if (result.cleanupJson() == null || result.eventId() == null) {
+            return;
+        }
         try {
             String id = EventResponseValues.string(result.cleanupJson(), "publicId").orElse(null);
             String url =
                     EventResponseValues.string(result.cleanupJson(), "coverImageUrl").orElse(null);
-            if (id != null) orphans.record(result.eventId(), new StoredAsset(url, id));
+            if (id != null) {
+                orphans.record(result.eventId(), new StoredAsset(url, id));
+            }
         } catch (RuntimeException ignored) {
             LOGGER.warning(
                     "Event deletion cleanup journal pending; durable SQL metadata retained for reconciliation.");

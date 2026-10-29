@@ -8,8 +8,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 /**
- * Health check endpoint phục vụ kiểm tra liveness của ứng dụng.
- * Hợp đồng: GET /health/live -> HTTP 200 {"data":{"status":"UP"}}
+ * Liveness check of the application.
+ * Contract: GET /health/live -> HTTP 200 {"data":{"status":"UP"}}
  */
 @WebServlet(
         name = "HealthServlet",
@@ -19,10 +19,10 @@ public class HealthServlet extends HttpServlet {
     private static final String RESPONSE_JSON = "{\"data\":{\"status\":\"UP\"}}";
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        resp.setStatus(HttpServletResponse.SC_OK);
-        resp.setContentType("application/json;charset=UTF-8");
-        resp.setCharacterEncoding("UTF-8");
-        resp.getWriter().write(RESPONSE_JSON);
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        response.setStatus(HttpServletResponse.SC_OK);
+        response.setContentType("application/json;charset=UTF-8");
+        response.setCharacterEncoding("UTF-8");
+        response.getWriter().write(RESPONSE_JSON);
     }
 }

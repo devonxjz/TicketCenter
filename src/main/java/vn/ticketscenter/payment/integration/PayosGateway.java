@@ -67,8 +67,9 @@ public interface PayosGateway extends AutoCloseable {
      */
     static Result interpret(
             Optional<LinkStatus> maybeLink, BigDecimal amount, boolean windowClosed) {
-        if (maybeLink.isEmpty())
+        if (maybeLink.isEmpty()) {
             return windowClosed ? new Result(Outcome.FAILED, null) : Result.unknown();
+        }
         LinkStatus link = maybeLink.get();
         String status = link.status() == null ? "" : link.status();
         return switch (status) {

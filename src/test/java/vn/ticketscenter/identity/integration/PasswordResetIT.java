@@ -48,9 +48,8 @@ public class PasswordResetIT {
             // Đảm bảo user tồn tại trong hệ thống
             tm.execute(DatabasePrincipal.AUTH, em -> {
                 if (userRepository.findByNormalizedEmail(em, targetEmail).isEmpty()) {
-                    User user = new User(targetEmail, "devonxjz", "Trần Lê Thái",
-                            new PasswordHasher().hash("SecureTestPass123!"));
-                    userRepository.save(em, user);
+                    User user = userRepository.findById(em, userRepository.register(em, targetEmail, "devonxjz", "Trần Lê Thái",
+                            new PasswordHasher().hash("SecureTestPass123!"))).orElseThrow();
                 }
                 // Xóa các OTP cũ của email test để reset cooldown và làm sạch trạng thái
                 em.createQuery("DELETE FROM Otp o WHERE LOWER(o.emailNormalized) = :email")

@@ -1,5 +1,7 @@
 package vn.ticketscenter.payment.controller;
 
+import java.util.UUID;
+import java.util.Enumeration;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -56,7 +58,7 @@ public class PayosCallbackServlet extends HttpServlet {
             return;
         }
         request.setAttribute("paymentResult", result);
-        request.setAttribute("orderId", result.orderId().map(java.util.UUID::toString).orElse(""));
+        request.setAttribute("orderId", result.orderId().map(UUID::toString).orElse(""));
         request.setAttribute("txnRef", result.txnRef());
         request.setAttribute("amount", result.amount());
         request.setAttribute("success", result.success());
@@ -81,11 +83,13 @@ public class PayosCallbackServlet extends HttpServlet {
 
     private static Map<String, String> queryParams(HttpServletRequest request) {
         Map<String, String> params = new HashMap<>();
-        var names = request.getParameterNames();
+        Enumeration<String> names = request.getParameterNames();
         while (names.hasMoreElements()) {
             String name = names.nextElement();
             String value = request.getParameter(name);
-            if (value != null && !value.isBlank()) params.put(name, value);
+            if (value != null && !value.isBlank()) {
+                params.put(name, value);
+            }
         }
         return params;
     }

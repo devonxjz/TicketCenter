@@ -18,40 +18,58 @@ final class RefundJsonReader {
         var result = new StringBuilder();
         while (position < source.length()) {
             char value = source.charAt(position++);
-            if (value == '"') return result.toString();
-            if (value < 0x20) throw RefundException.invalid();
-            if (value == '\\') value = escaped();
+            if (value == '"') {
+                return result.toString();
+            }
+            if (value < 0x20) {
+                throw RefundException.invalid();
+            }
+            if (value == '\\') {
+                value = escaped();
+            }
             result.append(value);
-            if (result.length() > maxStringLength) throw RefundException.invalid();
+            if (result.length() > maxStringLength) {
+                throw RefundException.invalid();
+            }
         }
         throw RefundException.invalid();
     }
 
     boolean takeNull() {
         space();
-        if (!source.startsWith("null", position)) return false;
+        if (!source.startsWith("null", position)) {
+            return false;
+        }
         position += 4;
         return true;
     }
 
     boolean take(char token) {
         space();
-        if (position >= source.length() || source.charAt(position) != token) return false;
+        if (position >= source.length() || source.charAt(position) != token) {
+            return false;
+        }
         position++;
         return true;
     }
 
     void expect(char token) {
-        if (!take(token)) throw RefundException.invalid();
+        if (!take(token)) {
+            throw RefundException.invalid();
+        }
     }
 
     void finish() {
         space();
-        if (position != source.length()) throw RefundException.invalid();
+        if (position != source.length()) {
+            throw RefundException.invalid();
+        }
     }
 
     private char escaped() {
-        if (position == source.length()) throw RefundException.invalid();
+        if (position == source.length()) {
+            throw RefundException.invalid();
+        }
         return switch (source.charAt(position++)) {
             case '"' -> '"';
             case '\\' -> '\\';
@@ -67,7 +85,9 @@ final class RefundJsonReader {
     }
 
     private char unicode() {
-        if (position + 4 > source.length()) throw RefundException.invalid();
+        if (position + 4 > source.length()) {
+            throw RefundException.invalid();
+        }
         int value = 0;
         for (int i = 0; i < 4; i++) {
             char c = source.charAt(position++);
@@ -77,7 +97,9 @@ final class RefundJsonReader {
                             : c >= 'a' && c <= 'f'
                                     ? c - 'a' + 10
                                     : c >= 'A' && c <= 'F' ? c - 'A' + 10 : -1;
-            if (digit < 0) throw RefundException.invalid();
+            if (digit < 0) {
+                throw RefundException.invalid();
+            }
             value = value * 16 + digit;
         }
         return (char) value;

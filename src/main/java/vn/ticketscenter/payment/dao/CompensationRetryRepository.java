@@ -40,7 +40,9 @@ public class CompensationRetryRepository implements CompensationRetryStore {
 
     public static RuntimeException translate(RuntimeException failure) {
         for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
-            if (!(cause instanceof SQLException sql)) continue;
+            if (!(cause instanceof SQLException sql)) {
+                continue;
+            }
             for (SQLException error = sql; error != null; error = error.getNextException()) {
                 switch (error.getErrorCode()) {
                     case 52810:

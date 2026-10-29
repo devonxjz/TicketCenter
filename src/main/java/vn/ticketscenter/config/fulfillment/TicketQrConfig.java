@@ -10,8 +10,12 @@ public final class TicketQrConfig {
 
     public static String signingSecret() {
         String secret = AppConfig.get("TC_TICKET_SIGNING_SECRET");
-        if (secret == null || secret.isBlank()) secret = AppConfig.get("ticket.qr.secret");
-        if (secret == null || secret.isBlank()) secret = AppConfig.get("app.secret.key");
+        if (secret == null || secret.isBlank()) {
+            secret = AppConfig.get("ticket.qr.secret");
+        }
+        if (secret == null || secret.isBlank()) {
+            secret = AppConfig.get("app.secret.key");
+        }
         if (secret == null
                 || secret.getBytes(StandardCharsets.UTF_8).length < 32
                 || secret.equals("<your_secret_key_here>")) {

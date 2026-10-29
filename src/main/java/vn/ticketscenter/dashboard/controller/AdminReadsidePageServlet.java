@@ -1,12 +1,15 @@
 package vn.ticketscenter.dashboard.controller;
 
+import java.sql.Connection;
+import vn.ticketscenter.identity.security.UserPrincipal;
+import vn.ticketscenter.settlement.service.FinanceException;
+import vn.ticketscenter.settlement.service.FinanceRuntime;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.sql.SQLException;
-import vn.ticketscenter.report.controller.ReadsideHttp;
-import vn.ticketscenter.settlement.infrastructure.*;
+import vn.ticketscenter.report.controller.ReadsideWeb;
 import vn.ticketscenter.settlement.dao.FinanceAuthorization;
 
 /** Admin pages have their own authorization boundary; manager reports remain separate. */
@@ -24,8 +27,8 @@ public final class AdminReadsidePageServlet extends HttpServlet {
                         case "/finance/overview" -> "dashboard/overview.jsp";
                         default -> throw new FinanceException("NOT_FOUND", 404);
                     };
-            var actor = ReadsideHttp.actor(request);
-            try (var db = FinanceRuntime.database(getServletContext()).open()) {
+            UserPrincipal actor = ReadsideWeb.actor(request);
+            try (Connection db = FinanceRuntime.database(getServletContext()).open()) {
                 FinanceAuthorization.requireAdmin(db, actor);
             }
             request.setAttribute("financeOrganizationId", "");
@@ -34,9 +37,9 @@ public final class AdminReadsidePageServlet extends HttpServlet {
             response.setHeader("X-Content-Type-Options", "nosniff");
             request.getRequestDispatcher("/WEB-INF/views/" + view).forward(request, response);
         } catch (FinanceException e) {
-            ReadsideHttp.error(response, e);
+            ReadsideWeb.error(response, e);
         } catch (SQLException e) {
-            ReadsideHttp.error(response, new FinanceException("FINANCE_UNAVAILABLE", 503));
+            ReadsideWeb.error(response, new FinanceException("FINANCE_UNAVAILABLE", 503));
         }
     }
 }

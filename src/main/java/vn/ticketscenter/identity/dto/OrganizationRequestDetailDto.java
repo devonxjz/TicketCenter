@@ -85,9 +85,13 @@ public record OrganizationRequestDetailDto(
     }
 
     public String cleanDescription() {
-        if (description == null) return null;
+        if (description == null) {
+            return null;
+        }
         int idx = description.indexOf("[Event:");
-        if (idx == -1) idx = description.indexOf("[Lịch trình dự kiến]");
+        if (idx == -1) {
+            idx = description.indexOf("[Lịch trình dự kiến]");
+        }
         if (idx != -1) {
             String clean = description.substring(0, idx).trim();
             return clean.isEmpty() ? null : clean;
@@ -96,7 +100,9 @@ public record OrganizationRequestDetailDto(
     }
 
     static String parseTag(String description, String key) {
-        if (description == null) return null;
+        if (description == null) {
+            return null;
+        }
         int start = description.indexOf("[Event: ");
         if (start != -1) {
             int end = description.indexOf("]", start);
@@ -108,7 +114,9 @@ public record OrganizationRequestDetailDto(
             for (String part : parts) {
                 String p = part.trim();
                 if (key.equalsIgnoreCase("Event")) {
-                    if (!p.contains(":")) return p.isEmpty() ? null : p;
+                    if (!p.contains(":")) {
+                        return p.isEmpty() ? null : p;
+                    }
                 } else if (p.toLowerCase().startsWith(key.toLowerCase() + ":")) {
                     return p.substring(key.length() + 1).trim();
                 }
@@ -120,12 +128,15 @@ public record OrganizationRequestDetailDto(
             String[] parts = content.split("\\|");
             for (String part : parts) {
                 String p = part.trim();
-                if (key.equalsIgnoreCase("Event") && p.startsWith("Sự kiện "))
+                if (key.equalsIgnoreCase("Event") && p.startsWith("Sự kiện ")) {
                     return p.substring(8).trim();
-                if (key.equalsIgnoreCase("Date") && p.startsWith("Ngày "))
+                }
+                if (key.equalsIgnoreCase("Date") && p.startsWith("Ngày ")) {
                     return p.substring(5).trim();
-                if (key.equalsIgnoreCase("Venue") && p.startsWith("Địa điểm "))
+                }
+                if (key.equalsIgnoreCase("Venue") && p.startsWith("Địa điểm ")) {
                     return p.substring(9).trim();
+                }
             }
         }
         return null;

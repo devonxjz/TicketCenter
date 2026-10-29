@@ -40,21 +40,21 @@ public class RegisterServlet extends HttpServlet {
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        req.setAttribute("csrfToken", SecurityContext.getOrCreateCsrfToken(req));
-        req.getRequestDispatcher("/WEB-INF/views/auth/register.jsp").forward(req, resp);
+        request.setAttribute("csrfToken", SecurityContext.getOrCreateCsrfToken(request));
+        request.getRequestDispatcher("/WEB-INF/views/auth/register.jsp").forward(request, response);
     }
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         RegistrationService service = registrationService(getServletContext());
         if (service == null) {
-            IdentityErrorWriter.databaseUnavailable(resp);
+            IdentityErrorWriter.databaseUnavailable(response);
             return;
         }
         try {
-            RequestFields fields = RequestFields.read(req);
+            RequestFields fields = RequestFields.read(request);
             String email = fields.get("email");
             service.register(
                     new RegisterRequestDto(
@@ -62,21 +62,21 @@ public class RegisterServlet extends HttpServlet {
                             fields.get("fullName"),
                             email,
                             fields.get("password")));
-            boolean otpSent = sendVerificationOtp(req.getServletContext(), email);
+            boolean otpSent = sendVerificationOtp(request.getServletContext(), email);
             HttpResponses.data(
-                    resp,
+                    response,
                     JsonObjectBuilder.object()
                             .put("registered", true)
                             .put("otpSent", otpSent)
                             .build());
         } catch (RuntimeException failure) {
-            IdentityErrorWriter.write(resp, failure, "Đã xảy ra lỗi trong quá trình xử lý đăng ký");
+            IdentityErrorWriter.write(response, failure, "Đã xảy ra lỗi trong quá trình xử lý đăng ký");
         }
     }
 
     /**
-     * Gửi mã OTP kích hoạt ngay sau khi đăng ký. Tài khoản đã được tạo nên lỗi gửi mail
-     * không làm hỏng phản hồi đăng ký; client dùng cờ otpSent để mời người dùng gửi lại.
+     * Sends the activation OTP right after registration. The account already exists, so a mail failure
+     * does not fail the reply; the client uses the otpSent flag to offer a resend.
      */
     private boolean sendVerificationOtp(ServletContext context, String email) {
         try {

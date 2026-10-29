@@ -1,5 +1,8 @@
 package vn.ticketscenter.event.cancellation.controller;
 
+import java.util.UUID;
+import vn.ticketscenter.event.cancellation.dto.EventCancelRequestDto;
+import vn.ticketscenter.identity.security.UserPrincipal;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,10 +16,10 @@ public final class AdminEventCancelServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         try {
-            var id = EventCancellationWeb.target(request, "cancel");
-            var actor = EventCancellationWeb.actor(request);
-            var key = EventCancellationWeb.mutation(request);
-            var body = EventCancellationWeb.body(request);
+            UUID id = EventCancellationWeb.target(request, "cancel");
+            UserPrincipal actor = EventCancellationWeb.actor(request);
+            UUID key = EventCancellationWeb.mutation(request);
+            EventCancelRequestDto body = EventCancellationWeb.body(request);
             HttpResponses.data(
                     response,
                     EventCancellationWeb.service(request).cancel(actor, id, body, key).json());

@@ -28,14 +28,18 @@ public final class AdminRefundDecisionServiceImpl implements AdminRefundDecision
     @Override
     public AdminRefundPageDto list(UserPrincipal actor, String status, int page, int size) {
         authorize(actor);
-        if (page < 1 || page > 100000 || size < 1 || size > 100) throw RefundException.invalid();
+        if (page < 1 || page > 100000 || size < 1 || size > 100) {
+            throw RefundException.invalid();
+        }
         return store.list(canonicalStatus(status), page, size);
     }
 
     @Override
     public AdminRefundDetailDto detail(UserPrincipal actor, UUID id) {
         authorize(actor);
-        if (id == null) throw RefundException.invalid();
+        if (id == null) {
+            throw RefundException.invalid();
+        }
         return store.detail(id);
     }
 
@@ -43,7 +47,9 @@ public final class AdminRefundDecisionServiceImpl implements AdminRefundDecision
     public AdminRefundMutationDto decide(
             UserPrincipal actor, UUID id, AdminRefundDecisionRequestDto request, UUID key) {
         authorize(actor);
-        if (id == null || request == null || key == null) throw RefundException.invalid();
+        if (id == null || request == null || key == null) {
+            throw RefundException.invalid();
+        }
         return committed(actor, key, store.decide(actor, id, request, key));
     }
 
@@ -51,13 +57,17 @@ public final class AdminRefundDecisionServiceImpl implements AdminRefundDecision
     public AdminRefundMutationDto retry(
             UserPrincipal actor, UUID id, AdminRefundRetryRequestDto request) {
         authorize(actor);
-        if (id == null || request == null) throw RefundException.invalid();
+        if (id == null || request == null) {
+            throw RefundException.invalid();
+        }
         return committed(
                 actor, request.idempotencyKey(), store.retry(actor, id, request.idempotencyKey()));
     }
 
     private void authorize(UserPrincipal actor) {
-        if (actor == null) throw new RefundException(401, "UNAUTHENTICATED", "Bạn cần đăng nhập.");
+        if (actor == null) {
+            throw new RefundException(401, "UNAUTHENTICATED", "Bạn cần đăng nhập.");
+        }
         if (!actor.isAdmin()) {
             throw new RefundException(
                     403, "ADMIN_REQUIRED", "Chỉ quản trị viên được phép xử lý hoàn tiền.");
@@ -67,14 +77,18 @@ public final class AdminRefundDecisionServiceImpl implements AdminRefundDecision
     }
 
     private static String canonicalStatus(String status) {
-        if (status == null || status.isBlank()) return null;
+        if (status == null || status.isBlank()) {
+            return null;
+        }
         status =
                 switch (status) {
                     case "FAILED" -> "RETRYABLE";
                     case "UNKNOWN" -> "NEEDS_RECONCILIATION";
                     default -> status;
                 };
-        if (!STATES.contains(status)) throw RefundException.invalid();
+        if (!STATES.contains(status)) {
+            throw RefundException.invalid();
+        }
         return status;
     }
 

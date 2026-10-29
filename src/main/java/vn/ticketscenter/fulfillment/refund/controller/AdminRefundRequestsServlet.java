@@ -1,5 +1,11 @@
 package vn.ticketscenter.fulfillment.refund.controller;
 
+import java.io.BufferedReader;
+import vn.ticketscenter.fulfillment.refund.dto.AdminRefundDecisionRequestDto;
+import vn.ticketscenter.fulfillment.refund.dto.AdminRefundDetailDto;
+import vn.ticketscenter.fulfillment.refund.dto.AdminRefundMutationDto;
+import vn.ticketscenter.fulfillment.refund.dto.AdminRefundPageDto;
+import vn.ticketscenter.fulfillment.refund.service.AdminRefundRuntime;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -77,7 +83,7 @@ public final class AdminRefundRequestsServlet extends HttpServlet {
             throws IOException, ServletException {
         int page = RefundWeb.page(request.getParameter("page"), 1);
         int size = RefundWeb.page(request.getParameter("pageSize"), 20);
-        var result = service.list(actor, request.getParameter("status"), page, size);
+        AdminRefundPageDto result = service.list(actor, request.getParameter("status"), page, size);
         if (api) {
             HttpResponses.data(response, result.json());
             return;
@@ -97,7 +103,7 @@ public final class AdminRefundRequestsServlet extends HttpServlet {
             String prefix,
             String path)
             throws IOException, ServletException {
-        var result = service.detail(actor, RefundWeb.id(path.substring(prefix.length() + 1)));
+        AdminRefundDetailDto result = service.detail(actor, RefundWeb.id(path.substring(prefix.length() + 1)));
         if (api) {
             HttpResponses.data(response, result.json());
             return;
@@ -116,8 +122,8 @@ public final class AdminRefundRequestsServlet extends HttpServlet {
         UUID id = extractTargetId(request, "decision");
         UserPrincipal actor = RefundWeb.requireAdmin(request);
         UUID key = RefundWeb.mutation(request);
-        var decision = AdminRefundJson.decision(readBody(request));
-        var result = service.decide(actor, id, decision, key);
+        AdminRefundDecisionRequestDto decision = AdminRefundJson.decision(readBody(request));
+        AdminRefundMutationDto result = service.decide(actor, id, decision, key);
         HttpResponses.data(response, result.json());
     }
 
@@ -131,7 +137,7 @@ public final class AdminRefundRequestsServlet extends HttpServlet {
         UUID key = RefundWeb.mutation(request);
         String body = readBody(request);
         AdminRefundJson.retry(body.isBlank() ? "{}" : body);
-        var result = service.retry(actor, id, new AdminRefundRetryRequestDto(key));
+        AdminRefundMutationDto result = service.retry(actor, id, new AdminRefundRetryRequestDto(key));
         HttpResponses.data(response, result.json());
     }
 
@@ -147,9 +153,9 @@ public final class AdminRefundRequestsServlet extends HttpServlet {
 
     private static String readBody(HttpServletRequest request) throws IOException {
         var result = new StringBuilder();
-        var buffer = new char[1024];
+        char[] buffer = new char[1024];
         int count;
-        try (var reader = request.getReader()) {
+        try (BufferedReader reader = request.getReader()) {
             while ((count = reader.read(buffer)) != -1) {
                 result.append(buffer, 0, count);
                 if (result.length() > MAX_PAYLOAD_BYTES) {

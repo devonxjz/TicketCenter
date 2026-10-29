@@ -1,5 +1,6 @@
 package vn.ticketscenter.order.coupon.service;
 
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
@@ -23,9 +24,9 @@ public final class CouponAdminRuntime implements ServletContextListener {
     }
 
     private static CouponAdminService create(FeatureContext.Resources resources) {
-        var manager = resources.strictPool("coupon-manager", MANAGER);
-        var admin = resources.strictPool("coupon-admin", ADMIN);
-        var redis = RedisClientProvider.getInstance();
+        HikariDataSource manager = resources.strictPool("coupon-manager", MANAGER);
+        HikariDataSource admin = resources.strictPool("coupon-admin", ADMIN);
+        RedisClientProvider redis = RedisClientProvider.getInstance();
         return new CouponAdminServiceImpl(
                 new CouponAdminRepository(ConnectionBudgets.wrap(manager), ConnectionBudgets.wrap(admin)),
                 redis::getResource);

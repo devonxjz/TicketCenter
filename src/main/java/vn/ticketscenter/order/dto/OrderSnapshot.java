@@ -34,20 +34,25 @@ public record OrderSnapshot(
         Objects.requireNonNull(appliedCouponCode, "appliedCouponCode");
         appliedCouponCode.ifPresent(code -> OrderRequests.requireText(code, 80));
         items = List.copyOf(items);
-        if (items.isEmpty() || items.size() > 8)
+        if (items.isEmpty() || items.size() > 8) {
             throw new IllegalArgumentException("Expected 1 to 8 items");
+        }
         var ids = new HashSet<UUID>();
         int quantity = 0;
         BigDecimal subtotal = BigDecimal.ZERO;
         for (Item item : items) {
-            if (!ids.add(item.orderItemId()))
+            if (!ids.add(item.orderItemId())) {
                 throw new IllegalArgumentException("Duplicate item identity");
+            }
             quantity += item.quantity();
             subtotal = subtotal.add(item.lineTotal());
         }
-        if (quantity > 8) throw new IllegalArgumentException("Expected 1 to 8 tickets");
-        if (!subtotal.equals(totals.subtotal()))
+        if (quantity > 8) {
+            throw new IllegalArgumentException("Expected 1 to 8 tickets");
+        }
+        if (!subtotal.equals(totals.subtotal())) {
             throw new IllegalArgumentException("Item subtotal differs from Order");
+        }
     }
 
     public record Item(
@@ -61,7 +66,9 @@ public record OrderSnapshot(
         public Item {
             OrderRequests.requireId(orderItemId);
             OrderRequests.requireId(zoneId);
-            if (seatId != null) OrderRequests.requireId(seatId);
+            if (seatId != null) {
+                OrderRequests.requireId(seatId);
+            }
             OrderRequests.requireText(zoneNameSnapshot, 120);
             Objects.requireNonNull(seatLabelSnapshot, "seatLabelSnapshot");
             seatLabelSnapshot.ifPresent(label -> OrderRequests.requireText(label, 50));

@@ -9,13 +9,19 @@ import vn.ticketscenter.payment.integration.RefundGateway;
 public record RefundTransferResult(RefundGateway.Status status, String providerReference) {
     public RefundTransferResult {
         Objects.requireNonNull(status);
-        if (status == RefundGateway.Status.PENDING) status = RefundGateway.Status.UNKNOWN;
-        if (providerReference != null && providerReference.length() > 200)
+        if (status == RefundGateway.Status.PENDING) {
+            status = RefundGateway.Status.UNKNOWN;
+        }
+        if (providerReference != null && providerReference.length() > 200) {
             throw new IllegalArgumentException("Provider reference too long");
-        if (providerReference != null && providerReference.isBlank()) providerReference = null;
+        }
+        if (providerReference != null && providerReference.isBlank()) {
+            providerReference = null;
+        }
         if ((status == RefundGateway.Status.SUCCEEDED || status == RefundGateway.Status.FAILED)
-                && providerReference == null)
+                && providerReference == null) {
             throw new IllegalArgumentException("Final result requires provider reference");
+        }
     }
 
     public static RefundTransferResult from(RefundGateway.Result result) {

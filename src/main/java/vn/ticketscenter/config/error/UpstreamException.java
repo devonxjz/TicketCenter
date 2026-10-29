@@ -1,6 +1,6 @@
 package vn.ticketscenter.config.error;
 
-/** Dịch vụ bên ngoài (payOS, SMTP, Redis, lưu trữ ảnh...) lỗi hoặc không phản hồi: hiển thị là 502. */
+/** An external service (payOS, SMTP, Redis, image storage...) failed or did not answer: shown as 502. */
 public class UpstreamException extends AppException {
 
     public UpstreamException(String code, String message) {

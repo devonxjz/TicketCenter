@@ -51,9 +51,10 @@ public class OrganizationDecisionRepository {
                         call.setNString(4, contactPhone);
                         call.setNString(5, description);
                         try (ResultSet row = call.executeQuery()) {
-                            if (!row.next())
+                            if (!row.next()) {
                                 throw new IllegalStateException(
                                         "Organization submission returned no result");
+                            }
                             return uuid(row.getString("organization_id"));
                         }
                     } catch (SQLException failure) {
@@ -104,9 +105,10 @@ public class OrganizationDecisionRepository {
                             call.setObject(10, utc(event.endTime()), Types.TIMESTAMP);
                         }
                         try (ResultSet row = call.executeQuery()) {
-                            if (!row.next())
+                            if (!row.next()) {
                                 throw new IllegalStateException(
                                         "Organization approval returned no result");
+                            }
                             return new Approval(
                                     uuid(row.getString("assigned_manager_id")),
                                     uuid(row.getString("commission_rule_id")),

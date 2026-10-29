@@ -1,5 +1,7 @@
 package vn.ticketscenter.payment.integration;
 
+import java.nio.ByteBuffer;
+import java.nio.channels.FileLock;
 import vn.ticketscenter.fulfillment.refund.dto.RefundTransferRequest;
 import vn.ticketscenter.fulfillment.refund.dto.RefundTransferResult;
 
@@ -40,7 +42,7 @@ public final class RefundGatewayImpl implements RefundGateway {
                         file -> {
                             String vnd = amount.toBigIntegerExact().toString();
                             if (Files.exists(file)) {
-                                var lines = read(file);
+                                List<String> lines = read(file);
                                 if (!lines.getFirst().equals(vnd)) {
                                     throw new IllegalArgumentException(
                                             "Attempt amount is immutable");
@@ -50,13 +52,17 @@ public final class RefundGatewayImpl implements RefundGateway {
                             write(file, vnd, outcome);
                             return new Result(outcome, "SIM-" + attempt);
                         });
-        if (timeoutAfterSideEffect) throw new Timeout();
+        if (timeoutAfterSideEffect) {
+            throw new Timeout();
+        }
         return result;
     }
 
     @Override
     public Result query(String ref) throws Timeout {
-        if (ref == null || !ref.startsWith("SIM-")) return new Result(Status.UNKNOWN, ref);
+        if (ref == null || !ref.startsWith("SIM-")) {
+            return new Result(Status.UNKNOWN, ref);
+        }
         try {
             return queryRefundStatus(ref, UUID.fromString(ref.substring(4))).gatewayResult();
         } catch (IllegalArgumentException invalid) {
@@ -86,7 +92,7 @@ public final class RefundGatewayImpl implements RefundGateway {
         locked(
                 attempt,
                 file -> {
-                    var lines = read(file);
+                    List<String> lines = read(file);
                     Status current = Status.valueOf(lines.get(1));
                     if (current != Status.UNKNOWN
                             && current != Status.PENDING
@@ -108,10 +114,10 @@ public final class RefundGatewayImpl implements RefundGateway {
         synchronized (LOCKS.computeIfAbsent(lock, path -> new Object())) {
             try {
                 Files.createDirectories(directory);
-                try (var channel =
+                try (FileChannel channel =
                                 FileChannel.open(
                                         lock, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-                        var guard = channel.lock()) {
+                        FileLock guard = channel.lock()) {
                     return work.run(directory.resolve(id + ".receipt"));
                 }
             } catch (IOException failure) {
@@ -127,11 +133,13 @@ public final class RefundGatewayImpl implements RefundGateway {
     private static void write(Path file, String amount, Status status) throws IOException {
         Path temp = Files.createTempFile(file.getParent(), "refund-", ".tmp");
         try {
-            try (var channel =
+            try (FileChannel channel =
                     FileChannel.open(
                             temp, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
-                var buffer = StandardCharsets.UTF_8.encode(amount + "\n" + status.name() + "\n");
-                while (buffer.hasRemaining()) channel.write(buffer);
+                ByteBuffer buffer = StandardCharsets.UTF_8.encode(amount + "\n" + status.name() + "\n");
+                while (buffer.hasRemaining()) {
+                    channel.write(buffer);
+                }
                 channel.force(true);
             }
             Files.move(

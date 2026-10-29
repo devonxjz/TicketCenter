@@ -7,21 +7,25 @@ import java.util.*;
 import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.config.web.JsonObjectParser;
 import vn.ticketscenter.settlement.commission.dto.CommissionRuleCreateDto;
-import vn.ticketscenter.settlement.infrastructure.FinanceException;
+import vn.ticketscenter.settlement.service.FinanceException;
 import vn.ticketscenter.settlement.payout.PayoutRequestDto;
 
-public final class FinanceRequest {
-    private FinanceRequest() {}
+public final class FinanceWeb {
+    private FinanceWeb() {}
 
     public static UUID id(String value) {
-        return ApiRequest.uuid(value).orElseThrow(FinanceRequest::invalid);
+        return ApiRequest.uuid(value).orElseThrow(FinanceWeb::invalid);
     }
 
     public static Instant instant(String value) {
         try {
-            if (value == null || value.length() > 30 || !value.endsWith("Z")) throw invalid();
+            if (value == null || value.length() > 30 || !value.endsWith("Z")) {
+                throw invalid();
+            }
             Instant result = Instant.parse(value);
-            if (result.getNano() % 1_000_000 != 0) throw invalid();
+            if (result.getNano() % 1_000_000 != 0) {
+                throw invalid();
+            }
             return result;
         } catch (RuntimeException failure) {
             throw invalid();
@@ -32,8 +36,9 @@ public final class FinanceRequest {
         var source = new StringBuilder();
         char[] chunk = new char[1024];
         for (int count; (count = reader.read(chunk)) != -1; ) {
-            if (source.length() + count > 65536)
+            if (source.length() + count > 65536) {
                 throw new FinanceException("PAYLOAD_TOO_LARGE", 413);
+            }
             source.append(chunk, 0, count);
         }
         try {
@@ -54,7 +59,9 @@ public final class FinanceRequest {
                         "organizationId"));
         try {
             String fixed = values.get("fixedFee");
-            if (fixed == null || !fixed.matches("[0-9]{1,19}")) throw invalid();
+            if (fixed == null || !fixed.matches("[0-9]{1,19}")) {
+                throw invalid();
+            }
             return new CommissionRuleCreateDto(
                     decimal(values.get("ratePercent")),
                     Long.parseLong(fixed),
@@ -70,8 +77,9 @@ public final class FinanceRequest {
                 values,
                 Set.of("amount", "bankAccountNumber", "bankName", "accountHolderName", "note"));
         String raw = values.get("amount");
-        if (raw == null || !raw.matches("[0-9]{1,19}"))
+        if (raw == null || !raw.matches("[0-9]{1,19}")) {
             throw new FinanceException("PAYOUT_INVALID", 400);
+        }
         return new PayoutRequestDto(
                 decimal(raw),
                 values.get("bankAccountNumber"),
@@ -81,12 +89,16 @@ public final class FinanceRequest {
     }
 
     private static BigDecimal decimal(String value) {
-        if (value == null || !value.matches("[0-9]{1,19}(\\.[0-9]{1,4})?")) throw invalid();
+        if (value == null || !value.matches("[0-9]{1,19}(\\.[0-9]{1,4})?")) {
+            throw invalid();
+        }
         return new BigDecimal(value);
     }
 
     private static void fields(Map<String, String> values, Set<String> allowed) {
-        if (!allowed.containsAll(values.keySet())) throw invalid();
+        if (!allowed.containsAll(values.keySet())) {
+            throw invalid();
+        }
     }
 
     private static FinanceException invalid() {

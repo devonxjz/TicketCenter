@@ -55,8 +55,7 @@ public class OrganizationMembershipRepositoryTest {
             String userName = "mem" + suffix;
 
             User user = tm.execute(DatabasePrincipal.AUTH, em -> {
-                User u = new User(email, userName, "Member User " + suffix, "hash12345678");
-                userRepository.save(em, u);
+                User u = userRepository.findById(em, userRepository.register(em, email, userName, "Member User " + suffix, "hash12345678")).orElseThrow();
                 return u;
             });
 
@@ -131,8 +130,7 @@ public class OrganizationMembershipRepositoryTest {
             UUID managerId = user.getId();
             String staffSuffix = UUID.randomUUID().toString().substring(0, 8);
             User staff = tm.execute(DatabasePrincipal.AUTH, em -> {
-                User u = new User("staff." + staffSuffix + "@ticketscenter.vn", "stf" + staffSuffix, "Staff " + staffSuffix, "hash12345678");
-                userRepository.save(em, u);
+                User u = userRepository.findById(em, userRepository.register(em, "staff." + staffSuffix + "@ticketscenter.vn", "stf" + staffSuffix, "Staff " + staffSuffix, "hash12345678")).orElseThrow();
                 return u;
             });
 

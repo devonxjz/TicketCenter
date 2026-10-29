@@ -11,7 +11,7 @@ import static vn.ticketscenter.config.web.Json.object;
 import static vn.ticketscenter.config.web.Json.text;
 
 /**
- * Thông tin quản trị Coupon kèm số liệu sử dụng thực tế (LIEM-06 / UI-14).
+ * A coupon for administration, with its actual usage (LIEM-06 / UI-14).
  */
 public record CouponAdminDto(
         UUID id,

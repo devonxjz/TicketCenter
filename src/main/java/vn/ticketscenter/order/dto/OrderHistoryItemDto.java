@@ -13,7 +13,7 @@ import static vn.ticketscenter.config.web.Json.object;
 import static vn.ticketscenter.config.web.Json.text;
 
 /**
- * Tóm tắt đơn hàng hiển thị trong lịch sử mua vé (LIEM-06 / UI-06).
+ * An order as the purchase history shows it (LIEM-06 / UI-06).
  */
 public record OrderHistoryItemDto(
         UUID id,

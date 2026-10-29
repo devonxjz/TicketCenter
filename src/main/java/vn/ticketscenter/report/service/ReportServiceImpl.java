@@ -1,5 +1,8 @@
 package vn.ticketscenter.report.service;
 
+import vn.ticketscenter.settlement.dto.FinanceJson;
+import vn.ticketscenter.settlement.service.FinanceException;
+import vn.ticketscenter.settlement.dao.FinanceDatabase;
 import java.io.*;
 import java.sql.*;
 import java.util.*;
@@ -8,7 +11,6 @@ import vn.ticketscenter.report.cache.ReportCache;
 import vn.ticketscenter.report.csv.StreamingCsvExporter;
 import vn.ticketscenter.report.dto.ReportFilter;
 import vn.ticketscenter.report.dao.ReportRepository;
-import vn.ticketscenter.settlement.infrastructure.*;
 import vn.ticketscenter.settlement.dao.FinanceAuthorization;
 
 public final class ReportServiceImpl implements ReportService {
@@ -22,8 +24,11 @@ public final class ReportServiceImpl implements ReportService {
     }
 
     private void authorize(Connection db, UserPrincipal actor, ReportFilter f) throws SQLException {
-        if (f.organizationId() == null) FinanceAuthorization.requireAdmin(db, actor);
-        else FinanceAuthorization.requireManager(db, actor, f.organizationId());
+        if (f.organizationId() == null) {
+            FinanceAuthorization.requireAdmin(db, actor);
+        } else {
+            FinanceAuthorization.requireManager(db, actor, f.organizationId());
+        }
         repository.requireEventScope(db, f);
     }
 
@@ -39,11 +44,15 @@ public final class ReportServiceImpl implements ReportService {
 
     private String json(UserPrincipal actor, ReportFilter filter, boolean adminOnly)
             throws SQLException {
-        try (var db = database.open()) {
-            if (adminOnly) FinanceAuthorization.requireAdmin(db, actor);
+        try (Connection db = database.open()) {
+            if (adminOnly) {
+                FinanceAuthorization.requireAdmin(db, actor);
+            }
             authorize(db, actor, filter);
             String key = cache.key(actor, filter), hit = cache.get(key);
-            if (hit != null) return hit;
+            if (hit != null) {
+                return hit;
+            }
             String json = FinanceJson.write(Map.of("data", repository.page(db, filter)));
             cache.put(key, json);
             return json;
@@ -53,9 +62,9 @@ public final class ReportServiceImpl implements ReportService {
     @Override
     public void export(UserPrincipal actor, ReportFilter filter, OutputStream output)
             throws SQLException, IOException {
-        try (var db = database.open()) {
+        try (Connection db = database.open()) {
             authorize(db, actor, filter);
-            try (var cursor = repository.cursor(db, filter)) {
+            try (ReportRepository.Cursor cursor = repository.cursor(db, filter)) {
                 StreamingCsvExporter.write(output, cursor.headers(), cursor);
             }
         }
@@ -63,17 +72,23 @@ public final class ReportServiceImpl implements ReportService {
 
     @Override
     public String options(UserPrincipal actor, UUID selectedOrg) throws SQLException {
-        try (var db = database.open()) {
+        try (Connection db = database.open()) {
             boolean admin = true;
             try {
                 FinanceAuthorization.requireAdmin(db, actor);
             } catch (FinanceException e) {
-                if (e.status() != 403) throw e;
+                if (e.status() != 403) {
+                    throw e;
+                }
                 admin = false;
             }
-            if (selectedOrg != null) FinanceAuthorization.requireManager(db, actor, selectedOrg);
-            var organizations = repository.organizationOptions(db, actor, admin);
-            if (!admin && organizations.isEmpty()) throw new FinanceException("FORBIDDEN", 403);
+            if (selectedOrg != null) {
+                FinanceAuthorization.requireManager(db, actor, selectedOrg);
+            }
+            List<Map<String, Object>> organizations = repository.organizationOptions(db, actor, admin);
+            if (!admin && organizations.isEmpty()) {
+                throw new FinanceException("FORBIDDEN", 403);
+            }
             List<Map<String, Object>> events =
                     selectedOrg == null ? new ArrayList<>() : repository.eventOptions(db, selectedOrg);
             return FinanceJson.write(

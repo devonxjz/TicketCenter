@@ -34,29 +34,29 @@ public class ForgotPasswordServlet extends HttpServlet {
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        req.setAttribute("csrfToken", SecurityContext.getOrCreateCsrfToken(req));
-        req.getRequestDispatcher("/WEB-INF/views/auth/forgot-password.jsp").forward(req, resp);
+        request.setAttribute("csrfToken", SecurityContext.getOrCreateCsrfToken(request));
+        request.getRequestDispatcher("/WEB-INF/views/auth/forgot-password.jsp").forward(request, response);
     }
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         PasswordResetService service = passwordResetService(getServletContext());
         if (service == null) {
-            IdentityErrorWriter.databaseUnavailable(resp);
+            IdentityErrorWriter.databaseUnavailable(response);
             return;
         }
         try {
-            String email = RequestFields.read(req).get("email");
+            String email = RequestFields.read(request).get("email");
             if (email == null || email.isBlank()) {
                 throw new IdentityException(
                         IdentityError.VALIDATION_FAILED, "Email không được để trống");
             }
             String message = service.forgotPassword(new ForgotPasswordRequestDto(email));
-            HttpResponses.data(resp, JsonObjectBuilder.object().put("message", message).build());
+            HttpResponses.data(response, JsonObjectBuilder.object().put("message", message).build());
         } catch (RuntimeException failure) {
-            IdentityErrorWriter.write(resp, failure, "Đã xảy ra lỗi khi xử lý quên mật khẩu");
+            IdentityErrorWriter.write(response, failure, "Đã xảy ra lỗi khi xử lý quên mật khẩu");
         }
     }
 }

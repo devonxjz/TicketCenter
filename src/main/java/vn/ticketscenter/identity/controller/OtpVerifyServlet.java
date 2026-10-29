@@ -30,21 +30,21 @@ public class OtpVerifyServlet extends HttpServlet {
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        req.setAttribute("csrfToken", SecurityContext.getOrCreateCsrfToken(req));
-        req.getRequestDispatcher("/WEB-INF/views/auth/verify-email.jsp").forward(req, resp);
+        request.setAttribute("csrfToken", SecurityContext.getOrCreateCsrfToken(request));
+        request.getRequestDispatcher("/WEB-INF/views/auth/verify-email.jsp").forward(request, response);
     }
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         OtpService service = otpService(getServletContext());
         if (service == null) {
-            IdentityErrorWriter.databaseUnavailable(resp);
+            IdentityErrorWriter.databaseUnavailable(response);
             return;
         }
         try {
-            RequestFields fields = RequestFields.read(req);
+            RequestFields fields = RequestFields.read(request);
             String email = fields.get("email");
             String code = fields.get("code");
             if (email == null || email.isBlank() || code == null || code.isBlank()) {
@@ -52,9 +52,9 @@ public class OtpVerifyServlet extends HttpServlet {
                         IdentityError.VALIDATION_FAILED, "Email và mã OTP không được để trống");
             }
             OtpPurpose purpose = OtpSendServlet.parsePurpose(fields.get("purpose"));
-            HttpResponses.data(resp, service.verifyOtp(requestOf(email, purpose, code)).toJson());
+            HttpResponses.data(response, service.verifyOtp(requestOf(email, purpose, code)).toJson());
         } catch (RuntimeException failure) {
-            IdentityErrorWriter.write(resp, failure, "Đã xảy ra lỗi khi xác minh mã OTP");
+            IdentityErrorWriter.write(response, failure, "Đã xảy ra lỗi khi xác minh mã OTP");
         }
     }
 

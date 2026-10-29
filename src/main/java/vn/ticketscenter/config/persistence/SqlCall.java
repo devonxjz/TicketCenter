@@ -98,7 +98,9 @@ public final class SqlCall {
         }
 
         public ErrorTable on(int[] codes, Function<String, AppException> factory) {
-            for (int code : codes) on(code, factory);
+            for (int code : codes) {
+                on(code, factory);
+            }
             return this;
         }
 
@@ -110,14 +112,16 @@ public final class SqlCall {
         /** The first error of the chain that has its own mapping; the fallback is not consulted. */
         public AppException find(SQLException failure) {
             for (SQLException error = failure; error != null; error = error.getNextException()) {
-                var factory = mapping.get(error.getErrorCode());
-                if (factory != null) return factory.apply(error.getErrorCode(), error.getMessage());
+                BiFunction<Integer, String, AppException> factory = mapping.get(error.getErrorCode());
+                if (factory != null) {
+                    return factory.apply(error.getErrorCode(), error.getMessage());
+                }
             }
             return null;
         }
 
         public AppException translate(int code, String message) {
-            var factory = mapping.get(code);
+            BiFunction<Integer, String, AppException> factory = mapping.get(code);
             if (factory != null) {
                 return factory.apply(code, message);
             }
@@ -130,13 +134,19 @@ public final class SqlCall {
         /** The first domain error found in the cause chain, else the fallback for an unknown failure. */
         public AppException fromCause(Throwable failure) {
             for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
-                if (cause instanceof AppException domain) return domain;
+                if (cause instanceof AppException domain) {
+                    return domain;
+                }
                 if (cause instanceof SQLException sql) {
                     AppException domain = translate(sql.getErrorCode(), sql.getMessage());
-                    if (domain != null) return domain;
+                    if (domain != null) {
+                        return domain;
+                    }
                 }
             }
-            if (fallback != null) return fallback.apply(0, null);
+            if (fallback != null) {
+                return fallback.apply(0, null);
+            }
             return new AppException(500, "DATABASE_ERROR", failure.getMessage(), failure);
         }
     }
@@ -190,14 +200,20 @@ public final class SqlCall {
                     statement.setQueryTimeout(DEFAULT_TIMEOUT_SECONDS);
                     bindArguments(statement, args);
                     try (ResultSet rows = statement.executeQuery()) {
-                        if (!rows.next()) throw unavailable.get();
+                        if (!rows.next()) {
+                            throw unavailable.get();
+                        }
                         return read.extract(rows);
                     }
                 }
             } catch (SQLException failure) {
                 AppException mapped = errors.find(failure);
-                if (mapped != null) throw mapped;
-                if (attempt == 3 || !SqlErrors.isTransient(failure, 51309)) throw unavailable.get();
+                if (mapped != null) {
+                    throw mapped;
+                }
+                if (attempt == 3 || !SqlErrors.isTransient(failure, 51309)) {
+                    throw unavailable.get();
+                }
             } catch (AppException failure) {
                 throw failure;
             } catch (RuntimeException invalidResponse) {
@@ -227,10 +243,14 @@ public final class SqlCall {
     public static AppException failure(
             RuntimeException failure, ErrorTable errors, Supplier<? extends AppException> unavailable) {
         for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
-            if (cause instanceof AppException app) return app;
+            if (cause instanceof AppException app) {
+                return app;
+            }
             if (cause instanceof SQLException sql) {
                 AppException app = errors.translate(sql.getErrorCode(), sql.getMessage());
-                if (app != null) return app;
+                if (app != null) {
+                    return app;
+                }
             }
         }
         return unavailable.get();
@@ -351,7 +371,9 @@ public final class SqlCall {
 
 
     private static void bindArguments(PreparedStatement statement, Object[] args) throws SQLException {
-        if (args == null || args.length == 0) return;
+        if (args == null || args.length == 0) {
+            return;
+        }
         for (int i = 0; i < args.length; i++) {
             int parameterIndex = i + 1;
             Object arg = args[i];
@@ -391,8 +413,12 @@ public final class SqlCall {
     private static AppException translateError(SQLException failure, ErrorTable errors) {
         if (errors != null) {
             AppException domain = errors.find(failure);
-            if (domain == null) domain = errors.translate(failure.getErrorCode(), failure.getMessage());
-            if (domain != null) return domain;
+            if (domain == null) {
+                domain = errors.translate(failure.getErrorCode(), failure.getMessage());
+            }
+            if (domain != null) {
+                return domain;
+            }
         }
         return new AppException(500, "DATABASE_ERROR", failure.getMessage(), failure);
     }

@@ -1,5 +1,8 @@
 package vn.ticketscenter.fulfillment.checkin.controller;
 
+import java.util.List;
+import vn.ticketscenter.fulfillment.checkin.dto.CheckInEventSummaryDto;
+import vn.ticketscenter.fulfillment.checkin.service.CheckInRuntime;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
@@ -23,7 +26,7 @@ public class CheckInEventsServlet extends HttpServlet {
             UUID organizationId = org == null ? null : CheckInWeb.id(org);
             CheckInEventService service =
                     CheckInRuntime.resolve(getServletContext());
-            var events = service.events(actorId, organizationId);
+            List<CheckInEventSummaryDto> events = service.events(actorId, organizationId);
             boolean json =
                     "/api/check-ins/events".equals(request.getServletPath())
                             || (request.getHeader("Accept") != null

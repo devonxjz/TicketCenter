@@ -1,5 +1,8 @@
 package vn.ticketscenter.fulfillment.refund.controller;
 
+import java.util.UUID;
+import vn.ticketscenter.identity.security.UserPrincipal;
+import vn.ticketscenter.fulfillment.refund.service.RefundRuntime;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
@@ -17,8 +20,8 @@ public final class OrderRefundableTicketsServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         try {
-            var actor = RefundWeb.actor(request);
-            var id = RefundWeb.id((String) request.getAttribute(ORDER_ID_ATTRIBUTE));
+            UserPrincipal actor = RefundWeb.actor(request);
+            UUID id = RefundWeb.id((String) request.getAttribute(ORDER_ID_ATTRIBUTE));
             HttpResponses.data(
                     response,
                     RefundDetailDto.ticketJson(

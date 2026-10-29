@@ -34,8 +34,9 @@ public final class FeatureContext {
             String prefix = "db." + principal.name().toLowerCase(Locale.ROOT);
             String user = AppConfig.get(prefix + ".user");
             String password = AppConfig.get(prefix + ".password");
-            if (user == null || user.isBlank() || password == null || password.isBlank())
+            if (user == null || user.isBlank() || password == null || password.isBlank()) {
                 throw new IllegalStateException(prefix + ".user/password are required");
+            }
             return pool(name, user, password, true, 10_000);
         }
 
@@ -90,10 +91,13 @@ public final class FeatureContext {
             Function<Resources, T> builder,
             Function<RuntimeException, RuntimeException> onFailure) {
         synchronized (context) {
-            if (Boolean.TRUE.equals(context.getAttribute(key + ".closed")))
+            if (Boolean.TRUE.equals(context.getAttribute(key + ".closed"))) {
                 throw onFailure.apply(new IllegalStateException(key + " is closed"));
+            }
             Object existing = context.getAttribute(key);
-            if (existing != null) return cast(existing);
+            if (existing != null) {
+                return cast(existing);
+            }
             Resources resources = new Resources();
             try {
                 T service = builder.apply(resources);
@@ -111,7 +115,9 @@ public final class FeatureContext {
     public static <T> T cached(ServletContext context, String key, Supplier<T> builder) {
         synchronized (context) {
             Object existing = context.getAttribute(key);
-            if (existing != null) return cast(existing);
+            if (existing != null) {
+                return cast(existing);
+            }
             T value = builder.get();
             context.setAttribute(key, value);
             return value;
@@ -147,7 +153,9 @@ public final class FeatureContext {
     public static void close(ServletContext context, String key) {
         synchronized (context) {
             context.setAttribute(key + ".closed", true);
-            if (context.getAttribute(key + ".resources") instanceof Resources resources) resources.close();
+            if (context.getAttribute(key + ".resources") instanceof Resources resources) {
+                resources.close();
+            }
             context.removeAttribute(key + ".resources");
             context.removeAttribute(key);
         }

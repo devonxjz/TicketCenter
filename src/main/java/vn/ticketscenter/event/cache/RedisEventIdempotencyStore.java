@@ -34,15 +34,18 @@ public final class RedisEventIdempotencyStore implements EventIdempotencyStore {
                         + HttpResponses.jsonString(UUID.randomUUID().toString())
                         + "}";
         try (Jedis redis = connections.get()) {
-            if ("OK".equals(redis.set(key, value, SetParams.setParams().nx().ex(120))))
+            if ("OK".equals(redis.set(key, value, SetParams.setParams().nx().ex(120)))) {
                 return new Lease(key, value);
+            }
             String current = redis.get(key);
-            if (current == null)
+            if (current == null) {
                 throw EventProblem.conflict(
                         "Yêu cầu đang được thử lại. Vui lòng thử lại cùng key.");
-            var entry = JsonObjectParser.parse(new StringReader(current));
-            if (!hash.equals(entry.get("hash")))
+            }
+            Map<String, String> entry = JsonObjectParser.parse(new StringReader(current));
+            if (!hash.equals(entry.get("hash"))) {
                 throw EventProblem.conflict("Idempotency key đã dùng cho nội dung khác.");
+            }
             throw EventProblem.conflict("Yêu cầu đang được xử lý hoặc cần đối chiếu kết quả DB.");
         } catch (EventProblem e) {
             throw e;

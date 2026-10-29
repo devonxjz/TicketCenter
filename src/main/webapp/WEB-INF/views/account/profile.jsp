@@ -1,7 +1,4 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<%
-    response.setHeader("Cache-Control", "no-store");
-%>
 <!DOCTYPE html>
 <html lang="vi">
 <head>

@@ -11,8 +11,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Quản lý kết nối tập trung tới Redis thông qua JedisPool (bounded pool).
- * Cấu hình lấy từ AppConfig (System properties -> Environment variables -> application.properties).
+ * The shared Redis connection, through a bounded JedisPool.
+ * Settings come from AppConfig (system properties -> environment variables -> application.properties).
  */
 public final class RedisClientProvider implements AutoCloseable {
 
@@ -64,7 +64,7 @@ public final class RedisClientProvider implements AutoCloseable {
     }
 
     /**
-     * Mượn 1 kết nối Jedis từ pool. Caller phải đóng kết nối (dùng try-with-resources).
+     * Borrows a Jedis connection from the pool; the caller closes it (try-with-resources).
      */
     public Jedis getResource() {
         if (jedisPool == null || jedisPool.isClosed()) {
@@ -74,7 +74,7 @@ public final class RedisClientProvider implements AutoCloseable {
     }
 
     /**
-     * Kiểm tra nhanh trạng thái kết nối tới Redis (PING).
+     * Quick Redis health check (PING).
      */
     public boolean isAvailable() {
         try (Jedis jedis = getResource()) {

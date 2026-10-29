@@ -1,11 +1,12 @@
 package vn.ticketscenter.audit.service;
 
+import vn.ticketscenter.settlement.dto.FinanceJson;
+import vn.ticketscenter.settlement.dao.FinanceDatabase;
 import java.sql.*;
 import java.util.*;
 import vn.ticketscenter.audit.dto.AuditFilter;
 import vn.ticketscenter.audit.dao.AuditRepository;
 import vn.ticketscenter.identity.security.UserPrincipal;
-import vn.ticketscenter.settlement.infrastructure.*;
 import vn.ticketscenter.settlement.dao.FinanceAuthorization;
 
 public final class AuditServiceImpl implements AuditService {
@@ -18,7 +19,7 @@ public final class AuditServiceImpl implements AuditService {
 
     @Override
     public String list(UserPrincipal actor, AuditFilter filter) throws SQLException {
-        try (var db = database.open()) {
+        try (Connection db = database.open()) {
             FinanceAuthorization.requireAdmin(db, actor);
             return FinanceJson.write(Map.of("data", repository.list(db, filter)));
         }
@@ -26,7 +27,7 @@ public final class AuditServiceImpl implements AuditService {
 
     @Override
     public String detail(UserPrincipal actor, UUID id) throws SQLException {
-        try (var db = database.open()) {
+        try (Connection db = database.open()) {
             FinanceAuthorization.requireAdmin(db, actor);
             return FinanceJson.write(Map.of("data", repository.detail(db, id)));
         }

@@ -18,13 +18,12 @@
                     title="Thông báo hệ thống">
                     <i class="fa-solid fa-bell"></i>
                     <span id="adminNotificationBadge"
-                        class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none"
-                        style="font-size: 0.65rem;">
+                        class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none tc-badge-xs">
                         0
                     </span>
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end shadow-sm rounded-0 border-secondary-subtle p-0"
-                    id="adminNotificationDropdown" style="width: 360px; max-height: 420px; overflow-y: auto;"
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm rounded-0 border-secondary-subtle p-0 tc-notification-dropdown"
+                    id="adminNotificationDropdown"
                     aria-labelledby="adminNotificationBell">
                     <li class="p-3 border-bottom bg-light d-flex justify-content-between align-items-center">
                         <strong class="small text-dark">Yêu cầu tạo tổ chức chờ duyệt</strong>
@@ -58,8 +57,7 @@
                 onclick="event.preventDefault(); document.getElementById('logoutForm').submit();">
                 Đăng xuất
             </a>
-            <form id="logoutForm" action="${pageContext.request.contextPath}/auth/logout" method="post"
-                style="display:none;">
+            <form class="tc-js-hidden" id="logoutForm" action="${pageContext.request.contextPath}/auth/logout" method="post">
                 <input type="hidden" name="_csrf" value="${sessionScope.TC_CSRF_TOKEN}">
             </form>
         </div>

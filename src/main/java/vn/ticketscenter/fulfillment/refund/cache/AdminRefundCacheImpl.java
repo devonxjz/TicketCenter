@@ -31,10 +31,12 @@ public final class AdminRefundCacheImpl implements AdminRefundCache {
 
     @Override
     public void committed(UUID admin, UUID key, AdminRefundMutationDto result) {
-        try (var redis = connections.get()) {
+        try (Jedis redis = connections.get()) {
             redis.del(detailKey(result.refundId()), PENDING_COUNT_KEY);
             TicketCacheImpl.evictUserTickets(redis, result.buyerId());
-            for (UUID ticket : result.ticketIds()) TicketCacheImpl.evict(redis, ticket);
+            for (UUID ticket : result.ticketIds()) {
+                TicketCacheImpl.evict(redis, ticket);
+            }
             redis.setex(key(admin, key), IDEMPOTENCY_TTL, result.json());
         }
     }

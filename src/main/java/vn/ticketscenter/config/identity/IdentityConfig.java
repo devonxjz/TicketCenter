@@ -3,13 +3,13 @@ package vn.ticketscenter.config.identity;
 import vn.ticketscenter.config.AppConfig;
 
 /**
- * Cấu hình của module identity (OTP, đặt lại mật khẩu, chống dò mật khẩu, cache phiên, tài khoản admin).
- * Mọi giá trị đọc qua {@link AppConfig}; mặc định giữ nguyên hành vi cũ.
+ * Identity settings (OTP, password reset, login throttling, session cache, admin account).
+ * Every value is read through {@link AppConfig}; the defaults keep the previous behaviour.
  */
 public final class IdentityConfig {
 
     private IdentityConfig() {
-        // Utility class không cho phép khởi tạo instance
+        // utility class
     }
 
     public static int getOtpExpiryMinutes() {

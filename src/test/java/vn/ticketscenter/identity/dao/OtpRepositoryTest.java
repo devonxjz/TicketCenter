@@ -41,8 +41,7 @@ public class OtpRepositoryTest {
             secretHash[0] = 0x42;
 
             User testUser = tm.execute(DatabasePrincipal.AUTH, em -> {
-                User user = new User(email, userName, "Test User", "salt:hash123");
-                userRepository.save(em, user);
+                User user = userRepository.findById(em, userRepository.register(em, email, userName, "Test User", "salt:hash123")).orElseThrow();
                 return user;
             });
 
@@ -51,9 +50,7 @@ public class OtpRepositoryTest {
 
             // 1. Lưu OTP
             UUID otpId = tm.execute(DatabasePrincipal.AUTH, em -> {
-                Otp otp = new Otp(testUser, email, OtpPurpose.VERIFY_EMAIL, secretHash, expiresAt);
-                otpRepository.save(em, otp);
-                return otp.getId();
+                return otpRepository.issue(em, testUser.getId(), email, OtpPurpose.VERIFY_EMAIL, secretHash, expiresAt, Instant.now());
             });
             assertNotNull(otpId);
 
@@ -67,12 +64,12 @@ public class OtpRepositoryTest {
 
             // 3. Atomic consume lần 1 -> Thành công (trả về true)
             boolean consumedFirst = tm.execute(DatabasePrincipal.AUTH, em ->
-                    otpRepository.consumeOtpAtomically(em, otpId, Instant.now()));
+                    otpRepository.consume(em, otpId, Instant.now()));
             assertTrue(consumedFirst, "Lần consume đầu tiên phải thành công");
 
             // 4. Atomic consume lần 2 (giả lập request race condition) -> Thất bại (trả về false)
             boolean consumedSecond = tm.execute(DatabasePrincipal.AUTH, em ->
-                    otpRepository.consumeOtpAtomically(em, otpId, Instant.now()));
+                    otpRepository.consume(em, otpId, Instant.now()));
             assertFalse(consumedSecond, "Lần consume thứ hai phải thất bại do OTP đã bị consumed");
 
             // 5. Sau khi consume, findLatestValidOtp không còn trả về OTP này nữa
@@ -101,22 +98,19 @@ public class OtpRepositoryTest {
             byte[] secretHash = new byte[32];
 
             User testUser = tm.execute(DatabasePrincipal.AUTH, em -> {
-                User user = new User(email, "user" + suffix, "Test User", "salt:hash123");
-                userRepository.save(em, user);
+                User user = userRepository.findById(em, userRepository.register(em, email, "user" + suffix, "Test User", "salt:hash123")).orElseThrow();
                 return user;
             });
 
             UUID otpId = tm.execute(DatabasePrincipal.AUTH, em -> {
-                Otp otp = new Otp(testUser, email, OtpPurpose.RESET_PASSWORD, secretHash, Instant.now().plus(5, ChronoUnit.MINUTES));
-                otpRepository.save(em, otp);
-                return otp.getId();
+                return otpRepository.issue(em, testUser.getId(), email, OtpPurpose.RESET_PASSWORD, secretHash, Instant.now().plus(5, ChronoUnit.MINUTES), Instant.now());
             });
 
             // Tăng 4 lần sai
             for (int i = 1; i <= 4; i++) {
                 int count = i;
                 tm.execute(DatabasePrincipal.AUTH, em -> {
-                    otpRepository.incrementFailedAttempts(em, otpId, Instant.now());
+                    otpRepository.recordFailure(em, otpId, Instant.now());
                     return null;
                 });
                 Otp current = tm.execute(DatabasePrincipal.AUTH, em ->
@@ -128,7 +122,7 @@ public class OtpRepositoryTest {
 
             // Lần thứ 5 sai -> Tự động invalidated_at được ghi nhận
             tm.execute(DatabasePrincipal.AUTH, em -> {
-                otpRepository.incrementFailedAttempts(em, otpId, Instant.now());
+                otpRepository.recordFailure(em, otpId, Instant.now());
                 return null;
             });
 

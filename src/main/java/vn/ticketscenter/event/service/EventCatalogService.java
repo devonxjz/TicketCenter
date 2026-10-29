@@ -1,10 +1,11 @@
 package vn.ticketscenter.event.service;
 
+import vn.ticketscenter.config.error.AppException;
 import vn.ticketscenter.event.dto.EventFilter;
 import java.util.UUID;
 
 public interface EventCatalogService {
-    final class NotFound extends vn.ticketscenter.config.error.AppException {
+    final class NotFound extends AppException {
         public NotFound() {
             super(404, "NOT_FOUND", "Not found");
         }

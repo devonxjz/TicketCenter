@@ -1,5 +1,9 @@
 package vn.ticketscenter.report.controller;
 
+import java.sql.Connection;
+import vn.ticketscenter.identity.security.UserPrincipal;
+import vn.ticketscenter.settlement.service.FinanceException;
+import vn.ticketscenter.settlement.service.FinanceRuntime;
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
@@ -7,7 +11,6 @@ import java.io.*;
 import java.sql.SQLException;
 import java.util.UUID;
 import vn.ticketscenter.report.dto.ReportFilter;
-import vn.ticketscenter.settlement.infrastructure.*;
 import vn.ticketscenter.settlement.dao.FinanceAuthorization;
 
 @WebServlet(
@@ -18,22 +21,27 @@ public final class FinanceReadsidePageServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
-            var actor = ReadsideHttp.actor(request);
+            UserPrincipal actor = ReadsideWeb.actor(request);
             String path = request.getServletPath();
-            UUID org = ReportFilter.uuid(ReadsideHttp.parameters(request).get("organizationId"));
+            UUID org = ReportFilter.uuid(ReadsideWeb.parameters(request).get("organizationId"));
             boolean admin = true;
-            try (var db = FinanceRuntime.database(getServletContext()).open()) {
-                if (!path.equals("/finance/reports")) throw new FinanceException("NOT_FOUND", 404);
-                else {
+            try (Connection db = FinanceRuntime.database(getServletContext()).open()) {
+                if (!path.equals("/finance/reports")) {
+                    throw new FinanceException("NOT_FOUND", 404);
+                } else {
                     try {
                         FinanceAuthorization.requireAdmin(db, actor);
                     } catch (FinanceException e) {
-                        if (e.status() != 403) throw e;
+                        if (e.status() != 403) {
+                            throw e;
+                        }
                         admin = false;
                         if (org == null) {
                             org = FinanceAuthorization.firstManagedOrganization(db, actor);
                         }
-                        if (org == null) throw new FinanceException("FORBIDDEN", 403);
+                        if (org == null) {
+                            throw new FinanceException("FORBIDDEN", 403);
+                        }
                         FinanceAuthorization.requireManager(db, actor, org);
                     }
                 }
@@ -45,9 +53,9 @@ public final class FinanceReadsidePageServlet extends HttpServlet {
             String view = "report/reports.jsp";
             request.getRequestDispatcher("/WEB-INF/views/" + view).forward(request, response);
         } catch (FinanceException e) {
-            ReadsideHttp.error(response, e);
+            ReadsideWeb.error(response, e);
         } catch (SQLException e) {
-            ReadsideHttp.error(response, new FinanceException("FINANCE_UNAVAILABLE", 503));
+            ReadsideWeb.error(response, new FinanceException("FINANCE_UNAVAILABLE", 503));
         }
     }
 }

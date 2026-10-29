@@ -1,5 +1,8 @@
-package vn.ticketscenter.settlement.infrastructure;
+package vn.ticketscenter.settlement.service;
 
+import java.util.Optional;
+import vn.ticketscenter.config.persistence.PersistenceRegistry;
+import vn.ticketscenter.settlement.dao.FinanceDatabase;
 import jakarta.servlet.ServletContext;
 import vn.ticketscenter.config.DatabaseConfig;
 import vn.ticketscenter.config.persistence.FeatureContext;
@@ -24,8 +27,10 @@ public final class FinanceRuntime {
     }
 
     private static FinanceDatabase create(ServletContext context) {
-        var registry = FeatureContext.registry(context).filter(pool -> pool.hasPrincipal(ADMIN));
-        if (registry.isPresent()) return autoCommitting(registry.get().dataSource(ADMIN));
+        Optional<PersistenceRegistry> registry = FeatureContext.registry(context).filter(pool -> pool.hasPrincipal(ADMIN));
+        if (registry.isPresent()) {
+            return autoCommitting(registry.get().dataSource(ADMIN));
+        }
         return () ->
                 DriverManager.getConnection(
                         DatabaseConfig.getJdbcUrl(),

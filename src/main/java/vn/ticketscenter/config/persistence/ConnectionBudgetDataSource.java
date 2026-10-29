@@ -1,5 +1,11 @@
 package vn.ticketscenter.config.persistence;
 
+import java.lang.reflect.InvocationTargetException;
+import java.sql.SQLTransientConnectionException;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import vn.ticketscenter.config.DatabaseConfig;
+import java.sql.PreparedStatement;
 import javax.sql.DataSource;
 import java.io.PrintWriter;
 import java.lang.reflect.Proxy;
@@ -13,7 +19,7 @@ import java.util.logging.Logger;
 final class ConnectionBudgetDataSource implements DataSource {
 
     private static final Semaphore BUDGET =
-            new Semaphore(vn.ticketscenter.config.DatabaseConfig.getPoolBudget(), true);
+            new Semaphore(DatabaseConfig.getPoolBudget(), true);
     private final DataSource delegate;
 
     ConnectionBudgetDataSource(DataSource delegate) {
@@ -32,9 +38,9 @@ final class ConnectionBudgetDataSource implements DataSource {
 
     private Connection bounded(ConnectionSupplier supplier) throws SQLException {
         try {
-            long wait = vn.ticketscenter.config.DatabaseConfig.getConnectionTimeout();
-            if (!BUDGET.tryAcquire(wait, java.util.concurrent.TimeUnit.MILLISECONDS)) {
-                throw new java.sql.SQLTransientConnectionException(
+            long wait = DatabaseConfig.getConnectionTimeout();
+            if (!BUDGET.tryAcquire(wait, TimeUnit.MILLISECONDS)) {
+                throw new SQLTransientConnectionException(
                         "Database connection budget exhausted after " + wait + " ms");
             }
         } catch (InterruptedException exception) {
@@ -51,7 +57,9 @@ final class ConnectionBudgetDataSource implements DataSource {
                                         .getMetaData()
                                         .getDatabaseProductName()
                                         .contains("SQL Server");
-                if (sqlServer) setActor(connection, DatabaseActorContext.current());
+                if (sqlServer) {
+                    setActor(connection, DatabaseActorContext.current());
+                }
             } catch (SQLException exception) {
                 connection.close();
                 throw exception;
@@ -65,7 +73,9 @@ final class ConnectionBudgetDataSource implements DataSource {
                                 if ("close".equals(method.getName())) {
                                     if (released.compareAndSet(false, true)) {
                                         try {
-                                            if (sqlServer) setActor(connection, null);
+                                            if (sqlServer) {
+                                                setActor(connection, null);
+                                            }
                                         } finally {
                                             try {
                                                 connection.close();
@@ -78,7 +88,7 @@ final class ConnectionBudgetDataSource implements DataSource {
                                 }
                                 try {
                                     return method.invoke(connection, args);
-                                } catch (java.lang.reflect.InvocationTargetException exception) {
+                                } catch (InvocationTargetException exception) {
                                     throw exception.getCause();
                                 }
                             });
@@ -88,8 +98,8 @@ final class ConnectionBudgetDataSource implements DataSource {
         }
     }
 
-    private static void setActor(Connection connection, java.util.UUID actor) throws SQLException {
-        try (var command =
+    private static void setActor(Connection connection, UUID actor) throws SQLException {
+        try (PreparedStatement command =
                 connection.prepareStatement(
                         "EXEC sys.sp_set_session_context @key=N'actor_id',@value=?")) {
             command.setQueryTimeout(10);

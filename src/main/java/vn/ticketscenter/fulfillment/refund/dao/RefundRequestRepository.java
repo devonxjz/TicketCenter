@@ -1,5 +1,6 @@
 package vn.ticketscenter.fulfillment.refund.dao;
 
+import java.util.Optional;
 import static vn.ticketscenter.config.persistence.SqlCall.instant;
 import static vn.ticketscenter.config.persistence.SqlCall.uuid;
 
@@ -168,13 +169,13 @@ public class RefundRequestRepository implements RefundRequestStore {
                 throw new RefundException(403, "REFUND_FORBIDDEN", "Bạn không có quyền xem yêu cầu này.");
             }
 
-            var tickets = SqlCall.queryList(
+            List<RefundTicketOptionDto> tickets = SqlCall.queryList(
                     c,
                     "SELECT * FROM dbo.v_refund_tickets WHERE refund_id=? ORDER BY ticket_id",
                     row -> ticket(row, "Vé thuộc yêu cầu hoàn tiền này."),
                     ERRORS,
                     refundId);
-            var attempts = SqlCall.queryList(
+            List<RefundDetailDto.Attempt> attempts = SqlCall.queryList(
                     c,
                     "SELECT * FROM dbo.v_refund_attempts WHERE refund_id=? ORDER BY attempt_no",
                     RefundRequestRepository::attempt,
@@ -189,7 +190,7 @@ public class RefundRequestRepository implements RefundRequestStore {
     }
 
     private static void requireOrderOwner(Connection c, UserPrincipal actor, UUID orderId) {
-        var ownerId = SqlCall.queryOptional(
+        Optional<String> ownerId = SqlCall.queryOptional(
                 c,
                 "SELECT owner_id FROM dbo.v_refundable_orders WHERE order_id=?",
                 row -> row.getString(1),

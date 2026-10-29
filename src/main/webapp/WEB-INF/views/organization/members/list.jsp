@@ -95,12 +95,12 @@
                     <table class="table-custom">
                         <thead>
                             <tr>
-                                <th style="width: 25%;">Họ tên & Tên đăng nhập</th>
-                                <th style="width: 25%;">Email</th>
-                                <th style="width: 15%;">Vai trò</th>
-                                <th style="width: 12%;">Trạng thái</th>
-                                <th style="width: 11%;">Ngày tham gia</th>
-                                <th style="width: 12%;" class="text-end">Thao tác</th>
+                                <th class="tc-col-25">Họ tên & Tên đăng nhập</th>
+                                <th class="tc-col-25">Email</th>
+                                <th class="tc-col-15">Vai trò</th>
+                                <th class="tc-col-12">Trạng thái</th>
+                                <th class="tc-col-11">Ngày tham gia</th>
+                                <th class="text-end tc-col-12">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody id="memberTableBody">
@@ -118,7 +118,7 @@
         </main>
     </div>
 
-    <!-- Modal 1: Thêm thành viên -->
+    <!-- modal 1: add a member -->
     <div class="modal fade" id="addMemberModal" tabindex="-1" aria-labelledby="addMemberModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content rounded-0">
@@ -168,7 +168,7 @@
         </div>
     </div>
 
-    <!-- Modal 2: Đổi vai trò -->
+    <!-- modal 2: change role -->
     <div class="modal fade" id="changeRoleModal" tabindex="-1" aria-labelledby="changeRoleModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -228,7 +228,7 @@
         </div>
     </div>
 
-    <!-- Modal 3: Xác nhận vô hiệu hóa -->
+    <!-- modal 3: confirm deactivation -->
     <div class="modal fade" id="deactivateModal" tabindex="-1" aria-labelledby="deactivateModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">

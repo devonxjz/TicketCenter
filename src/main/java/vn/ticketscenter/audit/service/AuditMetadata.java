@@ -50,29 +50,37 @@ public final class AuditMetadata {
                     "DISABLED");
 
     public static Map<String, String> project(String json) {
-        if (json == null || json.length() > 8000) return Map.of();
+        if (json == null || json.length() > 8000) {
+            return Map.of();
+        }
         try {
             Object parsed = new Parser(json).parse();
-            if (!(parsed instanceof Map<?, ?> source)) return Map.of();
+            if (!(parsed instanceof Map<?, ?> source)) {
+                return Map.of();
+            }
             var result = new LinkedHashMap<String, String>();
-            for (var entry : source.entrySet()) {
+            for (Map.Entry<?, ?> entry : source.entrySet()) {
                 String key = (String) entry.getKey();
                 Object raw = entry.getValue();
-                if (!(raw instanceof String || raw instanceof BigDecimal)) continue;
+                if (!(raw instanceof String || raw instanceof BigDecimal)) {
+                    continue;
+                }
                 String text = raw.toString();
                 if (IDS.contains(key)
                         && raw instanceof String
-                        && text.matches("[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}"))
+                        && text.matches("[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}")) {
                     result.put(key, UUID.fromString(text).toString());
-                else if (MONEY.contains(key) && text.matches("[0-9]{1,19}"))
+                } else if (MONEY.contains(key) && text.matches("[0-9]{1,19}")) {
                     result.put(key, new BigDecimal(text).toPlainString());
-                else if (key.equals("ratePercent") && text.matches("[0-9]{1,3}(\\.[0-9]{1,4})?")) {
+                } else if (key.equals("ratePercent") && text.matches("[0-9]{1,3}(\\.[0-9]{1,4})?")) {
                     BigDecimal rate = new BigDecimal(text);
-                    if (rate.compareTo(new BigDecimal("100")) <= 0)
+                    if (rate.compareTo(new BigDecimal("100")) <= 0) {
                         result.put(key, rate.setScale(4).toPlainString());
+                    }
                 } else if (Set.of("previousStatus", "newStatus", "status", "result").contains(key)
-                        && STATES.contains(text)) result.put(key, text);
-                else if (Set.of("processedAt", "confirmedAt", "effectiveFrom", "effectiveTo")
+                        && STATES.contains(text)) {
+                    result.put(key, text);
+                } else if (Set.of("processedAt", "confirmedAt", "effectiveFrom", "effectiveTo")
                                 .contains(key)
                         && raw instanceof String) {
                     try {
@@ -98,25 +106,37 @@ public final class AuditMetadata {
         Object parse() {
             Object value = value(0);
             space();
-            if (pos != text.length()) throw bad();
+            if (pos != text.length()) {
+                throw bad();
+            }
             return value;
         }
 
         Object value(int depth) {
-            if (depth > 16) throw bad();
+            if (depth > 16) {
+                throw bad();
+            }
             space();
-            if (pos >= text.length()) throw bad();
+            if (pos >= text.length()) {
+                throw bad();
+            }
             char c = text.charAt(pos);
-            if (c == '"') return string();
+            if (c == '"') {
+                return string();
+            }
             if (c == '{') {
                 pos++;
                 var result = new LinkedHashMap<String, Object>();
-                if (take('}')) return result;
+                if (take('}')) {
+                    return result;
+                }
                 do {
                     String key = string();
                     expect(':');
                     Object value = value(depth + 1);
-                    if (result.containsKey(key)) throw bad();
+                    if (result.containsKey(key)) {
+                        throw bad();
+                    }
                     result.put(key, value);
                 } while (take(','));
                 expect('}');
@@ -125,22 +145,29 @@ public final class AuditMetadata {
             if (c == '[') {
                 pos++;
                 var result = new ArrayList<Object>();
-                if (take(']')) return result;
+                if (take(']')) {
+                    return result;
+                }
                 do {
                     result.add(value(depth + 1));
                 } while (take(','));
                 expect(']');
                 return result;
             }
-            for (String literal : List.of("true", "false", "null"))
+            for (String literal : List.of("true", "false", "null")) {
                 if (text.startsWith(literal, pos)) {
                     pos += literal.length();
                     return literal.equals("null") ? null : Boolean.valueOf(literal);
                 }
+            }
             int start = pos;
-            while (pos < text.length() && "-+0123456789.eE".indexOf(text.charAt(pos)) >= 0) pos++;
+            while (pos < text.length() && "-+0123456789.eE".indexOf(text.charAt(pos)) >= 0) {
+                pos++;
+            }
             String number = text.substring(start, pos);
-            if (!number.matches("-?(0|[1-9][0-9]*)(\\.[0-9]+)?([eE][+-]?[0-9]+)?")) throw bad();
+            if (!number.matches("-?(0|[1-9][0-9]*)(\\.[0-9]+)?([eE][+-]?[0-9]+)?")) {
+                throw bad();
+            }
             return new BigDecimal(number);
         }
 
@@ -149,13 +176,19 @@ public final class AuditMetadata {
             var out = new StringBuilder();
             while (pos < text.length()) {
                 char c = text.charAt(pos++);
-                if (c == '"') return out.toString();
-                if (c < 32) throw bad();
+                if (c == '"') {
+                    return out.toString();
+                }
+                if (c < 32) {
+                    throw bad();
+                }
                 if (c != '\\') {
                     out.append(c);
                     continue;
                 }
-                if (pos >= text.length()) throw bad();
+                if (pos >= text.length()) {
+                    throw bad();
+                }
                 char escape = text.charAt(pos++);
                 switch (escape) {
                     case '"', '\\', '/' -> out.append(escape);
@@ -165,7 +198,9 @@ public final class AuditMetadata {
                     case 'r' -> out.append('\r');
                     case 't' -> out.append('\t');
                     case 'u' -> {
-                        if (pos + 4 > text.length()) throw bad();
+                        if (pos + 4 > text.length()) {
+                            throw bad();
+                        }
                         out.append((char) Integer.parseInt(text.substring(pos, pos + 4), 16));
                         pos += 4;
                     }
@@ -185,11 +220,15 @@ public final class AuditMetadata {
         }
 
         void expect(char c) {
-            if (!take(c)) throw bad();
+            if (!take(c)) {
+                throw bad();
+            }
         }
 
         void space() {
-            while (pos < text.length() && " \r\n\t".indexOf(text.charAt(pos)) >= 0) pos++;
+            while (pos < text.length() && " \r\n\t".indexOf(text.charAt(pos)) >= 0) {
+                pos++;
+            }
         }
 
         IllegalArgumentException bad() {

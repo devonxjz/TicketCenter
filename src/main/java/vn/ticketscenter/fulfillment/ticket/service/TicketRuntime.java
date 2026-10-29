@@ -1,5 +1,6 @@
 package vn.ticketscenter.fulfillment.ticket.service;
 
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
@@ -22,9 +23,9 @@ public final class TicketRuntime implements ServletContextListener {
     }
 
     private static TicketService create(FeatureContext.Resources resources) {
-        var buyer = resources.fallbackPool("ticket-buyer", BUYER, true, 10_000);
-        var signer = SignedTicketQrSigner.configured();
-        var redis = RedisClientProvider.getInstance();
+        HikariDataSource buyer = resources.fallbackPool("ticket-buyer", BUYER, true, 10_000);
+        SignedTicketQrSigner signer = SignedTicketQrSigner.configured();
+        RedisClientProvider redis = RedisClientProvider.getInstance();
         return new TicketServiceImpl(
                 new TicketRepository(ConnectionBudgets.wrap(buyer)),
                 signer,

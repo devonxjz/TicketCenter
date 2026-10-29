@@ -1,5 +1,6 @@
-package vn.ticketscenter.settlement.infrastructure;
+package vn.ticketscenter.settlement.dto;
 
+import vn.ticketscenter.settlement.dto.FinanceJson;
 import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.time.Instant;

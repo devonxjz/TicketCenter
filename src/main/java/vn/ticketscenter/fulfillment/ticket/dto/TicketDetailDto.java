@@ -10,7 +10,7 @@ import static vn.ticketscenter.config.web.Json.object;
 import static vn.ticketscenter.config.web.Json.text;
 
 /**
- * Chi tiết một vé và thông tin sự kiện liên quan (LIEM-05).
+ * One ticket with its event (LIEM-05).
  */
 public record TicketDetailDto(
         UUID id,

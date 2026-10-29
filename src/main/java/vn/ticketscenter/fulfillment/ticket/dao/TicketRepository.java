@@ -13,7 +13,7 @@ import java.util.*;
 import static vn.ticketscenter.config.persistence.SqlCall.instant;
 
 /**
- * Kho dữ liệu truy vấn vé từ SQL Server (LIEM-05).
+ * Ticket reads from SQL Server (LIEM-05).
  */
 public class TicketRepository {
     private final DataSource dataSource;
@@ -88,7 +88,7 @@ public class TicketRepository {
                     .fallback((code, message) -> TicketException.unavailable());
 
     /**
-     * Lấy danh sách tất cả vé thuộc về người mua (buyerId).
+     * Every ticket owned by the buyer (buyerId).
      */
     public List<TicketSummaryDto> findTicketsByBuyerId(UUID buyerId) {
         return findTicketsByBuyerId(buyerId, -1);
@@ -121,7 +121,7 @@ public class TicketRepository {
     }
 
     /**
-     * Tìm thông tin đầy đủ của một vé theo ticketId.
+     * The full record of one ticket by ticketId.
      */
     public Optional<TicketRecord> findById(UUID ticketId) {
         return findById(ticketId, null, -1);
@@ -139,13 +139,17 @@ public class TicketRepository {
     }
 
     public void assertTicketAccess(Connection conn, UUID ticketId) {
-        if (conn == null) return;
+        if (conn == null) {
+            return;
+        }
         Objects.requireNonNull(ticketId, "ticketId is required");
         SqlCall.execute(conn, "{call dbo.usp_AssertTicketAccess(?)}", ACCESS_ERRORS, ticketId);
     }
 
     public void assertTicketAccess(UUID ticketId, UUID actorId) {
-        if (dataSource == null) return;
+        if (dataSource == null) {
+            return;
+        }
         Objects.requireNonNull(ticketId, "ticketId is required");
         SqlCall.onConnection(
                 dataSource,
@@ -157,7 +161,7 @@ public class TicketRepository {
     }
 
     /**
-     * Lấy tất cả các vé thuộc về một đơn hàng (orderId).
+     * Every ticket of an order (orderId).
      */
     public List<TicketRecord> findTicketsByOrderId(UUID orderId) {
         return findTicketsByOrderId(orderId, null, -1);
@@ -200,7 +204,9 @@ public class TicketRepository {
             ps.setObject(1, id);
             List<T> rows = new ArrayList<>();
             try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) rows.add(mapper.map(rs));
+                while (rs.next()) {
+                    rows.add(mapper.map(rs));
+                }
             }
             return rows;
         } catch (SQLException e) {

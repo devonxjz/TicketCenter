@@ -24,19 +24,26 @@ public final class ImageContentValidator {
 
     public static byte[] readAndValidate(InputStream content, long maxBytes, long maxPixels)
             throws IOException {
-        if (content == null) throw new IllegalArgumentException("image is required");
-        if (maxBytes <= 0 || maxPixels <= 0)
+        if (content == null) {
+            throw new IllegalArgumentException("image is required");
+        }
+        if (maxBytes <= 0 || maxPixels <= 0) {
             throw new IllegalArgumentException("image limits must be positive");
+        }
 
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         byte[] buffer = new byte[8192];
         long total = 0;
         for (int count; (count = content.read(buffer)) >= 0; ) {
             total += count;
-            if (total > maxBytes) throw new IllegalArgumentException("image exceeds size limit");
+            if (total > maxBytes) {
+                throw new IllegalArgumentException("image exceeds size limit");
+            }
             output.write(buffer, 0, count);
         }
-        if (total == 0) throw new IllegalArgumentException("image is empty");
+        if (total == 0) {
+            throw new IllegalArgumentException("image is empty");
+        }
 
         byte[] bytes = output.toByteArray();
         if (WebpContentValidator.isWebp(bytes)) {
@@ -50,21 +57,28 @@ public final class ImageContentValidator {
     private static void inspect(byte[] bytes, long maxPixels) throws IOException {
         try (ImageInputStream stream =
                 ImageIO.createImageInputStream(new ByteArrayInputStream(bytes))) {
-            if (stream == null) throw new IllegalArgumentException("image format is invalid");
+            if (stream == null) {
+                throw new IllegalArgumentException("image format is invalid");
+            }
             Iterator<ImageReader> readers = ImageIO.getImageReaders(stream);
-            if (!readers.hasNext()) throw new IllegalArgumentException("image format is invalid");
+            if (!readers.hasNext()) {
+                throw new IllegalArgumentException("image format is invalid");
+            }
             ImageReader reader = readers.next();
             try {
                 reader.setInput(stream, true, true);
                 String format = reader.getFormatName().toLowerCase(Locale.ROOT);
-                if (!FORMATS.contains(format))
+                if (!FORMATS.contains(format)) {
                     throw new IllegalArgumentException("image must be PNG or JPEG");
+                }
                 long pixels =
                         Math.multiplyExact((long) reader.getWidth(0), (long) reader.getHeight(0));
-                if (pixels <= 0 || pixels > maxPixels)
+                if (pixels <= 0 || pixels > maxPixels) {
                     throw new IllegalArgumentException("image dimensions exceed limit");
-                if (reader.read(0) == null)
+                }
+                if (reader.read(0) == null) {
                     throw new IllegalArgumentException("image cannot be decoded");
+                }
             } catch (ArithmeticException exception) {
                 throw new IllegalArgumentException("image dimensions exceed limit", exception);
             } finally {

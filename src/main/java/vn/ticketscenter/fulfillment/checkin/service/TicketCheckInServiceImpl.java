@@ -41,19 +41,21 @@ public class TicketCheckInServiceImpl implements TicketCheckInService {
         boolean invalidSignature = false;
         if (request.qrContent() != null) {
             try {
-                var decoded = decoder.decode(request.qrContent());
+                SignedQrDecoder.Decoded decoded = decoder.decode(request.qrContent());
                 ticket = decoded.ticketId();
                 name = decoded.name();
             } catch (CheckInException exception) {
-                if (!"INVALID_SIGNATURE".equals(exception.code())) throw exception;
+                if (!"INVALID_SIGNATURE".equals(exception.code())) {
+                    throw exception;
+                }
                 invalidSignature = true;
             }
         }
 
         String fingerprint = fingerprint(request);
         // Redis reduces contention; SQL owns locking and durable request replay.
-        try (var lease = cache.lock(ticket)) {
-            var result =
+        try (CheckInScanCache.Lease lease = cache.lock(ticket)) {
+            CheckInScanResponseDto result =
                     repository.scan(
                             actor,
                             key,
@@ -96,7 +98,8 @@ public class TicketCheckInServiceImpl implements TicketCheckInService {
     }
 
     private static void requireActor(UUID actor) {
-        if (actor == null)
+        if (actor == null) {
             throw new CheckInException(401, "UNAUTHENTICATED", "Bạn chưa đăng nhập.");
+        }
     }
 }

@@ -1,7 +1,4 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<%
-    response.setHeader("Cache-Control", "no-store");
-%>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -14,7 +11,7 @@
     <jsp:include page="/WEB-INF/views/layout/header.jsp" />
     <main class="container my-5 hold-page buyer-container">
         <div id="checkout-autopay-overlay" ${param.pay=='now' ? '' : 'hidden' } class="checkout-overlay">
-            <div class="spinner-border text-danger" role="status" style="width: 3rem; height: 3rem;"></div>
+            <div class="spinner-border text-danger tc-spinner-lg" role="status"></div>
             <h3 class="fw-bold mt-3 mb-1">Đang chuyển đến cổng thanh toán…</h3>
             <p id="checkout-autopay-text" class="text-muted mb-0">Vui lòng đợi trong giây lát, đang mở trang thanh toán
                 VietQR payOS…</p>

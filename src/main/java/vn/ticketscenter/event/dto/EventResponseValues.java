@@ -1,5 +1,6 @@
 package vn.ticketscenter.event.dto;
 
+import java.util.regex.Matcher;
 import vn.ticketscenter.config.web.JsonObjectParser;
 import java.io.StringReader;
 import java.util.Optional;
@@ -10,13 +11,15 @@ public final class EventResponseValues {
     private EventResponseValues() {}
 
     public static Optional<String> string(String json, String field) {
-        var match =
+        Matcher match =
                 Pattern.compile(
                                 "\""
                                         + Pattern.quote(field)
                                         + "\"\\s*:\\s*(\"(?:[^\"\\\\]|\\\\.)*\")")
                         .matcher(json);
-        if (!match.find()) return Optional.empty();
+        if (!match.find()) {
+            return Optional.empty();
+        }
         try {
             return Optional.ofNullable(
                     JsonObjectParser.parse(new StringReader("{\"value\":" + match.group(1) + "}"))

@@ -1,13 +1,13 @@
 package vn.ticketscenter.dashboard.controller;
 
+import vn.ticketscenter.settlement.service.FinanceException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.*;
 import java.sql.SQLException;
 import vn.ticketscenter.dashboard.service.DashboardService;
 import vn.ticketscenter.dashboard.service.DashboardRuntime;
-import vn.ticketscenter.report.controller.ReadsideHttp;
-import vn.ticketscenter.settlement.infrastructure.*;
+import vn.ticketscenter.report.controller.ReadsideWeb;
 
 @WebServlet(name = "FinanceDashboardServlet", urlPatterns = "/api/admin/overview")
 public final class DashboardServlet extends HttpServlet {
@@ -16,11 +16,11 @@ public final class DashboardServlet extends HttpServlet {
             throws IOException {
         DashboardService service = DashboardRuntime.resolve(getServletContext());
         try {
-            ReadsideHttp.json(response, service.admin(ReadsideHttp.actor(request)));
+            ReadsideWeb.json(response, service.admin(ReadsideWeb.actor(request)));
         } catch (FinanceException e) {
-            ReadsideHttp.error(response, e);
+            ReadsideWeb.error(response, e);
         } catch (SQLException e) {
-            ReadsideHttp.error(response, new FinanceException("OVERVIEW_UNAVAILABLE", 503));
+            ReadsideWeb.error(response, new FinanceException("OVERVIEW_UNAVAILABLE", 503));
         }
     }
 }

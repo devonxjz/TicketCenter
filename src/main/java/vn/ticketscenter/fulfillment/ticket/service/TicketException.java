@@ -5,7 +5,7 @@ import vn.ticketscenter.config.error.AppException;
 import java.util.Objects;
 
 /**
- * Ngoại lệ nghiệp vụ cho miền vé (LIEM-05).
+ * Business error of the ticket feature (LIEM-05).
  */
 public final class TicketException extends AppException {
 

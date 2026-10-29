@@ -70,8 +70,7 @@ public class OtpServiceTest {
 
             // Tạo user trước
             tm.execute(DatabasePrincipal.AUTH, em -> {
-                User user = new User(email, "user" + suffix, "Test User", "salt:hash");
-                userRepository.save(em, user);
+                User user = userRepository.findById(em, userRepository.register(em, email, "user" + suffix, "Test User", "salt:hash")).orElseThrow();
                 return null;
             });
 
@@ -114,8 +113,7 @@ public class OtpServiceTest {
             String email = "cooldown." + suffix + "@ticketscenter.vn";
 
             tm.execute(DatabasePrincipal.AUTH, em -> {
-                User user = new User(email, "user" + suffix, "Test User", "salt:hash");
-                userRepository.save(em, user);
+                User user = userRepository.findById(em, userRepository.register(em, email, "user" + suffix, "Test User", "salt:hash")).orElseThrow();
                 return null;
             });
 
@@ -149,8 +147,7 @@ public class OtpServiceTest {
             String email = "verify." + suffix + "@ticketscenter.vn";
 
             User createdUser = tm.execute(DatabasePrincipal.AUTH, em -> {
-                User user = new User(email, "user" + suffix, "Test User", "salt:hash");
-                userRepository.save(em, user);
+                User user = userRepository.findById(em, userRepository.register(em, email, "user" + suffix, "Test User", "salt:hash")).orElseThrow();
                 return user;
             });
 
@@ -195,8 +192,7 @@ public class OtpServiceTest {
             String email = "reset." + suffix + "@ticketscenter.vn";
 
             User createdUser = tm.execute(DatabasePrincipal.AUTH, em -> {
-                User user = new User(email, "user" + suffix, "Test User", "salt:hash123");
-                userRepository.save(em, user);
+                User user = userRepository.findById(em, userRepository.register(em, email, "user" + suffix, "Test User", "salt:hash123")).orElseThrow();
                 return user;
             });
 
@@ -233,8 +229,7 @@ public class OtpServiceTest {
             String email = "wrong." + suffix + "@ticketscenter.vn";
 
             tm.execute(DatabasePrincipal.AUTH, em -> {
-                User user = new User(email, "user" + suffix, "Test User", "salt:hash");
-                userRepository.save(em, user);
+                User user = userRepository.findById(em, userRepository.register(em, email, "user" + suffix, "Test User", "salt:hash")).orElseThrow();
                 return null;
             });
 
@@ -275,8 +270,7 @@ public class OtpServiceTest {
             String email = "isolate." + suffix + "@ticketscenter.vn";
 
             tm.execute(DatabasePrincipal.AUTH, em -> {
-                User user = new User(email, "user" + suffix, "Test User", "salt:hash");
-                userRepository.save(em, user);
+                User user = userRepository.findById(em, userRepository.register(em, email, "user" + suffix, "Test User", "salt:hash")).orElseThrow();
                 return null;
             });
 

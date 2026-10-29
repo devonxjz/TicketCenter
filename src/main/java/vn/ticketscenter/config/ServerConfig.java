@@ -1,12 +1,12 @@
 package vn.ticketscenter.config;
 
 /**
- * Cấu hình môi trường và máy chủ Web (Base URL, Môi trường, Secret Key).
+ * Web server and environment settings (base URL, environment, secret key).
  */
 public final class ServerConfig {
 
     private ServerConfig() {
-        // Utility class không cho phép khởi tạo instance
+        // utility class
     }
 
     public static String getBaseUrl() {

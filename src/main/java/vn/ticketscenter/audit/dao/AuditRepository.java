@@ -5,7 +5,7 @@ import java.util.*;
 import vn.ticketscenter.audit.dto.AuditFilter;
 import vn.ticketscenter.audit.service.AuditMetadata;
 import vn.ticketscenter.report.dao.ReadProjection;
-import vn.ticketscenter.settlement.infrastructure.FinanceException;
+import vn.ticketscenter.settlement.service.FinanceException;
 
 public final class AuditRepository {
     private static final String COLUMNS =
@@ -44,10 +44,10 @@ public final class AuditRepository {
             params.add(f.organizationId());
         }
         long total = ReadProjection.first(db, "SELECT COUNT_BIG(*)" + where, params, row -> row.getLong(1));
-        var all = new ArrayList<>(params);
+        ArrayList<Object> all = new ArrayList<>(params);
         all.add(f.offset());
         all.add(f.pageSize());
-        var rows =
+        List<Map<String, Object>> rows =
                 ReadProjection.list(
                         db,
                         "SELECT " + COLUMNS + where + " ORDER BY a.created_at DESC,a.id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY",
@@ -71,17 +71,19 @@ public final class AuditRepository {
     }
 
     public Map<String, Object> detail(Connection db, UUID id) throws SQLException {
-        try (var query = db.prepareStatement("SELECT " + COLUMNS + SOURCE + " WHERE a.id=?")) {
+        try (PreparedStatement query = db.prepareStatement("SELECT " + COLUMNS + SOURCE + " WHERE a.id=?")) {
             query.setString(1, id.toString());
-            try (var row = query.executeQuery()) {
-                if (!row.next()) throw new FinanceException("NOT_FOUND", 404);
+            try (ResultSet row = query.executeQuery()) {
+                if (!row.next()) {
+                    throw new FinanceException("NOT_FOUND", 404);
+                }
                 return project(row);
             }
         }
     }
 
     private Map<String, Object> project(ResultSet row) throws SQLException {
-        var result =
+        Map<String, Object> result =
                 ReadProjection.row(
                         row,
                         List.of(

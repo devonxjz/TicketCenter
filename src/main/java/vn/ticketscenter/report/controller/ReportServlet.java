@@ -1,5 +1,7 @@
 package vn.ticketscenter.report.controller;
 
+import vn.ticketscenter.identity.security.UserPrincipal;
+import vn.ticketscenter.settlement.service.FinanceException;
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
@@ -10,7 +12,6 @@ import vn.ticketscenter.report.dto.ReportFilter;
 import vn.ticketscenter.report.service.*;
 import vn.ticketscenter.dashboard.service.DashboardService;
 import vn.ticketscenter.dashboard.service.DashboardRuntime;
-import vn.ticketscenter.settlement.infrastructure.*;
 
 @WebServlet(
         name = "FinanceReportServlet",
@@ -22,11 +23,11 @@ public final class ReportServlet extends HttpServlet {
         ReportService reports = ReportRuntime.resolve(getServletContext());
         DashboardService overview = DashboardRuntime.resolve(getServletContext());
         try {
-            var actor = ReadsideHttp.actor(request);
-            var params = ReadsideHttp.parameters(request);
+            UserPrincipal actor = ReadsideWeb.actor(request);
+            Map<String, String> params = ReadsideWeb.parameters(request);
             String path = request.getServletPath();
             if (path.equals("/api/reports/options")) {
-                ReadsideHttp.json(
+                ReadsideWeb.json(
                         response,
                         reports.options(actor, ReportFilter.uuid(params.get("organizationId"))));
                 return;
@@ -35,19 +36,21 @@ public final class ReportServlet extends HttpServlet {
             Object organizationRoute =
                     request.getAttribute(OrganizationReadsideRoutesFilter.ROUTE_ATTRIBUTE);
             if (organizationRoute != null) {
-                var route = ReadsideHttp.organizationRoute((String) organizationRoute);
+                Object[] route = ReadsideWeb.organizationRoute((String) organizationRoute);
                 org = (UUID) route[0];
                 if (route[1].equals("overview")) {
-                    if (!params.isEmpty()) throw new FinanceException("INVALID_FILTER", 400);
+                    if (!params.isEmpty()) {
+                        throw new FinanceException("INVALID_FILTER", 400);
+                    }
                     try {
-                        ReadsideHttp.json(response, overview.organization(actor, org));
+                        ReadsideWeb.json(response, overview.organization(actor, org));
                     } catch (SQLException e) {
                         throw new FinanceException("OVERVIEW_UNAVAILABLE", 503);
                     }
                     return;
                 }
             }
-            var filter = ReportFilter.parse(params, org);
+            ReportFilter filter = ReportFilter.parse(params, org);
             if (path.equals("/api/reports/export")) {
                 response.setContentType("text/csv;charset=UTF-8");
                 response.setHeader(
@@ -58,16 +61,17 @@ public final class ReportServlet extends HttpServlet {
                 response.setHeader("Cache-Control", "no-store");
                 response.setHeader("X-Content-Type-Options", "nosniff");
                 reports.export(actor, filter, response.getOutputStream());
-            } else
-                ReadsideHttp.json(
+            } else {
+                ReadsideWeb.json(
                         response,
                         path.equals("/api/admin/reports")
                                 ? reports.jsonAdmin(actor, filter)
                                 : reports.json(actor, filter));
+            }
         } catch (FinanceException e) {
-            ReadsideHttp.error(response, e);
+            ReadsideWeb.error(response, e);
         } catch (SQLException e) {
-            ReadsideHttp.error(response, new FinanceException("REPORT_UNAVAILABLE", 503));
+            ReadsideWeb.error(response, new FinanceException("REPORT_UNAVAILABLE", 503));
         }
     }
 }

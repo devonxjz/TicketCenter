@@ -1,5 +1,6 @@
 package vn.ticketscenter.fulfillment.refund.controller;
 
+import vn.ticketscenter.identity.service.SessionValidator;
 import jakarta.servlet.http.*;
 import java.io.*;
 import java.util.*;
@@ -17,15 +18,16 @@ final class RefundWeb {
     private RefundWeb() {}
 
     static UserPrincipal actor(HttpServletRequest request) {
-        var actor =
+        UserPrincipal actor =
                 SecurityContext.getCurrentUser(request)
                         .orElseThrow(
                                 () ->
                                         new RefundException(
                                                 401, "UNAUTHENTICATED", "Bạn cần đăng nhập."));
-        var auth = IdentityServices.sessionValidator(request.getServletContext());
-        if (auth == null)
+        SessionValidator auth = IdentityServices.sessionValidator(request.getServletContext());
+        if (auth == null) {
             throw new RefundException(503, "AUTH_UNAVAILABLE", "Hệ thống xác thực chưa sẵn sàng.");
+        }
         if (!auth.isSessionValid(actor.actorId(), actor.authVersion())) {
             SecurityContext.clearSession(request);
             throw new RefundException(401, "SESSION_EXPIRED", "Phiên đăng nhập đã hết hạn.");
@@ -34,7 +36,7 @@ final class RefundWeb {
     }
 
     static UserPrincipal requireAdmin(HttpServletRequest request) {
-        var actor = actor(request);
+        UserPrincipal actor = actor(request);
         if (!actor.isAdmin()) {
             throw new RefundException(
                     403, "ADMIN_REQUIRED", "Chỉ quản trị viên được phép xử lý hoàn tiền.");
@@ -43,7 +45,9 @@ final class RefundWeb {
     }
 
     static UUID id(String value) {
-        if (value == null || !value.matches(UUID_PATTERN)) throw RefundException.invalid();
+        if (value == null || !value.matches(UUID_PATTERN)) {
+            throw RefundException.invalid();
+        }
         return UUID.fromString(value);
     }
 
@@ -56,14 +60,16 @@ final class RefundWeb {
     }
 
     static UUID mutation(HttpServletRequest request) {
-        if (!SecurityContext.validateCsrfToken(request))
+        if (!SecurityContext.validateCsrfToken(request)) {
             throw new RefundException(403, "CSRF_INVALID", "Mã bảo vệ phiên không hợp lệ.");
+        }
         if (request.getContentType() == null
                 || !request.getContentType()
                         .split(";", 2)[0]
                         .strip()
-                        .equalsIgnoreCase("application/json"))
+                        .equalsIgnoreCase("application/json")) {
             throw new RefundException(415, "JSON_REQUIRED", "Yêu cầu phải sử dụng JSON.");
+        }
         return id(request.getHeader("Idempotency-Key"));
     }
 
@@ -71,10 +77,12 @@ final class RefundWeb {
         StringBuilder body = new StringBuilder();
         char[] buffer = new char[1024];
         int n;
-        try (var reader = request.getReader()) {
+        try (BufferedReader reader = request.getReader()) {
             while ((n = reader.read(buffer)) != -1) {
                 body.append(buffer, 0, n);
-                if (body.length() > 32768) throw RefundException.invalid();
+                if (body.length() > 32768) {
+                    throw RefundException.invalid();
+                }
             }
         }
         return RefundRequestJson.parse(body.toString());

@@ -42,10 +42,10 @@ public class OrganizationMembersServlet extends HttpServlet {
                     "^/api/organizations/([^/]+)/members(?:/([^/]+)/(role|deactivate|activate))?/?$");
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
-            UserPrincipal actor = requireUser(req);
-            Matcher matcher = MEMBERS_PATTERN.matcher(PathIds.path(req));
+            UserPrincipal actor = requireUser(request);
+            Matcher matcher = MEMBERS_PATTERN.matcher(PathIds.path(request));
             if (!matcher.matches() || matcher.group(3) != null) {
                 throw invalidPath();
             }
@@ -59,25 +59,25 @@ public class OrganizationMembersServlet extends HttpServlet {
                     members.stream()
                             .map(OrganizationMemberDto::toJson)
                             .collect(Collectors.joining(",", "[", "]"));
-            HttpResponses.data(resp, json);
+            HttpResponses.data(response, json);
         } catch (AppException rejected) {
-            HttpResponses.error(resp, rejected);
+            HttpResponses.error(response, rejected);
         } catch (Exception ex) {
-            handleException(resp, ex);
+            handleException(response, ex);
         }
     }
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
-            UserPrincipal actor = requireUser(req);
-            if (!SecurityContext.validateCsrfToken(req)) {
+            UserPrincipal actor = requireUser(request);
+            if (!SecurityContext.validateCsrfToken(request)) {
                 throw new AppException(
                         HttpServletResponse.SC_FORBIDDEN,
                         "CSRF_TOKEN_INVALID",
                         "Yêu cầu CSRF token hợp lệ");
             }
-            Matcher matcher = MEMBERS_PATTERN.matcher(PathIds.path(req));
+            Matcher matcher = MEMBERS_PATTERN.matcher(PathIds.path(request));
             if (!matcher.matches()) {
                 throw invalidPath();
             }
@@ -87,37 +87,37 @@ public class OrganizationMembersServlet extends HttpServlet {
             // perform action and write the JSON reply
             String action = matcher.group(3);
             if (action == null) {
-                OrganizationMemberDto member = addMember(req, service, actor, orgId);
-                HttpResponses.created(resp, member.toJson());
+                OrganizationMemberDto member = addMember(request, service, actor, orgId);
+                HttpResponses.created(response, member.toJson());
             } else {
                 UUID targetUserId = targetUserId(matcher.group(2));
                 OrganizationMemberDto updated =
-                        updateMember(req, service, actor, orgId, targetUserId, action);
-                HttpResponses.data(resp, updated.toJson());
+                        updateMember(request, service, actor, orgId, targetUserId, action);
+                HttpResponses.data(response, updated.toJson());
             }
         } catch (AppException rejected) {
-            HttpResponses.error(resp, rejected);
+            HttpResponses.error(response, rejected);
         } catch (IllegalStateException ex) {
-            membershipConflict(resp, ex);
+            membershipConflict(response, ex);
         } catch (Exception ex) {
-            handleException(resp, ex);
+            handleException(response, ex);
         }
     }
 
     private static OrganizationMemberDto addMember(
-            HttpServletRequest req,
+            HttpServletRequest request,
             OrganizationMembershipService service,
             UserPrincipal actor,
             UUID orgId)
             throws IOException {
-        Map<String, String> body = JsonObjectParser.parse(req.getReader());
+        Map<String, String> body = JsonObjectParser.parse(request.getReader());
         OrganizationRole role = parseRole(body.get("role"));
         AddMemberRequestDto dto = new AddMemberRequestDto(body.get("userName"), role);
         return service.addMember(actor.actorId(), orgId, dto);
     }
 
     private static OrganizationMemberDto updateMember(
-            HttpServletRequest req,
+            HttpServletRequest request,
             OrganizationMembershipService service,
             UserPrincipal actor,
             UUID orgId,
@@ -126,7 +126,7 @@ public class OrganizationMembersServlet extends HttpServlet {
             throws IOException {
         UUID actorId = actor.actorId();
         if (action.equals("role")) {
-            Map<String, String> body = JsonObjectParser.parse(req.getReader());
+            Map<String, String> body = JsonObjectParser.parse(request.getReader());
             OrganizationRole role = parseRole(body.get("role"));
             return service.changeRole(
                     actorId, orgId, targetUserId, new ChangeMemberRoleRequestDto(role));
@@ -147,8 +147,8 @@ public class OrganizationMembersServlet extends HttpServlet {
         return services.organizationMembershipService();
     }
 
-    private static UserPrincipal requireUser(HttpServletRequest req) {
-        Optional<UserPrincipal> principal = SecurityContext.getCurrentUser(req);
+    private static UserPrincipal requireUser(HttpServletRequest request) {
+        Optional<UserPrincipal> principal = SecurityContext.getCurrentUser(request);
         if (principal.isEmpty()) {
             throw new AppException(
                     HttpServletResponse.SC_UNAUTHORIZED,
@@ -183,41 +183,41 @@ public class OrganizationMembersServlet extends HttpServlet {
                 HttpServletResponse.SC_BAD_REQUEST, "INVALID_PATH", "Đường dẫn không hợp lệ");
     }
 
-    private static void handleException(HttpServletResponse resp, Exception ex) throws IOException {
+    private static void handleException(HttpServletResponse response, Exception ex) throws IOException {
         if (ex instanceof SecurityException) {
             HttpResponses.error(
-                    resp, HttpServletResponse.SC_FORBIDDEN, "FORBIDDEN", ex.getMessage());
+                    response, HttpServletResponse.SC_FORBIDDEN, "FORBIDDEN", ex.getMessage());
         } else if (ex instanceof IllegalArgumentException) {
             HttpResponses.error(
-                    resp, HttpServletResponse.SC_BAD_REQUEST, "BAD_REQUEST", ex.getMessage());
+                    response, HttpServletResponse.SC_BAD_REQUEST, "BAD_REQUEST", ex.getMessage());
         } else {
             LOGGER.log(Level.SEVERE, "Membership request failed", ex);
             HttpResponses.error(
-                    resp,
+                    response,
                     HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
                     "SERVER_ERROR",
                     "Đã xảy ra lỗi hệ thống.");
         }
     }
 
-    private static void membershipConflict(HttpServletResponse resp, IllegalStateException ex)
+    private static void membershipConflict(HttpServletResponse response, IllegalStateException ex)
             throws IOException {
         String msg = ex.getMessage();
         if (msg != null && msg.startsWith("MEMBER_ALREADY_EXISTS")) {
             HttpResponses.error(
-                    resp,
+                    response,
                     HttpServletResponse.SC_CONFLICT,
                     "MEMBER_ALREADY_EXISTS",
                     msg);
         } else if (msg != null && msg.contains("CANNOT_DEACTIVATE_LAST_MANAGER")) {
             HttpResponses.error(
-                    resp,
+                    response,
                     HttpServletResponse.SC_BAD_REQUEST,
                     "CANNOT_DEACTIVATE_LAST_MANAGER",
                     msg);
         } else {
             HttpResponses.error(
-                    resp, HttpServletResponse.SC_BAD_REQUEST, "BAD_REQUEST", msg);
+                    response, HttpServletResponse.SC_BAD_REQUEST, "BAD_REQUEST", msg);
         }
     }
 

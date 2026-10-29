@@ -40,7 +40,9 @@ public final class ApiRequest {
     /** The header's value when it was sent exactly once. */
     public static Optional<String> singleHeader(HttpServletRequest request, String name) {
         Enumeration<String> values = request.getHeaders(name);
-        if (values == null || !values.hasMoreElements()) return Optional.empty();
+        if (values == null || !values.hasMoreElements()) {
+            return Optional.empty();
+        }
         String value = values.nextElement();
         return values.hasMoreElements() ? Optional.empty() : Optional.ofNullable(value);
     }
@@ -48,13 +50,17 @@ public final class ApiRequest {
     /** The parameter's value when it is the request's only parameter and appears once. */
     public static Optional<String> onlyParameter(HttpServletRequest request, String name) {
         if (!request.getParameterMap().keySet().equals(Set.of(name))
-                || request.getParameterValues(name).length != 1) return Optional.empty();
+                || request.getParameterValues(name).length != 1) {
+            return Optional.empty();
+        }
         return Optional.ofNullable(request.getParameter(name));
     }
 
     /** A positive integer parameter; anything missing, malformed or not positive falls back. */
     public static int positiveInt(String text, int fallback) {
-        if (text == null || text.isBlank()) return fallback;
+        if (text == null || text.isBlank()) {
+            return fallback;
+        }
         try {
             int parsed = Integer.parseInt(text.trim());
             return parsed > 0 ? parsed : fallback;

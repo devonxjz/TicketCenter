@@ -17,7 +17,9 @@ final class RefundRequestJson {
         reader.expect('{');
         do {
             String key = reader.string();
-            if (!fields.add(key)) throw RefundException.invalid();
+            if (!fields.add(key)) {
+                throw RefundException.invalid();
+            }
             reader.expect(':');
             switch (key) {
                 case "orderId" -> order = RefundWeb.id(reader.string());
@@ -28,7 +30,9 @@ final class RefundRequestJson {
         } while (reader.take(','));
         reader.expect('}');
         reader.finish();
-        if (fields.size() != 3) throw RefundException.invalid();
+        if (fields.size() != 3) {
+            throw RefundException.invalid();
+        }
         return new CreateRefundRequestDto(order, tickets, reason);
     }
 
@@ -36,7 +40,9 @@ final class RefundRequestJson {
         var tickets = new ArrayList<UUID>();
         reader.expect('[');
         do {
-            if (tickets.size() == 8) throw RefundException.invalid();
+            if (tickets.size() == 8) {
+                throw RefundException.invalid();
+            }
             tickets.add(RefundWeb.id(reader.string()));
         } while (reader.take(','));
         reader.expect(']');

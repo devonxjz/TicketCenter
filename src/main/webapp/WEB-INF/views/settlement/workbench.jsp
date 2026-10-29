@@ -1,14 +1,11 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
-<%@ page import="vn.ticketscenter.settlement.controller.FinanceHtml" %>
-<%
-    request.setAttribute("financeTitle", "Quyết toán & chi trả");
-    request.setAttribute("financePage", "settlements");
-    request.setAttribute("financeAdmin", true);
-    request.setAttribute("financeWritable", true);
-    request.setAttribute(
-            "financeIntro",
-            "Đối soát doanh thu của từng sự kiện, giải quyết giao dịch còn chờ và chốt bảng kê trước khi chi trả cho tổ chức.");
-%>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<c:set var="financeTitle" value="Quyết toán & chi trả" scope="request" />
+<c:set var="financePage" value="settlements" scope="request" />
+<c:set var="financeAdmin" value="${true}" scope="request" />
+<c:set var="financeWritable" value="${true}" scope="request" />
+<c:set var="financeIntro" value="Đối soát doanh thu của từng sự kiện, giải quyết giao dịch còn chờ và chốt bảng kê trước khi chi trả cho tổ chức." scope="request" />
 <%@ include file="../finance/_header.jsp" %>
 <section class="finance-panel">
     <div class="finance-panel-heading">
@@ -27,7 +24,19 @@
                     <th>Thao tác</th>
                 </tr>
             </thead>
-            <tbody id="ready-events"><%= FinanceHtml.readySettlementRows(request.getAttribute("readyEvents")) %></tbody>
+            <tbody id="ready-events">
+                <c:if test="${empty readyEvents}">
+                    <tr><td colspan="3">Chưa có sự kiện đã kết thúc đủ điều kiện quyết toán.</td></tr>
+                </c:if>
+                <c:forEach items="${readyEvents}" var="event">
+                    <tr>
+                        <td><c:out value="${event.title}" /></td>
+                        <td>${event.endTime}</td>
+                        <td><button type="button" class="finance-button-secondary" data-ready-event="${event.id}"
+                                data-ready-title="<c:out value='${event.title}' />">Xem bảng kê</button></td>
+                    </tr>
+                </c:forEach>
+            </tbody>
         </table>
     </div>
 </section>
@@ -39,7 +48,7 @@
     <label>Sự kiện
         <select id="event" required>
             <option value="">Chọn sự kiện đã kết thúc</option>
-            <%= FinanceHtml.options(request.getAttribute("events"),"title") %>
+            <c:forEach items="${events}" var="option"><option value="${fn:escapeXml(option.id)}"><c:out value="${option.title}" /></option></c:forEach>
         </select>
     </label>
 </section>
@@ -61,19 +70,17 @@
         <h2>Chi trả cho tổ chức</h2>
         <span class="finance-tag">Sau khi chốt bảng kê</span>
     </div>
-    <%
-        if ("fixture-simulated".equals(request.getAttribute("payoutMode"))) {
-    %>
-    <p class="finance-callout">Chế độ kiểm thử: lệnh chi trả được mô phỏng, không chuyển tiền ngân hàng thật.</p>
-    <%
-        } else {
-    %>
-    <p class="finance-callout">Chưa kết nối dịch vụ chi trả. Bạn vẫn có thể chốt bảng kê và xem lịch sử.</p>
-    <%
-        }
-    %>
+    <c:set var="payoutSimulated" value="${payoutMode eq 'fixture-simulated'}" />
+    <c:choose>
+        <c:when test="${payoutSimulated}">
+            <p class="finance-callout">Chế độ kiểm thử: lệnh chi trả được mô phỏng, không chuyển tiền ngân hàng thật.</p>
+        </c:when>
+        <c:otherwise>
+            <p class="finance-callout">Chưa kết nối dịch vụ chi trả. Bạn vẫn có thể chốt bảng kê và xem lịch sử.</p>
+        </c:otherwise>
+    </c:choose>
     <form id="payout-form" class="finance-filter-grid"
-        <%= "fixture-simulated".equals(request.getAttribute("payoutMode")) ? "" : "hidden" %>>
+        ${payoutSimulated ? '' : 'hidden'}>
         <label>Số tiền (VND)
             <input name="amount" inputmode="numeric" pattern="[0-9]+" required>
         </label>

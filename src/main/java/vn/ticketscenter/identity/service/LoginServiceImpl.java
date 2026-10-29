@@ -108,13 +108,7 @@ public class LoginServiceImpl implements LoginService {
             transactions.execute(
                     DatabasePrincipal.AUTH,
                     em -> {
-                        userRepository
-                                .findById(em, user.getId())
-                                .ifPresent(
-                                        current -> {
-                                            current.rehashPassword(upgraded);
-                                            userRepository.save(em, current);
-                                        });
+                        userRepository.rehashPassword(em, user.getId(), upgraded);
                         return null;
                     });
         } catch (RuntimeException ignored) {

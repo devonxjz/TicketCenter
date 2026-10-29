@@ -1,5 +1,6 @@
-package vn.ticketscenter.fulfillment.refund.controller;
+package vn.ticketscenter.fulfillment.refund.service;
 
+import vn.ticketscenter.config.persistence.PersistenceRegistry;
 import jakarta.servlet.ServletContext;
 import vn.ticketscenter.config.persistence.FeatureContext;
 import vn.ticketscenter.fulfillment.refund.dao.AdminRefundRepository;
@@ -20,7 +21,7 @@ public final class AdminRefundRuntime {
     }
 
     private static AdminRefundDecisionService create(ServletContext context) {
-        var registry =
+        PersistenceRegistry registry =
                 FeatureContext.registry(
                         context,
                         ADMIN,

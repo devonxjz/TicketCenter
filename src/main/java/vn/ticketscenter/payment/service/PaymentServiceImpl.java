@@ -111,10 +111,14 @@ public class PaymentServiceImpl implements PaymentService {
         } catch (PayosGateway.InvalidWebhook invalid) {
             return PayosWebhookResult.invalidSignature();
         }
-        if (!"00".equals(event.code())) return PayosWebhookResult.ignored();
+        if (!"00".equals(event.code())) {
+            return PayosWebhookResult.ignored();
+        }
 
         Optional<PaymentRecord> found = findByOrderCode(event.orderCode());
-        if (found.isEmpty()) return PayosWebhookResult.orderNotFound();
+        if (found.isEmpty()) {
+            return PayosWebhookResult.orderNotFound();
+        }
         PaymentRecord payment = found.get();
 
         if (idempotency.getCachedWebhook(payment.txnRef(), event.paymentLinkId()) != null) {
@@ -140,15 +144,19 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public PaymentReturnResult processReturn(Map<String, String> params) {
         Optional<Long> orderCode = parseOrderCode(params == null ? null : params.get("orderCode"));
-        if (orderCode.isEmpty())
+        if (orderCode.isEmpty()) {
             return PaymentReturnResult.invalid("Tham số giao dịch không hợp lệ.");
+        }
 
         Optional<PaymentRecord> found = findByOrderCode(orderCode.get());
-        if (found.isEmpty()) return PaymentReturnResult.invalid("Không tìm thấy giao dịch.");
+        if (found.isEmpty()) {
+            return PaymentReturnResult.invalid("Không tìm thấy giao dịch.");
+        }
         PaymentRecord payment = found.get();
 
-        if ("CAPTURED".equals(payment.paymentStatus()))
+        if ("CAPTURED".equals(payment.paymentStatus())) {
             return returned(payment, true, Outcome.CAPTURED, SUCCESS);
+        }
 
         PayosGateway.Result verified = payos.query(payment.txnRef(), payment.amount(), false);
         return switch (verified.outcome()) {
@@ -267,7 +275,9 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     private static Optional<Long> parseOrderCode(String raw) {
-        if (raw == null || !raw.trim().matches("[0-9]{1,16}")) return Optional.empty();
+        if (raw == null || !raw.trim().matches("[0-9]{1,16}")) {
+            return Optional.empty();
+        }
         return Optional.of(Long.parseLong(raw.trim()));
     }
 

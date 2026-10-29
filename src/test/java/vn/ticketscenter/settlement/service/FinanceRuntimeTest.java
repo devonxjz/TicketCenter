@@ -1,4 +1,4 @@
-package vn.ticketscenter.settlement.infrastructure;
+package vn.ticketscenter.settlement.service;
 
 import org.junit.jupiter.api.Test;
 

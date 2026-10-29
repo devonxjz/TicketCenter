@@ -1,5 +1,6 @@
 package vn.ticketscenter.event.service;
 
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
@@ -30,9 +31,9 @@ public final class EventRuntime implements ServletContextListener {
     }
 
     private static EventService create(FeatureContext.Resources resources) {
-        var manager = resources.fallbackPool("event-images-manager", MANAGER, false, 15_000);
-        var buyer = resources.fallbackPool("event-images-buyer", BUYER, false, 15_000);
-        var worker = resources.fallbackPool("event-images-worker", WORKER, false, 15_000);
+        HikariDataSource manager = resources.fallbackPool("event-images-manager", MANAGER, false, 15_000);
+        HikariDataSource buyer = resources.fallbackPool("event-images-buyer", BUYER, false, 15_000);
+        HikariDataSource worker = resources.fallbackPool("event-images-worker", WORKER, false, 15_000);
         var repository =
                 new EventRepository(
                         ConnectionBudgets.wrap(manager),
@@ -54,13 +55,17 @@ public final class EventRuntime implements ServletContextListener {
 
     @Override
     public void contextDestroyed(ServletContextEvent event) {
-        if (cleanup != null) cleanup.shutdownNow();
+        if (cleanup != null) {
+            cleanup.shutdownNow();
+        }
         FeatureContext.close(event.getServletContext(), SERVICE_ATTRIBUTE);
     }
 
     /** Only cleans once a request has built the service; the job never opens pools by itself. */
     private static void cleanImages(ServletContext context) {
-        if (!(context.getAttribute(SERVICE_ATTRIBUTE) instanceof EventService service)) return;
+        if (!(context.getAttribute(SERVICE_ATTRIBUTE) instanceof EventService service)) {
+            return;
+        }
         try {
             service.cleanup(10);
         } catch (RuntimeException failure) {

@@ -6,7 +6,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 /**
- * DTO yêu cầu cập nhật mã giảm giá Coupon (LIEM-06).
+ * Request to update a coupon (LIEM-06).
  */
 public record UpdateCouponRequest(Integer maxUses, Instant validTo, BigDecimal maxDiscountAmount) {
     public static UpdateCouponRequest fromJson(String jsonStr) {

@@ -28,7 +28,7 @@
                 <span id="draft-state" class="status-pill status-subtle align-self-start">Nháp mới</span>
             </div>
             <p id="status" role="status" aria-live="polite">Đang tải…</p>
-            <p id="rejection" class="text-danger" style="white-space:pre-wrap"></p>
+            <p id="rejection" class="text-danger tc-pre-wrap"></p>
             <div class="row g-4 organizer-editor-grid">
                 <div class="col-lg-7">
                     <form id="event-form" method="post" class="panel-box">
@@ -106,11 +106,10 @@
                         </div>
                         <p class="small text-muted">PNG/JPEG/WEBP tối đa 5 MB. Sự kiện mới dùng ảnh mặc định theo
                             thể loại nếu chưa chọn ảnh riêng.</p>
-                        <img id="cover-preview" alt="Ảnh bìa sự kiện" class="mb-3"
-                            style="max-width:100%;max-height:240px" hidden>
+                        <img id="cover-preview" alt="Ảnh bìa sự kiện" class="mb-3 tc-editor-image" hidden>
                         <div class="d-flex flex-wrap gap-3">
                             <input type="file" id="cover-file" accept="image/png,image/jpeg,image/webp"
-                                class="form-control rounded-0" style="max-width:450px">
+                                class="form-control rounded-0 tc-input-narrow">
                             <button type="button" id="upload-cover" class="btn btn-dark">Tải ảnh lên</button>
                             <progress id="upload-progress" value="0" max="100"
                                 aria-label="Tiến trình tải ảnh"></progress>

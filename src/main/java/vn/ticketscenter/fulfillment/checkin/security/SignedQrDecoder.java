@@ -1,5 +1,6 @@
 package vn.ticketscenter.fulfillment.checkin.security;
 
+import java.util.Map;
 import vn.ticketscenter.config.fulfillment.TicketQrConfig;
 import vn.ticketscenter.config.web.JsonObjectParser;
 import vn.ticketscenter.fulfillment.checkin.CheckInException;
@@ -64,7 +65,7 @@ public final class SignedQrDecoder {
             String payload = envelope.substring(0, dot), signature = envelope.substring(dot + 1);
             byte[] bytes = Base64.getUrlDecoder().decode(payload);
             byte[] received = Base64.getUrlDecoder().decode(signature);
-            var base64 = Base64.getUrlEncoder().withoutPadding();
+            Base64.Encoder base64 = Base64.getUrlEncoder().withoutPadding();
             if (bytes.length > 3000
                     || !base64.encodeToString(bytes).equals(payload)
                     || !base64.encodeToString(received).equals(signature)) {
@@ -73,7 +74,9 @@ public final class SignedQrDecoder {
 
             Mac mac = Mac.getInstance("HmacSHA256");
             mac.init(new SecretKeySpec(secret, "HmacSHA256"));
-            if (!MessageDigest.isEqual(mac.doFinal(bytes), received)) throw invalid();
+            if (!MessageDigest.isEqual(mac.doFinal(bytes), received)) {
+                throw invalid();
+            }
 
             String json =
                     StandardCharsets.UTF_8
@@ -82,9 +85,13 @@ public final class SignedQrDecoder {
                             .onUnmappableCharacter(CodingErrorAction.REPORT)
                             .decode(ByteBuffer.wrap(bytes))
                             .toString();
-            if (!OBJECT.matcher(json).matches()) throw invalid();
-            var values = JsonObjectParser.parse(new StringReader(json));
-            if (!values.keySet().equals(Set.of("id", "name"))) throw invalid();
+            if (!OBJECT.matcher(json).matches()) {
+                throw invalid();
+            }
+            Map<String, String> values = JsonObjectParser.parse(new StringReader(json));
+            if (!values.keySet().equals(Set.of("id", "name"))) {
+                throw invalid();
+            }
 
             String id = values.get("id"), name = values.get("name");
             if (!id.matches("[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}")

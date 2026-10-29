@@ -1,12 +1,13 @@
 package vn.ticketscenter.dashboard.service;
 
+import vn.ticketscenter.settlement.dto.FinanceJson;
+import vn.ticketscenter.settlement.dao.FinanceDatabase;
 import java.sql.*;
 import java.time.*;
 import java.util.*;
 import vn.ticketscenter.dashboard.cache.DashboardCache;
 import vn.ticketscenter.dashboard.dao.DashboardRepository;
 import vn.ticketscenter.identity.security.UserPrincipal;
-import vn.ticketscenter.settlement.infrastructure.*;
 import vn.ticketscenter.settlement.dao.FinanceAuthorization;
 
 public final class DashboardServiceImpl implements DashboardService {
@@ -35,10 +36,12 @@ public final class DashboardServiceImpl implements DashboardService {
 
     @Override
     public String admin(UserPrincipal actor) throws SQLException {
-        try (var db = database.open()) {
+        try (Connection db = database.open()) {
             FinanceAuthorization.requireAdmin(db, actor);
             String hit = cache.get();
-            if (hit != null) return hit;
+            if (hit != null) {
+                return hit;
+            }
             String json =
                     FinanceJson.write(
                             Map.of("data", repository.overview(db, null, clock.instant())));
@@ -49,7 +52,7 @@ public final class DashboardServiceImpl implements DashboardService {
 
     @Override
     public String organization(UserPrincipal actor, UUID org) throws SQLException {
-        try (var db = database.open()) {
+        try (Connection db = database.open()) {
             FinanceAuthorization.requireManager(db, actor, org);
             repository.requireOrganization(db, org);
             return FinanceJson.write(Map.of("data", repository.overview(db, org, clock.instant())));

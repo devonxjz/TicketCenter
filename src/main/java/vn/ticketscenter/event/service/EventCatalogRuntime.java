@@ -1,5 +1,6 @@
-package vn.ticketscenter.event.controller;
+package vn.ticketscenter.event.service;
 
+import vn.ticketscenter.config.persistence.PersistenceRegistry;
 import jakarta.servlet.ServletContext;
 import vn.ticketscenter.config.persistence.FeatureContext;
 import vn.ticketscenter.event.cache.EventCatalogCacheImpl;
@@ -24,7 +25,7 @@ public final class EventCatalogRuntime {
     }
 
     private static EventCatalogService create(ServletContext context) {
-        var registry =
+        PersistenceRegistry registry =
                 FeatureContext.registry(
                         context, BUYER, () -> new IllegalStateException("Event catalog unavailable"));
         return new EventCatalogServiceImpl(

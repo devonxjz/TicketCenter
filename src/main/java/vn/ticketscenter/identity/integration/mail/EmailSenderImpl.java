@@ -21,8 +21,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Triển khai gửi email qua giao thức SMTP bằng Socket thuần chuẩn JDK (cổng 587 STARTTLS hoặc 465 SSL).
- * Đảm bảo timeout hữu hạn 5 giây và không phụ thuộc thư viện ngoài.
+ * Sends email over SMTP with plain JDK sockets (port 587 STARTTLS or 465 SSL).
+ * Every step has a 5-second timeout; no external library.
  */
 public class EmailSenderImpl implements EmailSender {
 
@@ -161,9 +161,9 @@ public class EmailSenderImpl implements EmailSender {
     }
 
     /**
-     * Dựng phần header + body MIME. Nội dung luôn mã hóa base64 (dòng 76 ký tự, CRLF) nên không
-     * vướng giới hạn 998 ký tự/dòng, ký tự xuống dòng trần hay dấu chấm đầu dòng của SMTP DATA.
-     * Có cả text và html thì gửi multipart/alternative để client không hiển thị HTML vẫn đọc được.
+     * Builds the MIME header and body. Content is always base64 (76-character lines, CRLF), so it never
+     * hits the 998-character line limit, bare line feeds or leading dots of SMTP DATA.
+     * With both text and HTML it sends multipart/alternative, so clients without HTML can still read it.
      */
     static String buildMimeMessage(String user, EmailMessage message) {
         boolean hasText = message.bodyText() != null && !message.bodyText().isBlank();

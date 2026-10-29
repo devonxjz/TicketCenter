@@ -5,26 +5,32 @@ import jakarta.persistence.NoResultException;
 import vn.ticketscenter.identity.dto.ProfileDto;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.model.User;
-import vn.ticketscenter.identity.model.UserStatus;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
+/** Reads accounts through JPA; every write is one procedure call (072, and usp_UpdateMyProfile from 059). */
 public class UserRepository {
 
     public Optional<User> findById(EntityManager entityManager, UUID id) {
         Objects.requireNonNull(entityManager, "entityManager must not be null");
-        if (id == null) return Optional.empty();
+        if (id == null) {
+            return Optional.empty();
+        }
         return Optional.ofNullable(entityManager.find(User.class, id));
     }
 
     public Optional<User> findByNormalizedEmail(EntityManager entityManager, String email) {
         Objects.requireNonNull(entityManager, "entityManager must not be null");
-        if (email == null || email.isBlank()) return Optional.empty();
+        if (email == null || email.isBlank()) {
+            return Optional.empty();
+        }
         try {
             User user =
                     entityManager
@@ -41,7 +47,9 @@ public class UserRepository {
 
     public Optional<User> findByNormalizedUserName(EntityManager entityManager, String userName) {
         Objects.requireNonNull(entityManager, "entityManager must not be null");
-        if (userName == null || userName.isBlank()) return Optional.empty();
+        if (userName == null || userName.isBlank()) {
+            return Optional.empty();
+        }
         try {
             User user =
                     entityManager
@@ -58,7 +66,9 @@ public class UserRepository {
 
     public boolean existsByNormalizedEmail(EntityManager entityManager, String email) {
         Objects.requireNonNull(entityManager, "entityManager must not be null");
-        if (email == null || email.isBlank()) return false;
+        if (email == null || email.isBlank()) {
+            return false;
+        }
         Long count =
                 entityManager
                         .createQuery(
@@ -71,7 +81,9 @@ public class UserRepository {
 
     public boolean existsByNormalizedUserName(EntityManager entityManager, String userName) {
         Objects.requireNonNull(entityManager, "entityManager must not be null");
-        if (userName == null || userName.isBlank()) return false;
+        if (userName == null || userName.isBlank()) {
+            return false;
+        }
         Long count =
                 entityManager
                         .createQuery(
@@ -82,58 +94,63 @@ public class UserRepository {
         return count != null && count > 0;
     }
 
-    public void save(EntityManager entityManager, User user) {
-        Objects.requireNonNull(entityManager, "entityManager must not be null");
-        Objects.requireNonNull(user, "user must not be null");
-        if (user.getId() == null) {
-            entityManager.persist(user);
-        } else {
-            entityManager.merge(user);
-        }
+    /** New CUSTOMER account through usp_RegisterUser; email and user name must be unused, ignoring case. */
+    public UUID register(
+            EntityManager entityManager,
+            String email,
+            String userName,
+            String fullName,
+            String passwordHash) {
+        return IdentityProcedures.query(
+                entityManager,
+                "{call dbo.usp_RegisterUser(?,?,?,?)}",
+                call -> {
+                    call.setString(1, email);
+                    call.setString(2, userName);
+                    call.setString(3, fullName);
+                    call.setString(4, passwordHash);
+                },
+                row -> UUID.fromString(row.getString("user_id")));
     }
 
-    public int updateAuthVersion(EntityManager entityManager, UUID userId, int newVersion) {
-        Objects.requireNonNull(entityManager, "entityManager must not be null");
-        Objects.requireNonNull(userId, "userId must not be null");
-        return entityManager
-                .createQuery("UPDATE User u SET u.authVersion = :version WHERE u.id = :id")
-                .setParameter("version", newVersion)
-                .setParameter("id", userId)
-                .executeUpdate();
+    /** Stores a stronger hash of the same password; sessions stay valid. */
+    public void rehashPassword(EntityManager entityManager, UUID userId, String passwordHash) {
+        IdentityProcedures.execute(
+                entityManager,
+                "{call dbo.usp_RehashPassword(?,?)}",
+                call -> {
+                    call.setString(1, userId.toString());
+                    call.setString(2, passwordHash);
+                });
     }
 
-    public int updateStatus(EntityManager entityManager, UUID userId, UserStatus status) {
-        Objects.requireNonNull(entityManager, "entityManager must not be null");
-        Objects.requireNonNull(userId, "userId must not be null");
-        Objects.requireNonNull(status, "status must not be null");
-        return entityManager
-                .createQuery("UPDATE User u SET u.status = :status WHERE u.id = :id")
-                .setParameter("status", status)
-                .setParameter("id", userId)
-                .executeUpdate();
+    /** Stores a new password and raises authVersion, which ends every session and reset token. */
+    public void resetPassword(EntityManager entityManager, UUID userId, String passwordHash) {
+        IdentityProcedures.execute(
+                entityManager,
+                "{call dbo.usp_ResetPassword(?,?)}",
+                call -> {
+                    call.setString(1, userId.toString());
+                    call.setString(2, passwordHash);
+                });
     }
 
-    public int updatePasswordHashAndAuthVersion(
-            EntityManager entityManager, UUID userId, String newPasswordHash) {
-        Objects.requireNonNull(entityManager, "entityManager must not be null");
-        Objects.requireNonNull(userId, "userId must not be null");
-        Objects.requireNonNull(newPasswordHash, "newPasswordHash must not be null");
-        return entityManager
-                .createQuery(
-                        "UPDATE User u SET u.passwordHash = :hash, u.authVersion = u.authVersion + 1 WHERE u.id = :id")
-                .setParameter("hash", newPasswordHash)
-                .setParameter("id", userId)
-                .executeUpdate();
+    /** Raises authVersion, which ends every session of the user. */
+    public void revokeSessions(EntityManager entityManager, UUID userId) {
+        IdentityProcedures.execute(
+                entityManager,
+                "{call dbo.usp_RevokeUserSessions(?)}",
+                call -> call.setString(1, userId.toString()));
     }
 
-    public int updateEmailVerifiedAt(EntityManager entityManager, UUID userId, Instant verifiedAt) {
-        Objects.requireNonNull(entityManager, "entityManager must not be null");
-        Objects.requireNonNull(userId, "userId must not be null");
-        return entityManager
-                .createQuery("UPDATE User u SET u.emailVerifiedAt = :verifiedAt WHERE u.id = :id")
-                .setParameter("verifiedAt", verifiedAt)
-                .setParameter("id", userId)
-                .executeUpdate();
+    public void markEmailVerified(EntityManager entityManager, UUID userId, Instant verifiedAt) {
+        IdentityProcedures.execute(
+                entityManager,
+                "{call dbo.usp_MarkEmailVerified(?,?)}",
+                call -> {
+                    call.setString(1, userId.toString());
+                    call.setObject(2, LocalDateTime.ofInstant(verifiedAt, ZoneOffset.UTC));
+                });
     }
 
     /**

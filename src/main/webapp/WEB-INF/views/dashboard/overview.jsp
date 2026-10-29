@@ -1,17 +1,14 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
-<%
-    request.setAttribute("financeTitle", "Tổng quan hệ thống");
-    request.setAttribute("financePage", "overview");
-    request.setAttribute(
-            "financeIntro",
-            "Theo dõi số liệu toàn sàn và các hàng đợi cần xử lý. Doanh thu theo ngày đơn thanh toán được tách khỏi dòng tiền thực tế.");
-%>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<c:set var="financeTitle" value="Tổng quan hệ thống" scope="request" />
+<c:set var="financePage" value="overview" scope="request" />
+<c:set var="financeIntro" value="Theo dõi số liệu toàn sàn và các hàng đợi cần xử lý. Doanh thu theo ngày đơn thanh toán được tách khỏi dòng tiền thực tế." scope="request" />
 <%@ include file="../report/_header.jsp" %>
 <div class="finance-toolbar">
     <form id="filters">
         <button type="submit">Cập nhật tổng quan</button>
     </form>
-    <a class="finance-link" href="<%= financeContext %>/finance/settlements">Xem bảng kê cần xử lý &rarr;</a>
+    <a class="finance-link" href="${financeContext}/finance/settlements">Xem bảng kê cần xử lý &rarr;</a>
 </div>
 <dl id="queue-summary" aria-label="Hàng đợi cần xử lý"></dl>
 <p id="basis"></p>

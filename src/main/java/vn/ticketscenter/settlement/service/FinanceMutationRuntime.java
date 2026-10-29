@@ -1,5 +1,6 @@
 package vn.ticketscenter.settlement.service;
 
+import vn.ticketscenter.settlement.dao.FinanceDatabase;
 import jakarta.servlet.ServletContext;
 import vn.ticketscenter.config.AppConfig;
 import vn.ticketscenter.config.persistence.FeatureContext;
@@ -8,7 +9,7 @@ import vn.ticketscenter.report.cache.ReportCache;
 import vn.ticketscenter.settlement.cache.SettlementReadCache;
 import vn.ticketscenter.settlement.commission.cache.CommissionRuleCache;
 import vn.ticketscenter.settlement.dao.FinanceRepository;
-import vn.ticketscenter.settlement.infrastructure.FinanceRuntime;
+import vn.ticketscenter.settlement.service.FinanceRuntime;
 import vn.ticketscenter.settlement.payout.PayoutAdapter;
 import vn.ticketscenter.settlement.payout.PayoutAdapterImpl;
 
@@ -23,7 +24,7 @@ public final class FinanceMutationRuntime {
     }
 
     private static FinanceMutationService create(ServletContext context) {
-        var database = FinanceRuntime.database(context);
+        FinanceDatabase database = FinanceRuntime.database(context);
         PayoutAdapter adapter = PayoutAdapter.unavailable();
         if ("fixture-simulated".equals(AppConfig.get("payout.adapter", "unavailable"))) {
             adapter =
@@ -33,8 +34,8 @@ public final class FinanceMutationRuntime {
                             AppConfig.getBoolean("payout.simulated.timeoutAfterSideEffect", false));
         }
         boolean caching = AppConfig.getBoolean("finance.redis.enabled", true);
-        var cache = caching ? CommissionRuleCache.redis() : CommissionRuleCache.none();
-        var settlementCache = caching ? SettlementReadCache.redis() : SettlementReadCache.none();
+        CommissionRuleCache cache = caching ? CommissionRuleCache.redis() : CommissionRuleCache.none();
+        SettlementReadCache settlementCache = caching ? SettlementReadCache.redis() : SettlementReadCache.none();
         var repository =
                 new FinanceRepository(
                         database,
