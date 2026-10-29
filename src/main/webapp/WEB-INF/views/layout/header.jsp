@@ -100,8 +100,8 @@
                 </c:otherwise>
             </c:choose>
             <a href="${pageContext.request.contextPath}/me/tickets"
-                class="btn-outline-custom p-0 d-inline-flex align-items-center justify-content-center"
-                title="Vé & Đơn hàng của tôi" style="width: 42px; height: 40px;">
+                class="btn-outline-custom p-0 d-inline-flex align-items-center justify-content-center tc-icon-button"
+                title="Vé & Đơn hàng của tôi">
                 <i class="fa-solid fa-ticket fs-6"></i>
             </a>
         </div>

@@ -9,6 +9,7 @@ import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.settlement.infrastructure.*;
 import vn.ticketscenter.settlement.dao.FinanceRepository;
+import vn.ticketscenter.settlement.dto.ReadySettlementEventDto;
 
 @WebServlet(
         name = "FinancePageServlet",
@@ -29,7 +30,9 @@ public final class FinancePageServlet extends HttpServlet {
             request.setAttribute("organizations", options.get("organizations"));
             request.setAttribute("events", options.get("events"));
             if (request.getServletPath().endsWith("settlements"))
-                request.setAttribute("readyEvents", repository.readySettlementEvents(actor));
+                request.setAttribute(
+                        "readyEvents",
+                        ReadySettlementEventDto.fromRows(repository.readySettlementEvents(actor)));
             request.setAttribute("csrf", SecurityContext.getOrCreateCsrfToken(request));
             request.setAttribute("payoutMode", AppConfig.get("payout.adapter", "unavailable"));
             response.setHeader("Cache-Control", "no-store");

@@ -126,11 +126,11 @@
                     <table class="table table-hover align-middle mb-0 table-custom">
                         <thead>
                             <tr>
-                                <th style="width: 28%;">Tên tổ chức</th>
-                                <th style="width: 22%;">Người đại diện & Email</th>
-                                <th style="width: 15%;">Ngày nộp</th>
-                                <th style="width: 15%;">Trạng thái</th>
-                                <th style="width: 20%;" class="text-end">Thao tác</th>
+                                <th class="tc-col-28">Tên tổ chức</th>
+                                <th class="tc-col-22">Người đại diện & Email</th>
+                                <th class="tc-col-15">Ngày nộp</th>
+                                <th class="tc-col-15">Trạng thái</th>
+                                <th class="text-end tc-col-20">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody id="orgTableBody">
@@ -206,7 +206,7 @@
                                     <span class="text-muted">Địa điểm:</span> <span id="approveEventVenue"
                                         class="text-dark">—</span>
                                 </div>
-                                <div id="approveDescWrap" class="mt-2 pt-2 border-top text-muted" style="display:none;">
+                                <div id="approveDescWrap" class="mt-2 pt-2 border-top text-muted tc-js-hidden">
                                     <span class="d-block text-secondary small fw-semibold">Giới thiệu tổ chức:</span>
                                     <span id="approveOrgDesc" class="d-block small text-dark fst-italic"></span>
                                 </div>

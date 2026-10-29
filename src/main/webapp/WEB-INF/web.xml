@@ -91,6 +91,14 @@
         <servlet-class>vn.ticketscenter.fulfillment.checkin.controller.CheckInWindowServlet</servlet-class>
     </servlet>
 
+    <!-- JSP pages use EL and JSTL only: any Java scriptlet fails at translation time. -->
+    <jsp-config>
+        <jsp-property-group>
+            <url-pattern>*.jsp</url-pattern>
+            <scripting-invalid>true</scripting-invalid>
+        </jsp-property-group>
+    </jsp-config>
+
     <!-- Mọi lỗi (sendError hoặc exception chưa bắt) đi qua ErrorPageServlet: trang HTML nhận giao diện
          lỗi của hệ thống, request API vẫn nhận envelope JSON. Không khai báo mã cụ thể để phủ hết 4xx/5xx. -->
     <error-page>
