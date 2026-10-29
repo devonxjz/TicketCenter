@@ -1,5 +1,7 @@
 package vn.ticketscenter.identity.service;
 
+import java.util.Optional;
+import vn.ticketscenter.identity.model.OrganizationMembership;
 import jakarta.persistence.EntityManager;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.TransactionManager;
@@ -65,7 +67,7 @@ public class OrganizationMembershipServiceImpl implements OrganizationMembership
         if (actor != null && actor.getPlatformRole() == PlatformRole.ADMIN) {
             return;
         }
-        var membership = membershipRepository.findByOrgAndUser(em, orgId, actorId);
+        Optional<OrganizationMembership> membership = membershipRepository.findByOrgAndUser(em, orgId, actorId);
         boolean activeManager = membership.isPresent() && membership.get().isActive()
                 && membership.get().getRole() == OrganizationRole.MANAGER;
         if (!activeManager) {

@@ -44,16 +44,17 @@ public final class EventCoverServiceImpl implements EventCoverService {
             throw EventProblem.invalid("Không thể giải mã tệp ảnh.");
         }
         String hash = EventCommand.sha256("COVER|" + event + "|" + EventCommand.sha256(bytes));
-        var prior = repository.receipt(actor, "EVENT", key, hash);
+        Optional<EventManagementRepository.Result> prior = repository.receipt(actor, "EVENT", key, hash);
         if (prior.isPresent()) {
             mutations.invalidate(prior.get());
             return prior.get();
         }
-        var context = repository.coverContext(actor, event);
-        if (!Set.of("DRAFT", "REJECTED").contains(context.status()))
+        EventManagementRepository.CoverContext context = repository.coverContext(actor, event);
+        if (!Set.of("DRAFT", "REJECTED").contains(context.status())) {
             throw EventProblem.conflict("Sự kiện đang khóa thông tin ảnh.");
+        }
         String expectedVersion = Long.toString(context.version());
-        var lease = idempotency.acquire(EventManagementService.redisKey(actor, "EVENT", key), hash);
+        EventIdempotencyStore.Lease lease = idempotency.acquire(EventManagementService.redisKey(actor, "EVENT", key), hash);
         StoredAsset asset = null;
         try {
             try {
@@ -66,9 +67,10 @@ public final class EventCoverServiceImpl implements EventCoverService {
                         "EVENT_STORAGE_UNAVAILABLE",
                         "Dịch vụ ảnh chưa thể nhận tệp. Vui lòng thử lại.");
             }
-            if (asset == null || asset.secureUrl() == null || asset.publicId() == null)
+            if (asset == null || asset.secureUrl() == null || asset.publicId() == null) {
                 throw new EventProblem(
                         502, "EVENT_STORAGE_INVALID", "Dịch vụ ảnh trả metadata không hợp lệ.");
+            }
             URI url;
             try {
                 url = URI.create(asset.secureUrl());
@@ -80,9 +82,10 @@ public final class EventCoverServiceImpl implements EventCoverService {
                             && (!"https".equalsIgnoreCase(url.getScheme())
                                     || url.getHost() == null
                                     || url.getUserInfo() != null))
-                    || !asset.publicId().matches("[A-Za-z0-9/_-]{1,255}"))
+                    || !asset.publicId().matches("[A-Za-z0-9/_-]{1,255}")) {
                 throw new EventProblem(
                         502, "EVENT_STORAGE_INVALID", "Dịch vụ ảnh trả metadata không hợp lệ.");
+            }
             var command =
                     new EventCommand(
                             "COVER",
@@ -96,16 +99,18 @@ public final class EventCoverServiceImpl implements EventCoverService {
                                     asset.publicId(),
                                     "expectedVersion",
                                     expectedVersion));
-            var result =
+            EventManagementRepository.Result result =
                     repository.command(
                             actor, key, hash, command); // New short SQL transaction after upload.
             boolean used =
                     EventResponseValues.string(result.json(), "coverImageUrl")
                             .filter(asset.secureUrl()::equals)
                             .isPresent();
-            if (!used) record(event, asset);
-            else if (context.publicId() != null && !context.publicId().equals(asset.publicId()))
+            if (!used) {
+                record(event, asset);
+            } else if (context.publicId() != null && !context.publicId().equals(asset.publicId())) {
                 record(event, new StoredAsset(context.coverUrl(), context.publicId()));
+            }
             mutations.invalidate(result);
             try {
                 idempotency.completed(lease, hash, result);

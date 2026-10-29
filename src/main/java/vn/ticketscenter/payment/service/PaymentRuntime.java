@@ -1,5 +1,6 @@
 package vn.ticketscenter.payment.service;
 
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
@@ -87,7 +88,9 @@ public final class PaymentRuntime implements ServletContextListener {
 
     @Override
     public void contextDestroyed(ServletContextEvent event) {
-        if (reconciliation != null) reconciliation.shutdownNow();
+        if (reconciliation != null) {
+            reconciliation.shutdownNow();
+        }
         FeatureContext.close(event.getServletContext(), COMPONENTS);
     }
 
@@ -99,8 +102,9 @@ public final class PaymentRuntime implements ServletContextListener {
 
     private void reconcile(ServletContext context) {
         try {
-            if (reconciliationJob == null)
+            if (reconciliationJob == null) {
                 reconciliationJob = components(context).reconciliationJob();
+            }
             reconciliationJob.runOnce();
         } catch (RuntimeException failure) {
             LOGGER.log(
@@ -115,7 +119,9 @@ public final class PaymentRuntime implements ServletContextListener {
     }
 
     private static RuntimeException unavailable(RuntimeException failure) {
-        if (failure instanceof PaymentException payment) return payment;
+        if (failure instanceof PaymentException payment) {
+            return payment;
+        }
         LOGGER.log(Level.WARNING, "Payment feature could not start", failure);
         return PaymentException.unavailable();
     }
@@ -135,8 +141,8 @@ public final class PaymentRuntime implements ServletContextListener {
             }
             PayosGateway payos = resources.track(new PayosGatewayImpl(PayosConfig.fromEnvironment()));
             RedisPaymentIdempotency idempotency = newIdempotency();
-            var buyer = resources.strictPool("payment-buyer", BUYER);
-            var worker = resources.strictPool("payment-worker", WORKER);
+            HikariDataSource buyer = resources.strictPool("payment-buyer", BUYER);
+            HikariDataSource worker = resources.strictPool("payment-worker", WORKER);
             PaymentRepository repository =
                     new PaymentRepository(ConnectionBudgets.wrap(buyer), ConnectionBudgets.wrap(worker));
             PaymentService service = new PaymentServiceImpl(repository, payos, idempotency, Clock.systemUTC());
@@ -162,8 +168,10 @@ public final class PaymentRuntime implements ServletContextListener {
         private static RedisPaymentIdempotency newIdempotency() {
             if (AppConfig.getBoolean("finance.redis.enabled", true)) {
                 try {
-                    var redis = RedisClientProvider.getInstance();
-                    if (redis.isAvailable()) return new RedisPaymentIdempotency(redis::getResource);
+                    RedisClientProvider redis = RedisClientProvider.getInstance();
+                    if (redis.isAvailable()) {
+                        return new RedisPaymentIdempotency(redis::getResource);
+                    }
                 } catch (RuntimeException unavailable) {
                     // fall through to the in-memory store
                 }

@@ -52,10 +52,13 @@ public final class RedisOrderCache {
             String fence = fenceKey(actorId, holdId), marker = jedis.get(fence);
             if (marker == null) {
                 marker = UUID.randomUUID().toString();
-                if (!"OK".equals(jedis.set(fence, marker, SetParams.setParams().nx().px(MAX_TTL))))
+                if (!"OK".equals(jedis.set(fence, marker, SetParams.setParams().nx().px(MAX_TTL)))) {
                     marker = jedis.get(fence);
+                }
             }
-            if (marker == null || !marker.matches("[0-9a-f-]{36}")) return miss();
+            if (marker == null || !marker.matches("[0-9a-f-]{36}")) {
+                return miss();
+            }
             Optional<CurrentCheckout.CurrentOrder> found = Optional.empty();
             String mapped = jedis.get(mappingKey(actorId, holdId));
             if (mapped != null && mapped.matches("[0-9a-f-]{36}")) {
@@ -65,13 +68,14 @@ public final class RedisOrderCache {
                             new JSONObject()
                                     .put("serverTime", clock.instant().toString())
                                     .put("order", new JSONObject(body));
-                    var decoded = OrderRepository.checkout(root.toString()).order();
+                    Optional<CurrentCheckout.CurrentOrder> decoded = OrderRepository.checkout(root.toString()).order();
                     if (decoded.isPresent()
                             && decoded.get().snapshot().buyerId().equals(actorId)
                             && decoded.get().snapshot().holdId().equals(holdId)
                             && decoded.get().snapshot().orderId().toString().equals(mapped)
-                            && clock.instant().isBefore(decoded.get().snapshot().expiresAt()))
+                            && clock.instant().isBefore(decoded.get().snapshot().expiresAt())) {
                         found = decoded;
+                    }
                 }
             }
             return new Lookup(found, Optional.of(new FillToken(actorId, holdId, marker)));
@@ -85,7 +89,9 @@ public final class RedisOrderCache {
                 || !token.actorId().equals(order.snapshot().buyerId())
                 || !token.holdId().equals(order.snapshot().holdId())
                 || !order.canEditCoupon()
-                || order.body().length() > MAX_PAYLOAD) return false;
+                || order.body().length() > MAX_PAYLOAD) {
+            return false;
+        }
         try (Jedis jedis = connections.get()) {
             return Long.valueOf(1)
                     .equals(
@@ -127,7 +133,9 @@ public final class RedisOrderCache {
         long ttl =
                 Math.min(
                         MAX_TTL, Duration.between(clock.instant(), receipt.expiresAt()).toMillis());
-        if (ttl < 1 || receipt.body().length() > MAX_PAYLOAD) return false;
+        if (ttl < 1 || receipt.body().length() > MAX_PAYLOAD) {
+            return false;
+        }
         JSONObject value =
                 new JSONObject()
                         .put("fingerprint", command.fingerprint(actor.id()))
@@ -145,7 +153,7 @@ public final class RedisOrderCache {
         }
     }
 
-    /** Xóa order summary đã cache của mọi đơn (hủy sự kiện). */
+    /** Drops every cached order summary (event cancellation). */
     public static void evictAllSummaries(Jedis redis) {
         RedisScan.deleteMatching(redis, "tc:order:summary:*");
     }

@@ -35,7 +35,7 @@ public final class CheckInEventCacheImpl implements CheckInEventCache {
         return "tc:checkin:window:v1:" + eventId;
     }
 
-    /** Xóa danh sách sự kiện check-in của tổ chức cho mọi actor. */
+    /** Drops the organisation's check-in event list for every actor. */
     public static void evictOrganizationEvents(Jedis redis, UUID organizationId) {
         RedisScan.deleteMatching(redis, "tc:checkin:events:v1:*:" + organizationId);
     }
@@ -44,8 +44,12 @@ public final class CheckInEventCacheImpl implements CheckInEventCache {
     public Optional<List<EventInfo>> events(UUID actorId, UUID organizationId) {
         try (Jedis redis = connections.get()) {
             String value = redis.get(eventsKey(actorId, organizationId));
-            if (value == null || value.length() > 2_000_000) return Optional.empty();
-            if (value.isEmpty()) return Optional.of(List.of());
+            if (value == null || value.length() > 2_000_000) {
+                return Optional.empty();
+            }
+            if (value.isEmpty()) {
+                return Optional.of(List.of());
+            }
             return Optional.of(
                     Arrays.stream(value.split("\n")).map(CheckInEventCacheImpl::decode).toList());
         } catch (RuntimeException exception) {
@@ -59,7 +63,9 @@ public final class CheckInEventCacheImpl implements CheckInEventCache {
                 events.stream()
                         .map(CheckInEventCacheImpl::encode)
                         .collect(Collectors.joining("\n"));
-        if (value.length() > 2_000_000) return;
+        if (value.length() > 2_000_000) {
+            return;
+        }
         try (Jedis redis = connections.get()) {
             redis.setex(eventsKey(actorId, organizationId), EVENTS_TTL_SECONDS, value);
         } catch (RuntimeException ignored) {
@@ -122,7 +128,7 @@ public final class CheckInEventCacheImpl implements CheckInEventCache {
 
     private static EventInfo decode(String value) {
         try {
-            var e = JsonObjectParser.parse(new StringReader(value));
+            Map<String, String> e = JsonObjectParser.parse(new StringReader(value));
             return new EventInfo(
                     UUID.fromString(e.get("eventId")),
                     UUID.fromString(e.get("organizationId")),

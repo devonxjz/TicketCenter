@@ -1,5 +1,7 @@
 package vn.ticketscenter.event.controller;
 
+import java.util.Optional;
+import vn.ticketscenter.identity.security.UserPrincipal;
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
@@ -17,7 +19,7 @@ public class EventManagementPagesServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        var user = SecurityContext.getCurrentUser(request);
+        Optional<UserPrincipal> user = SecurityContext.getCurrentUser(request);
         if (user.isEmpty()) {
             LoginRedirect.send(request, response);
             return;

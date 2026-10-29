@@ -21,11 +21,15 @@ public record EventSave(
         Objects.requireNonNull(requestId);
         Objects.requireNonNull(kind);
         Objects.requireNonNull(targetId);
-        if (expectedVersion < 0) throw new IllegalArgumentException("Invalid expectedVersion");
-        if ((kind == Kind.CREATE || kind == Kind.EDIT) && fields == null)
+        if (expectedVersion < 0) {
+            throw new IllegalArgumentException("Invalid expectedVersion");
+        }
+        if ((kind == Kind.CREATE || kind == Kind.EDIT) && fields == null) {
             throw new IllegalArgumentException("Event fields required");
-        if ((kind == Kind.COVER || kind == Kind.MIGRATE) && image == null)
+        }
+        if ((kind == Kind.COVER || kind == Kind.MIGRATE) && image == null) {
             throw new IllegalArgumentException("Image required");
+        }
         image = image == null ? null : image.clone();
     }
 

@@ -1,5 +1,6 @@
 package vn.ticketscenter.identity.security;
 
+import vn.ticketscenter.config.payment.PayosConfig;
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,8 +12,8 @@ import java.io.IOException;
 import java.util.Set;
 
 /**
- * Bộ lọc bảo vệ tấn công CSRF cho các yêu cầu thay đổi dữ liệu (mutation).
- * Bắt buộc gửi token hợp lệ qua header `X-CSRF-Token` hoặc form parameter `_csrf`.
+ * CSRF protection for requests that change data.
+ * A valid token must come in the `X-CSRF-Token` header or the `_csrf` form parameter.
  */
 @WebFilter(urlPatterns = "/api/*")
 public final class CsrfFilter implements Filter {
@@ -40,20 +41,20 @@ public final class CsrfFilter implements Filter {
             String path =
                     ApiRequest.path(httpRequest);
 
-            // Webhook payOS gọi server-to-server và được xác thực bằng chữ ký checksum riêng
-            if (path.equals(vn.ticketscenter.config.payment.PayosConfig.WEBHOOK_PATH)) {
+            // the payOS webhook is server-to-server and checked by its own checksum signature
+            if (path.equals(PayosConfig.WEBHOOK_PATH)) {
                 chain.doFilter(request, response);
                 return;
             }
 
-            // Cho phép các endpoint xác thực/OTP công khai trước đăng nhập
+            // public login/OTP endpoints are used before there is a session
             if (PUBLIC_AUTH_APIS.contains(path)) {
                 chain.doFilter(request, response);
                 return;
             }
 
-            // Đăng xuất có tính idempotent: Nếu phiên đã bị hủy trước đó thì cho phép đi tiếp để
-            // trả về 200 OK
+            // logout is idempotent: when the session is already gone, let it through so it
+            // answers 200 OK
             if (path.equals("/api/auth/logout") && httpRequest.getSession(false) == null) {
                 chain.doFilter(request, response);
                 return;

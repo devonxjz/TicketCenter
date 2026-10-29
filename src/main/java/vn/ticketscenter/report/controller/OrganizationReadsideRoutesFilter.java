@@ -34,7 +34,7 @@ public final class OrganizationReadsideRoutesFilter implements Filter {
             httpResponse.setHeader("Allow", "GET");
             return;
         }
-        var dispatcher = request.getServletContext().getNamedDispatcher("FinanceReportServlet");
+        RequestDispatcher dispatcher = request.getServletContext().getNamedDispatcher("FinanceReportServlet");
         if (dispatcher == null) {
             ReadsideWeb.error(httpResponse, new FinanceException("REPORT_UNAVAILABLE", 503));
             return;

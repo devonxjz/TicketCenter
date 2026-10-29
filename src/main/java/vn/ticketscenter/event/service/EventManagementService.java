@@ -6,8 +6,9 @@ import java.util.*;
 
 public interface EventManagementService {
     static void validateKey(String key) {
-        if (key == null || !key.matches("[A-Za-z0-9._:-]{1,128}"))
+        if (key == null || !key.matches("[A-Za-z0-9._:-]{1,128}")) {
             throw EventProblem.invalid("Cần Idempotency-Key hợp lệ (tối đa 128 ký tự).");
+        }
     }
 
     static String redisKey(Actor actor, String scope, String key) {

@@ -14,11 +14,11 @@ import java.util.function.Supplier;
 import vn.ticketscenter.config.redis.RedisScan;
 
 /**
- * Hiện thực bộ nhớ đệm Redis cho chi tiết vé và ảnh PNG QR (LIEM-05).
- * - Key chi tiết: tc:ticket:detail:v1:<id>
+ * Redis cache for ticket details and QR PNG images (LIEM-05).
+ * - detail key: tc:ticket:detail:v1:<id>
  * - Key QR: tc:ticket:qr:v1:<id>:<version>
- * - TTL: 1800 giây (30 phút).
- * - Tự động thoái lui khi Redis offline; Database luôn là Source of Truth.
+ * - TTL: 1800 seconds (30 minutes).
+ * - falls back when Redis is offline; the database is always the source of truth.
  */
 public final class TicketCacheImpl implements TicketCache {
     public static final int DEFAULT_TTL_SECONDS = 1800;
@@ -37,18 +37,18 @@ public final class TicketCacheImpl implements TicketCache {
         return "tc:ticket:qr:v1:" + ticketId + ":" + version;
     }
 
-    /** Xóa chi tiết và mọi version QR của một vé trên kết nối của bên gọi (refund, check-in). */
+    /** Drops a ticket's detail and every QR version, on the caller's connection (refund, check-in). */
     public static void evict(Jedis redis, UUID ticketId) {
         redis.del(detailKey(ticketId));
         RedisScan.deleteMatching(redis, "tc:ticket:qr:v1:" + ticketId + ":*");
     }
 
-    /** Xóa danh sách vé đã cache của một người mua. */
+    /** Drops a buyer's cached ticket list. */
     public static void evictUserTickets(Jedis redis, UUID actorId) {
         RedisScan.deleteMatching(redis, "tc:user:tickets:v1:" + actorId + ":*");
     }
 
-    /** Xóa toàn bộ projection vé (hủy sự kiện). */
+    /** Drops every cached ticket projection (event cancellation). */
     public static void evictAll(Jedis redis) {
         for (String pattern :
                 List.of("tc:ticket:detail:v1:*", "tc:ticket:qr:v1:*", "tc:user:tickets:v1:*")) {
@@ -58,10 +58,14 @@ public final class TicketCacheImpl implements TicketCache {
 
     @Override
     public Optional<TicketDetailDto> getTicketDetail(UUID ticketId) {
-        if (ticketId == null) return Optional.empty();
+        if (ticketId == null) {
+            return Optional.empty();
+        }
         try (Jedis redis = connections.get()) {
             String value = redis.get(detailKey(ticketId));
-            if (value == null || value.isBlank()) return Optional.empty();
+            if (value == null || value.isBlank()) {
+                return Optional.empty();
+            }
             return Optional.of(decodeDetail(value));
         } catch (Exception ignored) {
             return Optional.empty();
@@ -70,20 +74,26 @@ public final class TicketCacheImpl implements TicketCache {
 
     @Override
     public void putTicketDetail(TicketDetailDto ticket) {
-        if (ticket == null) return;
+        if (ticket == null) {
+            return;
+        }
         try (Jedis redis = connections.get()) {
             redis.setex(detailKey(ticket.id()), DEFAULT_TTL_SECONDS, ticket.toJson());
         } catch (Exception ignored) {
-            // Redis chỉ đóng vai trò tăng tốc độ đọc
+            // Redis only speeds up reads
         }
     }
 
     @Override
     public Optional<byte[]> getTicketQrPng(UUID ticketId, long version) {
-        if (ticketId == null) return Optional.empty();
+        if (ticketId == null) {
+            return Optional.empty();
+        }
         try (Jedis redis = connections.get()) {
             String value = redis.get(qrKey(ticketId, version));
-            if (value == null || value.isBlank()) return Optional.empty();
+            if (value == null || value.isBlank()) {
+                return Optional.empty();
+            }
             return Optional.of(Base64.getDecoder().decode(value));
         } catch (Exception ignored) {
             return Optional.empty();
@@ -92,22 +102,26 @@ public final class TicketCacheImpl implements TicketCache {
 
     @Override
     public void putTicketQrPng(UUID ticketId, long version, byte[] pngBytes) {
-        if (ticketId == null || pngBytes == null || pngBytes.length == 0) return;
+        if (ticketId == null || pngBytes == null || pngBytes.length == 0) {
+            return;
+        }
         try (Jedis redis = connections.get()) {
             String encoded = Base64.getEncoder().encodeToString(pngBytes);
             redis.setex(qrKey(ticketId, version), DEFAULT_TTL_SECONDS, encoded);
         } catch (Exception ignored) {
-            // Không chặn luồng chính nếu cache lỗi
+            // a cache failure must not block the request
         }
     }
 
     @Override
     public void invalidate(UUID ticketId) {
-        if (ticketId == null) return;
+        if (ticketId == null) {
+            return;
+        }
         try (Jedis redis = connections.get()) {
             evict(redis, ticketId);
         } catch (Exception ignored) {
-            // Lỗi cache không làm gián đoạn hệ thống
+            // a cache failure does not interrupt the request
         }
     }
 

@@ -7,7 +7,7 @@ import vn.ticketscenter.order.coupon.dto.UpdateCouponRequest;
 import java.util.*;
 
 /**
- * Nghiệp vụ quản trị Coupon cho Ban tổ chức và Admin (LIEM-06 / UI-14).
+ * Coupon administration for organisers and admins (LIEM-06 / UI-14).
  */
 public interface CouponAdminService {
     List<CouponAdminDto> listAllCoupons(

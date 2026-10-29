@@ -2,11 +2,11 @@
     'use strict';
 
     /**
-     * Site Shell: Tìm kiếm toàn trang (an toàn XSS), đồng bộ bộ lọc catalog và xử lý đăng xuất.
-     * Tư duy tuần tự: 1. Hằng số & Helpers -> 2. Trạng thái -> 3. Render -> 4. Hành động -> 5. Sự kiện
+     * Site shell: site-wide search (XSS-safe), catalog filter sync and logout.
+     * Order: 1. constants & helpers -> 2. state -> 3. render -> 4. actions -> 5. events
      */
 
-    // 1. HẰNG SỐ & PURE HELPERS
+    // 1. CONSTANTS & PURE HELPERS
 
     async function signOut(fetchFn, base) {
         const before = await fetchFn(base + '/api/auth/csrf', {
@@ -78,7 +78,7 @@
             .replace(/'/g, '&#39;');
     }
 
-    // Chỉ chấp nhận http(s) hoặc đường dẫn nội bộ cùng domain; loại bỏ javascript:, data:
+    // only http(s) or same-site paths; javascript: and data: are dropped
     function safeImageUrl(value) {
         const url = String(value || '').trim();
         return /^(https?:\/\/|\/(?!\/))/i.test(url) ? url : '';
@@ -130,7 +130,7 @@
         `;
     }
 
-    // Xuất cho môi trường Node test runner
+    // export for the Node test runner
     if (typeof module !== 'undefined' && module.exports) {
         module.exports = {
             signOut,
@@ -144,7 +144,7 @@
         return;
     }
 
-    // 2. KHỞI TẠO DOM GỐC & TRẠNG THÁI
+    // 2. ROOT DOM & STATE
     const doc = root.document;
     const nav = doc.querySelector('[data-site-header]');
     const main = doc.querySelector('main');
@@ -219,7 +219,7 @@
         dropdown.hidden = false;
     }
 
-    // 4. HÀNH ĐỘNG (ACTIONS)
+    // 4. ACTIONS
 
     function syncCatalogFilters(catVal, kwVal) {
         if (doc.body.dataset.publicPage !== 'catalog') return;
@@ -287,7 +287,7 @@
         searchTimer = setTimeout(() => fetchAndShowEvents(cat, kw), 240);
     }
 
-    // 5. GẮN SỰ KIỆN & KHỞI TẠO (EVENTS & INITIALIZATION)
+    // 5. EVENTS & INITIALIZATION
 
     if (category) {
         root.fetch(base + '/api/event-categories', {
@@ -403,7 +403,7 @@
     }
 })(typeof window !== 'undefined' ? window : globalThis);
 
-// Hiển thị <time class="tc-local-time" datetime="ISO-8601"> theo giờ địa phương của người xem
+// show <time class="tc-local-time" datetime="ISO-8601"> in the viewer's local time
 (function() {
     if (typeof document === 'undefined') return;
     const format = () => {

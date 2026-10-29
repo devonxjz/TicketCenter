@@ -126,7 +126,7 @@ public final class AdminRefundRepository implements AdminRefundStore {
                 throw new RefundException(404, "REFUND_NOT_FOUND", "Yêu cầu hoàn tiền không tồn tại.");
             }
 
-            var tickets = SqlCall.queryList(
+            List<RefundTicketOptionDto> tickets = SqlCall.queryList(
                     c,
                     "SELECT * FROM dbo.v_refund_tickets WHERE refund_id=? ORDER BY ticket_id",
                     r -> new RefundTicketOptionDto(
@@ -142,7 +142,7 @@ public final class AdminRefundRepository implements AdminRefundStore {
                     ERRORS,
                     id);
 
-            var attempts = SqlCall.queryList(
+            List<AdminRefundDetailDto.Attempt> attempts = SqlCall.queryList(
                     c,
                     "SELECT * FROM dbo.v_admin_refund_attempts WHERE refund_id=? ORDER BY attempt_no, attempt_id",
                     r -> new AdminRefundDetailDto.Attempt(

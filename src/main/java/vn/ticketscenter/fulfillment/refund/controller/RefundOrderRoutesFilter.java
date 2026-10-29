@@ -1,5 +1,6 @@
 package vn.ticketscenter.fulfillment.refund.controller;
 
+import vn.ticketscenter.identity.security.DatabaseActorFilter;
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.*;
@@ -17,8 +18,9 @@ public final class RefundOrderRoutesFilter implements Filter {
             throws IOException, ServletException {
         HttpServletRequest httpRequest = (HttpServletRequest) request;
         String path = RefundWeb.path(httpRequest), name;
-        if (path.equals("/refund-request")) name = "RefundRequestServlet";
-        else if (path.matches("/api/orders/[^/]+/refundable-tickets")) {
+        if (path.equals("/refund-request")) {
+            name = "RefundRequestServlet";
+        } else if (path.matches("/api/orders/[^/]+/refundable-tickets")) {
             name = "OrderRefundableTicketsServlet";
             request.setAttribute(
                     OrderRefundableTicketsServlet.ORDER_ID_ATTRIBUTE,
@@ -36,7 +38,7 @@ public final class RefundOrderRoutesFilter implements Filter {
                     "Đường dẫn này chỉ hỗ trợ GET.");
             return;
         }
-        var dispatcher = request.getServletContext().getNamedDispatcher(name);
+        RequestDispatcher dispatcher = request.getServletContext().getNamedDispatcher(name);
         if (dispatcher == null) {
             HttpResponses.error(
                     (HttpServletResponse) response,
@@ -45,7 +47,7 @@ public final class RefundOrderRoutesFilter implements Filter {
                     "Hệ thống hoàn vé chưa sẵn sàng.");
             return;
         }
-        vn.ticketscenter.identity.security.DatabaseActorFilter.withActor(
+        DatabaseActorFilter.withActor(
                 request, response, dispatcher::forward);
     }
 }

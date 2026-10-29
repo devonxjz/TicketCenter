@@ -47,18 +47,18 @@ public class EventCatalogRepository {
                         parameters.add(filter.to());
                     }
                     long total;
-                    try (var query =
+                    try (PreparedStatement query =
                             prepare(
                                     connection,
                                     "SELECT COUNT_BIG(*)" + PUBLIC_PROJECTION + where)) {
                         bind(query, parameters);
-                        try (var rows = query.executeQuery()) {
+                        try (ResultSet rows = query.executeQuery()) {
                             rows.next();
                             total = rows.getLong(1);
                         }
                     }
                     List<EventDtos.Event> events = new ArrayList<>();
-                    try (var query =
+                    try (PreparedStatement query =
                             prepare(
                                     connection,
                                     "SELECT "
@@ -71,8 +71,10 @@ public class EventCatalogRepository {
                         bind(query, parameters);
                         query.setInt(parameters.size() + 1, filter.offset());
                         query.setInt(parameters.size() + 2, filter.pageSize());
-                        try (var rows = query.executeQuery()) {
-                            while (rows.next()) events.add(event(rows));
+                        try (ResultSet rows = query.executeQuery()) {
+                            while (rows.next()) {
+                                events.add(event(rows));
+                            }
                         }
                     }
                     return new EventDtos.Page(events, total);
@@ -82,7 +84,7 @@ public class EventCatalogRepository {
     public Optional<EventDtos.Event> event(UUID id) {
         return read(
                 connection -> {
-                    try (var query =
+                    try (PreparedStatement query =
                             prepare(
                                     connection,
                                     "SELECT "
@@ -91,7 +93,7 @@ public class EventCatalogRepository {
                                             + " WHERE e.event_id=? AND "
                                             + RealEventVisibility.predicate("e"))) {
                         query.setString(1, id.toString());
-                        try (var rows = query.executeQuery()) {
+                        try (ResultSet rows = query.executeQuery()) {
                             return rows.next() ? Optional.of(event(rows)) : Optional.empty();
                         }
                     }
@@ -102,7 +104,7 @@ public class EventCatalogRepository {
     public Optional<List<EventDtos.Zone>> zones(UUID eventId) {
         return read(
                 connection -> {
-                    try (var query =
+                    try (PreparedStatement query =
                             prepare(
                                     connection,
                                     "SELECT z.zone_id,z.event_id,z.name,z.type,z.price,z.capacity,z.held_quantity,z.sold_quantity,z.available_quantity"
@@ -111,11 +113,13 @@ public class EventCatalogRepository {
                                             + RealEventVisibility.predicate("e")
                                             + " ORDER BY z.name,z.zone_id")) {
                         query.setString(1, eventId.toString());
-                        try (var rows = query.executeQuery()) {
-                            if (!rows.next()) return Optional.empty();
+                        try (ResultSet rows = query.executeQuery()) {
+                            if (!rows.next()) {
+                                return Optional.empty();
+                            }
                             List<EventDtos.Zone> zones = new ArrayList<>();
                             do {
-                                if (rows.getString(1) != null)
+                                if (rows.getString(1) != null) {
                                     zones.add(
                                             new EventDtos.Zone(
                                                     id(rows, 1),
@@ -127,6 +131,7 @@ public class EventCatalogRepository {
                                                     rows.getLong(7),
                                                     rows.getLong(8),
                                                     rows.getLong(9)));
+                                }
                             } while (rows.next());
                             return Optional.of(List.copyOf(zones));
                         }
@@ -137,7 +142,7 @@ public class EventCatalogRepository {
     public Optional<List<EventDtos.Seat>> seats(UUID zoneId) {
         return read(
                 connection -> {
-                    try (var query =
+                    try (PreparedStatement query =
                             prepare(
                                     connection,
                                     "SELECT s.id,s.zone_id,s.row_name,s.seat_number,s.label,s.status"
@@ -146,11 +151,13 @@ public class EventCatalogRepository {
                                             + RealEventVisibility.predicate("e")
                                             + " ORDER BY LEN(s.row_name),s.row_name,s.seat_number,s.id")) {
                         query.setString(1, zoneId.toString());
-                        try (var rows = query.executeQuery()) {
-                            if (!rows.next()) return Optional.empty();
+                        try (ResultSet rows = query.executeQuery()) {
+                            if (!rows.next()) {
+                                return Optional.empty();
+                            }
                             List<EventDtos.Seat> seats = new ArrayList<>();
                             do {
-                                if (rows.getString(1) != null)
+                                if (rows.getString(1) != null) {
                                     seats.add(
                                             new EventDtos.Seat(
                                                     id(rows, 1),
@@ -159,6 +166,7 @@ public class EventCatalogRepository {
                                                     rows.getInt(4),
                                                     rows.getString(5),
                                                     rows.getString(6)));
+                                }
                             } while (rows.next());
                             return Optional.of(List.copyOf(seats));
                         }
@@ -169,16 +177,17 @@ public class EventCatalogRepository {
     public List<EventDtos.Category> categories() {
         return read(
                 connection -> {
-                    try (var query =
+                    try (PreparedStatement query =
                                     prepare(
                                             connection,
                                             "SELECT id,name,slug FROM dbo.vw_EventCategories ORDER BY name,id");
-                            var rows = query.executeQuery()) {
+                            ResultSet rows = query.executeQuery()) {
                         List<EventDtos.Category> items = new ArrayList<>();
-                        while (rows.next())
+                        while (rows.next()) {
                             items.add(
                                     new EventDtos.Category(
                                             id(rows, 1), rows.getString(2), rows.getString(3)));
+                        }
                         return List.copyOf(items);
                     }
                 });
@@ -191,7 +200,7 @@ public class EventCatalogRepository {
 
     private static PreparedStatement prepare(Connection connection, String sql)
             throws SQLException {
-        var query = connection.prepareStatement(sql);
+        PreparedStatement query = connection.prepareStatement(sql);
         query.setQueryTimeout(5);
         return query;
     }
@@ -199,9 +208,11 @@ public class EventCatalogRepository {
     private static void bind(PreparedStatement query, List<Object> values) throws SQLException {
         for (int i = 0; i < values.size(); i++) {
             Object value = values.get(i);
-            if (value instanceof Instant instant)
+            if (value instanceof Instant instant) {
                 query.setObject(i + 1, LocalDateTime.ofInstant(instant, ZoneOffset.UTC));
-            else query.setString(i + 1, value.toString());
+            } else {
+                query.setString(i + 1, value.toString());
+            }
         }
     }
 
@@ -210,8 +221,9 @@ public class EventCatalogRepository {
     }
 
     private static Instant instant(ResultSet rows, int column) throws SQLException {
-        if (rows.getMetaData().getColumnType(column) == -155)
+        if (rows.getMetaData().getColumnType(column) == -155) {
             return rows.getObject(column, OffsetDateTime.class).toInstant();
+        }
         return rows.getObject(column, LocalDateTime.class).toInstant(ZoneOffset.UTC);
     }
 

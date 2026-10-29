@@ -1,5 +1,6 @@
 package vn.ticketscenter.order.coupon.service;
 
+import redis.clients.jedis.resps.ScanResult;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.params.ScanParams;
 import vn.ticketscenter.identity.security.UserPrincipal;
@@ -25,20 +26,24 @@ public class CouponAdminServiceImpl implements CouponAdminService {
     @Override
     public List<CouponAdminDto> listAllCoupons(
             UserPrincipal principal, int page, int size, UUID filterOrgId) {
-        if (principal == null)
+        if (principal == null) {
             throw new OrderException(401, "UNAUTHENTICATED", "A current session is required.");
-        if (!principal.isAdmin())
+        }
+        if (!principal.isAdmin()) {
             throw new OrderException(403, "FORBIDDEN", "Admin access is required.");
+        }
         return repository.getAllCoupons(principal, page, size, filterOrgId);
     }
 
     @Override
     public List<CouponAdminDto> listOrganizationCoupons(
             UserPrincipal principal, UUID organizationId, int page, int size) {
-        if (principal == null)
+        if (principal == null) {
             throw new OrderException(401, "UNAUTHENTICATED", "A current session is required.");
-        if (organizationId == null)
+        }
+        if (organizationId == null) {
             throw new OrderException(400, "BAD_REQUEST", "organizationId is required.");
+        }
 
         checkPermission(principal, organizationId);
         return repository.getCouponsByOrganization(principal, organizationId, page, size);
@@ -46,9 +51,12 @@ public class CouponAdminServiceImpl implements CouponAdminService {
 
     @Override
     public CouponAdminDto getCoupon(UserPrincipal principal, UUID couponId) {
-        if (principal == null)
+        if (principal == null) {
             throw new OrderException(401, "UNAUTHENTICATED", "A current session is required.");
-        if (couponId == null) throw new OrderException(400, "BAD_REQUEST", "couponId is required.");
+        }
+        if (couponId == null) {
+            throw new OrderException(400, "BAD_REQUEST", "couponId is required.");
+        }
 
         CouponAdminDto coupon =
                 repository
@@ -65,15 +73,17 @@ public class CouponAdminServiceImpl implements CouponAdminService {
     @Override
     public CouponAdminDto createCoupon(
             UserPrincipal principal, UUID organizationId, CreateCouponRequest req) {
-        if (principal == null)
+        if (principal == null) {
             throw new OrderException(401, "UNAUTHENTICATED", "A current session is required.");
-        if (organizationId == null)
+        }
+        if (organizationId == null) {
             throw new OrderException(400, "BAD_REQUEST", "organizationId is required.");
+        }
         Objects.requireNonNull(req, "request is required");
 
         checkPermission(principal, organizationId);
 
-        // Kiểm tra ràng buộc nghiệp vụ
+        // business rules
         if (!req.validFrom().isBefore(req.validTo())) {
             throw new OrderException(400, "INVALID_VALIDITY", "validFrom must be before validTo.");
         }
@@ -110,9 +120,12 @@ public class CouponAdminServiceImpl implements CouponAdminService {
     @Override
     public CouponAdminDto updateCoupon(
             UserPrincipal principal, UUID couponId, UpdateCouponRequest req) {
-        if (principal == null)
+        if (principal == null) {
             throw new OrderException(401, "UNAUTHENTICATED", "A current session is required.");
-        if (couponId == null) throw new OrderException(400, "BAD_REQUEST", "couponId is required.");
+        }
+        if (couponId == null) {
+            throw new OrderException(400, "BAD_REQUEST", "couponId is required.");
+        }
         Objects.requireNonNull(req, "request is required");
 
         CouponAdminDto existing =
@@ -125,7 +138,7 @@ public class CouponAdminServiceImpl implements CouponAdminService {
 
         checkPermission(principal, existing.organizationId());
 
-        // Kiểm tra không được hạ maxUses dưới số lượng đã dùng + đang giữ
+        // maxUses may not drop below used + held
         if (req.maxUses() != null) {
             long currentUsage = existing.reservedUses() + existing.consumedUses();
             if (req.maxUses() < currentUsage) {
@@ -147,8 +160,9 @@ public class CouponAdminServiceImpl implements CouponAdminService {
 
     @Override
     public void setStatus(UserPrincipal principal, UUID couponId, boolean active) {
-        if (principal == null)
+        if (principal == null) {
             throw new OrderException(401, "UNAUTHENTICATED", "A current session is required.");
+        }
         CouponAdminDto existing =
                 repository
                         .findById(principal, couponId)
@@ -164,8 +178,9 @@ public class CouponAdminServiceImpl implements CouponAdminService {
 
     @Override
     public void deleteCoupon(UserPrincipal principal, UUID couponId) {
-        if (principal == null)
+        if (principal == null) {
             throw new OrderException(401, "UNAUTHENTICATED", "A current session is required.");
+        }
         CouponAdminDto existing =
                 repository
                         .findById(principal, couponId)
@@ -188,7 +203,9 @@ public class CouponAdminServiceImpl implements CouponAdminService {
     }
 
     private void checkPermission(UserPrincipal principal, UUID organizationId) {
-        if (principal.isAdmin()) return;
+        if (principal.isAdmin()) {
+            return;
+        }
         boolean allowed = repository.isManagerOrAdmin(principal, organizationId);
         if (!allowed) {
             throw new OrderException(
@@ -199,25 +216,29 @@ public class CouponAdminServiceImpl implements CouponAdminService {
     }
 
     private void invalidateCouponCache(UUID organizationId) {
-        if (redisSupplier == null) return;
+        if (redisSupplier == null) {
+            return;
+        }
         try (Jedis redis = redisSupplier.get()) {
-            if (redis == null) return;
-            // Xóa cache danh sách coupon của tổ chức
+            if (redis == null) {
+                return;
+            }
+            // drop the organisation's cached coupon list
             redis.del("tc:coupon:list:v1:" + organizationId);
 
-            // Quét và xóa các eligibility cache liên quan
+            // scan and drop the related eligibility entries
             String cursor = "0";
             ScanParams params = new ScanParams().match("tc:order:coupon:*").count(100);
             do {
-                var scanResult = redis.scan(cursor, params);
-                var keys = scanResult.getResult();
+                ScanResult<String> scanResult = redis.scan(cursor, params);
+                List<String> keys = scanResult.getResult();
                 if (keys != null && !keys.isEmpty()) {
                     redis.del(keys.toArray(String[]::new));
                 }
                 cursor = scanResult.getCursor();
             } while (!"0".equals(cursor));
         } catch (Exception ignored) {
-            // Lỗi cache không làm gián đoạn nghiệp vụ DB
+            // a cache failure does not undo the database change
         }
     }
 }

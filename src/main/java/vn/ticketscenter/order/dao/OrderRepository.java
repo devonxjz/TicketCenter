@@ -57,7 +57,7 @@ public class OrderRepository {
     }
 
     public OrderMutationReceipt mutate(OrderActor actor, OrderCommand command) {
-        if (command instanceof OrderCommand.Create create)
+        if (command instanceof OrderCommand.Create create) {
             return call(
                     "EXEC dbo.usp_CreateOrderRequest ?,?,?,?,?",
                     rows -> receipt(rows, command),
@@ -66,6 +66,7 @@ public class OrderRepository {
                     command.key(),
                     command.fingerprint(actor.id()),
                     create.request().holdId());
+        }
         OrderCommand.ChangeCoupon change = (OrderCommand.ChangeCoupon) command;
         String code =
                 change.mutation() instanceof CouponMutation.SetCoupon set ? set.couponCode() : null;
@@ -87,8 +88,9 @@ public class OrderRepository {
                     CurrentCheckout current = checkout(payload(rows));
                     if (current.order().isPresent()
                             && (!current.order().get().snapshot().buyerId().equals(actor.id())
-                                    || !current.order().get().snapshot().holdId().equals(holdId)))
+                                    || !current.order().get().snapshot().holdId().equals(holdId))) {
                         throw OrderException.unavailable();
+                    }
                     return current;
                 },
                 actor.id(),
@@ -103,8 +105,9 @@ public class OrderRepository {
                     String body = payload(rows);
                     JSONObject result = new JSONObject(body);
                     Instant.parse(result.getString("serverTime"));
-                    if (!holdId.equals(UUID.fromString(result.getString("holdId"))))
+                    if (!holdId.equals(UUID.fromString(result.getString("holdId")))) {
                         throw OrderException.unavailable();
+                    }
                     for (Object entry : result.getJSONArray("coupons")) {
                         JSONObject choice = (JSONObject) entry;
                         money(choice, "discountAmount");
@@ -127,8 +130,9 @@ public class OrderRepository {
                     JSONObject preview = new JSONObject(body);
                     Instant.parse(preview.getString("serverTime"));
                     if (!orderId.equals(UUID.fromString(preview.getString("orderId")))
-                            || preview.getInt("remainingUses") < 0)
+                            || preview.getInt("remainingUses") < 0) {
                         throw OrderException.unavailable();
+                    }
                     if (preview.getBoolean("eligible")) {
                         money(preview, "discountAmount");
                         money(preview, "totalAmount");
@@ -186,7 +190,7 @@ public class OrderRepository {
                                     buyerId,
                                     statusFilter,
                                     statusFilter);
-                    var items =
+                    List<OrderHistoryItemDto> items =
                             SqlCall.queryList(
                                     conn,
                                     selectSql,
@@ -211,7 +215,7 @@ public class OrderRepository {
         return SqlCall.onConnection(
                 buyer,
                 conn -> {
-                    var header =
+                    Optional<OrderRepository.OrderHeader> header =
                             SqlCall.queryOptional(
                                     conn,
                                     """
@@ -226,8 +230,10 @@ public class OrderRepository {
                                     OrderHeader::read,
                                     UNAVAILABLE,
                                     orderId);
-                    if (header.isEmpty()) return Optional.empty();
-                    var items =
+                    if (header.isEmpty()) {
+                        return Optional.empty();
+                    }
+                    List<OrderDetailDto.OrderItemDetail> items =
                             SqlCall.queryList(
                                     conn,
                                     """
@@ -246,7 +252,7 @@ public class OrderRepository {
                                                     rows.getBigDecimal("line_total")),
                                     UNAVAILABLE,
                                     orderId);
-                    var tickets =
+                    List<OrderDetailDto.OrderTicketDetail> tickets =
                             SqlCall.queryList(
                                     conn,
                                     """
@@ -362,13 +368,17 @@ public class OrderRepository {
     }
 
     public void assertOrderAccess(Connection conn, UUID orderId) {
-        if (conn == null) return;
+        if (conn == null) {
+            return;
+        }
         Objects.requireNonNull(orderId, "orderId is required");
         SqlCall.execute(conn, "{call dbo.usp_AssertOrderAccess(?)}", ACCESS_ERRORS, orderId);
     }
 
     public void assertOrderAccess(UUID orderId, UUID actorId) {
-        if (buyer == null) return;
+        if (buyer == null) {
+            return;
+        }
         Objects.requireNonNull(orderId, "orderId is required");
         SqlCall.onConnection(
                 buyer,
@@ -382,21 +392,26 @@ public class OrderRepository {
     public static CurrentCheckout checkout(String body) {
         JSONObject root = new JSONObject(body);
         Instant now = Instant.parse(root.getString("serverTime"));
-        if (root.isNull("order")) return new CurrentCheckout(body, now, Optional.empty());
+        if (root.isNull("order")) {
+            return new CurrentCheckout(body, now, Optional.empty());
+        }
         JSONObject order = root.getJSONObject("order");
         OrderSnapshot snapshot = snapshot(order);
         long version = order.getLong("version");
-        if (version < 0) throw new IllegalArgumentException("Negative version");
-        var state = CurrentCheckout.HoldState.valueOf(order.getString("holdStatus"));
-        var payment =
+        if (version < 0) {
+            throw new IllegalArgumentException("Negative version");
+        }
+        CurrentCheckout.HoldState state = CurrentCheckout.HoldState.valueOf(order.getString("holdStatus"));
+        CurrentCheckout.PaymentResolution payment =
                 CurrentCheckout.PaymentResolution.valueOf(order.getString("paymentResolution"));
         boolean editable = order.getBoolean("canEditCoupon");
         if (editable
                 && (state != CurrentCheckout.HoldState.ACTIVE
                         || payment != CurrentCheckout.PaymentResolution.CLEAR
                         || snapshot.status() != OrderStatus.PENDING_PAYMENT
-                        || !now.isBefore(snapshot.expiresAt())))
+                        || !now.isBefore(snapshot.expiresAt()))) {
             throw new IllegalArgumentException("Invalid editable state");
+        }
         return new CurrentCheckout(
                 body,
                 now,
@@ -411,13 +426,17 @@ public class OrderRepository {
         JSONObject json = new JSONObject(body);
         UUID orderId = id(json, "orderId"), holdId = UUID.fromString(rows.getString("hold_id"));
         Instant expires = Instant.parse(rows.getString("expires_at"));
-        if (command instanceof OrderCommand.Create) snapshot(json);
-        else
+        if (command instanceof OrderCommand.Create) {
+            snapshot(json);
+        } else {
             new OrderSnapshot.Totals(
                     money(json, "subtotal"),
                     money(json, "discountAmount"),
                     money(json, "totalAmount"));
-        if (json.getLong("version") < 0) throw OrderException.unavailable();
+        }
+        if (json.getLong("version") < 0) {
+            throw OrderException.unavailable();
+        }
         return new OrderMutationReceipt(
                 command.httpStatus(), body, rows.getBoolean("replayed"), orderId, holdId, expires);
     }
@@ -438,8 +457,9 @@ public class OrderRepository {
                                     : Optional.of(item.getString("seatLabel")),
                             item.getInt("quantity"),
                             money(item, "unitPrice"));
-            if (!value.lineTotal().equals(money(item, "lineTotal")))
+            if (!value.lineTotal().equals(money(item, "lineTotal"))) {
                 throw new IllegalArgumentException("Line total differs");
+            }
             items.add(value);
         }
         return new OrderSnapshot(
@@ -462,8 +482,9 @@ public class OrderRepository {
 
     private static BigDecimal money(JSONObject value, String key) {
         String text = value.getString(key);
-        if (!text.matches("0|[1-9][0-9]{0,18}"))
+        if (!text.matches("0|[1-9][0-9]{0,18}")) {
             throw new IllegalArgumentException("Invalid whole VND");
+        }
         return new BigDecimal(text);
     }
 
@@ -473,7 +494,9 @@ public class OrderRepository {
 
     private static String payload(ResultSet rows) throws SQLException {
         String body = rows.getString("response_payload");
-        if (body == null || body.length() > 64 * 1024) throw OrderException.unavailable();
+        if (body == null || body.length() > 64 * 1024) {
+            throw OrderException.unavailable();
+        }
         new JSONObject(body);
         return body;
     }
@@ -491,8 +514,11 @@ public class OrderRepository {
                         "NOT_STARTED",
                         "EXPIRED",
                         "QUOTA_EXHAUSTED",
-                        "INVALID_CONFIGURATION"))
-            if (message.contains("COUPON_" + reason)) return "COUPON_" + reason;
+                        "INVALID_CONFIGURATION")) {
+            if (message.contains("COUPON_" + reason)) {
+                return "COUPON_" + reason;
+            }
+        }
         return "COUPON_INVALID";
     }
 }

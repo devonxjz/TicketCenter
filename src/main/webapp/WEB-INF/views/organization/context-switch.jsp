@@ -1,6 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
-<%-- Component UI-10: Bộ chọn ngữ cảnh tổ chức (Context Switcher) --%>
+<%-- UI-10: organisation context switcher --%>
 <div class="tc-context-switch d-inline-flex align-items-center gap-2" id="tcOrgSwitcherContainer">
     <label for="tcOrgSelect" class="small text-muted d-none d-sm-inline mb-0 fw-semibold">
         <i class="fa-solid fa-building me-1"></i>Tổ chức:

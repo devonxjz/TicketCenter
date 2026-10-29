@@ -1,5 +1,7 @@
 package vn.ticketscenter.fulfillment.ticket.controller;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -20,10 +22,10 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Controller API quản lý vé và mã QR (LIEM-05).
- * - GET /api/me/tickets: Danh sách vé của user hiện tại.
- * - GET /api/tickets/{ticketId}: Chi tiết một vé.
- * - GET /api/tickets/{ticketId}/qr: Trả về ảnh PNG mã QR ký số.
+ * Ticket and QR code API (LIEM-05).
+ * - GET /api/me/tickets: the current user's tickets.
+ * - GET /api/tickets/{ticketId}: one ticket.
+ * - GET /api/tickets/{ticketId}/qr: the signed QR code as a PNG image.
  */
 @WebServlet(urlPatterns = {"/api/me/tickets", "/api/tickets/*"})
 public class TicketApiServlet extends HttpServlet {
@@ -59,8 +61,8 @@ public class TicketApiServlet extends HttpServlet {
         } catch (Exception e) {
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             response.setContentType("application/json;charset=UTF-8");
-            java.util.logging.Logger.getLogger(TicketApiServlet.class.getName())
-                    .log(java.util.logging.Level.SEVERE, "Ticket request failed", e);
+            Logger.getLogger(TicketApiServlet.class.getName())
+                    .log(Level.SEVERE, "Ticket request failed", e);
             response.getWriter()
                     .write(
                             "{\"error\":\"INTERNAL_ERROR\",\"message\":\"Đã xảy ra lỗi hệ thống.\"}");
@@ -117,7 +119,9 @@ public class TicketApiServlet extends HttpServlet {
     }
 
     private static int parseSize(String raw) {
-        if (raw == null || raw.isBlank()) return 300;
+        if (raw == null || raw.isBlank()) {
+            return 300;
+        }
         try {
             int val = Integer.parseInt(raw);
             return (val >= 100 && val <= 1000) ? val : 300;

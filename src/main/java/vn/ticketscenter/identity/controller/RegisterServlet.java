@@ -75,8 +75,8 @@ public class RegisterServlet extends HttpServlet {
     }
 
     /**
-     * Gửi mã OTP kích hoạt ngay sau khi đăng ký. Tài khoản đã được tạo nên lỗi gửi mail
-     * không làm hỏng phản hồi đăng ký; client dùng cờ otpSent để mời người dùng gửi lại.
+     * Sends the activation OTP right after registration. The account already exists, so a mail failure
+     * does not fail the reply; the client uses the otpSent flag to offer a resend.
      */
     private boolean sendVerificationOtp(ServletContext context, String email) {
         try {

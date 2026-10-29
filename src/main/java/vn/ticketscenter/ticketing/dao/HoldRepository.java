@@ -42,7 +42,7 @@ public final class HoldRepository {
         if (command instanceof HoldCommand.Create create) {
             requireVisibleEvent(create.request().eventId());
             JSONArray selections = new JSONArray();
-            for (HoldSelection selection : create.request().selections())
+            for (HoldSelection selection : create.request().selections()) {
                 selections.put(
                         new JSONObject()
                                 .put("zoneId", selection.zoneId().toString())
@@ -52,6 +52,7 @@ public final class HoldRepository {
                                                 ? JSONObject.NULL
                                                 : selection.seatId().toString())
                                 .put("quantity", selection.quantity()));
+            }
             return call(
                     buyer,
                     "EXEC dbo.usp_CreateHoldRequest ?,?,?,?,?,?",
@@ -84,12 +85,17 @@ public final class HoldRepository {
                             String body = payload(rows);
                             JSONObject root = new JSONObject(body);
                             Instant serverTime = Instant.parse(root.getString("serverTime"));
-                            if (root.isNull("hold")) return new CurrentHold(body, Optional.empty());
+                            if (root.isNull("hold")) {
+                                return new CurrentHold(body, Optional.empty());
+                            }
                             JSONObject hold = root.getJSONObject("hold");
-                            if (!"ACTIVE".equals(hold.getString("status")))
+                            if (!"ACTIVE".equals(hold.getString("status"))) {
                                 throw HoldException.unavailable();
+                            }
                             Instant expires = Instant.parse(hold.getString("expiresAt"));
-                            if (!serverTime.isBefore(expires)) throw HoldException.unavailable();
+                            if (!serverTime.isBefore(expires)) {
+                                throw HoldException.unavailable();
+                            }
                             List<ActiveHoldProjection.Item> items = new ArrayList<>();
                             JSONArray array = hold.getJSONArray("items");
                             for (int i = 0; i < array.length(); i++) {
@@ -114,8 +120,9 @@ public final class HoldRepository {
                         actor.id(),
                         actor.authVersion());
         // Release the procedure connection before acquiring one for the visibility read.
-        if (current.projection().isPresent())
+        if (current.projection().isPresent()) {
             requireVisibleEvent(current.projection().orElseThrow().eventId());
+        }
         return current;
     }
 
@@ -126,7 +133,9 @@ public final class HoldRepository {
                 "EXEC dbo.usp_ReadHoldOptions ?,?,?",
                 rows -> {
                     String body = rows.getString("response_payload");
-                    if (body == null) throw HoldException.unavailable();
+                    if (body == null) {
+                        throw HoldException.unavailable();
+                    }
                     new JSONObject(body);
                     return body;
                 },
@@ -136,7 +145,9 @@ public final class HoldRepository {
     }
 
     private void requireVisibleEvent(UUID eventId) {
-        if (ServerConfig.isDemoData()) return;
+        if (ServerConfig.isDemoData()) {
+            return;
+        }
         String sql =
                 "SELECT e.event_id FROM dbo.vw_PublicEvents e WHERE e.event_id=? AND "
                         + RealEventVisibility.predicate("e");
@@ -147,12 +158,15 @@ public final class HoldRepository {
                                 SqlCall.callWithTimeout(connection, sql, 5, rows -> true, ERRORS, eventId)
                                         != null,
                         ERRORS);
-        if (!visible) throw new HoldException(404, "NOT_FOUND", "Hold or Event was not found.");
+        if (!visible) {
+            throw new HoldException(404, "NOT_FOUND", "Hold or Event was not found.");
+        }
     }
 
     public List<HoldMutationReceipt.Change> expire(int batchSize) {
-        if (batchSize < 1 || batchSize > 100)
+        if (batchSize < 1 || batchSize > 100) {
             throw new IllegalArgumentException("Invalid expiry batch size");
+        }
         return call(
                 worker,
                 "EXEC dbo.usp_ExpireHolds ?",
@@ -165,7 +179,9 @@ public final class HoldRepository {
         String body = payload(rows);
         JSONObject receipt = new JSONObject(body);
         String expected = command instanceof HoldCommand.Create ? "CREATED" : "CANCELLED";
-        if (!expected.equals(receipt.getString("outcome"))) throw HoldException.unavailable();
+        if (!expected.equals(receipt.getString("outcome"))) {
+            throw HoldException.unavailable();
+        }
         return new HoldMutationReceipt(
                 command.httpStatus(),
                 body,
@@ -175,13 +191,17 @@ public final class HoldRepository {
 
     private static String payload(ResultSet rows) throws SQLException {
         String body = rows.getString("response_payload");
-        if (body == null || body.length() > 64 * 1024) throw HoldException.unavailable();
+        if (body == null || body.length() > 64 * 1024) {
+            throw HoldException.unavailable();
+        }
         new JSONObject(body);
         return body;
     }
 
     private static List<HoldMutationReceipt.Change> changes(String body) {
-        if (body == null) throw HoldException.unavailable();
+        if (body == null) {
+            throw HoldException.unavailable();
+        }
         JSONArray array = new JSONArray(body);
         List<HoldMutationReceipt.Change> changes = new ArrayList<>();
         for (int i = 0; i < array.length(); i++) {

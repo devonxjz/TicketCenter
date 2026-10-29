@@ -1,5 +1,6 @@
 package vn.ticketscenter.config.web;
 
+import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.DispatcherType;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
@@ -24,7 +25,7 @@ public final class OrganizationMembersRoutesFilter implements Filter {
         String path = ApiRequest.path(httpRequest);
 
         if (path.matches("^/api/organizations/[^/]+/members(?:/.*)?$")) {
-            var dispatcher =
+            RequestDispatcher dispatcher =
                     request.getServletContext().getNamedDispatcher("OrganizationMembersServlet");
             if (dispatcher != null) {
                 dispatcher.forward(request, response);

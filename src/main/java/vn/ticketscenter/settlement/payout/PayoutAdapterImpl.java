@@ -1,5 +1,7 @@
 package vn.ticketscenter.settlement.payout;
 
+import java.io.IOException;
+import java.util.Set;
 import vn.ticketscenter.settlement.service.FinanceException;
 import vn.ticketscenter.settlement.dao.FinanceDatabase;
 import java.sql.*;
@@ -15,8 +17,9 @@ public final class PayoutAdapterImpl implements PayoutAdapter {
 
     public PayoutAdapterImpl(
             FinanceDatabase database, String outcome, boolean timeoutAfterSideEffect) {
-        if (!java.util.Set.of("SUCCEEDED", "FAILED", "UNKNOWN").contains(outcome))
+        if (!Set.of("SUCCEEDED", "FAILED", "UNKNOWN").contains(outcome)) {
             throw new IllegalArgumentException("Invalid simulated outcome");
+        }
         this.database = database;
         this.outcome = outcome;
         this.timeoutAfterSideEffect = timeoutAfterSideEffect;
@@ -24,7 +27,7 @@ public final class PayoutAdapterImpl implements PayoutAdapter {
 
     @Override
     public void requireAvailable() {
-        try (var c = database.open()) {
+        try (Connection c = database.open()) {
             requireFixture(c);
         } catch (SQLException failure) {
             throw new FinanceException("PAYOUT_PROVIDER_UNAVAILABLE", 503);
@@ -34,24 +37,25 @@ public final class PayoutAdapterImpl implements PayoutAdapter {
     @Override
     public Result transfer(UUID payoutId, PayoutRequestDto request) throws Exception {
         Result result;
-        try (var c = database.open()) {
+        try (Connection c = database.open()) {
             requireFixture(c);
             c.setAutoCommit(false);
             try {
                 // Provider identity is its stable payout UUID, with a durable terms hash.
                 byte[] fingerprint = request.fingerprint(payoutId);
-                try (var q =
+                try (PreparedStatement q =
                         c.prepareStatement(
                                 "SELECT fingerprint,result,provider_reference FROM dbo.tc_vuong_simulated_transfers WITH(UPDLOCK,HOLDLOCK) WHERE payout_id=?")) {
                     FinanceJdbc.bind(q, payoutId);
-                    try (var rows = q.executeQuery()) {
+                    try (ResultSet rows = q.executeQuery()) {
                         if (rows.next()) {
-                            if (!MessageDigest.isEqual(fingerprint, rows.getBytes(1)))
+                            if (!MessageDigest.isEqual(fingerprint, rows.getBytes(1))) {
                                 throw new FinanceException("PAYOUT_TERMS_CONFLICT", 409);
+                            }
                             result = new Result(rows.getString(2), rows.getString(3));
                         } else {
                             String reference = "SIM_" + payoutId.toString().replace("-", "");
-                            try (var insert =
+                            try (PreparedStatement insert =
                                     c.prepareStatement(
                                             "INSERT dbo.tc_vuong_simulated_transfers(payout_id,fingerprint,result,provider_reference) VALUES(?,?,?,?)")) {
                                 FinanceJdbc.bind(insert, payoutId, fingerprint, outcome, reference);
@@ -67,21 +71,24 @@ public final class PayoutAdapterImpl implements PayoutAdapter {
                 throw failure;
             }
         }
-        if (timeoutAfterSideEffect)
-            throw new java.io.IOException("Simulated timeout after durable fixture result");
+        if (timeoutAfterSideEffect) {
+            throw new IOException("Simulated timeout after durable fixture result");
+        }
         return result;
     }
 
     /** Can be used by an authenticated reconciliation flow without making another transfer. */
     public Result lookup(UUID payoutId) throws SQLException {
-        try (var c = database.open()) {
+        try (Connection c = database.open()) {
             requireFixture(c);
-            try (var q =
+            try (PreparedStatement q =
                     c.prepareStatement(
                             "SELECT result,provider_reference FROM dbo.tc_vuong_simulated_transfers WHERE payout_id=?")) {
                 FinanceJdbc.bind(q, payoutId);
-                try (var rows = q.executeQuery()) {
-                    if (!rows.next()) return new Result("UNKNOWN", null);
+                try (ResultSet rows = q.executeQuery()) {
+                    if (!rows.next()) {
+                        return new Result("UNKNOWN", null);
+                    }
                     return new Result(rows.getString(1), rows.getString(2));
                 }
             }
@@ -89,16 +96,20 @@ public final class PayoutAdapterImpl implements PayoutAdapter {
     }
 
     private static void requireFixture(Connection c) throws SQLException {
-        if (c.getCatalog() == null || !c.getCatalog().matches("TC_Vuong_Test_[A-Za-z0-9_]+"))
+        if (c.getCatalog() == null || !c.getCatalog().matches("TC_Vuong_Test_[A-Za-z0-9_]+")) {
             throw new FinanceException("PAYOUT_SIMULATOR_REQUIRES_FIXTURE", 503);
+        }
         String url = c.getMetaData().getURL();
-        if (!url.matches("(?i)^jdbc:sqlserver://(127\\.0\\.0\\.1|localhost)(:[0-9]+)?;.*"))
+        if (!url.matches("(?i)^jdbc:sqlserver://(127\\.0\\.0\\.1|localhost)(:[0-9]+)?;.*")) {
             throw new FinanceException("PAYOUT_SIMULATOR_REQUIRES_FIXTURE", 503);
-        try (var q =
+        }
+        try (PreparedStatement q =
                         c.prepareStatement(
                                 "SELECT fixture_key FROM dbo.tc_vuong_test_fixture WHERE fixture_key='vuong-finance-v1'");
-                var rows = q.executeQuery()) {
-            if (!rows.next()) throw new FinanceException("PAYOUT_SIMULATOR_REQUIRES_FIXTURE", 503);
+                ResultSet rows = q.executeQuery()) {
+            if (!rows.next()) {
+                throw new FinanceException("PAYOUT_SIMULATOR_REQUIRES_FIXTURE", 503);
+            }
         }
     }
 }

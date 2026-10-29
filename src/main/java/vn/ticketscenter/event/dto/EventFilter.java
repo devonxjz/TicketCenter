@@ -1,5 +1,7 @@
 package vn.ticketscenter.event.dto;
 
+import java.time.DateTimeException;
+import java.time.ZoneOffset;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -56,16 +58,18 @@ public record EventFilter(
 
     private static int catalogSize(Map<String, String> parameters) {
         int requested = integer(parameters, "pageSize", 6);
-        if (requested < 1 || requested > 50)
+        if (requested < 1 || requested > 50) {
             throw new IllegalArgumentException("Invalid page size");
+        }
         return Math.min(6, requested);
     }
 
     public static UUID id(String value) {
         if (value == null
                 || !value.matches(
-                        "(?i)[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}"))
+                        "(?i)[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}")) {
             throw new IllegalArgumentException("Invalid UUID");
+        }
         return UUID.fromString(value);
     }
 
@@ -123,20 +127,27 @@ public record EventFilter(
 
     private static int integer(Map<String, String> parameters, String key, int fallback) {
         String value = parameters.get(key);
-        if (value == null) return fallback;
-        if (!value.matches("[0-9]{1,10}")) throw new IllegalArgumentException("Invalid pagination");
+        if (value == null) {
+            return fallback;
+        }
+        if (!value.matches("[0-9]{1,10}")) {
+            throw new IllegalArgumentException("Invalid pagination");
+        }
         return Integer.parseInt(value);
     }
 
     private static Instant instant(String value) {
-        if (value == null || value.isBlank()) return null;
+        if (value == null || value.isBlank()) {
+            return null;
+        }
         try {
             Instant result = Instant.parse(value.strip());
-            int year = result.atOffset(java.time.ZoneOffset.UTC).getYear();
-            if (year < 1 || year > 9999)
+            int year = result.atOffset(ZoneOffset.UTC).getYear();
+            if (year < 1 || year > 9999) {
                 throw new IllegalArgumentException("Date outside SQL Server range");
+            }
             return result;
-        } catch (java.time.DateTimeException exception) {
+        } catch (DateTimeException exception) {
             throw new IllegalArgumentException("Invalid UTC date");
         }
     }

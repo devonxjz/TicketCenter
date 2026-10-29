@@ -13,8 +13,11 @@ public final class DatabaseActorContext {
     }
 
     public static void set(UUID actor) {
-        if (actor == null) ACTOR.remove();
-        else ACTOR.set(actor);
+        if (actor == null) {
+            ACTOR.remove();
+        } else {
+            ACTOR.set(actor);
+        }
     }
 
     public static void clear() {

@@ -1,11 +1,11 @@
 /**
- * Chuông thông báo và phê duyệt nhanh hồ sơ tổ chức (Admin)
- * Tư duy tuần tự: 1. Hằng số & DOM -> 2. Trạng thái -> 3. Render -> 4. Hành động -> 5. Sự kiện
+ * Notification bell and quick approval of organisation requests (admin)
+ * Order: 1. constants & DOM -> 2. state -> 3. render -> 4. actions -> 5. events
  */
 (function() {
     'use strict';
 
-    // 1. HẰNG SỐ & DOM HELPERS
+    // 1. CONSTANTS & DOM HELPERS
     function getContextPath() {
         return window.TC_CONTEXT_PATH ||
             document.querySelector('meta[name="context-path"]')?.getAttribute('content') ||
@@ -128,7 +128,7 @@
         });
     }
 
-    // 3. HÀNH ĐỘNG (ACTIONS)
+    // 3. ACTIONS
 
     async function approveFromNotification(event, organizationId) {
         if (event) {
@@ -292,7 +292,7 @@
         }
     }
 
-    // 4. GẮN SỰ KIỆN & KHỞI TẠO (EVENTS & INITIALIZATION)
+    // 4. EVENTS & INITIALIZATION
     window.approveFromNotification = approveFromNotification;
 
     document.addEventListener('DOMContentLoaded', () => {

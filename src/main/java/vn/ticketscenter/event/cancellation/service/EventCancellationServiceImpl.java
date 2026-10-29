@@ -1,5 +1,7 @@
 package vn.ticketscenter.event.cancellation.service;
 
+import java.util.Optional;
+import vn.ticketscenter.event.cancellation.dto.CancellationProgressDto;
 import vn.ticketscenter.event.cancellation.cache.CancellationProgressCache;
 import vn.ticketscenter.event.cancellation.dao.EventCancellationStore;
 import java.util.Objects;
@@ -23,8 +25,10 @@ public final class EventCancellationServiceImpl implements EventCancellationServ
     public EventCancelResponseDto cancel(
             UserPrincipal actor, UUID id, EventCancelRequestDto request, UUID key) {
         authorize(actor);
-        if (id == null || request == null || key == null) throw invalid();
-        var result = store.cancel(actor, id, request, key);
+        if (id == null || request == null || key == null) {
+            throw invalid();
+        }
+        CancellationProgressDto result = store.cancel(actor, id, request, key);
         try {
             cache.cancelled(result);
         } catch (RuntimeException ignored) {
@@ -37,13 +41,17 @@ public final class EventCancellationServiceImpl implements EventCancellationServ
     @Override
     public String progress(UserPrincipal actor, UUID id) {
         authorize(actor);
-        if (id == null) throw invalid();
+        if (id == null) {
+            throw invalid();
+        }
 
         // Check current SQL permissions before serving cached progress.
-        var cached = cache.get(id);
-        if (cached.isPresent()) return cached.get();
+        Optional<String> cached = cache.get(id);
+        if (cached.isPresent()) {
+            return cached.get();
+        }
 
-        var result = store.progress(actor, id);
+        CancellationProgressDto result = store.progress(actor, id);
         try {
             cache.publish(result);
         } catch (RuntimeException ignored) {
@@ -53,9 +61,12 @@ public final class EventCancellationServiceImpl implements EventCancellationServ
     }
 
     private void authorize(UserPrincipal actor) {
-        if (actor == null) throw new RefundException(401, "UNAUTHENTICATED", "Bạn cần đăng nhập.");
-        if (!actor.isAdmin())
+        if (actor == null) {
+            throw new RefundException(401, "UNAUTHENTICATED", "Bạn cần đăng nhập.");
+        }
+        if (!actor.isAdmin()) {
             throw new RefundException(403, "ADMIN_REQUIRED", "Chỉ quản trị viên được hủy sự kiện.");
+        }
         store.requireAdmin(actor);
     }
 

@@ -10,7 +10,7 @@ function showAlert(type, message) {
 }
 async function handleResetPassword(e) {
     e.preventDefault();
-    // Lấy token từ input ẩn hoặc query param
+    // token from the hidden input or the query string
     let token = document.getElementById('tokenInput').value;
     if (!token) {
         const urlParams = new URLSearchParams(window.location.search);

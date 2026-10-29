@@ -58,7 +58,9 @@ public class TicketCheckInRepository {
                         query.setBoolean(8, invalid);
                         query.setQueryTimeout(15);
                         try (ResultSet rows = query.executeQuery()) {
-                            if (!rows.next()) throw new SQLException("Check-in result missing");
+                            if (!rows.next()) {
+                                throw new SQLException("Check-in result missing");
+                            }
                             return new CheckInScanResponseDto(
                                     rows.getString("result"),
                                     uuid(rows, "ticket_id"),
@@ -118,7 +120,9 @@ public class TicketCheckInRepository {
     }
 
     private static Instant instant(ResultSet rows, String column) throws SQLException {
-        if (rows.getObject(column) == null) return null;
+        if (rows.getObject(column) == null) {
+            return null;
+        }
         // SQL Server DATETIMEOFFSET must retain its offset.
         if (rows.getMetaData().getColumnType(rows.findColumn(column)) == -155) {
             return rows.getObject(column, OffsetDateTime.class).toInstant();

@@ -3,12 +3,12 @@ package vn.ticketscenter.config.mail;
 import vn.ticketscenter.config.AppConfig;
 
 /**
- * Cấu hình dịch vụ gửi email (SMTP).
+ * Email (SMTP) settings.
  */
 public final class MailConfig {
 
     private MailConfig() {
-        // Utility class không cho phép khởi tạo instance
+        // utility class
     }
 
     public static String getHost() {

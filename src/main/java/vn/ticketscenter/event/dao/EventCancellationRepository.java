@@ -1,5 +1,6 @@
 package vn.ticketscenter.event.dao;
 
+import java.sql.Timestamp;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.ParameterMode;
 import jakarta.persistence.StoredProcedureQuery;
@@ -65,7 +66,7 @@ public class EventCancellationRepository implements EventCancellationStore {
                 return transactions.execute(
                         DatabasePrincipal.ADMIN,
                         em -> {
-                            var procedure = em.createStoredProcedureQuery("dbo.sp_event_cancel");
+                            StoredProcedureQuery procedure = em.createStoredProcedureQuery("dbo.sp_event_cancel");
                             for (String name :
                                     List.of(
                                             "event_id",
@@ -88,15 +89,16 @@ public class EventCancellationRepository implements EventCancellationStore {
                             return em.unwrap(Session.class)
                                     .doReturningWork(
                                             connection -> {
-                                                try (var query =
+                                                try (PreparedStatement query =
                                                                 query(
                                                                         connection,
                                                                         "SELECT * FROM dbo.v_admin_cancellation_progress WHERE event_id=?",
                                                                         id);
-                                                        var result = query.executeQuery()) {
-                                                    if (!result.next())
+                                                        ResultSet result = query.executeQuery()) {
+                                                    if (!result.next()) {
                                                         throw new SQLException(
                                                                 "Missing cancellation projection");
+                                                    }
                                                     return projection(result);
                                                 }
                                             });
@@ -107,7 +109,7 @@ public class EventCancellationRepository implements EventCancellationStore {
         }
         return admin(
                 connection -> {
-                    try (var query =
+                    try (PreparedStatement query =
                             query(
                                     connection,
                                     "EXEC dbo.sp_event_cancel ?,?,?,?,?",
@@ -117,11 +119,16 @@ public class EventCancellationRepository implements EventCancellationStore {
                                     key,
                                     actor.authVersion())) {
                         boolean hasResult = query.execute();
-                        while (!hasResult && query.getUpdateCount() != -1)
+                        while (!hasResult && query.getUpdateCount() != -1) {
                             hasResult = query.getMoreResults();
-                        if (!hasResult) throw new SQLException("Missing cancellation projection");
-                        try (var result = query.getResultSet()) {
-                            if (!result.next()) throw new SQLException("Missing cancellation row");
+                        }
+                        if (!hasResult) {
+                            throw new SQLException("Missing cancellation projection");
+                        }
+                        try (ResultSet result = query.getResultSet()) {
+                            if (!result.next()) {
+                                throw new SQLException("Missing cancellation row");
+                            }
                             return projection(result);
                         }
                     }
@@ -133,12 +140,12 @@ public class EventCancellationRepository implements EventCancellationStore {
         return admin(
                 connection -> {
                     authority(connection, actor);
-                    try (var query =
+                    try (PreparedStatement query =
                                     query(
                                             connection,
                                             "SELECT * FROM dbo.v_admin_cancellation_progress WHERE event_id=?",
                                             id);
-                            var result = query.executeQuery()) {
+                            ResultSet result = query.executeQuery()) {
                         if (!result.next()) {
                             throw new RefundException(
                                     404, "CANCELLATION_NOT_FOUND", "Sự kiện chưa có tác vụ hủy.");
@@ -149,8 +156,9 @@ public class EventCancellationRepository implements EventCancellationStore {
     }
 
     public List<Object> findWork(EntityManager entityManager, int batchSize) {
-        if (batchSize < 1 || batchSize > 1000)
+        if (batchSize < 1 || batchSize > 1000) {
             throw new IllegalArgumentException("Invalid cancellation batch size");
+        }
         return entityManager
                 .unwrap(Session.class)
                 .doReturningWork(
@@ -158,13 +166,14 @@ public class EventCancellationRepository implements EventCancellationStore {
                             var work = new ArrayList<Object>();
                             String sql =
                                     "SELECT TOP(?) event_id,order_id FROM dbo.v_worker_cancellation_orders ORDER BY cancelled_at,event_id,order_id";
-                            try (var query = query(connection, sql, batchSize);
-                                    var result = query.executeQuery()) {
-                                while (result.next())
+                            try (PreparedStatement query = query(connection, sql, batchSize);
+                                    ResultSet result = query.executeQuery()) {
+                                while (result.next()) {
                                     work.add(
                                             new Work(
                                                     uuid(result, "event_id"),
                                                     uuid(result, "order_id")));
+                                }
                             }
                             return work;
                         });
@@ -172,7 +181,7 @@ public class EventCancellationRepository implements EventCancellationStore {
 
     public void process(EntityManager entityManager, Object item) {
         var work = (Work) item;
-        var procedure =
+        StoredProcedureQuery procedure =
                 entityManager
                         .createStoredProcedureQuery("dbo.sp_refund_adopt_event_cancellation")
                         .registerStoredProcedureParameter(
@@ -195,10 +204,10 @@ public class EventCancellationRepository implements EventCancellationStore {
             if (transactions != null) {
                 return SqlCall.inSession(transactions, DatabasePrincipal.ADMIN, work);
             }
-            try (var connection = supplied.getConnection()) {
+            try (Connection connection = supplied.getConnection()) {
                 connection.setAutoCommit(false);
                 try {
-                    var result = work.run(connection);
+                    T result = work.run(connection);
                     connection.commit();
                     return result;
                 } catch (RuntimeException | SQLException failure) {
@@ -212,9 +221,13 @@ public class EventCancellationRepository implements EventCancellationStore {
     }
 
     private static RuntimeException translated(Exception failure) {
-        if (failure instanceof RefundException error) return error;
+        if (failure instanceof RefundException error) {
+            return error;
+        }
         for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
-            if (!(cause instanceof SQLException sql)) continue;
+            if (!(cause instanceof SQLException sql)) {
+                continue;
+            }
             int status =
                     switch (sql.getErrorCode()) {
                         case 54200 -> 400;
@@ -244,7 +257,7 @@ public class EventCancellationRepository implements EventCancellationStore {
 
     private static PreparedStatement query(Connection connection, String sql, Object... args)
             throws SQLException {
-        var query = connection.prepareStatement(sql);
+        PreparedStatement query = connection.prepareStatement(sql);
         query.setQueryTimeout(20);
         for (int i = 0; i < args.length; i++) {
             query.setObject(i + 1, args[i] instanceof UUID id ? id.toString() : args[i]);
@@ -253,25 +266,26 @@ public class EventCancellationRepository implements EventCancellationStore {
     }
 
     private static void authority(Connection connection, UserPrincipal actor) throws SQLException {
-        try (var query =
+        try (PreparedStatement query =
                         query(
                                 connection,
                                 "SELECT status,auth_version,is_admin FROM dbo.v_admin_refund_actor WHERE id=?",
                                 actor.actorId());
-                var result = query.executeQuery()) {
+                ResultSet result = query.executeQuery()) {
             if (!result.next()
                     || !"ACTIVE".equals(result.getString(1))
                     || result.getInt(2) != actor.authVersion()) {
                 throw new RefundException(401, "SESSION_EXPIRED", "Phiên đăng nhập đã hết hạn.");
             }
-            if (!result.getBoolean(3))
+            if (!result.getBoolean(3)) {
                 throw new RefundException(
                         403, "ADMIN_REQUIRED", "Bạn không còn quyền quản trị viên.");
+            }
         }
     }
 
     private static Instant instant(ResultSet result, String name) throws SQLException {
-        var value = result.getTimestamp(name, Calendar.getInstance(TimeZone.getTimeZone("UTC")));
+        Timestamp value = result.getTimestamp(name, Calendar.getInstance(TimeZone.getTimeZone("UTC")));
         return value.toInstant();
     }
 
@@ -297,8 +311,11 @@ public class EventCancellationRepository implements EventCancellationStore {
         boolean hasResult = procedure.execute();
         // SP17 calls SP10; consume every result so later SQL errors roll back before commit.
         while (true) {
-            if (hasResult) procedure.getResultList();
-            else if (procedure.getUpdateCount() == -1) break;
+            if (hasResult) {
+                procedure.getResultList();
+            } else if (procedure.getUpdateCount() == -1) {
+                break;
+            }
             hasResult = procedure.hasMoreResults();
         }
     }

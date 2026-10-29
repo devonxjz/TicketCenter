@@ -12,7 +12,8 @@ public record RefundTransferRequest(UUID refundId, UUID attemptId, BigDecimal am
         Objects.requireNonNull(amount);
         if (amount.signum() <= 0
                 || amount.stripTrailingZeros().scale() > 0
-                || amount.precision() - amount.scale() > 19)
+                || amount.precision() - amount.scale() > 19) {
             throw new IllegalArgumentException("Positive integer VND required");
+        }
     }
 }

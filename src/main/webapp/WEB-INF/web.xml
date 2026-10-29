@@ -80,8 +80,8 @@
         <url-pattern>/api/me/memberships</url-pattern>
     </servlet-mapping>
 
-    <!-- Servlet chỉ được gọi qua getNamedDispatcher (không có URL riêng). Phải khai báo ở đây vì
-         @WebServlet với urlPatterns rỗng bị container bỏ qua, khiến route filter trả 503. -->
+    <!-- Servlets reached only through getNamedDispatcher (no URL of their own). They must be declared here because
+         a @WebServlet with empty urlPatterns is ignored by the container, and the route filter would answer 503. -->
     <servlet>
         <servlet-name>OrderRefundableTicketsServlet</servlet-name>
         <servlet-class>vn.ticketscenter.fulfillment.refund.controller.OrderRefundableTicketsServlet</servlet-class>
@@ -99,8 +99,8 @@
         </jsp-property-group>
     </jsp-config>
 
-    <!-- Mọi lỗi (sendError hoặc exception chưa bắt) đi qua ErrorPageServlet: trang HTML nhận giao diện
-         lỗi của hệ thống, request API vẫn nhận envelope JSON. Không khai báo mã cụ thể để phủ hết 4xx/5xx. -->
+    <!-- Every error (sendError or an uncaught exception) goes through ErrorPageServlet: HTML pages get the
+         system error page, API requests still get the JSON envelope. No status is listed so every 4xx/5xx is covered. -->
     <error-page>
         <location>/error-handler</location>
     </error-page>

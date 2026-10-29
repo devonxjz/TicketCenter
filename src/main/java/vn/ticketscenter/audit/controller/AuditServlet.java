@@ -1,5 +1,6 @@
 package vn.ticketscenter.audit.controller;
 
+import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.settlement.service.FinanceException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
@@ -20,15 +21,16 @@ public final class AuditServlet extends HttpServlet {
             throws IOException {
         AuditService service = AuditRuntime.resolve(getServletContext());
         try {
-            var actor = ReadsideWeb.actor(request);
+            UserPrincipal actor = ReadsideWeb.actor(request);
             String path = request.getPathInfo();
             if (path == null || path.equals("/")) {
                 ReadsideWeb.json(
                         response,
                         service.list(actor, AuditFilter.parse(ReadsideWeb.parameters(request))));
             } else {
-                if (!path.matches("/[0-9a-fA-F-]{36}"))
+                if (!path.matches("/[0-9a-fA-F-]{36}")) {
                     throw new FinanceException("NOT_FOUND", 404);
+                }
                 ReadsideWeb.json(
                         response, service.detail(actor, ReportFilter.uuid(path.substring(1))));
             }

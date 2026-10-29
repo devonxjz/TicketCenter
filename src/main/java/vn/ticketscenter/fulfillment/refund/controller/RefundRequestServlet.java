@@ -1,5 +1,8 @@
 package vn.ticketscenter.fulfillment.refund.controller;
 
+import java.util.UUID;
+import vn.ticketscenter.fulfillment.refund.dto.CreateRefundRequestDto;
+import vn.ticketscenter.fulfillment.refund.dto.RefundSummaryDto;
 import vn.ticketscenter.fulfillment.refund.service.RefundRuntime;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -68,10 +71,10 @@ public final class RefundRequestServlet extends HttpServlet {
                         405, "METHOD_NOT_ALLOWED", "Đường dẫn này chỉ cho phép xem yêu cầu.");
             }
             UserPrincipal actor = RefundWeb.actor(request);
-            var key = RefundWeb.mutation(request);
-            var command = RefundWeb.create(request);
+            UUID key = RefundWeb.mutation(request);
+            CreateRefundRequestDto command = RefundWeb.create(request);
 
-            var created = RefundRuntime.resolve(getServletContext()).create(actor, command, key);
+            RefundSummaryDto created = RefundRuntime.resolve(getServletContext()).create(actor, command, key);
             HttpResponses.created(response, created.json(CREATED_MESSAGE));
         } catch (RuntimeException failure) {
             RefundWeb.error(response, failure);

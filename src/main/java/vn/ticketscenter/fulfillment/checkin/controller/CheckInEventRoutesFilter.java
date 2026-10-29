@@ -1,5 +1,7 @@
 package vn.ticketscenter.fulfillment.checkin.controller;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.HttpServletRequest;
@@ -64,8 +66,8 @@ public final class CheckInEventRoutesFilter implements Filter {
                     org == null
                             ? ""
                             : "?organizationId="
-                                    + java.net.URLEncoder.encode(
-                                            org, java.nio.charset.StandardCharsets.UTF_8);
+                                    + URLEncoder.encode(
+                                            org, StandardCharsets.UTF_8);
             ((HttpServletResponse) response)
                     .sendRedirect(httpRequest.getContextPath() + "/check-ins" + query);
             return;

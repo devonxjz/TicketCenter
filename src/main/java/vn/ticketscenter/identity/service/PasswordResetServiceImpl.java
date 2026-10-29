@@ -79,22 +79,22 @@ public class PasswordResetServiceImpl implements PasswordResetService {
                                         "INVALID_TOKEN: Token không hợp lệ hoặc tài khoản không tồn tại");
                             }
 
-                            // Xác thực chữ ký token và tính hợp lệ với trạng thái hiện tại của tài
-                            // khoản
+                            // check the token signature against the account's current
+                            // state
                             resetTokens.verify(
                                     request.token(),
                                     user.getId(),
                                     user.getPasswordHash(),
                                     user.getAuthVersion());
 
-                            // Băm mật khẩu mới (12-256 ký tự đã được validate tại DTO)
+                            // hash the new password (12-256 characters, checked by the DTO)
                             String newPasswordHash = passwordHasher.hash(request.newPassword());
 
-                            // Cập nhật password mới và tăng authVersion trong DB
+                            // store the new password and raise authVersion
                             userRepository.updatePasswordHashAndAuthVersion(
                                     em, user.getId(), newPasswordHash);
 
-                            // Vô hiệu hóa cache Redis của user
+                            // drop the user's Redis cache
                             sessionCache.evict(user.getId());
 
                             return true;

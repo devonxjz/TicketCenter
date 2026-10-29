@@ -1,9 +1,9 @@
 /**
- * Quản lý duyệt hồ sơ tổ chức (Admin)
- * Tư duy tuần tự: 1. Hằng số & DOM -> 2. Trạng thái -> 3. Render -> 4. Hành động -> 5. Sự kiện
+ * Review of organisation requests (admin)
+ * Order: 1. constants & DOM -> 2. state -> 3. render -> 4. actions -> 5. events
  */
 
-// 1. HẰNG SỐ & DOM
+// 1. CONSTANTS & DOM
 const contextPath = (typeof window !== 'undefined' && window.TC?.base) ||
     document.querySelector('meta[name="context-path"]')?.getAttribute('content') || '';
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
@@ -11,7 +11,7 @@ const pageSize = 6;
 const approveModal = typeof bootstrap !== 'undefined' && bootstrap.Modal ? new bootstrap.Modal(document.getElementById('approveModal')) : null;
 const rejectModal = typeof bootstrap !== 'undefined' && bootstrap.Modal ? new bootstrap.Modal(document.getElementById('rejectModal')) : null;
 
-// 2. TRẠNG THÁI
+// 2. STATE
 let currentStatus = 'PENDING_APPROVAL';
 let currentPage = 1;
 let totalRecords = 0;
@@ -135,7 +135,7 @@ function updateCharCount() {
     }
 }
 
-// 4. HÀNH ĐỘNG (ACTIONS)
+// 4. ACTIONS
 
 function isCurrentDecision(context, type) {
     return !!(context && context.view === viewGeneration &&
@@ -395,7 +395,7 @@ async function submitReject(e) {
     }
 }
 
-// 5. GẮN SỰ KIỆN & KHỞI TẠO (EVENTS & INITIALIZATION)
+// 5. EVENTS & INITIALIZATION
 
 const effectiveDateEl = document.getElementById('approveEffectiveDate');
 if (effectiveDateEl) effectiveDateEl.value = new Date().toISOString().split('T')[0];
@@ -431,7 +431,7 @@ document.getElementById('rejectForm')?.addEventListener('submit', submitReject);
 
 document.addEventListener('DOMContentLoaded', () => { loadRequests(); });
 
-// Gán vào context global để tương thích với Node test runner (vm.runInContext)
+// exposed on the global object for the Node test runner (vm.runInContext)
 if (typeof this !== 'undefined') {
     this.loadRequests = loadRequests;
     this.renderTable = renderTable;

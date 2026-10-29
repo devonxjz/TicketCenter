@@ -26,7 +26,9 @@ public class RefundRequestServiceImpl implements RefundRequestService {
     @Override
     public List<RefundTicketOptionDto> tickets(UserPrincipal actor, UUID orderId) {
         authorize(actor);
-        if (orderId == null) throw RefundException.invalid();
+        if (orderId == null) {
+            throw RefundException.invalid();
+        }
         return store.tickets(actor, orderId);
     }
 
@@ -39,7 +41,9 @@ public class RefundRequestServiceImpl implements RefundRequestService {
     @Override
     public RefundSummaryDto create(UserPrincipal actor, CreateRefundRequestDto request, UUID key) {
         authorize(actor);
-        if (request == null || key == null) throw RefundException.invalid();
+        if (request == null || key == null) {
+            throw RefundException.invalid();
+        }
 
         RefundRequestCache.Lease lease = lockTickets(request.ticketIds());
         try {
@@ -54,14 +58,18 @@ public class RefundRequestServiceImpl implements RefundRequestService {
     @Override
     public RefundPageDto list(UserPrincipal actor, int page, int size) {
         authorize(actor);
-        if (page < 1 || page > 100000 || size < 1 || size > 100) throw RefundException.invalid();
+        if (page < 1 || page > 100000 || size < 1 || size > 100) {
+            throw RefundException.invalid();
+        }
         return store.list(actor, page, size);
     }
 
     @Override
     public RefundDetailDto detail(UserPrincipal actor, UUID refundId) {
         authorize(actor);
-        if (refundId == null) throw RefundException.invalid();
+        if (refundId == null) {
+            throw RefundException.invalid();
+        }
         return store.detail(actor, refundId);
     }
 

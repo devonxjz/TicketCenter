@@ -2,12 +2,12 @@
  * Shared glue between JSP pages and the JSON API.
  * Pages load it first (defer) and use `TC.*` instead of their own fetch, CSRF and format helpers.
  *
- * 5-bước tuần tự: 1. Helpers -> 2. Trạng thái -> 3. Render -> 4. Hành động -> 5. Xuất bản
+ * Order: 1. helpers -> 2. state -> 3. render -> 4. actions -> 5. export
  */
 (function (root) {
     'use strict';
 
-    // 1. HẰNG SỐ & PURE HELPERS
+    // 1. CONSTANTS & PURE HELPERS
     function meta(name) {
         const tags = root.document?.querySelectorAll(`meta[name="${name}"]`) || [];
         for (const tag of tags) {
@@ -54,7 +54,7 @@
             .replace(/'/g, '&#039;');
     }
 
-    // 2. TRẠNG THÁI (STATE)
+    // 2. STATE
     let cachedCsrf = '';
 
     // 3. RENDER / DOM BUILDERS
@@ -70,7 +70,7 @@
         return element;
     }
 
-    // 4. HÀNH ĐỘNG / API (ACTIONS)
+    // 4. ACTIONS / API
     async function api(path, options = {}) {
         const response = await root.fetch(url(path), {
             ...options,
@@ -104,7 +104,7 @@
         });
     }
 
-    // 5. SỰ KIỆN & KHỞI TẠO (INIT & EXPORT)
+    // 5. INIT & EXPORT
     const TC = {
         get base() { return meta('context-path'); },
         url, api, csrf, send, newKey, money, dateTime, escapeHtml, el

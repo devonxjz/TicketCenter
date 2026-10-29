@@ -17,8 +17,8 @@ import java.io.IOException;
 import java.util.Optional;
 
 /**
- * Bộ lọc kiểm tra tính hợp lệ của phiên đăng nhập trên mỗi request:
- * Đối chiếu User còn ACTIVE và authVersion chưa thay đổi (chống sử dụng phiên sau khi reset password).
+ * Checks the signed-in session on every request:
+ * the user is still ACTIVE and authVersion is unchanged (no session survives a password reset).
  */
 @WebFilter(urlPatterns = "/api/*")
 public final class SessionValidationFilter implements Filter {

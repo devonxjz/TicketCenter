@@ -16,20 +16,26 @@ public final class ReadsideWeb {
         request.getParameterMap()
                 .forEach(
                         (key, value) -> {
-                            if (value == null || value.length != 1 || value[0].length() > 200)
+                            if (value == null || value.length != 1 || value[0].length() > 200) {
                                 throw new FinanceException("INVALID_FILTER", 400);
+                            }
                             result.put(key, value[0]);
                         });
         return result;
     }
 
     public static Object[] organizationRoute(String path) {
-        if (path == null) throw new FinanceException("NOT_FOUND", 404);
-        String[] parts = path.split("/", -1);
-        if (parts.length != 3 || !(parts[2].equals("reports") || parts[2].equals("overview")))
+        if (path == null) {
             throw new FinanceException("NOT_FOUND", 404);
+        }
+        String[] parts = path.split("/", -1);
+        if (parts.length != 3 || !(parts[2].equals("reports") || parts[2].equals("overview"))) {
+            throw new FinanceException("NOT_FOUND", 404);
+        }
         UUID org = ReportFilter.uuid(parts[1]);
-        if (org == null) throw new FinanceException("NOT_FOUND", 404);
+        if (org == null) {
+            throw new FinanceException("NOT_FOUND", 404);
+        }
         return new Object[] {org, parts[2]};
     }
 
@@ -47,7 +53,9 @@ public final class ReadsideWeb {
     }
 
     public static void error(HttpServletResponse response, FinanceException e) throws IOException {
-        if (response.isCommitted()) throw new IOException("Read-side response interrupted");
+        if (response.isCommitted()) {
+            throw new IOException("Read-side response interrupted");
+        }
         response.reset();
         response.setStatus(e.status());
         response.setContentType("application/json;charset=UTF-8");
@@ -67,7 +75,9 @@ public final class ReadsideWeb {
     }
 
     public static String escapeHtml(String value) {
-        if (value == null) return "";
+        if (value == null) {
+            return "";
+        }
         return value.replace("&", "&amp;")
                 .replace("<", "&lt;")
                 .replace(">", "&gt;")

@@ -23,7 +23,9 @@ public final class CheckInScanCacheImpl implements CheckInScanCache {
 
     @Override
     public Lease lock(UUID ticketId) {
-        if (ticketId == null) return () -> {};
+        if (ticketId == null) {
+            return () -> {};
+        }
         try {
             return RedisOwnedLease.acquire(
                             connections,
@@ -40,7 +42,9 @@ public final class CheckInScanCacheImpl implements CheckInScanCache {
     public void completed(UUID actor, UUID key, CheckInScanResponseDto result) {
         try (Jedis redis = connections.get()) {
             redis.setex("tc:idem:checkin:" + actor + ":" + key, 3600, result.toJson());
-            if (!result.success()) return;
+            if (!result.success()) {
+                return;
+            }
             TicketCacheImpl.evict(redis, result.ticketId());
             CheckInEventCacheImpl.evictOrganizationEvents(redis, result.organizationId());
         } catch (RuntimeException ignored) {

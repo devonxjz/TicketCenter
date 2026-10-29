@@ -8,15 +8,15 @@ public interface PasswordResetService {
             "Nếu địa chỉ email tồn tại trong hệ thống, hướng dẫn đặt lại mật khẩu đã được gửi qua email.";
 
     /**
-     * Xử lý yêu cầu quên mật khẩu:
-     * Gửi mã OTP xác thực qua email và luôn trả về thông điệp trung tính để chống User Enumeration.
+     * Handles a forgotten password:
+     * emails an OTP and always answers with the same neutral message (no user enumeration).
      */
     String forgotPassword(ForgotPasswordRequestDto request);
 
     /**
-     * Đặt lại mật khẩu bằng stateless resetToken:
-     * Xác thực token với passwordHash và authVersion hiện tại.
-     * Cập nhật password mới và tăng authVersion để tự động vô hiệu hóa token cũ và các session cũ.
+     * Resets the password with a stateless resetToken:
+     * the token is checked against the current passwordHash and authVersion,
+     * then the new password is stored and authVersion raised, which voids old tokens and sessions.
      */
     boolean resetPassword(PasswordResetRequestDto request);
 }

@@ -1,5 +1,7 @@
 package vn.ticketscenter.event.controller;
 
+import java.io.InputStream;
+import java.util.Optional;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import vn.ticketscenter.storage.StorageServiceImpl;
@@ -23,7 +25,7 @@ public final class LocalEventImageServlet extends HttpServlet {
     private void serve(HttpServletRequest request, HttpServletResponse response, boolean body)
             throws IOException {
         String path = request.getPathInfo();
-        var image =
+        Optional<Path> image =
                 StorageServiceImpl.fromConfiguration().file(path == null ? null : path.substring(1));
         if (image.isEmpty()) {
             response.sendError(404);
@@ -39,7 +41,7 @@ public final class LocalEventImageServlet extends HttpServlet {
             response.setStatus(304);
             return;
         }
-        try (var input = Files.newInputStream(file)) {
+        try (InputStream input = Files.newInputStream(file)) {
             int signature = input.read();
             response.setContentType(
                     signature == 0x89
@@ -47,6 +49,8 @@ public final class LocalEventImageServlet extends HttpServlet {
                             : signature == 0xff ? "image/jpeg" : "image/webp");
         }
         response.setContentLengthLong(Files.size(file));
-        if (body) Files.copy(file, response.getOutputStream());
+        if (body) {
+            Files.copy(file, response.getOutputStream());
+        }
     }
 }

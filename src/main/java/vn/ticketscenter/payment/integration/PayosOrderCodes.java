@@ -27,8 +27,9 @@ public final class PayosOrderCodes {
                     "txnRef is not a payOS-compatible payment reference");
         }
         long code = Long.parseLong(hex, 16);
-        if (code <= 0)
+        if (code <= 0) {
             throw new IllegalArgumentException("txnRef maps to an invalid payOS order code");
+        }
         return code;
     }
 

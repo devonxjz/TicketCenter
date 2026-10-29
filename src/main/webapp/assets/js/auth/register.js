@@ -4,7 +4,7 @@ let csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 let currentRegisteredEmail = '';
 let cooldownTimer = null;
 let remainingCooldown = 0;
-// Một ô nhập duy nhất: chỉ giữ chữ số (kể cả khi dán mã có khoảng trắng)
+// one input: keep digits only (also when a pasted code has spaces)
 const otpInput = document.getElementById('otpCodeInput');
 otpInput.addEventListener('input', () => {
     otpInput.value = otpInput.value.replace(/\D/g, '').slice(0, 6);
@@ -35,7 +35,7 @@ function startCooldown(seconds) {
         }
     }, 1000);
 }
-// Bước 1: Xử lý submit Form Đăng Ký
+// step 1: submit the registration form
 document.getElementById('registerForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const alertBox = document.getElementById('alertBox');
@@ -90,13 +90,13 @@ document.getElementById('registerForm').addEventListener('submit', async functio
         if (resp.ok && res.data && res.data.registered) {
             currentRegisteredEmail = email;
             document.getElementById('displayRegisteredEmail').innerText = email;
-            // Ẩn form đăng ký, hiển thị ngay ô nhập OTP tại chỗ
+            // hide the form and show the OTP input in its place
             document.getElementById('formRegister').classList.add('d-none');
             document.getElementById('formOtp').classList.remove('d-none');
             otpInput.value = '';
             otpInput.focus();
             if (res.data.otpSent === false) {
-                // Tài khoản đã tạo nhưng mail chưa gửi được: cho phép gửi lại ngay
+                // the account exists but the mail failed: allow a resend right away
                 showOtpAlert('warning',
                     'Tài khoản đã được tạo nhưng chưa gửi được mã OTP. Vui lòng bấm "Gửi lại mã OTP".');
                 document.getElementById('btnResendOtp').disabled = false;
@@ -120,7 +120,7 @@ document.getElementById('registerForm').addEventListener('submit', async functio
         btn.innerText = 'Đăng ký tài khoản';
     }
 });
-// Bước 2: Xử lý submit Xác thực OTP tại chỗ
+// step 2: submit the OTP
 document.getElementById('otpVerifyForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const box = document.getElementById('otpAlertBox');
@@ -167,7 +167,7 @@ document.getElementById('otpVerifyForm').addEventListener('submit', async functi
         btnVerify.innerText = 'Xác nhận & Kích hoạt tài khoản';
     }
 });
-// Gửi lại mã OTP
+// resend the OTP
 document.getElementById('btnResendOtp').addEventListener('click', async function() {
     if (!currentRegisteredEmail) return;
     const btn = this;
@@ -197,7 +197,7 @@ document.getElementById('btnResendOtp').addEventListener('click', async function
         btn.disabled = false;
     }
 });
-// Quay lại sửa form đăng ký
+// back to the registration form
 document.getElementById('btnBackToRegister').addEventListener('click', function() {
     document.getElementById('formOtp').classList.add('d-none');
     document.getElementById('formRegister').classList.remove('d-none');

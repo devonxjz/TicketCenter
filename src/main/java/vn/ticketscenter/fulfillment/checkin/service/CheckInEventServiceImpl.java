@@ -41,15 +41,19 @@ public class CheckInEventServiceImpl implements CheckInEventService {
                     .ifPresent(events -> events.forEach(e -> cached.put(e.eventId(), e)));
             List<EventInfo> refreshed = new ArrayList<>();
             boolean changed = current.size() != cached.size();
-            if (!changed)
+            if (!changed) {
                 changed = current.stream().anyMatch(e -> !sameMetadata(e, cached.get(e.eventId())));
+            }
             for (EventInfo event : current) {
                 EventInfo old = cached.get(event.eventId());
                 EventInfo counted;
                 // A rewritten list gets a new TTL, so refresh every counter together.
                 // Otherwise repeated schedule edits could keep unrelated counts stale forever.
-                if (!changed && sameMetadata(event, old)) counted = old;
-                else counted = repository.withTicketCounts(event);
+                if (!changed && sameMetadata(event, old)) {
+                    counted = old;
+                } else {
+                    counted = repository.withTicketCounts(event);
+                }
                 refreshed.add(counted);
                 String status = windowStatus(event, now);
                 summaries.add(
@@ -66,8 +70,9 @@ public class CheckInEventServiceImpl implements CheckInEventService {
                                 status));
             }
             // Don't renew a cache hit's TTL: ticket counts must refresh after 60 seconds.
-            if (changed || cached.isEmpty())
+            if (changed || cached.isEmpty()) {
                 cache.putEvents(actorId, orgId, List.copyOf(refreshed));
+            }
         }
         summaries.sort(
                 Comparator.comparing(CheckInEventSummaryDto::startTime)
@@ -86,7 +91,9 @@ public class CheckInEventServiceImpl implements CheckInEventService {
                         ? cached
                         : repository.accessibleEvent(actorId, eventId);
         if (!sameMetadata(current, cached)) {
-            if (cached != null) cache.invalidate(eventId, current.organizationId());
+            if (cached != null) {
+                cache.invalidate(eventId, current.organizationId());
+            }
             cache.putWindow(current);
         }
         Instant now = clock.instant();
@@ -123,9 +130,15 @@ public class CheckInEventServiceImpl implements CheckInEventService {
     }
 
     private static String windowStatus(EventInfo event, Instant now) {
-        if ("CANCELLED".equals(event.status())) return "CANCELLED";
-        if (!"PUBLISHED".equals(event.status())) return "UNAVAILABLE";
-        if (now.isBefore(event.windowStart())) return "NOT_YET_OPEN";
+        if ("CANCELLED".equals(event.status())) {
+            return "CANCELLED";
+        }
+        if (!"PUBLISHED".equals(event.status())) {
+            return "UNAVAILABLE";
+        }
+        if (now.isBefore(event.windowStart())) {
+            return "NOT_YET_OPEN";
+        }
         return now.isBefore(event.endTime()) ? "OPEN" : "ENDED";
     }
 
@@ -141,8 +154,9 @@ public class CheckInEventServiceImpl implements CheckInEventService {
     }
 
     private static void requireActor(UUID actorId) {
-        if (actorId == null)
+        if (actorId == null) {
             throw new CheckInException(401, "UNAUTHENTICATED", "Bạn chưa đăng nhập.");
+        }
     }
 
     private static CheckInException forbidden() {

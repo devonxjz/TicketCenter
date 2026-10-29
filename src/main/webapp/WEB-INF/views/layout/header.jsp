@@ -1,12 +1,12 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
-<!-- Header & Navbar (Thanh tìm kiếm dài, cân đối, tiện dụng tối đa) -->
+<!-- header and navbar with the wide search bar -->
 <a href="#main-content" class="tc-skip-link">Đến nội dung chính</a>
 <nav class="navbar navbar-custom sticky-top tc-header" data-site-header
     data-context="${pageContext.request.contextPath}" aria-label="Điều hướng chính">
     <div class="container d-flex align-items-center justify-content-between flex-nowrap">
 
-        <!-- Logo Thương hiệu -->
+        <!-- brand logo -->
         <a class="navbar-brand-custom flex-shrink-0" href="${pageContext.request.contextPath}/">
             TicketsCenter
         </a>
@@ -23,7 +23,7 @@
             </div>
         </form>
 
-        <!-- Cụm tài khoản -->
+        <!-- account menu -->
         <div class="tc-header-account">
             <c:choose>
                 <c:when test="${not empty sessionScope.TC_CURRENT_USER}">

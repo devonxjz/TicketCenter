@@ -79,10 +79,10 @@ public class LoginServlet extends HttpServlet {
             UserPrincipal principal = service.login(new LoginRequestDto(identifier, password));
             throttle.recordSuccess(identifier, client);
 
-            // Chống Session Fixation: Cấp mới session ID, lưu UserPrincipal và rotate CSRF token
+            // against session fixation: new session id, store the principal and rotate the CSRF token
             SecurityContext.setSessionUser(request, principal);
 
-            // Cấp mới CSRF token gắn session và trả về qua response header
+            // send the new session-bound CSRF token in a response header
             response.setHeader("X-CSRF-Token", SecurityContext.getOrCreateCsrfToken(request));
 
             String targetRedirect = redirectTarget(request, principal);
@@ -109,10 +109,16 @@ public class LoginServlet extends HttpServlet {
     }
 
     private static String roleName(UserPrincipal principal) {
-        if (principal.isAdmin()) return "ADMIN";
+        if (principal.isAdmin()) {
+            return "ADMIN";
+        }
         OrganizationRole role = principal.organizationRole();
-        if (role == OrganizationRole.MANAGER) return "MANAGER";
-        if (role == OrganizationRole.CHECK_IN_STAFF) return "STAFF";
+        if (role == OrganizationRole.MANAGER) {
+            return "MANAGER";
+        }
+        if (role == OrganizationRole.CHECK_IN_STAFF) {
+            return "STAFF";
+        }
         return "CUSTOMER";
     }
 
@@ -145,10 +151,16 @@ public class LoginServlet extends HttpServlet {
 
     /** Only same-application paths are accepted; scheme-relative and backslash forms leave the site. */
     static boolean isLocalRedirect(String target, String contextPath) {
-        if (target == null || target.isBlank() || !target.startsWith("/")) return false;
-        if (target.startsWith("//") || target.indexOf('\\') >= 0) return false;
+        if (target == null || target.isBlank() || !target.startsWith("/")) {
+            return false;
+        }
+        if (target.startsWith("//") || target.indexOf('\\') >= 0) {
+            return false;
+        }
         for (int index = 0; index < target.length(); index++) {
-            if (Character.isISOControl(target.charAt(index))) return false;
+            if (Character.isISOControl(target.charAt(index))) {
+                return false;
+            }
         }
         String base = contextPath == null ? "" : contextPath;
         return base.isEmpty()

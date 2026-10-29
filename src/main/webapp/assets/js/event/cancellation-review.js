@@ -1,7 +1,7 @@
 'use strict';
 /**
- * Quản lý & Xét duyệt yêu cầu hủy sự kiện (Manager Request & Admin Review).
- * Tuân thủ mô hình tư duy tuần tự:
+ * Event cancellation: manager request and admin review.
+ * Laid out in order:
  * 1. Root Guard & Config
  * 2. State & Constants
  * 3. Renderers & UI Sync

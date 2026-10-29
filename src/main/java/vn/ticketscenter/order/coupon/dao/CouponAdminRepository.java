@@ -117,7 +117,9 @@ public class CouponAdminRepository {
                         request.maxUses(),
                         request.validFrom(),
                         request.validTo());
-        if (id == null) throw new IllegalStateException("Coupon creation returned no identifier");
+        if (id == null) {
+            throw new IllegalStateException("Coupon creation returned no identifier");
+        }
         return id;
     }
 

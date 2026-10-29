@@ -1,5 +1,6 @@
 package vn.ticketscenter.report.dao;
 
+import java.math.BigDecimal;
 import java.sql.*;
 import java.util.*;
 import vn.ticketscenter.identity.security.UserPrincipal;
@@ -45,16 +46,21 @@ public final class ReportRepository {
     }
 
     public void requireEventScope(Connection db, ReportFilter filter) throws SQLException {
-        if (filter.eventId() == null) return;
+        if (filter.eventId() == null) {
+            return;
+        }
         String sql =
                 "SELECT id FROM dbo.vw_FinanceEvents WHERE id=?"
                         + (filter.organizationId() == null ? "" : " AND organization_id=?");
-        try (var query = db.prepareStatement(sql)) {
+        try (PreparedStatement query = db.prepareStatement(sql)) {
             query.setString(1, filter.eventId().toString());
-            if (filter.organizationId() != null)
+            if (filter.organizationId() != null) {
                 query.setString(2, filter.organizationId().toString());
-            try (var row = query.executeQuery()) {
-                if (!row.next()) throw new FinanceException("NOT_FOUND", 404);
+            }
+            try (ResultSet row = query.executeQuery()) {
+                if (!row.next()) {
+                    throw new FinanceException("NOT_FOUND", 404);
+                }
             }
         }
     }
@@ -67,10 +73,10 @@ public final class ReportRepository {
                         "SELECT COUNT_BIG(*) FROM (" + q.sql + ") report_rows",
                         q.parameters,
                         row -> row.getLong(1));
-        var params = new ArrayList<>(q.parameters);
+        ArrayList<Object> params = new ArrayList<>(q.parameters);
         params.add(filter.offset());
         params.add(filter.pageSize());
-        var rows =
+        List<Map<String, Object>> rows =
                 ReadProjection.list(
                         db,
                         q.sql + " ORDER BY " + q.order + " OFFSET ? ROWS FETCH NEXT ? ROWS ONLY",
@@ -78,7 +84,7 @@ public final class ReportRepository {
                         row -> ReadProjection.row(row, q.columns));
         var summary = new LinkedHashMap<String, Object>();
         summary.put("totalEvents", total);
-        var totals =
+        List<String> totals =
                 q.columns.stream().filter(c -> c.endsWith("_count") || MONEY.contains(c)).toList();
         if (!totals.isEmpty()) {
             String sums =
@@ -117,7 +123,7 @@ public final class ReportRepository {
 
     public Cursor cursor(Connection db, ReportFilter filter) throws SQLException {
         Query q = query(filter);
-        var statement =
+        PreparedStatement statement =
                 db.prepareStatement(
                         q.sql + " ORDER BY " + q.order,
                         ResultSet.TYPE_FORWARD_ONLY,
@@ -240,7 +246,7 @@ public final class ReportRepository {
                     "SELECT report.*,e.title event_title FROM ("
                             + sql
                             + ") report LEFT JOIN dbo.vw_FinanceEvents e ON e.id=report.event_id";
-            var namedColumns = new ArrayList<>(columns);
+            ArrayList<String> namedColumns = new ArrayList<>(columns);
             namedColumns.add("event_title");
             columns = namedColumns;
         }
@@ -267,7 +273,9 @@ public final class ReportRepository {
 
         @Override
         public Iterator<List<String>> iterator() {
-            if (iterated) throw new IllegalStateException("Cursor can be consumed once");
+            if (iterated) {
+                throw new IllegalStateException("Cursor can be consumed once");
+            }
             iterated = true;
             return new Iterator<>() {
                 boolean ready, has;
@@ -285,18 +293,21 @@ public final class ReportRepository {
                 }
 
                 public List<String> next() {
-                    if (!hasNext()) throw new NoSuchElementException();
+                    if (!hasNext()) {
+                        throw new NoSuchElementException();
+                    }
                     ready = false;
                     try {
-                        var row = ReadProjection.row(rows, columns);
+                        Map<String, Object> row = ReadProjection.row(rows, columns);
                         var result = new ArrayList<String>();
-                        for (Object value : row.values())
+                        for (Object value : row.values()) {
                             result.add(
                                     value == null
                                             ? ""
-                                            : value instanceof java.math.BigDecimal money
+                                            : value instanceof BigDecimal money
                                                     ? money.toPlainString()
                                                     : value.toString());
+                        }
                         return result;
                     } catch (SQLException e) {
                         throw new FinanceException("REPORT_UNAVAILABLE", 503);

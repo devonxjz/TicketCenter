@@ -1,5 +1,6 @@
 package vn.ticketscenter.settlement.model;
 
+import vn.ticketscenter.persistence.model.SettlementTransferLog;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -46,7 +47,7 @@ public class Settlement extends BaseEntity {
     private List<SettlementItem> items = new ArrayList<>();
 
     @OneToMany(mappedBy = "settlement")
-    private List<vn.ticketscenter.persistence.model.SettlementTransferLog> payouts =
+    private List<SettlementTransferLog> payouts =
             new ArrayList<>();
 
     protected Settlement() {}
@@ -95,7 +96,7 @@ public class Settlement extends BaseEntity {
         return List.copyOf(items);
     }
 
-    public List<vn.ticketscenter.persistence.model.SettlementTransferLog> getPayouts() {
+    public List<SettlementTransferLog> getPayouts() {
         return List.copyOf(payouts);
     }
 }

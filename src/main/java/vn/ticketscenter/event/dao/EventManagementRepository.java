@@ -96,7 +96,7 @@ public class EventManagementRepository {
             String missing,
             SqlCall.RowMapper<T> mapper)
             throws SQLException {
-        try (var q = c.prepareCall("{call dbo.usp_EventRead(?,?,?,?,?,?,?,?,?,?)}")) {
+        try (CallableStatement q = c.prepareCall("{call dbo.usp_EventRead(?,?,?,?,?,?,?,?,?,?)}")) {
             q.setQueryTimeout(10);
             q.setString(1, actor.id().toString());
             q.setInt(2, actor.authVersion());
@@ -108,8 +108,10 @@ public class EventManagementRepository {
             q.setString(8, status);
             q.setInt(9, page);
             q.setInt(10, size);
-            try (var rows = q.executeQuery()) {
-                if (!rows.next()) throw new SQLException(missing);
+            try (ResultSet rows = q.executeQuery()) {
+                if (!rows.next()) {
+                    throw new SQLException(missing);
+                }
                 return mapper.map(rows);
             }
         }
@@ -120,14 +122,14 @@ public class EventManagementRepository {
                 principal(scope.equals("EVENT_REVIEW")),
                 actor.id(),
                 c -> {
-                    try (var q = c.prepareCall("{call dbo.usp_EventReceipt(?,?,?,?,?)}")) {
+                    try (CallableStatement q = c.prepareCall("{call dbo.usp_EventReceipt(?,?,?,?,?)}")) {
                         q.setQueryTimeout(10);
                         q.setString(1, actor.id().toString());
                         q.setInt(2, actor.authVersion());
                         q.setString(3, scope);
                         q.setString(4, key);
                         q.setString(5, hash);
-                        try (var rows = q.executeQuery()) {
+                        try (ResultSet rows = q.executeQuery()) {
                             return rows.next() ? Optional.of(result(rows)) : Optional.empty();
                         }
                     }
@@ -139,7 +141,7 @@ public class EventManagementRepository {
                 principal(command.scope().equals("EVENT_REVIEW")),
                 actor.id(),
                 c -> {
-                    try (var q =
+                    try (CallableStatement q =
                             c.prepareCall("{call dbo.usp_EventCommand(?,?,?,?,?,?,?,?,?,?)}")) {
                         q.setQueryTimeout(15);
                         q.setString(1, actor.id().toString());
@@ -154,17 +156,21 @@ public class EventManagementRepository {
                         q.setString(10, command.json());
                         boolean more = q.execute();
                         while (true) {
-                            if (more)
-                                try (var rows = q.getResultSet()) {
+                            if (more) {
+                                try (ResultSet rows = q.getResultSet()) {
                                     // Publish's canonical SP emits an intermediate result set;
                                     // consume it, then the durable receipt.
                                     if (rows.getMetaData().getColumnCount() >= 4
                                             && rows.getMetaData()
                                                     .getColumnLabel(1)
                                                     .equalsIgnoreCase("status_code")
-                                            && rows.next()) return result(rows);
+                                            && rows.next()) {
+                                        return result(rows);
+                                    }
                                 }
-                            else if (q.getUpdateCount() == -1) break;
+                            } else if (q.getUpdateCount() == -1) {
+                                break;
+                            }
                             more = q.getMoreResults();
                         }
                         throw new SQLException("Missing Event command receipt");

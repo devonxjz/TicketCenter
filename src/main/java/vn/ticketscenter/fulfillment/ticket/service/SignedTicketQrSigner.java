@@ -1,5 +1,6 @@
 package vn.ticketscenter.fulfillment.ticket.service;
 
+import vn.ticketscenter.config.fulfillment.TicketQrConfig;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.EncodeHintType;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
@@ -16,12 +17,12 @@ import java.security.MessageDigest;
 import java.util.*;
 
 /**
- * Tiện ích ký số và sinh mã QR bảo mật cho vé (LIEM-05).
+ * Signs ticket QR codes and renders them (LIEM-05).
  * - Payload JSON canonical UTF-8: {"id":"<ticket-uuid>","name":"<display-name>"}
- * - Ký HMAC-SHA256 bằng Application Secret Key.
+ * - HMAC-SHA256 with the application secret key.
  * - Envelope: base64url(payload).base64url(signature)
- * - So sánh chữ ký bằng MessageDigest.isEqual chống Timing Attack.
- * - Sinh ảnh PNG QR qua ZXing. Không bao giờ log raw secret, payload hay envelope.
+ * - signatures are compared with MessageDigest.isEqual against timing attacks.
+ * - the PNG is drawn with ZXing. The secret, payload and envelope are never logged.
  */
 public final class SignedTicketQrSigner {
     private static final String HMAC_ALGORITHM = "HmacSHA256";
@@ -30,7 +31,7 @@ public final class SignedTicketQrSigner {
     private final String secretKey;
 
     public static SignedTicketQrSigner configured() {
-        return new SignedTicketQrSigner(vn.ticketscenter.config.fulfillment.TicketQrConfig.signingSecret());
+        return new SignedTicketQrSigner(TicketQrConfig.signingSecret());
     }
 
     public SignedTicketQrSigner(String secretKey) {
@@ -49,7 +50,7 @@ public final class SignedTicketQrSigner {
     }
 
     /**
-     * Tạo canonical JSON UTF-8 với thứ tự field cố định: "id" trước, "name" sau.
+     * Canonical UTF-8 JSON with a fixed field order: "id" then "name".
      */
     public static String canonicalJsonPayload(UUID ticketId, String displayName) {
         Objects.requireNonNull(ticketId, "ticketId is required");
@@ -58,7 +59,7 @@ public final class SignedTicketQrSigner {
     }
 
     /**
-     * Ký HMAC-SHA256 trên mảng byte UTF-8 của payload.
+     * HMAC-SHA256 over the payload's UTF-8 bytes.
      */
     public byte[] signPayload(String payload) {
         Objects.requireNonNull(payload, "payload is required");
@@ -74,7 +75,7 @@ public final class SignedTicketQrSigner {
     }
 
     /**
-     * Tạo chuỗi Envelope base64url(payload).base64url(signature).
+     * The envelope base64url(payload).base64url(signature).
      */
     public String buildEnvelope(UUID ticketId, String displayName) {
         String payload = canonicalJsonPayload(ticketId, displayName);
@@ -88,8 +89,8 @@ public final class SignedTicketQrSigner {
     }
 
     /**
-     * Xác thực và giải mã envelope.
-     * Ném SecurityException nếu bị can thiệp payload hoặc signature.
+     * Verifies and decodes an envelope.
+     * Throws SecurityException when the payload or signature was tampered with.
      */
     public DecodedTicketQr verifyAndDecode(String envelope) {
         if (envelope == null || !envelope.contains(".")) {
@@ -113,7 +114,7 @@ public final class SignedTicketQrSigner {
             throw new SecurityException("Failed to decode base64url envelope parts", e);
         }
 
-        // Kiểm tra chữ ký với MessageDigest.isEqual (chống Timing Attack)
+        // constant-time comparison (MessageDigest.isEqual) against timing attacks
         try {
             Mac mac = Mac.getInstance(HMAC_ALGORITHM);
             SecretKeySpec keySpec =
@@ -146,7 +147,7 @@ public final class SignedTicketQrSigner {
     }
 
     /**
-     * Sinh ảnh PNG mã QR bằng ZXing từ chuỗi envelope.
+     * Draws the envelope as a QR PNG with ZXing.
      */
     public static byte[] generateQrPng(String envelope, int width, int height) {
         Objects.requireNonNull(envelope, "envelope is required");

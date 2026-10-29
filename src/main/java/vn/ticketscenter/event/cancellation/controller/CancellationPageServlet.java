@@ -1,5 +1,7 @@
 package vn.ticketscenter.event.cancellation.controller;
 
+import java.util.Optional;
+import vn.ticketscenter.identity.security.UserPrincipal;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -14,7 +16,7 @@ public final class CancellationPageServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws IOException, ServletException {
-        var actor = SecurityContext.getCurrentUser(request);
+        Optional<UserPrincipal> actor = SecurityContext.getCurrentUser(request);
         if (actor.isEmpty()) {
             LoginRedirect.send(request, response);
             return;

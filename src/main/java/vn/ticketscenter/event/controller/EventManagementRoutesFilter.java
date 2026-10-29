@@ -52,8 +52,10 @@ public final class EventManagementRoutesFilter implements Filter {
                                                 || (httpRequest.getMethod().equals("POST")
                                                         && Set.of("publish", "reject")
                                                                 .contains(p[5])))));
-        if (event || zone || organization || admin)
+        if (event || zone || organization || admin) {
             EventManagementWeb.handle(httpRequest, (HttpServletResponse) response);
-        else chain.doFilter(request, response);
+        } else {
+            chain.doFilter(request, response);
+        }
     }
 }

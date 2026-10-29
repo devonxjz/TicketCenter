@@ -41,7 +41,8 @@ public sealed interface HoldCommand permits HoldCommand.Create, HoldCommand.Canc
     }
 
     private static void requireKey(UUID id) {
-        if (id == null || id.equals(new UUID(0, 0)))
+        if (id == null || id.equals(new UUID(0, 0))) {
             throw new IllegalArgumentException("Nonzero UUID required");
+        }
     }
 }

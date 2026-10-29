@@ -101,8 +101,16 @@ public class OrganizationMembershipRepository {
             call.setString(1, orgId.toString());
             call.setString(2, actorId.toString());
             call.setString(3, userId.toString());
-            if (role == null) call.setNull(4, Types.VARCHAR); else call.setString(4, role.name());
-            if (active == null) call.setNull(5, Types.BIT); else call.setBoolean(5, active);
+            if (role == null) {
+                call.setNull(4, Types.VARCHAR);
+            } else {
+                call.setString(4, role.name());
+            }
+            if (active == null) {
+                call.setNull(5, Types.BIT);
+            } else {
+                call.setBoolean(5, active);
+            }
         });
     }
 
@@ -118,7 +126,9 @@ public class OrganizationMembershipRepository {
                 try (CallableStatement call = connection.prepareCall(sql)) {
                     binder.bind(call);
                     try (ResultSet row = call.executeQuery()) {
-                        if (!row.next()) throw new IllegalStateException("Membership procedure returned no row");
+                        if (!row.next()) {
+                            throw new IllegalStateException("Membership procedure returned no row");
+                        }
                         return new MembershipRow(
                                 UUID.fromString(row.getString("membership_id")),
                                 UUID.fromString(row.getString("user_id")),

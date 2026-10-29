@@ -46,8 +46,10 @@ public final class RefundRequestCacheImpl implements RefundRequestCache {
 
     @Override
     public void committed(UUID actor, UUID key, List<UUID> tickets, RefundSummaryDto result) {
-        try (var redis = connections.get()) {
-            for (UUID ticket : tickets) TicketCacheImpl.evict(redis, ticket);
+        try (Jedis redis = connections.get()) {
+            for (UUID ticket : tickets) {
+                TicketCacheImpl.evict(redis, ticket);
+            }
             TicketCacheImpl.evictUserTickets(redis, actor);
             redis.del(AdminRefundCacheImpl.PENDING_COUNT_KEY);
             redis.setex(idemKey(actor, key), IDEMPOTENCY_TTL, result.json());

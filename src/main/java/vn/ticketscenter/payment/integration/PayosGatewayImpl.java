@@ -59,7 +59,9 @@ public final class PayosGatewayImpl implements PayosGateway {
     /** Stops okhttp's worker threads and drops pooled connections. */
     @Override
     public void close() {
-        if (http == null) return;
+        if (http == null) {
+            return;
+        }
         http.dispatcher().executorService().shutdown();
         http.connectionPool().evictAll();
     }
@@ -87,13 +89,15 @@ public final class PayosGatewayImpl implements PayosGateway {
             return new CheckoutLink(
                     created.getOrderCode(), created.getPaymentLinkId(), created.getCheckoutUrl());
         } catch (APIException failure) {
-            if (!ORDER_CODE_EXISTS.equals(failure.getErrorCode().orElse(null)))
+            if (!ORDER_CODE_EXISTS.equals(failure.getErrorCode().orElse(null))) {
                 throw unavailable(failure);
+            }
             // A retry after a lost response: reuse the link payOS already holds for this order
             // code.
             LinkStatus existing = findLink(orderCode).orElseThrow(() -> unavailable(failure));
-            if (!"PENDING".equals(existing.status()) || existing.amount() != amount)
+            if (!"PENDING".equals(existing.status()) || existing.amount() != amount) {
                 throw unavailable(failure);
+            }
             return new CheckoutLink(
                     orderCode, existing.paymentLinkId(), CHECKOUT_BASE + existing.paymentLinkId());
         } catch (UpstreamException failure) {
@@ -117,7 +121,9 @@ public final class PayosGatewayImpl implements PayosGateway {
         } catch (NotFoundException missing) {
             return Optional.empty();
         } catch (APIException failure) {
-            if (LINK_NOT_FOUND.equals(failure.getErrorCode().orElse(null))) return Optional.empty();
+            if (LINK_NOT_FOUND.equals(failure.getErrorCode().orElse(null))) {
+                return Optional.empty();
+            }
             throw unavailable(failure);
         } catch (UpstreamException failure) {
             throw failure;

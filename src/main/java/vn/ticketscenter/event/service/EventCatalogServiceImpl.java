@@ -1,5 +1,9 @@
 package vn.ticketscenter.event.service;
 
+import java.util.Map;
+import vn.ticketscenter.config.AppConfig;
+import vn.ticketscenter.config.ServerConfig;
+import java.util.Optional;
 import vn.ticketscenter.config.web.Json;
 import vn.ticketscenter.event.cache.EventCatalogCache;
 import vn.ticketscenter.event.dto.EventDtos;
@@ -74,24 +78,29 @@ public final class EventCatalogServiceImpl implements EventCatalogService {
     @Override
     public String image(UUID id) {
         String url = repository.event(id).orElseThrow(NotFound::new).coverImageUrl();
-        if (url == null || url.isBlank()) throw new NotFound();
+        if (url == null || url.isBlank()) {
+            throw new NotFound();
+        }
         return url;
     }
 
     @Override
     public void warmAsync() {
-        if (isCacheEnabled())
+        if (isCacheEnabled()) {
             Thread.ofPlatform().daemon(true).name("event-catalog-warmup").start(this::warm);
+        }
     }
 
     @Override
     public int warm() {
-        if (!isCacheEnabled()) return 0;
+        if (!isCacheEnabled()) {
+            return 0;
+        }
         try {
             categories();
-            var filter = EventFilter.parse(java.util.Map.of());
+            EventFilter filter = EventFilter.parse(Map.of());
             events(filter);
-            for (var ev : repository.events(filter).events()) {
+            for (EventDtos.Event ev : repository.events(filter).events()) {
                 event(ev.eventId());
                 zones(ev.eventId());
             }
@@ -102,10 +111,14 @@ public final class EventCatalogServiceImpl implements EventCatalogService {
     }
 
     private String cached(String key, int ttl, Supplier<String> load) {
-        if (!isCacheEnabled()) return load.get();
+        if (!isCacheEnabled()) {
+            return load.get();
+        }
         try {
-            var hit = cache.get(key);
-            if (hit.isPresent()) return hit.get();
+            Optional<String> hit = cache.get(key);
+            if (hit.isPresent()) {
+                return hit.get();
+            }
         } catch (RuntimeException ignored) {
         }
         String generation;
@@ -125,15 +138,15 @@ public final class EventCatalogServiceImpl implements EventCatalogService {
 
     private boolean isCacheEnabled() {
         String explicit =
-                vn.ticketscenter.config.AppConfig.get(
-                        vn.ticketscenter.config.AppConfig.Keys.REDIS_CACHE_CATALOG_ENABLED);
+                AppConfig.get(
+                        AppConfig.Keys.REDIS_CACHE_CATALOG_ENABLED);
         if (explicit != null && !explicit.isBlank()) {
             return Boolean.parseBoolean(explicit.trim());
         }
-        if (vn.ticketscenter.config.ServerConfig.isProduction()) {
+        if (ServerConfig.isProduction()) {
             return true;
         }
-        return vn.ticketscenter.config.ServerConfig.isDemoData();
+        return ServerConfig.isDemoData();
     }
 
     
