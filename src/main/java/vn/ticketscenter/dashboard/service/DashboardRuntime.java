@@ -3,7 +3,7 @@ package vn.ticketscenter.dashboard.service;
 import jakarta.servlet.ServletContext;
 import vn.ticketscenter.config.persistence.FeatureContext;
 import vn.ticketscenter.dashboard.cache.DashboardCache;
-import vn.ticketscenter.settlement.infrastructure.FinanceRuntime;
+import vn.ticketscenter.settlement.service.FinanceRuntime;
 
 /** The finance overview service shared through the servlet context. */
 public final class DashboardRuntime {

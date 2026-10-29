@@ -1,7 +1,7 @@
 package vn.ticketscenter.settlement.payout;
 
 import java.util.UUID;
-import vn.ticketscenter.settlement.infrastructure.FinanceException;
+import vn.ticketscenter.settlement.service.FinanceException;
 
 @FunctionalInterface
 public interface PayoutAdapter {

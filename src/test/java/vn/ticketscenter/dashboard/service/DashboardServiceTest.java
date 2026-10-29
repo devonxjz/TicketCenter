@@ -2,7 +2,7 @@ package vn.ticketscenter.dashboard.service;
 import org.junit.jupiter.api.Test;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.security.UserPrincipal;
-import vn.ticketscenter.settlement.infrastructure.FinanceException;
+import vn.ticketscenter.settlement.service.FinanceException;
 import java.lang.reflect.Proxy;
 import java.sql.*;
 import java.util.UUID;

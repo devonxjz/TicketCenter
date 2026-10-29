@@ -4,7 +4,7 @@ import java.sql.*;
 import java.util.*;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.report.dto.ReportFilter;
-import vn.ticketscenter.settlement.infrastructure.FinanceException;
+import vn.ticketscenter.settlement.service.FinanceException;
 
 public final class ReportRepository {
     private static final Set<String> MONEY =

@@ -23,10 +23,10 @@ public final class CheckInEventRoutesFilter implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
-        HttpServletRequest http = (HttpServletRequest) request;
-        String path = ApiRequest.path(http);
+        HttpServletRequest httpRequest = (HttpServletRequest) request;
+        String path = ApiRequest.path(httpRequest);
         if (path.equals("/organizer/checkin-scanner")) {
-            if (!"GET".equals(http.getMethod())) {
+            if (!"GET".equals(httpRequest.getMethod())) {
                 ((HttpServletResponse) response).setHeader("Allow", "GET");
                 HttpResponses.error(
                         (HttpServletResponse) response,
@@ -51,7 +51,7 @@ public final class CheckInEventRoutesFilter implements Filter {
         if (path.equals("/organizer/checkin")
                 || path.equals("/organizer/checkin-select")
                 || path.equals("/organizer/checkin/select")) {
-            if (!"GET".equals(http.getMethod())) {
+            if (!"GET".equals(httpRequest.getMethod())) {
                 HttpResponses.error(
                         (HttpServletResponse) response,
                         405,
@@ -59,7 +59,7 @@ public final class CheckInEventRoutesFilter implements Filter {
                         "Chỉ hỗ trợ phương thức GET.");
                 return;
             }
-            String org = http.getParameter("organizationId");
+            String org = httpRequest.getParameter("organizationId");
             String query =
                     org == null
                             ? ""
@@ -67,7 +67,7 @@ public final class CheckInEventRoutesFilter implements Filter {
                                     + java.net.URLEncoder.encode(
                                             org, java.nio.charset.StandardCharsets.UTF_8);
             ((HttpServletResponse) response)
-                    .sendRedirect(http.getContextPath() + "/check-ins" + query);
+                    .sendRedirect(httpRequest.getContextPath() + "/check-ins" + query);
             return;
         }
         String prefix = "/api/events/";
@@ -82,10 +82,10 @@ public final class CheckInEventRoutesFilter implements Filter {
             chain.doFilter(request, response);
             return;
         }
-        if (!"GET".equals(http.getMethod())) {
-            HttpServletResponse resp = (HttpServletResponse) response;
-            resp.setHeader("Allow", "GET");
-            HttpResponses.error(resp, 405, "METHOD_NOT_ALLOWED", "Chỉ hỗ trợ phương thức GET.");
+        if (!"GET".equals(httpRequest.getMethod())) {
+            HttpServletResponse httpResponse = (HttpServletResponse) response;
+            httpResponse.setHeader("Allow", "GET");
+            HttpResponses.error(httpResponse, 405, "METHOD_NOT_ALLOWED", "Chỉ hỗ trợ phương thức GET.");
             return;
         }
         RequestDispatcher dispatcher =

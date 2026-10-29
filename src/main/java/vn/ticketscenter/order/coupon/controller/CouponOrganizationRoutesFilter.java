@@ -20,8 +20,8 @@ public final class CouponOrganizationRoutesFilter implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
-        HttpServletRequest http = (HttpServletRequest) request;
-        String path = ApiRequest.path(http);
+        HttpServletRequest httpRequest = (HttpServletRequest) request;
+        String path = ApiRequest.path(httpRequest);
         if (!path.matches("^/api/(admin/)?organizations/[^/]+/coupons$")) {
             chain.doFilter(request, response);
             return;

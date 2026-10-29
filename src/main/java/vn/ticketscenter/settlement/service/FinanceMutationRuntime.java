@@ -8,7 +8,7 @@ import vn.ticketscenter.report.cache.ReportCache;
 import vn.ticketscenter.settlement.cache.SettlementReadCache;
 import vn.ticketscenter.settlement.commission.cache.CommissionRuleCache;
 import vn.ticketscenter.settlement.dao.FinanceRepository;
-import vn.ticketscenter.settlement.infrastructure.FinanceRuntime;
+import vn.ticketscenter.settlement.service.FinanceRuntime;
 import vn.ticketscenter.settlement.payout.PayoutAdapter;
 import vn.ticketscenter.settlement.payout.PayoutAdapterImpl;
 

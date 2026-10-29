@@ -3,7 +3,7 @@ package vn.ticketscenter.audit.dto;
 import java.util.*;
 import java.time.Instant;
 import vn.ticketscenter.report.dto.ReportFilter;
-import vn.ticketscenter.settlement.infrastructure.FinanceException;
+import vn.ticketscenter.settlement.service.FinanceException;
 
 public record AuditFilter(
         Instant from,

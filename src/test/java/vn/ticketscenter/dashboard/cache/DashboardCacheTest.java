@@ -1,5 +1,6 @@
 package vn.ticketscenter.dashboard.cache;
 
+import vn.ticketscenter.settlement.service.FinanceException;
 import vn.ticketscenter.config.redis.RedisKeyValueBackend;
 import vn.ticketscenter.dashboard.service.DashboardServiceImpl;
 import java.lang.reflect.Proxy;
@@ -10,7 +11,6 @@ import java.util.*;
 import org.junit.jupiter.api.Test;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.security.UserPrincipal;
-import vn.ticketscenter.settlement.infrastructure.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class DashboardCacheTest {

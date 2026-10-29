@@ -10,8 +10,8 @@ import vn.ticketscenter.config.DatabaseConfig;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.security.*;
-import vn.ticketscenter.settlement.controller.FinanceRequest;
-import vn.ticketscenter.settlement.infrastructure.FinanceJson;
+import vn.ticketscenter.settlement.controller.FinanceWeb;
+import vn.ticketscenter.settlement.dto.FinanceJson;
 
 /** Test class only, explicitly deployed by the isolated loopback HTTP smoke. */
 public final class FixtureSessionServlet extends HttpServlet {
@@ -23,7 +23,7 @@ public final class FixtureSessionServlet extends HttpServlet {
         try(var c=DriverManager.getConnection(DatabaseConfig.getJdbcUrl(),DatabaseConfig.getUser(),DatabaseConfig.getPassword())) {
             if(!c.getCatalog().matches("TC_Vuong_Test_[A-Za-z0-9_]+")) throw new SQLException();
             try(var s=c.prepareStatement("SELECT fixture_key FROM dbo.tc_vuong_test_fixture WHERE fixture_key='vuong-finance-v1'");var rows=s.executeQuery()) { if(!rows.next()) throw new SQLException(); }
-            var actor=FinanceRequest.id(FinanceRequest.body(request.getReader()).get("actorId"));
+            var actor=FinanceWeb.id(FinanceWeb.body(request.getReader()).get("actorId"));
             try(var query=c.prepareStatement("SELECT platform_role,auth_version FROM dbo.tc_users WHERE id=? AND status='ACTIVE'")) {
                 query.setString(1,actor.toString()); query.setQueryTimeout(5);
                 try(var row=query.executeQuery()) {

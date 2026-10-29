@@ -1,4 +1,4 @@
-package vn.ticketscenter.settlement.infrastructure;
+package vn.ticketscenter.settlement.dto;
 
 import java.math.BigDecimal;
 import java.time.Instant;

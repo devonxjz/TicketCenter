@@ -5,7 +5,7 @@ import java.util.*;
 import vn.ticketscenter.audit.dto.AuditFilter;
 import vn.ticketscenter.audit.service.AuditMetadata;
 import vn.ticketscenter.report.dao.ReadProjection;
-import vn.ticketscenter.settlement.infrastructure.FinanceException;
+import vn.ticketscenter.settlement.service.FinanceException;
 
 public final class AuditRepository {
     private static final String COLUMNS =

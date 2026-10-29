@@ -1,5 +1,7 @@
 package vn.ticketscenter.audit.repository;
 
+import vn.ticketscenter.settlement.service.FinanceException;
+import vn.ticketscenter.settlement.dao.FinanceDatabase;
 import org.junit.jupiter.api.*;
 import java.lang.reflect.Proxy;
 import java.sql.*;
@@ -10,7 +12,6 @@ import vn.ticketscenter.audit.service.AuditServiceImpl;
 import vn.ticketscenter.config.DatabaseConfig;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.security.UserPrincipal;
-import vn.ticketscenter.settlement.infrastructure.*;
 import vn.ticketscenter.settlement.dao.FinanceJdbc;
 import static org.junit.jupiter.api.Assertions.*;
 

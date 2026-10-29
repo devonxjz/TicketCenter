@@ -29,23 +29,23 @@ public class OtpSendServlet extends HttpServlet {
     }
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         OtpService service = otpService(getServletContext());
         if (service == null) {
-            IdentityErrorWriter.databaseUnavailable(resp);
+            IdentityErrorWriter.databaseUnavailable(response);
             return;
         }
         try {
-            RequestFields fields = RequestFields.read(req);
+            RequestFields fields = RequestFields.read(request);
             String email = fields.get("email");
             if (email == null || email.isBlank()) {
                 throw new IdentityException(
                         IdentityError.VALIDATION_FAILED, "Email không được để trống");
             }
             service.sendOtp(new OtpSendRequestDto(email, parsePurpose(fields.get("purpose"))));
-            HttpResponses.data(resp, JsonObjectBuilder.object().put("sent", true).build());
+            HttpResponses.data(response, JsonObjectBuilder.object().put("sent", true).build());
         } catch (RuntimeException failure) {
-            IdentityErrorWriter.write(resp, failure, "Đã xảy ra lỗi khi gửi mã OTP");
+            IdentityErrorWriter.write(response, failure, "Đã xảy ra lỗi khi gửi mã OTP");
         }
     }
 

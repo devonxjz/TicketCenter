@@ -1,5 +1,6 @@
-package vn.ticketscenter.event.controller;
+package vn.ticketscenter.event.service;
 
+import vn.ticketscenter.event.service.EventCatalogRuntime;
 import jakarta.servlet.ServletContext;
 import vn.ticketscenter.config.persistence.*;
 import vn.ticketscenter.event.cache.*;

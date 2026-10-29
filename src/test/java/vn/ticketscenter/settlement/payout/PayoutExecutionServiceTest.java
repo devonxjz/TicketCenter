@@ -3,7 +3,7 @@ package vn.ticketscenter.settlement.payout;
 import org.junit.jupiter.api.Test;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.identity.model.PlatformRole;
-import vn.ticketscenter.settlement.infrastructure.FinanceException;
+import vn.ticketscenter.settlement.service.FinanceException;
 import java.math.BigDecimal;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
