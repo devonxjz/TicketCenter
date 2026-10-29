@@ -1,4 +1,4 @@
-package vn.ticketscenter.settlement.infrastructure;
+package vn.ticketscenter.settlement.dao;
 
 import java.sql.Connection;
 import java.sql.SQLException;

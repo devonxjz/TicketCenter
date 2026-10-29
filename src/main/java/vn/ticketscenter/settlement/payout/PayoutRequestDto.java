@@ -7,8 +7,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.UUID;
-import vn.ticketscenter.settlement.infrastructure.FinanceException;
-import vn.ticketscenter.settlement.infrastructure.FinanceJson;
+import vn.ticketscenter.settlement.service.FinanceException;
+import vn.ticketscenter.settlement.dto.FinanceJson;
 
 public record PayoutRequestDto(
         BigDecimal amount,

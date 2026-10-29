@@ -7,14 +7,14 @@ import java.util.*;
 import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.config.web.JsonObjectParser;
 import vn.ticketscenter.settlement.commission.dto.CommissionRuleCreateDto;
-import vn.ticketscenter.settlement.infrastructure.FinanceException;
+import vn.ticketscenter.settlement.service.FinanceException;
 import vn.ticketscenter.settlement.payout.PayoutRequestDto;
 
-public final class FinanceRequest {
-    private FinanceRequest() {}
+public final class FinanceWeb {
+    private FinanceWeb() {}
 
     public static UUID id(String value) {
-        return ApiRequest.uuid(value).orElseThrow(FinanceRequest::invalid);
+        return ApiRequest.uuid(value).orElseThrow(FinanceWeb::invalid);
     }
 
     public static Instant instant(String value) {

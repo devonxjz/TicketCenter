@@ -1,7 +1,7 @@
 package vn.ticketscenter.report.dto;
 
 import org.junit.jupiter.api.Test;
-import vn.ticketscenter.settlement.infrastructure.FinanceException;
+import vn.ticketscenter.settlement.service.FinanceException;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 

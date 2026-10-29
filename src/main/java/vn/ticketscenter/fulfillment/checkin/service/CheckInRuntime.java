@@ -1,4 +1,4 @@
-package vn.ticketscenter.fulfillment.checkin.controller;
+package vn.ticketscenter.fulfillment.checkin.service;
 
 import jakarta.servlet.ServletContext;
 import vn.ticketscenter.config.persistence.FeatureContext;

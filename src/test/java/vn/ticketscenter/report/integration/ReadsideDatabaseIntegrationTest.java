@@ -1,5 +1,7 @@
 package vn.ticketscenter.report.integration;
 
+import vn.ticketscenter.settlement.service.FinanceException;
+import vn.ticketscenter.settlement.dao.FinanceDatabase;
 import org.junit.jupiter.api.*;
 import java.lang.reflect.Proxy;
 import java.sql.*;
@@ -18,7 +20,6 @@ import vn.ticketscenter.dashboard.service.DashboardService;
 import vn.ticketscenter.dashboard.service.DashboardServiceImpl;
 import vn.ticketscenter.dashboard.dao.DashboardRepository;
 import vn.ticketscenter.report.cache.ReportCache;
-import vn.ticketscenter.settlement.infrastructure.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /** Real SQL assertions, transactionally rolled back. No shared DB/SMTP. */

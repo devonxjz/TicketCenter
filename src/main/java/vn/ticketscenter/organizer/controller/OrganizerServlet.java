@@ -29,9 +29,9 @@ import vn.ticketscenter.config.web.ApiRequest;
 public class OrganizerServlet extends HttpServlet {
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        String path = ApiRequest.path(req);
+        String path = ApiRequest.path(request);
 
         // Check-in and reports are served by their own modules; every view here loads its data from
         // the API.
@@ -47,7 +47,7 @@ public class OrganizerServlet extends HttpServlet {
                     default -> null;
                 };
         if (redirect != null) {
-            resp.sendRedirect(req.getContextPath() + redirect);
+            response.sendRedirect(request.getContextPath() + redirect);
             return;
         }
         String view;
@@ -63,7 +63,7 @@ public class OrganizerServlet extends HttpServlet {
             }
             case "/organizer/coupons" -> {
                 view = "/WEB-INF/views/organizer/coupons.jsp";
-                resp.setHeader("Cache-Control", "no-store");
+                response.setHeader("Cache-Control", "no-store");
                 activeTab = "coupons";
             }
             case "/organizer/members" -> {
@@ -72,11 +72,11 @@ public class OrganizerServlet extends HttpServlet {
             }
             default -> {
                 view = "/WEB-INF/views/organizer/dashboard.jsp";
-                resp.setHeader("Cache-Control", "no-store");
+                response.setHeader("Cache-Control", "no-store");
                 activeTab = "dashboard";
             }
         }
-        req.setAttribute("activeTab", activeTab);
-        req.getRequestDispatcher(view).forward(req, resp);
+        request.setAttribute("activeTab", activeTab);
+        request.getRequestDispatcher(view).forward(request, response);
     }
 }

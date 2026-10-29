@@ -27,9 +27,9 @@ public class MyMembershipsServlet extends HttpServlet {
     private static final Logger LOGGER = Logger.getLogger(MyMembershipsServlet.class.getName());
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
-            UserPrincipal actor = requireUser(req);
+            UserPrincipal actor = requireUser(request);
             OrganizationMembershipService service = service(getServletContext());
 
             // read my memberships and write the JSON reply
@@ -38,16 +38,16 @@ public class MyMembershipsServlet extends HttpServlet {
                     memberships.stream()
                             .map(MembershipSummaryDto::toJson)
                             .collect(Collectors.joining(",", "[", "]"));
-            HttpResponses.data(resp, json);
+            HttpResponses.data(response, json);
         } catch (AppException rejected) {
-            HttpResponses.error(resp, rejected);
+            HttpResponses.error(response, rejected);
         } catch (IllegalArgumentException ex) {
             HttpResponses.error(
-                    resp, HttpServletResponse.SC_BAD_REQUEST, "BAD_REQUEST", ex.getMessage());
+                    response, HttpServletResponse.SC_BAD_REQUEST, "BAD_REQUEST", ex.getMessage());
         } catch (Exception ex) {
             LOGGER.log(Level.SEVERE, "Membership request failed", ex);
             HttpResponses.error(
-                    resp,
+                    response,
                     HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
                     "SERVER_ERROR",
                     "Đã xảy ra lỗi hệ thống.");
@@ -62,8 +62,8 @@ public class MyMembershipsServlet extends HttpServlet {
         return services.organizationMembershipService();
     }
 
-    private static UserPrincipal requireUser(HttpServletRequest req) {
-        Optional<UserPrincipal> principal = SecurityContext.getCurrentUser(req);
+    private static UserPrincipal requireUser(HttpServletRequest request) {
+        Optional<UserPrincipal> principal = SecurityContext.getCurrentUser(request);
         if (principal.isEmpty()) {
             throw new AppException(
                     HttpServletResponse.SC_UNAUTHORIZED,

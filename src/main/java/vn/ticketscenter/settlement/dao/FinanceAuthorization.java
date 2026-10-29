@@ -4,7 +4,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.UUID;
 import vn.ticketscenter.identity.security.UserPrincipal;
-import vn.ticketscenter.settlement.infrastructure.FinanceException;
+import vn.ticketscenter.settlement.service.FinanceException;
 
 /** Reloads current authority; a role cached in the session is not authority. */
 public final class FinanceAuthorization {

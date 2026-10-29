@@ -1,5 +1,6 @@
 package vn.ticketscenter.settlement.dao;
 
+import vn.ticketscenter.settlement.service.FinanceException;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.time.Instant;
@@ -8,7 +9,6 @@ import java.util.function.Consumer;
 import vn.ticketscenter.config.persistence.SqlCall;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.settlement.commission.dto.CommissionRuleCreateDto;
-import vn.ticketscenter.settlement.infrastructure.*;
 import vn.ticketscenter.settlement.payout.*;
 
 /** Canonical bound JDBC projections; procedures own all finance writes. */

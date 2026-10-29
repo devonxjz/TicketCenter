@@ -1,4 +1,4 @@
-package vn.ticketscenter.event.controller;
+package vn.ticketscenter.event.service;
 
 import jakarta.servlet.ServletContext;
 import vn.ticketscenter.config.persistence.FeatureContext;

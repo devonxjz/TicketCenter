@@ -1,5 +1,6 @@
 package vn.ticketscenter.fulfillment.checkin.controller;
 
+import vn.ticketscenter.fulfillment.checkin.service.CheckInRuntime;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;

@@ -46,11 +46,11 @@ public class OrganizationRequestServlet extends HttpServlet {
             Pattern.compile("^/api/organization-requests/([^/]+)$");
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
-            UserPrincipal principal = requirePrincipal(req);
+            UserPrincipal principal = requirePrincipal(request);
             OrganizationRequestService service = service(getServletContext());
-            String path = PathIds.path(req);
+            String path = PathIds.path(request);
 
             // perform action and build the JSON reply
             String json;
@@ -62,30 +62,30 @@ public class OrganizationRequestServlet extends HttpServlet {
             } else {
                 throw notFound();
             }
-            HttpResponses.data(resp, json);
+            HttpResponses.data(response, json);
         } catch (AppException rejected) {
-            HttpResponses.error(resp, rejected);
+            HttpResponses.error(response, rejected);
         }
     }
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
-            UserPrincipal principal = requirePrincipal(req);
+            UserPrincipal principal = requirePrincipal(request);
             OrganizationRequestService service = service(getServletContext());
-            if (!PathIds.path(req).equals("/api/organization-requests")) {
+            if (!PathIds.path(request).equals("/api/organization-requests")) {
                 throw notFound();
             }
 
             // submit the request and write the JSON reply
-            OrganizationRequestDetailDto detail = submitRequest(req, service, principal);
-            HttpResponses.created(resp, detail.toJson());
+            OrganizationRequestDetailDto detail = submitRequest(request, service, principal);
+            HttpResponses.created(response, detail.toJson());
         } catch (AppException rejected) {
-            HttpResponses.error(resp, rejected);
+            HttpResponses.error(response, rejected);
         } catch (RuntimeException e) {
             LOGGER.log(Level.SEVERE, "Unexpected error submitting organization request", e);
             HttpResponses.error(
-                    resp,
+                    response,
                     HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
                     "INTERNAL_ERROR",
                     "Có lỗi xảy ra trong quá trình xử lý yêu cầu");
@@ -127,11 +127,11 @@ public class OrganizationRequestServlet extends HttpServlet {
     }
 
     private static OrganizationRequestDetailDto submitRequest(
-            HttpServletRequest req, OrganizationRequestService service, UserPrincipal principal) {
+            HttpServletRequest request, OrganizationRequestService service, UserPrincipal principal) {
         // get parameters from the JSON body
         Map<String, String> json;
         try {
-            json = JsonObjectParser.parse(req.getReader());
+            json = JsonObjectParser.parse(request.getReader());
         } catch (IllegalArgumentException | IOException e) {
             throw new AppException(
                     HttpServletResponse.SC_BAD_REQUEST,
@@ -153,7 +153,7 @@ public class OrganizationRequestServlet extends HttpServlet {
         // store the request; validation failures become 400 replies
         try {
             return service.submitRequest(
-                    principal.actorId(), dto, req.getHeader("Idempotency-Key"));
+                    principal.actorId(), dto, request.getHeader("Idempotency-Key"));
         } catch (IllegalArgumentException e) {
             throw new AppException(
                     HttpServletResponse.SC_BAD_REQUEST, "VALIDATION_ERROR", e.getMessage());
@@ -171,8 +171,8 @@ public class OrganizationRequestServlet extends HttpServlet {
         return services.organizationRequestService();
     }
 
-    private static UserPrincipal requirePrincipal(HttpServletRequest req) {
-        Optional<UserPrincipal> principal = SecurityContext.getCurrentUser(req);
+    private static UserPrincipal requirePrincipal(HttpServletRequest request) {
+        Optional<UserPrincipal> principal = SecurityContext.getCurrentUser(request);
         if (principal.isEmpty()) {
             throw new AppException(
                     HttpServletResponse.SC_UNAUTHORIZED,

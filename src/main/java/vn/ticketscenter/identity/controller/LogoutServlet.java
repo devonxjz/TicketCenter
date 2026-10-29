@@ -15,27 +15,27 @@ import java.io.IOException;
 public class LogoutServlet extends HttpServlet {
 
     @Override
-    public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        resp.sendRedirect(req.getContextPath() + "/");
+    public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        response.sendRedirect(request.getContextPath() + "/");
     }
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        if (req.getSession(false) != null && !SecurityContext.validateCsrfToken(req)) {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        if (request.getSession(false) != null && !SecurityContext.validateCsrfToken(request)) {
             HttpResponses.error(
-                    resp,
+                    response,
                     HttpServletResponse.SC_FORBIDDEN,
                     "CSRF_TOKEN_INVALID",
                     "Yêu cầu thiếu hoặc mã CSRF không hợp lệ");
             return;
         }
         // Hủy phiên an toàn và có tính lũy thỏa (idempotent, gọi nhiều lần không lỗi)
-        SecurityContext.clearSession(req);
-        String accept = req.getHeader("Accept");
+        SecurityContext.clearSession(request);
+        String accept = request.getHeader("Accept");
         if (accept != null && accept.contains("text/html")) {
-            resp.sendRedirect(req.getContextPath() + "/");
+            response.sendRedirect(request.getContextPath() + "/");
             return;
         }
-        HttpResponses.data(resp, "{\"loggedOut\":true}");
+        HttpResponses.data(response, "{\"loggedOut\":true}");
     }
 }

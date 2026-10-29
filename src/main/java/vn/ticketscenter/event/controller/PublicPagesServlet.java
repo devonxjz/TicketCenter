@@ -41,14 +41,14 @@ public class PublicPagesServlet extends HttpServlet {
                     "/organizer/request");
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        String path = ApiRequest.path(req);
+        String path = ApiRequest.path(request);
 
         if (AUTH_REQUIRED_PAGES.contains(path)) {
-            Optional<UserPrincipal> user = SecurityContext.getCurrentUser(req);
+            Optional<UserPrincipal> user = SecurityContext.getCurrentUser(request);
             if (user.isEmpty()) {
-                LoginRedirect.send(req, resp);
+                LoginRedirect.send(request, response);
                 return;
             }
         }
@@ -63,11 +63,11 @@ public class PublicPagesServlet extends HttpServlet {
                     default -> null;
                 };
         if (redirect != null) {
-            resp.sendRedirect(req.getContextPath() + redirect);
+            response.sendRedirect(request.getContextPath() + redirect);
             return;
         }
         if (path.equals("/checkout") || path.equals("/profile")) {
-            resp.setHeader("Cache-Control", "no-store");
+            response.setHeader("Cache-Control", "no-store");
         }
         String view =
                 switch (path) {
@@ -77,6 +77,6 @@ public class PublicPagesServlet extends HttpServlet {
                             "/WEB-INF/views/public/organizer-request.jsp";
                     default -> "/WEB-INF/views/public/index.jsp";
                 };
-        req.getRequestDispatcher(view).forward(req, resp);
+        request.getRequestDispatcher(view).forward(request, response);
     }
 }

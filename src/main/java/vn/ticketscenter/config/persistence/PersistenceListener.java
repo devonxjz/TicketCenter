@@ -38,7 +38,7 @@ public final class PersistenceListener implements ServletContextListener {
         event.getServletContext().setAttribute(REGISTRY_ATTRIBUTE, registry);
         if (registry.hasPrincipal(DatabasePrincipal.BUYER)) {
             try {
-                vn.ticketscenter.event.controller.EventCatalogRuntime.resolve(
+                vn.ticketscenter.event.service.EventCatalogRuntime.resolve(
                                 event.getServletContext())
                         .warmAsync();
             } catch (Exception ex) {

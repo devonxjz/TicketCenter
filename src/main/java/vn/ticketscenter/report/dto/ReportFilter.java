@@ -3,7 +3,7 @@ package vn.ticketscenter.report.dto;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
-import vn.ticketscenter.settlement.infrastructure.FinanceException;
+import vn.ticketscenter.settlement.service.FinanceException;
 
 /** One UTC/filter contract shared by JSON and unpaged CSV. */
 public record ReportFilter(

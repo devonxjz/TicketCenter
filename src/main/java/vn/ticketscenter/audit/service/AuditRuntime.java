@@ -2,7 +2,7 @@ package vn.ticketscenter.audit.service;
 
 import jakarta.servlet.ServletContext;
 import vn.ticketscenter.config.persistence.FeatureContext;
-import vn.ticketscenter.settlement.infrastructure.FinanceRuntime;
+import vn.ticketscenter.settlement.service.FinanceRuntime;
 
 /** The audit read service shared through the servlet context. */
 public final class AuditRuntime {

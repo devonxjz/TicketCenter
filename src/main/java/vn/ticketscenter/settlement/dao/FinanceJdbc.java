@@ -2,7 +2,7 @@ package vn.ticketscenter.settlement.dao;
 
 import java.sql.*;
 import java.util.*;
-import vn.ticketscenter.settlement.infrastructure.FinanceException;
+import vn.ticketscenter.settlement.service.FinanceException;
 
 public final class FinanceJdbc {
     private FinanceJdbc() {}

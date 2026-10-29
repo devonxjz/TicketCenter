@@ -1,5 +1,6 @@
-package vn.ticketscenter.settlement.infrastructure;
+package vn.ticketscenter.settlement.service;
 
+import vn.ticketscenter.settlement.dao.FinanceDatabase;
 import jakarta.servlet.ServletContext;
 import vn.ticketscenter.config.DatabaseConfig;
 import vn.ticketscenter.config.persistence.FeatureContext;

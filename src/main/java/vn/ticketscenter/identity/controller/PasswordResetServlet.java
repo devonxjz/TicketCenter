@@ -30,25 +30,25 @@ public class PasswordResetServlet extends HttpServlet {
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        String token = req.getParameter("token");
+        String token = request.getParameter("token");
         if (token != null && !token.isBlank() && token.matches("^[A-Za-z0-9_.-]+$")) {
-            req.setAttribute("token", token);
+            request.setAttribute("token", token);
         }
-        req.setAttribute("csrfToken", SecurityContext.getOrCreateCsrfToken(req));
-        req.getRequestDispatcher("/WEB-INF/views/auth/reset-password.jsp").forward(req, resp);
+        request.setAttribute("csrfToken", SecurityContext.getOrCreateCsrfToken(request));
+        request.getRequestDispatcher("/WEB-INF/views/auth/reset-password.jsp").forward(request, response);
     }
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         PasswordResetService service = passwordResetService(getServletContext());
         if (service == null) {
-            IdentityErrorWriter.databaseUnavailable(resp);
+            IdentityErrorWriter.databaseUnavailable(response);
             return;
         }
         try {
-            RequestFields fields = RequestFields.read(req);
+            RequestFields fields = RequestFields.read(request);
             String token = fields.get("token");
             String newPassword = fields.get("newPassword");
             if (token == null || token.isBlank() || newPassword == null || newPassword.isBlank()) {
@@ -57,9 +57,9 @@ public class PasswordResetServlet extends HttpServlet {
                         "Token và mật khẩu mới không được để trống");
             }
             service.resetPassword(new PasswordResetRequestDto(token, newPassword));
-            HttpResponses.data(resp, JsonObjectBuilder.object().put("reset", true).build());
+            HttpResponses.data(response, JsonObjectBuilder.object().put("reset", true).build());
         } catch (RuntimeException failure) {
-            IdentityErrorWriter.write(resp, failure, "Đã xảy ra lỗi khi đặt lại mật khẩu");
+            IdentityErrorWriter.write(response, failure, "Đã xảy ra lỗi khi đặt lại mật khẩu");
         }
     }
 }

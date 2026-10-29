@@ -15,8 +15,8 @@ public final class RefundOrderRoutesFilter implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
-        var http = (HttpServletRequest) request;
-        String path = RefundWeb.path(http), name;
+        HttpServletRequest httpRequest = (HttpServletRequest) request;
+        String path = RefundWeb.path(httpRequest), name;
         if (path.equals("/refund-request")) name = "RefundRequestServlet";
         else if (path.matches("/api/orders/[^/]+/refundable-tickets")) {
             name = "OrderRefundableTicketsServlet";
@@ -27,7 +27,7 @@ public final class RefundOrderRoutesFilter implements Filter {
             chain.doFilter(request, response);
             return;
         }
-        if (!"GET".equals(http.getMethod())) {
+        if (!"GET".equals(httpRequest.getMethod())) {
             ((HttpServletResponse) response).setHeader("Allow", "GET");
             HttpResponses.error(
                     (HttpServletResponse) response,

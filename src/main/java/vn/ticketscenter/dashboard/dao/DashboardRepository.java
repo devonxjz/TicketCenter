@@ -4,7 +4,7 @@ import java.sql.*;
 import java.time.*;
 import java.util.*;
 import vn.ticketscenter.report.dao.ReadProjection;
-import vn.ticketscenter.settlement.infrastructure.FinanceException;
+import vn.ticketscenter.settlement.service.FinanceException;
 
 public final class DashboardRepository {
     public Map<String, Object> overview(Connection db, UUID org, Instant now) throws SQLException {
