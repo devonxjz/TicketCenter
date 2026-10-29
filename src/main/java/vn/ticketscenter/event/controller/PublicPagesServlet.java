@@ -6,12 +6,11 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import vn.ticketscenter.config.web.ApiRequest;
+import vn.ticketscenter.identity.security.LoginRedirect;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
 
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.Set;
 
@@ -49,14 +48,7 @@ public class PublicPagesServlet extends HttpServlet {
         if (AUTH_REQUIRED_PAGES.contains(path)) {
             Optional<UserPrincipal> user = SecurityContext.getCurrentUser(req);
             if (user.isEmpty()) {
-                String targetUri = req.getRequestURI();
-                if (req.getQueryString() != null && !req.getQueryString().isBlank()) {
-                    targetUri += "?" + req.getQueryString();
-                }
-                resp.sendRedirect(
-                        req.getContextPath()
-                                + "/auth/login?redirect="
-                                + URLEncoder.encode(targetUri, StandardCharsets.UTF_8));
+                LoginRedirect.send(req, resp);
                 return;
             }
         }

@@ -5,6 +5,7 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.config.identity.IdentityServices;
 import vn.ticketscenter.identity.controller.support.IdentityErrorWriter;
@@ -87,8 +88,8 @@ public class AdminOrganizationApprovalServlet extends HttpServlet {
             UserPrincipal admin,
             boolean pendingOnly)
             throws IOException {
-        int page = positiveInt(req.getParameter("page"), 1);
-        int pageSize = positiveInt(req.getParameter("pageSize"), 20);
+        int page = ApiRequest.positiveInt(req.getParameter("page"), 1);
+        int pageSize = ApiRequest.positiveInt(req.getParameter("pageSize"), 20);
         OrganizationStatus status =
                 pendingOnly
                         ? OrganizationStatus.PENDING_APPROVAL
@@ -284,15 +285,5 @@ public class AdminOrganizationApprovalServlet extends HttpServlet {
         } catch (IllegalArgumentException unknown) {
             return null;
         }
-    }
-
-    private static int positiveInt(String value, int fallback) {
-        if (value != null && !value.isBlank()) {
-            try {
-                int number = Integer.parseInt(value.trim());
-                if (number > 0) return number;
-            } catch (NumberFormatException ignored) {}
-        }
-        return fallback;
     }
 }

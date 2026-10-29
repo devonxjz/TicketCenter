@@ -1,4 +1,4 @@
-package vn.ticketscenter.fulfillment.refund.worker;
+package vn.ticketscenter.fulfillment.refund.dto;
 
 import java.math.BigDecimal;
 import java.util.Objects;

@@ -1,7 +1,7 @@
 package vn.ticketscenter.payment.integration;
 
-import vn.ticketscenter.fulfillment.refund.worker.RefundTransferRequest;
-import vn.ticketscenter.fulfillment.refund.worker.RefundTransferResult;
+import vn.ticketscenter.fulfillment.refund.dto.RefundTransferRequest;
+import vn.ticketscenter.fulfillment.refund.dto.RefundTransferResult;
 
 import java.io.IOException;
 import java.math.BigDecimal;

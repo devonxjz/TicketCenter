@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.junit.jupiter.api.Test;
+import vn.ticketscenter.payment.dao.CompensationRetryRepository;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
@@ -54,7 +55,7 @@ class AdminCompensationRetryServletTest {
     }
 
     private static RuntimeException failure(int code) {
-        return AdminCompensationRetryServlet.translate(new IllegalStateException(new SQLException("failed", "S0001", code)));
+        return CompensationRetryRepository.translate(new IllegalStateException(new SQLException("failed", "S0001", code)));
     }
 
     private Result call(UserPrincipal actor, String csrfHeader, String uri, BiFunction<UserPrincipal, UUID, UUID> retry) throws Exception {

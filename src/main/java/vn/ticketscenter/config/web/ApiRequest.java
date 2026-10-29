@@ -56,7 +56,7 @@ public final class ApiRequest {
     public static int positiveInt(String text, int fallback) {
         if (text == null || text.isBlank()) return fallback;
         try {
-            int parsed = Integer.parseInt(text);
+            int parsed = Integer.parseInt(text.trim());
             return parsed > 0 ? parsed : fallback;
         } catch (NumberFormatException e) {
             return fallback;
