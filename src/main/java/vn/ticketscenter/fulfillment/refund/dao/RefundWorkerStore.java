@@ -1,5 +1,6 @@
-package vn.ticketscenter.fulfillment.refund.worker;
+package vn.ticketscenter.fulfillment.refund.dao;
 
+import vn.ticketscenter.fulfillment.refund.dto.RefundTransferRequest;
 import java.util.*;
 import vn.ticketscenter.payment.integration.RefundGateway;
 

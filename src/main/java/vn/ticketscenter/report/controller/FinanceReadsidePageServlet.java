@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.util.UUID;
 import vn.ticketscenter.report.dto.ReportFilter;
 import vn.ticketscenter.settlement.infrastructure.*;
+import vn.ticketscenter.settlement.dao.FinanceAuthorization;
 
 @WebServlet(
         name = "FinanceReadsidePageServlet",
@@ -30,14 +31,7 @@ public final class FinanceReadsidePageServlet extends HttpServlet {
                         if (e.status() != 403) throw e;
                         admin = false;
                         if (org == null) {
-                            try (var query =
-                                    db.prepareStatement(
-                                            "SELECT TOP (1) organization_id FROM dbo.vw_ActiveManagerMemberships WHERE user_id=? ORDER BY organization_id")) {
-                                query.setString(1, actor.actorId().toString());
-                                try (var row = query.executeQuery()) {
-                                    if (row.next()) org = UUID.fromString(row.getString(1));
-                                }
-                            }
+                            org = FinanceAuthorization.firstManagedOrganization(db, actor);
                         }
                         if (org == null) throw new FinanceException("FORBIDDEN", 403);
                         FinanceAuthorization.requireManager(db, actor, org);

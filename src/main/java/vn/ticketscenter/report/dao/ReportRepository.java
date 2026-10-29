@@ -2,6 +2,7 @@ package vn.ticketscenter.report.dao;
 
 import java.sql.*;
 import java.util.*;
+import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.report.dto.ReportFilter;
 import vn.ticketscenter.settlement.infrastructure.FinanceException;
 
@@ -21,6 +22,27 @@ public final class ReportRepository {
                     "paid_amount",
                     "pending_amount",
                     "available_to_pay");
+
+    public List<Map<String, Object>> organizationOptions(
+            Connection db, UserPrincipal actor, boolean admin) throws SQLException {
+        String sql =
+                "SELECT o.id,o.name FROM dbo.vw_FinanceOrganizations o"
+                        + (admin
+                                ? ""
+                                : " WHERE EXISTS (SELECT 1 FROM dbo.vw_ActiveManagerMemberships m WHERE m.organization_id=o.id AND m.user_id=?)")
+                        + " ORDER BY o.name,o.id";
+        List<Object> member = admin ? List.of() : List.of(actor.actorId());
+        return ReadProjection.list(db, sql, member, r -> ReadProjection.row(r, List.of("id", "name")));
+    }
+
+    public List<Map<String, Object>> eventOptions(Connection db, UUID organizationId)
+            throws SQLException {
+        return ReadProjection.list(
+                db,
+                "SELECT id,title FROM dbo.vw_FinanceEvents WHERE organization_id=? ORDER BY title,id",
+                List.of(organizationId),
+                r -> ReadProjection.row(r, List.of("id", "title")));
+    }
 
     public void requireEventScope(Connection db, ReportFilter filter) throws SQLException {
         if (filter.eventId() == null) return;

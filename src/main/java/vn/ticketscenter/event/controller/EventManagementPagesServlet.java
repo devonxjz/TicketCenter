@@ -4,10 +4,9 @@ import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import vn.ticketscenter.config.web.ApiRequest;
+import vn.ticketscenter.identity.security.LoginRedirect;
 import vn.ticketscenter.identity.security.SecurityContext;
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 
 /** Event-owned page aliases; all private API data still requires current DB membership/role. */
 @WebServlet(
@@ -19,15 +18,7 @@ public class EventManagementPagesServlet extends HttpServlet {
             throws ServletException, IOException {
         var user = SecurityContext.getCurrentUser(request);
         if (user.isEmpty()) {
-            String path =
-                    request.getRequestURI()
-                            + (request.getQueryString() == null
-                                    ? ""
-                                    : "?" + request.getQueryString());
-            response.sendRedirect(
-                    request.getContextPath()
-                            + "/auth/login?redirect="
-                            + URLEncoder.encode(path, StandardCharsets.UTF_8));
+            LoginRedirect.send(request, response);
             return;
         }
         String path = ApiRequest.path(request);

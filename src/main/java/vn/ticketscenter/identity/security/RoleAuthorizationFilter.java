@@ -12,8 +12,6 @@ import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.identity.security.RouteAccessPolicy.Decision;
 
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 /**
@@ -31,7 +29,7 @@ public final class RoleAuthorizationFilter implements Filter {
 
         Optional<UserPrincipal> user = SecurityContext.getCurrentUser(httpRequest);
         if (user.isEmpty()) {
-            redirectToLogin(httpRequest, httpResponse);
+            LoginRedirect.send(httpRequest, httpResponse);
             return;
         }
 
@@ -51,17 +49,5 @@ public final class RoleAuthorizationFilter implements Filter {
                     httpResponse.sendRedirect(
                             httpRequest.getContextPath() + RouteAccessPolicy.CHECK_IN_HOME);
         }
-    }
-
-    private static void redirectToLogin(HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
-        String target = request.getRequestURI();
-        if (request.getQueryString() != null && !request.getQueryString().isBlank()) {
-            target += "?" + request.getQueryString();
-        }
-        response.sendRedirect(
-                request.getContextPath()
-                        + "/auth/login?redirect="
-                        + URLEncoder.encode(target, StandardCharsets.UTF_8));
     }
 }

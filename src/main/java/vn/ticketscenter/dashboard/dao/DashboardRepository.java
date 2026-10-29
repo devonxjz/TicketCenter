@@ -4,6 +4,7 @@ import java.sql.*;
 import java.time.*;
 import java.util.*;
 import vn.ticketscenter.report.dao.ReadProjection;
+import vn.ticketscenter.settlement.infrastructure.FinanceException;
 
 public final class DashboardRepository {
     public Map<String, Object> overview(Connection db, UUID org, Instant now) throws SQLException {
@@ -118,5 +119,15 @@ public final class DashboardRepository {
                     for (int index = 0; index < columns; index++) result[index] = row.getLong(index + 1);
                     return result;
                 });
+    }
+
+    public void requireOrganization(Connection db, UUID org) throws SQLException {
+        try (var query =
+                db.prepareStatement("SELECT 1 FROM dbo.vw_FinanceOrganizations WHERE id=?")) {
+            query.setString(1, org.toString());
+            try (var row = query.executeQuery()) {
+                if (!row.next()) throw new FinanceException("NOT_FOUND", 404);
+            }
+        }
     }
 }

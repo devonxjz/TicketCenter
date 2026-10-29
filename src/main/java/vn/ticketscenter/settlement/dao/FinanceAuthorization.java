@@ -1,9 +1,10 @@
-package vn.ticketscenter.settlement.infrastructure;
+package vn.ticketscenter.settlement.dao;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.UUID;
 import vn.ticketscenter.identity.security.UserPrincipal;
+import vn.ticketscenter.settlement.infrastructure.FinanceException;
 
 /** Reloads current authority; a role cached in the session is not authority. */
 public final class FinanceAuthorization {
@@ -25,6 +26,19 @@ public final class FinanceAuthorization {
             query.setString(2, organizationId.toString());
             try (var row = query.executeQuery()) {
                 if (!row.next()) throw new FinanceException("FORBIDDEN", 403);
+            }
+        }
+    }
+
+    /** The first organisation the actor manages, or null when they manage none. */
+    public static UUID firstManagedOrganization(Connection db, UserPrincipal actor)
+            throws SQLException {
+        try (var query =
+                db.prepareStatement(
+                        "SELECT TOP (1) organization_id FROM dbo.vw_ActiveManagerMemberships WHERE user_id=? ORDER BY organization_id")) {
+            query.setString(1, actor.actorId().toString());
+            try (var row = query.executeQuery()) {
+                return row.next() ? UUID.fromString(row.getString(1)) : null;
             }
         }
     }

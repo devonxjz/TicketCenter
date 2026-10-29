@@ -7,6 +7,7 @@ import vn.ticketscenter.dashboard.cache.DashboardCache;
 import vn.ticketscenter.dashboard.dao.DashboardRepository;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.settlement.infrastructure.*;
+import vn.ticketscenter.settlement.dao.FinanceAuthorization;
 
 public final class DashboardServiceImpl implements DashboardService {
     private final FinanceDatabase database;
@@ -50,13 +51,7 @@ public final class DashboardServiceImpl implements DashboardService {
     public String organization(UserPrincipal actor, UUID org) throws SQLException {
         try (var db = database.open()) {
             FinanceAuthorization.requireManager(db, actor, org);
-            try (var query =
-                    db.prepareStatement("SELECT 1 FROM dbo.vw_FinanceOrganizations WHERE id=?")) {
-                query.setString(1, org.toString());
-                try (var row = query.executeQuery()) {
-                    if (!row.next()) throw new FinanceException("NOT_FOUND", 404);
-                }
-            }
+            repository.requireOrganization(db, org);
             return FinanceJson.write(Map.of("data", repository.overview(db, org, clock.instant())));
         }
     }

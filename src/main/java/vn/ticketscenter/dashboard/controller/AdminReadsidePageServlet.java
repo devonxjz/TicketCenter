@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import vn.ticketscenter.report.controller.ReadsideHttp;
 import vn.ticketscenter.settlement.infrastructure.*;
+import vn.ticketscenter.settlement.dao.FinanceAuthorization;
 
 /** Admin pages have their own authorization boundary; manager reports remain separate. */
 @WebServlet(

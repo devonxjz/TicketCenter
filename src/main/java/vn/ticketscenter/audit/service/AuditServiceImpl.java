@@ -6,6 +6,7 @@ import vn.ticketscenter.audit.dto.AuditFilter;
 import vn.ticketscenter.audit.dao.AuditRepository;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.settlement.infrastructure.*;
+import vn.ticketscenter.settlement.dao.FinanceAuthorization;
 
 public final class AuditServiceImpl implements AuditService {
     private final FinanceDatabase database;
