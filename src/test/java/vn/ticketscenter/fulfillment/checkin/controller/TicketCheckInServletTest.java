@@ -1,4 +1,5 @@
 package vn.ticketscenter.fulfillment.checkin.controller;
+import vn.ticketscenter.config.web.TestServlets;
 import org.junit.jupiter.api.Test;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
@@ -37,14 +38,14 @@ class TicketCheckInServletTest {
     private HttpServletRequest request(){return proxy(HttpServletRequest.class,(m,a)->switch(m){case "getAttribute"->attrs.get(a[0]);case "setAttribute"->{attrs.put((String)a[0],a[1]);yield null;}case "getSession"->session;case "getServletContext"->context;case "getHeader"->headers.get(a[0]);case "getContentType"->type;case "getReader"->new BufferedReader(new StringReader(body));case "getContentLengthLong"->(long)body.length();case "getRequestURI"->"/ticketscenter"+path;case "getContextPath"->"/ticketscenter";case "getMethod"->method;default->null;});}
     private HttpServletResponse response(){return proxy(HttpServletResponse.class,(m,a)->switch(m){case "getWriter"->new PrintWriter(output);case "setStatus"->{status=(int)a[0];yield null;}default->null;});}
     private RequestDispatcher dispatcher(String target){return proxy(RequestDispatcher.class,(m,a)->{if(m.equals("forward"))forwarded=target;return null;});}
-    @Test void validMutationUsesSafeJsonResponse()throws Exception{new TicketCheckInServlet(service).doPost(request(),response());assertEquals(200,status);assertTrue(output.toString().contains("CHECKED_IN_SUCCESS"));assertEquals(1,calls);}
-    @Test void anonymousSessionCannotReachService()throws Exception{attrs.clear();new TicketCheckInServlet(service).doPost(request(),response());assertEquals(401,status);assertEquals(0,calls);}
-    @Test void expiredSessionCannotReachService()throws Exception{sessionValid=false;new TicketCheckInServlet(service).doPost(request(),response());assertEquals(401,status);assertEquals(0,calls);}
-    @Test void csrfCannotBeBypassedByDirectServletDispatch()throws Exception{headers.remove("X-CSRF-Token");new TicketCheckInServlet(service).doPost(request(),response());assertEquals(403,status);assertEquals(0,calls);}
-    @Test void invalidIdempotencyAndUnknownFieldsAreRejected()throws Exception{headers.put("Idempotency-Key","1");new TicketCheckInServlet(service).doPost(request(),response());assertEquals(400,status);assertEquals(0,calls);}
-    @Test void oversizedOrNonJsonRequestsAreRejected()throws Exception{body="x".repeat(9000);new TicketCheckInServlet(service).doPost(request(),response());assertEquals(413,status);assertEquals(0,calls);}
-    @Test void wrongContentTypeRejected()throws Exception{type="text/plain";new TicketCheckInServlet(service).doPost(request(),response());assertEquals(415,status);}
-    @Test void malformedDuplicateFieldsRejected()throws Exception{body="{\"eventId\":\""+event+"\",\"ticketCode\":\"CODE\",\"ticketCode\":\"OTHER\"}";new TicketCheckInServlet(service).doPost(request(),response());assertEquals(400,status);assertEquals(0,calls);}
+    @Test void validMutationUsesSafeJsonResponse()throws Exception{TestServlets.init(new TicketCheckInServlet(), service).doPost(request(),response());assertEquals(200,status);assertTrue(output.toString().contains("CHECKED_IN_SUCCESS"));assertEquals(1,calls);}
+    @Test void anonymousSessionCannotReachService()throws Exception{attrs.clear();TestServlets.init(new TicketCheckInServlet(), service).doPost(request(),response());assertEquals(401,status);assertEquals(0,calls);}
+    @Test void expiredSessionCannotReachService()throws Exception{sessionValid=false;TestServlets.init(new TicketCheckInServlet(), service).doPost(request(),response());assertEquals(401,status);assertEquals(0,calls);}
+    @Test void csrfCannotBeBypassedByDirectServletDispatch()throws Exception{headers.remove("X-CSRF-Token");TestServlets.init(new TicketCheckInServlet(), service).doPost(request(),response());assertEquals(403,status);assertEquals(0,calls);}
+    @Test void invalidIdempotencyAndUnknownFieldsAreRejected()throws Exception{headers.put("Idempotency-Key","1");TestServlets.init(new TicketCheckInServlet(), service).doPost(request(),response());assertEquals(400,status);assertEquals(0,calls);}
+    @Test void oversizedOrNonJsonRequestsAreRejected()throws Exception{body="x".repeat(9000);TestServlets.init(new TicketCheckInServlet(), service).doPost(request(),response());assertEquals(413,status);assertEquals(0,calls);}
+    @Test void wrongContentTypeRejected()throws Exception{type="text/plain";TestServlets.init(new TicketCheckInServlet(), service).doPost(request(),response());assertEquals(415,status);}
+    @Test void malformedDuplicateFieldsRejected()throws Exception{body="{\"eventId\":\""+event+"\",\"ticketCode\":\"CODE\",\"ticketCode\":\"OTHER\"}";TestServlets.init(new TicketCheckInServlet(), service).doPost(request(),response());assertEquals(400,status);assertEquals(0,calls);}
     @Test void getLogsRouteForwardsToFeatureServletAndPreservesEvent()throws Exception{method="GET";path="/api/events/"+event+"/check-ins";new CheckInEventRoutesFilter().doFilter(request(),response(),(a,b)->fail("Wrong routing"));assertEquals("EventCheckInLogsServlet",forwarded);assertEquals(event.toString(),attrs.get(EventCheckInLogsServlet.EVENT_ATTRIBUTE));}
     @Test void nonGetLogsRouteReturns405()throws Exception{path="/api/events/"+event+"/check-ins";new CheckInEventRoutesFilter().doFilter(request(),response(),(a,b)->fail("Wrong routing"));assertEquals(405,status);}
     @Test void scannerAliasUsesNamedForwardWithoutCollidingWithOrganizer()throws Exception{method="GET";path="/organizer/checkin-scanner";new CheckInEventRoutesFilter().doFilter(request(),response(),(a,b)->fail("Wrong routing"));assertEquals("CheckInScannerServlet",forwarded);}

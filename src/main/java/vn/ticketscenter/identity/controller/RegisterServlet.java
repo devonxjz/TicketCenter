@@ -29,32 +29,12 @@ public class RegisterServlet extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(RegisterServlet.class.getName());
 
-    private RegistrationService registrationService;
-    private OtpService otpService;
-
-    public RegisterServlet() {}
-
-    public RegisterServlet(RegistrationService registrationService) {
-        this.registrationService = registrationService;
-    }
-
-    public RegisterServlet(RegistrationService registrationService, OtpService otpService) {
-        this.registrationService = registrationService;
-        this.otpService = otpService;
-    }
-
     private RegistrationService registrationService(ServletContext context) {
-        if (registrationService != null) {
-            return registrationService;
-        }
         IdentityServices services = IdentityServices.from(context);
         return services == null ? null : services.registrationService();
     }
 
     private OtpService otpService(ServletContext context) {
-        if (otpService != null) {
-            return otpService;
-        }
         IdentityServices services = IdentityServices.from(context);
         return services == null ? null : services.otpService();
     }
@@ -68,7 +48,7 @@ public class RegisterServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        RegistrationService service = registrationService(req.getServletContext());
+        RegistrationService service = registrationService(getServletContext());
         if (service == null) {
             IdentityErrorWriter.databaseUnavailable(resp);
             return;

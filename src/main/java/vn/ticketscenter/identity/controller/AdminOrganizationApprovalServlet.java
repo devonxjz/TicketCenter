@@ -41,19 +41,11 @@ public class AdminOrganizationApprovalServlet extends HttpServlet {
     private static final Pattern APPROVE_PATH = Pattern.compile("^" + BASE + "/([^/]+)/approve$");
     private static final Pattern REJECT_PATH = Pattern.compile("^" + BASE + "/([^/]+)/reject$");
 
-    private OrganizationApprovalService approvalService;
-
-    public AdminOrganizationApprovalServlet() {}
-
-    public AdminOrganizationApprovalServlet(OrganizationApprovalService approvalService) {
-        this.approvalService = approvalService;
-    }
-
     @Override
     public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         try {
             UserPrincipal admin = requireAdmin(req);
-            OrganizationApprovalService service = service(req.getServletContext());
+            OrganizationApprovalService service = service(getServletContext());
             String path = PathIds.path(req);
 
             // perform action and build the JSON reply
@@ -78,7 +70,7 @@ public class AdminOrganizationApprovalServlet extends HttpServlet {
     public void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         try {
             UserPrincipal admin = requireAdmin(req);
-            OrganizationApprovalService service = service(req.getServletContext());
+            OrganizationApprovalService service = service(getServletContext());
             String path = PathIds.path(req);
 
             // perform action and build the JSON reply
@@ -171,9 +163,6 @@ public class AdminOrganizationApprovalServlet extends HttpServlet {
     }
 
     private OrganizationApprovalService service(ServletContext context) {
-        if (approvalService != null) {
-            return approvalService;
-        }
         IdentityServices services = IdentityServices.from(context);
         if (services == null) {
             throw IdentityErrorWriter.unavailable();

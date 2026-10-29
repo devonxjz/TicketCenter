@@ -19,16 +19,7 @@ import java.util.Optional;
 @WebServlet(name = "MeServlet", urlPatterns = "/api/me")
 public class MeServlet extends HttpServlet {
 
-    private ProfileService profileService;
-
-    public MeServlet() {}
-
-    public MeServlet(ProfileService profileService) {
-        this.profileService = profileService;
-    }
-
     private ProfileService profileService(ServletContext context) {
-        if (profileService != null) return profileService;
         IdentityServices services = IdentityServices.from(context);
         return services == null ? null : services.profileService();
     }
@@ -45,7 +36,7 @@ public class MeServlet extends HttpServlet {
             return;
         }
 
-        ProfileService service = profileService(req.getServletContext());
+        ProfileService service = profileService(getServletContext());
         if (service == null) {
             IdentityErrorWriter.databaseUnavailable(resp);
             return;

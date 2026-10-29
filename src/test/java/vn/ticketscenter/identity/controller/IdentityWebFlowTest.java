@@ -1,7 +1,10 @@
 package vn.ticketscenter.identity.controller;
 
+import vn.ticketscenter.config.web.TestServlets;
 import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.junit.jupiter.api.BeforeEach;
@@ -273,8 +276,15 @@ public class IdentityWebFlowTest {
             }
         };
 
-        SessionValidationFilter filter = new SessionValidationFilter(mockService);
-        HttpServletRequest req = createMockRequest("GET", "/api/me", true);
+        SessionValidationFilter filter = new SessionValidationFilter();
+        ServletContext context = TestServlets.context(mockService);
+        HttpServletRequest req =
+                new HttpServletRequestWrapper(createMockRequest("GET", "/api/me", true)) {
+                    @Override
+                    public ServletContext getServletContext() {
+                        return context;
+                    }
+                };
         HttpServletResponse resp = createMockResponse();
 
         filter.doFilter(req, resp, createMockChain());
@@ -313,7 +323,7 @@ public class IdentityWebFlowTest {
             }
         };
 
-        MeServlet servlet = new MeServlet(mockService);
+        MeServlet servlet = TestServlets.init(new MeServlet(), mockService);
         HttpServletRequest req = createMockRequest("GET", "/api/me", true);
         HttpServletResponse resp = createMockResponse();
 
@@ -395,7 +405,7 @@ public class IdentityWebFlowTest {
             }
         };
 
-        LoginServlet servlet = new LoginServlet(mockService);
+        LoginServlet servlet = TestServlets.init(new LoginServlet(), mockService);
         requestParams.put("identifier", "user@test.vn");
         requestParams.put("password", "SecurePassword123!");
 
@@ -426,7 +436,7 @@ public class IdentityWebFlowTest {
             }
         };
 
-        LoginServlet servlet = new LoginServlet(mockService);
+        LoginServlet servlet = TestServlets.init(new LoginServlet(), mockService);
         requestParams.put("identifier", "admin@test.vn");
         requestParams.put("password", "Pass12345678!");
 
@@ -454,7 +464,7 @@ public class IdentityWebFlowTest {
             }
         };
 
-        LoginServlet servlet = new LoginServlet(mockService);
+        LoginServlet servlet = TestServlets.init(new LoginServlet(), mockService);
         requestParams.put("identifier", "staff@test.vn");
         requestParams.put("password", "Pass12345678!");
 
@@ -482,7 +492,7 @@ public class IdentityWebFlowTest {
             }
         };
 
-        LoginServlet servlet = new LoginServlet(mockService);
+        LoginServlet servlet = TestServlets.init(new LoginServlet(), mockService);
         requestParams.put("identifier", "manager@test.vn");
         requestParams.put("password", "Pass12345678!");
 
@@ -507,7 +517,7 @@ public class IdentityWebFlowTest {
             }
         };
 
-        LoginServlet servlet = new LoginServlet(mockService);
+        LoginServlet servlet = TestServlets.init(new LoginServlet(), mockService);
         requestParams.put("identifier", "disabled@test.vn");
         requestParams.put("password", "SecurePassword123!");
 
@@ -531,7 +541,7 @@ public class IdentityWebFlowTest {
             }
         };
 
-        RegisterServlet servlet = new RegisterServlet(mockService);
+        RegisterServlet servlet = TestServlets.init(new RegisterServlet(), mockService);
         requestParams.put("userName", "newuser");
         requestParams.put("fullName", "Nguyen Van New");
         requestParams.put("email", "newuser@test.vn");
@@ -557,7 +567,7 @@ public class IdentityWebFlowTest {
             }
         };
 
-        RegisterServlet servlet = new RegisterServlet(mockService);
+        RegisterServlet servlet = TestServlets.init(new RegisterServlet(), mockService);
         requestParams.put("userName", "newuser");
         requestParams.put("fullName", "Nguyen Van New");
         requestParams.put("email", "newuser@test.vn");

@@ -26,15 +26,6 @@ import java.util.UUID;
  */
 @WebServlet(urlPatterns = {"/me/orders", "/orders/*"})
 public class OrderPageServlet extends HttpServlet {
-    private final OrderService suppliedService;
-
-    public OrderPageServlet() {
-        this.suppliedService = null;
-    }
-
-    public OrderPageServlet(OrderService suppliedService) {
-        this.suppliedService = Objects.requireNonNull(suppliedService);
-    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -90,8 +81,6 @@ public class OrderPageServlet extends HttpServlet {
     }
 
     private OrderService service() {
-        return suppliedService != null
-                ? suppliedService
-                : OrderRuntime.resolve(getServletContext());
+        return OrderRuntime.resolve(getServletContext());
     }
 }

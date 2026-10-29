@@ -41,14 +41,6 @@ public class OrganizationMembersServlet extends HttpServlet {
             Pattern.compile(
                     "^/api/organizations/([^/]+)/members(?:/([^/]+)/(role|deactivate|activate))?/?$");
 
-    private OrganizationMembershipService membershipService;
-
-    public OrganizationMembersServlet() {}
-
-    public OrganizationMembersServlet(OrganizationMembershipService membershipService) {
-        this.membershipService = membershipService;
-    }
-
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         try {
@@ -58,7 +50,7 @@ public class OrganizationMembersServlet extends HttpServlet {
                 throw invalidPath();
             }
             UUID orgId = organizationId(matcher.group(1));
-            OrganizationMembershipService service = service(req.getServletContext());
+            OrganizationMembershipService service = service(getServletContext());
 
             // read the members and write the JSON reply
             List<OrganizationMemberDto> members =
@@ -90,7 +82,7 @@ public class OrganizationMembersServlet extends HttpServlet {
                 throw invalidPath();
             }
             UUID orgId = organizationId(matcher.group(1));
-            OrganizationMembershipService service = service(req.getServletContext());
+            OrganizationMembershipService service = service(getServletContext());
 
             // perform action and write the JSON reply
             String action = matcher.group(3);
@@ -148,9 +140,6 @@ public class OrganizationMembersServlet extends HttpServlet {
     }
 
     private OrganizationMembershipService service(ServletContext context) {
-        if (membershipService != null) {
-            return membershipService;
-        }
         IdentityServices services = IdentityServices.from(context);
         if (services == null) {
             throw IdentityErrorWriter.unavailable();

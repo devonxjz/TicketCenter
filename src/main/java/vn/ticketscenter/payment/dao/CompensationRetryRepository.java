@@ -11,7 +11,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 /** Admin retry of a failed payment compensation through {@code usp_RetryPaymentCompensation}. */
-public class CompensationRetryRepository {
+public class CompensationRetryRepository implements CompensationRetryStore {
 
     private final TransactionManager transactions;
 
@@ -19,6 +19,7 @@ public class CompensationRetryRepository {
         this.transactions = Objects.requireNonNull(transactions);
     }
 
+    @Override
     public UUID retry(UserPrincipal actor, UUID payment) {
         try {
             List<?> rows =

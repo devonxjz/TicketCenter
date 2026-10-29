@@ -22,15 +22,6 @@ import java.util.Map;
         urlPatterns = {PayosConfig.WEBHOOK_PATH, PayosConfig.RETURN_PATH, PayosConfig.CANCEL_PATH})
 public class PayosCallbackServlet extends HttpServlet {
     private static final int MAX_WEBHOOK_BYTES = 64 * 1024;
-    private final PaymentService suppliedService;
-
-    public PayosCallbackServlet() {
-        this.suppliedService = null;
-    }
-
-    public PayosCallbackServlet(PaymentService suppliedService) {
-        this.suppliedService = suppliedService;
-    }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
@@ -75,9 +66,7 @@ public class PayosCallbackServlet extends HttpServlet {
     }
 
     private PaymentService service() {
-        return suppliedService != null
-                ? suppliedService
-                : PaymentRuntime.resolve(getServletContext());
+        return PaymentRuntime.resolve(getServletContext());
     }
 
     private static String path(HttpServletRequest request) {

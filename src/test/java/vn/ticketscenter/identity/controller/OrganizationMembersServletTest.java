@@ -1,5 +1,6 @@
 package vn.ticketscenter.identity.controller;
 
+import vn.ticketscenter.config.web.TestServlets;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -126,7 +127,7 @@ class OrganizationMembersServletTest {
             }
         };
 
-        MyMembershipsServlet servlet = new MyMembershipsServlet(fakeService);
+        MyMembershipsServlet servlet = TestServlets.init(new MyMembershipsServlet(), fakeService);
         HttpServletRequest req = createRequest("GET", "/api/me/memberships", null);
         HttpServletResponse resp = createResponse();
 
@@ -151,7 +152,7 @@ class OrganizationMembersServletTest {
             }
         };
 
-        OrganizationMembersServlet servlet = new OrganizationMembersServlet(fakeService);
+        OrganizationMembersServlet servlet = TestServlets.init(new OrganizationMembersServlet(), fakeService);
         HttpServletRequest req = createRequest("GET", "/api/organizations/" + orgId + "/members", null);
         HttpServletResponse resp = createResponse();
 
@@ -176,7 +177,7 @@ class OrganizationMembersServletTest {
             }
         };
 
-        OrganizationMembersServlet servlet = new OrganizationMembersServlet(fakeService);
+        OrganizationMembersServlet servlet = TestServlets.init(new OrganizationMembersServlet(), fakeService);
         String jsonBody = "{\"userName\":\"staff1\",\"role\":\"CHECK_IN_STAFF\"}";
         HttpServletRequest req = createRequest("POST", "/api/organizations/" + orgId + "/members", jsonBody);
         HttpServletResponse resp = createResponse();
@@ -198,7 +199,7 @@ class OrganizationMembersServletTest {
             }
         };
 
-        OrganizationMembersServlet servlet = new OrganizationMembersServlet(fakeService);
+        OrganizationMembersServlet servlet = TestServlets.init(new OrganizationMembersServlet(), fakeService);
         String jsonBody = "{\"userName\":\"staff1\",\"role\":\"CHECK_IN_STAFF\"}";
         HttpServletRequest req = createRequest("POST", "/api/organizations/" + orgId + "/members", jsonBody);
         HttpServletResponse resp = createResponse();
@@ -220,7 +221,7 @@ class OrganizationMembersServletTest {
             }
         };
 
-        OrganizationMembersServlet servlet = new OrganizationMembersServlet(fakeService);
+        OrganizationMembersServlet servlet = TestServlets.init(new OrganizationMembersServlet(), fakeService);
         String jsonBody = "{\"role\":\"CHECK_IN_STAFF\"}";
         HttpServletRequest req = createRequest("POST", "/api/organizations/" + orgId + "/members/" + targetUserId + "/role", jsonBody);
         HttpServletResponse resp = createResponse();
@@ -242,7 +243,7 @@ class OrganizationMembersServletTest {
             }
         };
 
-        OrganizationMembersServlet servlet = new OrganizationMembersServlet(fakeService);
+        OrganizationMembersServlet servlet = TestServlets.init(new OrganizationMembersServlet(), fakeService);
         HttpServletRequest req = createRequest("POST", "/api/organizations/" + orgId + "/members/" + targetUserId + "/deactivate", null);
         HttpServletResponse resp = createResponse();
 

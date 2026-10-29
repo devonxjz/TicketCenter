@@ -5,18 +5,11 @@ import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.util.*;
 import vn.ticketscenter.config.web.ApiRequest;
-import vn.ticketscenter.config.AppConfig;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.identity.security.*;
 import vn.ticketscenter.settlement.infrastructure.*;
-import vn.ticketscenter.settlement.payout.*;
-import vn.ticketscenter.settlement.dao.FinanceRepository;
+import vn.ticketscenter.settlement.service.FinanceMutationRuntime;
 import vn.ticketscenter.settlement.service.FinanceMutationService;
-import vn.ticketscenter.settlement.service.FinanceMutationServiceImpl;
-import vn.ticketscenter.settlement.commission.cache.CommissionRuleCache;
-import vn.ticketscenter.report.cache.ReportCache;
-import vn.ticketscenter.dashboard.cache.DashboardCache;
-import vn.ticketscenter.settlement.cache.SettlementReadCache;
 
 @WebServlet(
         name = "AdminFinanceServlet",
@@ -28,47 +21,8 @@ import vn.ticketscenter.settlement.cache.SettlementReadCache;
             "/api/admin/settlements/*"
         })
 public final class AdminFinanceServlet extends HttpServlet {
-    private volatile FinanceMutationService service;
-
-    public AdminFinanceServlet() {}
-
-    public AdminFinanceServlet(FinanceMutationService service) {
-        this.service = service;
-    }
-
     private FinanceMutationService finance() {
-        if (service == null)
-            synchronized (this) {
-                if (service == null) {
-                    var database = FinanceRuntime.database(getServletContext());
-                    PayoutAdapter adapter = PayoutAdapter.unavailable();
-                    if ("fixture-simulated".equals(AppConfig.get("payout.adapter", "unavailable")))
-                        adapter =
-                                new PayoutAdapterImpl(
-                                        database,
-                                        AppConfig.get("payout.simulated.outcome", "SUCCEEDED"),
-                                        AppConfig.getBoolean(
-                                                "payout.simulated.timeoutAfterSideEffect", false));
-                    boolean caching = AppConfig.getBoolean("finance.redis.enabled", true);
-                    var cache = caching ? CommissionRuleCache.redis() : CommissionRuleCache.none();
-                    var settlementCache =
-                            caching ? SettlementReadCache.redis() : SettlementReadCache.none();
-                    var repository =
-                            new FinanceRepository(
-                                    database,
-                                    org -> {
-                                        if (caching) {
-                                            cache.invalidate(org);
-                                            ReportCache.invalidateAfterCommit(org);
-                                            DashboardCache.invalidateAdminAfterCommit();
-                                        }
-                                    },
-                                    settlementCache::invalidate);
-                    service =
-                            new FinanceMutationServiceImpl(repository, adapter, cache, settlementCache);
-                }
-            }
-        return service;
+        return FinanceMutationRuntime.resolve(getServletContext());
     }
 
     @Override

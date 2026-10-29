@@ -27,15 +27,6 @@ import java.util.stream.Collectors;
  */
 @WebServlet(urlPatterns = {"/api/me/tickets", "/api/tickets/*"})
 public class TicketApiServlet extends HttpServlet {
-    private final TicketService suppliedService;
-
-    public TicketApiServlet() {
-        this.suppliedService = null;
-    }
-
-    public TicketApiServlet(TicketService suppliedService) {
-        this.suppliedService = suppliedService;
-    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -114,9 +105,7 @@ public class TicketApiServlet extends HttpServlet {
     }
 
     private TicketService service() {
-        return suppliedService != null
-                ? suppliedService
-                : TicketRuntime.resolve(getServletContext());
+        return TicketRuntime.resolve(getServletContext());
     }
 
     private static UUID parseTicketId(String raw) {

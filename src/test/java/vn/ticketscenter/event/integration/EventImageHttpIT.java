@@ -1,5 +1,6 @@
 package vn.ticketscenter.event.integration;
 
+import vn.ticketscenter.config.web.TestServlets;
 import static org.junit.jupiter.api.Assertions.*;
 
 import jakarta.servlet.*;
@@ -84,7 +85,7 @@ class EventImageHttpIT {
         invoke(context, "addFilterMap", new Class<?>[] {filterMapType}, mapping);
         Object wrapper =
                 type.getMethod("addServlet", contextType, String.class, Servlet.class)
-                        .invoke(null, context, "events", new EventApiServlet(f.service));
+                        .invoke(null, context, "events", new EventApiServlet() { @Override public void init() { TestServlets.store(getServletContext(), f.service); } });
         invoke(
                 wrapper,
                 "setMultipartConfigElement",

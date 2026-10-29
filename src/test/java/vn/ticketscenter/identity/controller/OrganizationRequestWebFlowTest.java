@@ -1,5 +1,6 @@
 package vn.ticketscenter.identity.controller;
 
+import vn.ticketscenter.config.web.TestServlets;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -148,7 +149,7 @@ public class OrganizationRequestWebFlowTest {
             }
         };
 
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(mockService);
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), mockService);
         CsrfFilter csrfFilter = new CsrfFilter();
 
         String body = "{\"name\":\"Saigon Music Production\",\"contactEmail\":\"contact@sgmusic.vn\",\"contactPhone\":\"0901234567\",\"description\":\"Concert and live event management\"}";
@@ -191,7 +192,7 @@ public class OrganizationRequestWebFlowTest {
             }
         };
 
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(mockService);
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), mockService);
         CsrfFilter csrfFilter = new CsrfFilter();
 
         // Invalid input with missing name
@@ -232,7 +233,7 @@ public class OrganizationRequestWebFlowTest {
             }
         };
 
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(mockService);
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), mockService);
         CsrfFilter csrfFilter = new CsrfFilter();
 
         String body = "{\"name\":\"Another Org\",\"contactEmail\":\"another@sgmusic.vn\"}";
@@ -262,7 +263,7 @@ public class OrganizationRequestWebFlowTest {
         // Session has a token, but request header does NOT provide it
         sessionAttributes.put(SecurityContext.CSRF_TOKEN_ATTRIBUTE, UUID.randomUUID().toString());
 
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(new OrganizationRequestServiceImpl(
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), new OrganizationRequestServiceImpl(
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()));
         CsrfFilter csrfFilter = new CsrfFilter();
 
@@ -310,7 +311,7 @@ public class OrganizationRequestWebFlowTest {
             }
         };
 
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(mockService);
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), mockService);
 
         // 1. User A tries to view User B's request -> 403
         HttpServletRequest reqUserA = createMockRequest("GET", "/api/organization-requests/" + orgId, true, null);

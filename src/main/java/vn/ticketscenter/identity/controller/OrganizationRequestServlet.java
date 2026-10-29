@@ -45,19 +45,11 @@ public class OrganizationRequestServlet extends HttpServlet {
     private static final Pattern DETAIL_PATH =
             Pattern.compile("^/api/organization-requests/([^/]+)$");
 
-    private OrganizationRequestService organizationRequestService;
-
-    public OrganizationRequestServlet() {}
-
-    public OrganizationRequestServlet(OrganizationRequestService organizationRequestService) {
-        this.organizationRequestService = organizationRequestService;
-    }
-
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         try {
             UserPrincipal principal = requirePrincipal(req);
-            OrganizationRequestService service = service(req.getServletContext());
+            OrganizationRequestService service = service(getServletContext());
             String path = PathIds.path(req);
 
             // perform action and build the JSON reply
@@ -80,7 +72,7 @@ public class OrganizationRequestServlet extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         try {
             UserPrincipal principal = requirePrincipal(req);
-            OrganizationRequestService service = service(req.getServletContext());
+            OrganizationRequestService service = service(getServletContext());
             if (!PathIds.path(req).equals("/api/organization-requests")) {
                 throw notFound();
             }
@@ -172,9 +164,6 @@ public class OrganizationRequestServlet extends HttpServlet {
     }
 
     private OrganizationRequestService service(ServletContext context) {
-        if (organizationRequestService != null) {
-            return organizationRequestService;
-        }
         IdentityServices services = IdentityServices.from(context);
         if (services == null) {
             throw IdentityErrorWriter.unavailable();

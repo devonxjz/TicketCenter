@@ -6,36 +6,21 @@ import jakarta.servlet.http.*;
 import java.io.*;
 import java.sql.SQLException;
 import java.util.*;
-import vn.ticketscenter.config.AppConfig;
 import vn.ticketscenter.report.dto.ReportFilter;
 import vn.ticketscenter.report.service.*;
 import vn.ticketscenter.dashboard.service.DashboardService;
-import vn.ticketscenter.dashboard.service.DashboardServiceImpl;
-import vn.ticketscenter.report.cache.ReportCache;
+import vn.ticketscenter.dashboard.service.DashboardRuntime;
 import vn.ticketscenter.settlement.infrastructure.*;
 
 @WebServlet(
         name = "FinanceReportServlet",
         urlPatterns = {"/api/admin/reports", "/api/reports/export", "/api/reports/options"})
 public final class ReportServlet extends HttpServlet {
-    private ReportService reports;
-    private DashboardService overview;
-
-    @Override
-    public void init() {
-        var database = FinanceRuntime.database(getServletContext());
-        reports =
-                new ReportServiceImpl(
-                        database,
-                        AppConfig.getBoolean("finance.redis.enabled", true)
-                                ? ReportCache.redis()
-                                : ReportCache.none());
-        overview = new DashboardServiceImpl(database);
-    }
-
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
+        ReportService reports = ReportRuntime.resolve(getServletContext());
+        DashboardService overview = DashboardRuntime.resolve(getServletContext());
         try {
             var actor = ReadsideHttp.actor(request);
             var params = ReadsideHttp.parameters(request);

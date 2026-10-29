@@ -1,5 +1,6 @@
 package vn.ticketscenter.payment.controller;
 
+import vn.ticketscenter.config.web.TestServlets;
 import jakarta.servlet.ReadListener;
 import jakarta.servlet.ServletInputStream;
 import jakarta.servlet.http.HttpServletRequest;
@@ -91,7 +92,7 @@ class PaymentApiServletTest {
         requestHeaders.put("Idempotency-Key", List.of(IDEMPOTENCY_KEY.toString()));
 
         paymentService = new StubPaymentService();
-        servlet = new OrderApiServlet(null, paymentService);
+        servlet = TestServlets.init(new OrderApiServlet(), null, paymentService);
     }
 
     @Test

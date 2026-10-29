@@ -1,5 +1,6 @@
 package vn.ticketscenter.order.controller;
 
+import vn.ticketscenter.config.web.TestServlets;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.Test;
@@ -29,7 +30,7 @@ class OrderApiErrorTest {
                 throw new IllegalStateException(privateDetail);
             }
         };
-        var servlet = new OrderApiServlet(new OrderServiceImpl(repository, new RedisOrderCache(() -> null, Clock.systemUTC())));
+        var servlet = TestServlets.init(new OrderApiServlet(), new OrderServiceImpl(repository, new RedisOrderCache(() -> null, Clock.systemUTC())));
         var actor = new UserPrincipal(UUID.randomUUID(), PlatformRole.CUSTOMER, 1);
         var request = (HttpServletRequest) Proxy.newProxyInstance(getClass().getClassLoader(),
                 new Class<?>[]{HttpServletRequest.class}, (proxy, method, args) -> switch (method.getName()) {

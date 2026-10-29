@@ -15,15 +15,6 @@ import java.util.stream.Collectors;
 @WebServlet(name = "EventCheckInLogsServlet", urlPatterns = "/api/check-ins/recent-internal")
 public class EventCheckInLogsServlet extends HttpServlet {
     public static final String EVENT_ATTRIBUTE = EventCheckInLogsServlet.class.getName() + ".event";
-    private final TicketCheckInService injected;
-
-    public EventCheckInLogsServlet() {
-        this(null);
-    }
-
-    public EventCheckInLogsServlet(TicketCheckInService service) {
-        injected = service;
-    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -33,9 +24,7 @@ public class EventCheckInLogsServlet extends HttpServlet {
             var event = CheckInWeb.id((String) request.getAttribute(EVENT_ATTRIBUTE));
             int limit = pageSize(request.getParameter("pageSize"));
             var service =
-                    injected == null
-                            ? CheckInRuntime.resolveScanner(request.getServletContext())
-                            : injected;
+                    CheckInRuntime.resolveScanner(getServletContext());
             String logs =
                     service.recent(actor, event, limit).stream()
                             .map(RecentCheckInLogDto::toJson)

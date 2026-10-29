@@ -23,20 +23,6 @@ import java.util.Optional;
 @WebFilter(urlPatterns = "/api/*")
 public final class SessionValidationFilter implements Filter {
 
-    private SessionValidator sessionValidator;
-
-    public SessionValidationFilter() {}
-
-    public SessionValidationFilter(SessionValidator sessionValidator) {
-        this.sessionValidator = sessionValidator;
-    }
-
-    private SessionValidator sessionValidator(ServletContext context) {
-        return sessionValidator != null
-                ? sessionValidator
-                : IdentityServices.sessionValidator(context);
-    }
-
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
@@ -47,7 +33,7 @@ public final class SessionValidationFilter implements Filter {
 
         if (principalOpt.isPresent()) {
             UserPrincipal principal = principalOpt.get();
-            SessionValidator validator = sessionValidator(request.getServletContext());
+            SessionValidator validator = IdentityServices.sessionValidator(request.getServletContext());
 
             if (validator != null
                     && !validator.isSessionValid(principal.actorId(), principal.authVersion())) {

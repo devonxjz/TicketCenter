@@ -40,16 +40,6 @@ import java.util.stream.Collectors;
 public class CouponAdminServlet extends HttpServlet {
     private static final Logger LOG = Logger.getLogger(CouponAdminServlet.class.getName());
 
-    private final CouponAdminService suppliedService;
-
-    public CouponAdminServlet() {
-        this.suppliedService = null;
-    }
-
-    public CouponAdminServlet(CouponAdminService suppliedService) {
-        this.suppliedService = suppliedService;
-    }
-
     @Override
     protected void service(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -179,7 +169,6 @@ public class CouponAdminServlet extends HttpServlet {
     }
 
     private CouponAdminService service() {
-        if (suppliedService != null) return suppliedService;
         return CouponAdminRuntime.resolve(getServletContext());
     }
 

@@ -1,5 +1,6 @@
 package vn.ticketscenter.fulfillment.ticket.controller;
 
+import vn.ticketscenter.config.web.TestServlets;
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.WriteListener;
 import jakarta.servlet.http.HttpServletRequest;
@@ -115,7 +116,7 @@ class TicketApiServletTest {
                 250000L, "ACTIVE", Instant.now(), 1L
         ));
 
-        servlet = new TicketApiServlet(service);
+        servlet = TestServlets.init(new TicketApiServlet(), service);
     }
 
     @Test

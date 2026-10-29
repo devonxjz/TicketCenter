@@ -13,6 +13,9 @@ import vn.ticketscenter.config.worker.PaymentReconciliationJob;
 import vn.ticketscenter.payment.cache.RedisPaymentIdempotency;
 import vn.ticketscenter.payment.integration.PayosGatewayImpl;
 import vn.ticketscenter.payment.integration.PayosGateway;
+import vn.ticketscenter.config.persistence.PersistenceRegistry;
+import vn.ticketscenter.payment.dao.CompensationRetryRepository;
+import vn.ticketscenter.payment.dao.CompensationRetryStore;
 import vn.ticketscenter.payment.dao.PaymentRepository;
 
 import java.time.Clock;
@@ -22,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static vn.ticketscenter.config.persistence.DatabasePrincipal.ADMIN;
 import static vn.ticketscenter.config.persistence.DatabasePrincipal.BUYER;
 import static vn.ticketscenter.config.persistence.DatabasePrincipal.WORKER;
 
@@ -40,8 +44,31 @@ public final class PaymentRuntime implements ServletContextListener {
     /** Only touched by the reconciliation thread; keeps its retry back-off between runs. */
     private PaymentReconciliationJob reconciliationJob;
 
+    public static final String SERVICE_ATTRIBUTE = PaymentService.class.getName();
+
+    /** The payment service; one already placed in the context under {@link #SERVICE_ATTRIBUTE} wins. */
     public static PaymentService resolve(ServletContext context) {
+        if (context.getAttribute(SERVICE_ATTRIBUTE) instanceof PaymentService service) {
+            return service;
+        }
         return components(context).service();
+    }
+
+    /** Admin retry of a failed compensation; needs the ADMIN database principal. */
+    public static CompensationRetryStore compensationRetry(ServletContext context) {
+        return FeatureContext.cached(
+                context, CompensationRetryStore.class.getName(), () -> createCompensationRetry(context));
+    }
+
+    private static CompensationRetryStore createCompensationRetry(ServletContext context) {
+        PersistenceRegistry registry =
+                FeatureContext.registry(context)
+                        .filter(pool -> pool.hasPrincipal(ADMIN))
+                        .orElseThrow(
+                                () ->
+                                        new IllegalStateException(
+                                                "Admin database principal is not configured"));
+        return new CompensationRetryRepository(registry.transactionManager());
     }
 
     @Override

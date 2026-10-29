@@ -15,11 +15,11 @@ import static vn.ticketscenter.config.persistence.DatabasePrincipal.MANAGER;
 
 @WebListener
 public final class CouponAdminRuntime implements ServletContextListener {
-    private static final String SERVICE = CouponAdminRuntime.class.getName() + ".service";
+    public static final String SERVICE_ATTRIBUTE = CouponAdminService.class.getName();
 
     public static CouponAdminService resolve(ServletContext context) {
         return FeatureContext.resolve(
-                context, SERVICE, CouponAdminRuntime::create, failure -> OrderException.unavailable());
+                context, SERVICE_ATTRIBUTE, CouponAdminRuntime::create, failure -> OrderException.unavailable());
     }
 
     private static CouponAdminService create(FeatureContext.Resources resources) {
@@ -33,11 +33,11 @@ public final class CouponAdminRuntime implements ServletContextListener {
 
     @Override
     public void contextInitialized(ServletContextEvent event) {
-        FeatureContext.open(event.getServletContext(), SERVICE);
+        FeatureContext.open(event.getServletContext(), SERVICE_ATTRIBUTE);
     }
 
     @Override
     public void contextDestroyed(ServletContextEvent event) {
-        FeatureContext.close(event.getServletContext(), SERVICE);
+        FeatureContext.close(event.getServletContext(), SERVICE_ATTRIBUTE);
     }
 }

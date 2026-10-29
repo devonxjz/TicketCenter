@@ -1,5 +1,6 @@
 package vn.ticketscenter.order.coupon.controller;
 
+import vn.ticketscenter.config.web.TestServlets;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +42,7 @@ class CouponAdminServletTest {
         adminPrincipal = new UserPrincipal(ADMIN_ID, PlatformRole.ADMIN, 1);
         fakeRepo = new FakeRepo();
         CouponAdminService service = new CouponAdminServiceImpl(fakeRepo, null);
-        servlet = new CouponAdminServlet(service);
+        servlet = TestServlets.init(new CouponAdminServlet(), service);
     }
 
     @Test

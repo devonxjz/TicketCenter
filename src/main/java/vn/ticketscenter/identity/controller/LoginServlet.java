@@ -29,20 +29,7 @@ import java.net.URI;
         urlPatterns = {"/api/auth/login", "/auth/login"})
 public class LoginServlet extends HttpServlet {
 
-    private final LoginThrottle throttle = new LoginThrottle();
-
-    private LoginService loginService;
-
-    public LoginServlet() {}
-
-    public LoginServlet(LoginService loginService) {
-        this.loginService = loginService;
-    }
-
     private LoginService loginService(ServletContext context) {
-        if (loginService != null) {
-            return loginService;
-        }
         IdentityServices services = IdentityServices.from(context);
         return services == null ? null : services.loginService();
     }
@@ -57,7 +44,7 @@ public class LoginServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        LoginService service = loginService(req.getServletContext());
+        LoginService service = loginService(getServletContext());
         if (service == null) {
             IdentityErrorWriter.databaseUnavailable(resp);
             return;
@@ -75,6 +62,7 @@ public class LoginServlet extends HttpServlet {
             return;
         }
 
+        LoginThrottle throttle = LoginThrottle.from(getServletContext());
         String client = req.getRemoteAddr();
         long retryAfter = throttle.retryAfterSeconds(identifier, client);
         if (retryAfter > 0) {

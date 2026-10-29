@@ -90,8 +90,8 @@ class SingleConnectionPoolSettingsTest {
 
     @Test void couponAdminRuntimePools() {
         withRuntime(new CouponAdminRuntime(), attributes -> {
-            assertSingleConnection(pools(attributes, CouponAdminRuntime.class.getName() + ".service").get(0), "coupon-manager", "manager");
-            assertSingleConnection(pools(attributes, CouponAdminRuntime.class.getName() + ".service").get(1), "coupon-admin", "admin");
+            assertSingleConnection(pools(attributes, CouponAdminRuntime.SERVICE_ATTRIBUTE).get(0), "coupon-manager", "manager");
+            assertSingleConnection(pools(attributes, CouponAdminRuntime.SERVICE_ATTRIBUTE).get(1), "coupon-admin", "admin");
         }, CouponAdminRuntime::resolve);
     }
 

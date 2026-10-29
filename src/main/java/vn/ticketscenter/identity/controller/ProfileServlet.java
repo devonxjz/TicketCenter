@@ -22,22 +22,13 @@ import java.util.logging.Logger;
 @WebServlet(name = "ProfileServlet", urlPatterns = "/api/me/profile")
 public class ProfileServlet extends HttpServlet {
     private static final Logger LOGGER = Logger.getLogger(ProfileServlet.class.getName());
-    private final ProfileService injected;
-
-    public ProfileServlet() {
-        this(null);
-    }
-
-    public ProfileServlet(ProfileService profileService) {
-        this.injected = profileService;
-    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         try {
             UserPrincipal principal = requireUser(request);
-            ProfileDto profile = service(request).getProfile(principal.actorId());
+            ProfileDto profile = service().getProfile(principal.actorId());
             writeProfile(response, profile);
         } catch (AppException rejected) {
             HttpResponses.error(response, rejected);
@@ -54,7 +45,7 @@ public class ProfileServlet extends HttpServlet {
             throws IOException {
         try {
             UserPrincipal principal = requireUser(request);
-            ProfileService service = service(request);
+            ProfileService service = service();
             // Checked here as well as in CsrfFilter so the write never depends on filter wiring alone.
             if (!SecurityContext.validateCsrfToken(request)) {
                 throw new AppException(
@@ -85,11 +76,8 @@ public class ProfileServlet extends HttpServlet {
         HttpResponses.data(response, profile.toJson());
     }
 
-    private ProfileService service(HttpServletRequest request) {
-        if (injected != null) {
-            return injected;
-        }
-        IdentityServices services = IdentityServices.from(request.getServletContext());
+    private ProfileService service() {
+        IdentityServices services = IdentityServices.from(getServletContext());
         if (services == null) {
             throw IdentityErrorWriter.unavailable();
         }
