@@ -69,7 +69,7 @@ public class SessionValidator {
                 em -> {
                     User user = userRepository.findById(em, actorId).orElse(null);
                     if (user != null) {
-                        userRepository.updateAuthVersion(em, actorId, user.getAuthVersion() + 1);
+                        userRepository.revokeSessions(em, actorId);
                         cache.evict(actorId);
                     }
                     return null;

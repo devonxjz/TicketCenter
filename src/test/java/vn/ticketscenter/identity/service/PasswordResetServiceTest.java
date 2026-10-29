@@ -73,8 +73,7 @@ public class PasswordResetServiceTest {
             String nonExistingEmail = "unknown." + suffix + "@ticketscenter.vn";
 
             tm.execute(DatabasePrincipal.AUTH, em -> {
-                User user = new User(existingEmail, "user" + suffix, "Test User", passwordHasher.hash("OldPassword123!"));
-                userRepository.save(em, user);
+                User user = userRepository.findById(em, userRepository.register(em, existingEmail, "user" + suffix, "Test User", passwordHasher.hash("OldPassword123!"))).orElseThrow();
                 return null;
             });
 
@@ -114,8 +113,7 @@ public class PasswordResetServiceTest {
             String newPassword = "BrandNewPassword2026!";
 
             User user = tm.execute(DatabasePrincipal.AUTH, em -> {
-                User u = new User(email, "user" + suffix, "Test User", passwordHasher.hash(oldPassword));
-                userRepository.save(em, u);
+                User u = userRepository.findById(em, userRepository.register(em, email, "user" + suffix, "Test User", passwordHasher.hash(oldPassword))).orElseThrow();
                 return u;
             });
 

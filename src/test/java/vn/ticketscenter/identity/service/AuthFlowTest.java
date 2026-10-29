@@ -12,7 +12,6 @@ import vn.ticketscenter.identity.dto.CurrentUserDto;
 import vn.ticketscenter.identity.dto.LoginRequestDto;
 import vn.ticketscenter.identity.dto.RegisterRequestDto;
 import vn.ticketscenter.identity.model.PlatformRole;
-import vn.ticketscenter.identity.model.UserStatus;
 import vn.ticketscenter.identity.dao.UserRepository;
 import vn.ticketscenter.identity.security.UserPrincipal;
 
@@ -184,8 +183,11 @@ public class AuthFlowTest {
             assertTrue(sessions.isSessionValid(principal.actorId(), 1));
 
             // 7. Giả lập khóa tài khoản (DISABLED)
-            tm.execute(DatabasePrincipal.AUTH, em ->
-                    userRepository.updateStatus(em, principal.actorId(), UserStatus.DISABLED));
+            // an admin action; tc_platform_admin is the only role allowed to change status
+            tm.execute(DatabasePrincipal.ADMIN, em -> em.createNativeQuery(
+                            "UPDATE dbo.tc_users SET status = 'DISABLED' WHERE id = ?1")
+                    .setParameter(1, principal.actorId().toString())
+                    .executeUpdate());
 
             // Session bị từ chối khi tài khoản disabled
             assertFalse(sessions.isSessionValid(principal.actorId(), 1),

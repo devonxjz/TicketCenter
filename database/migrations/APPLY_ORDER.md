@@ -89,3 +89,11 @@ vẫn do `trg_Membership_ProtectLastManager` giữ (mã lỗi 51106).
 `Event requires a cover image`), sửa tại chỗ như `061` nên phần còn lại của procedure giữ nguyên và chạy lại không đổi gì.
 Ứng dụng không còn tự sinh ảnh placeholder khi tạo sự kiện; áp migration này cùng lúc với bản Java đó để sự kiện
 chưa có ảnh không vào được hàng chờ duyệt qua API.
+
+`072_identity_commands.sql` chuyển mọi thao tác ghi tài khoản và OTP sang procedure: `usp_RegisterUser`,
+`usp_RehashPassword`, `usp_ResetPassword`, `usp_RevokeUserSessions`, `usp_MarkEmailVerified`, `usp_InvalidateOtps`,
+`usp_IssueOtp`, `usp_ConsumeOtp`, `usp_RecordOtpFailure` (mã lỗi 52900 email trùng, 52901 tên đăng nhập trùng,
+52902 không có user). `tc_auth` được cấp EXECUTE và mất quyền INSERT/UPDATE trực tiếp trên `tc_users`/`tc_otps`
+(giữ SELECT và DENY cũ trên `status`/`platform_role`). Áp trước khi triển khai bản Java tương ứng; bản Java cũ vẫn chạy
+được với login chủ DB nhưng sẽ lỗi ghi nếu đăng nhập bằng thành viên `tc_auth`. Kịch bản kiểm thử:
+`database/tests/072_identity_commands_test.sql`. Đã áp lên `ticketcenter-backup` ngày 29/10/2026.
