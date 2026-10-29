@@ -13,15 +13,6 @@ import java.util.*;
 
 @WebServlet(urlPatterns = {"/api/holds", "/api/holds/*", "/api/me/hold", "/api/hold-options"})
 public final class HoldApiServlet extends HttpServlet {
-    private final HoldService supplied;
-
-    public HoldApiServlet() {
-        this.supplied = null;
-    }
-
-    public HoldApiServlet(HoldService service) {
-        this.supplied = Objects.requireNonNull(service);
-    }
 
     @Override
     protected void service(HttpServletRequest request, HttpServletResponse response)
@@ -82,7 +73,7 @@ public final class HoldApiServlet extends HttpServlet {
     }
 
     private HoldService service() {
-        return supplied == null ? HoldRuntime.resolve(getServletContext()) : supplied;
+        return HoldRuntime.resolve(getServletContext());
     }
 
     /** Canonical, non-nil UUID text. */

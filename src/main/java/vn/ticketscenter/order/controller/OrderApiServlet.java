@@ -25,22 +25,6 @@ import java.util.*;
 public final class OrderApiServlet extends HttpServlet {
     private static final long MAX_BODY_BYTES = 16 * 1024;
 
-    private final OrderService supplied;
-    private final PaymentService suppliedPayment;
-
-    public OrderApiServlet() {
-        this(null, null);
-    }
-
-    public OrderApiServlet(OrderService supplied) {
-        this(Objects.requireNonNull(supplied), null);
-    }
-
-    public OrderApiServlet(OrderService supplied, PaymentService suppliedPayment) {
-        this.supplied = supplied;
-        this.suppliedPayment = suppliedPayment;
-    }
-
     @Override
     protected void service(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
@@ -120,11 +104,11 @@ public final class OrderApiServlet extends HttpServlet {
     }
 
     private OrderService service() {
-        return supplied == null ? OrderRuntime.resolve(getServletContext()) : supplied;
+        return OrderRuntime.resolve(getServletContext());
     }
 
     private PaymentService paymentService() {
-        return suppliedPayment == null ? PaymentRuntime.resolve(getServletContext()) : suppliedPayment;
+        return PaymentRuntime.resolve(getServletContext());
     }
 
     private static String parameter(HttpServletRequest request, String name) {

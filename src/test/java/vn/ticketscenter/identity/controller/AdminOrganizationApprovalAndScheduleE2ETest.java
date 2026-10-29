@@ -1,5 +1,6 @@
 package vn.ticketscenter.identity.controller;
 
+import vn.ticketscenter.config.web.TestServlets;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.EntityTransaction;
@@ -191,8 +192,8 @@ public class AdminOrganizationApprovalAndScheduleE2ETest {
                 inMemoryDecisions());
         organizationApprovalService = new OrganizationApprovalServiceImpl(transactionManager, organizationRepository,
                 userRepository, inMemoryDecisions());
-        servlet = new OrganizationRequestServlet(organizationRequestService);
-        adminServlet = new AdminOrganizationApprovalServlet(organizationApprovalService);
+        servlet = TestServlets.init(new OrganizationRequestServlet(), organizationRequestService);
+        adminServlet = TestServlets.init(new AdminOrganizationApprovalServlet(), organizationApprovalService);
         csrfFilter = new CsrfFilter();
         loginService = new LoginServiceImpl(transactionManager, userRepository, passwordHasher);
 

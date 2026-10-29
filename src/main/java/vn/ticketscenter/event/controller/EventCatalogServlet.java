@@ -16,15 +16,6 @@ import java.util.HashMap;
         loadOnStartup = 1)
 @MultipartConfig(maxFileSize = 5242880, maxRequestSize = 6291456, fileSizeThreshold = 0)
 public class EventCatalogServlet extends HttpServlet {
-    private final EventCatalogService injected;
-
-    public EventCatalogServlet() {
-        injected = null;
-    }
-
-    public EventCatalogServlet(EventCatalogService service) {
-        injected = service;
-    }
 
     @Override
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -73,9 +64,7 @@ public class EventCatalogServlet extends HttpServlet {
             validated = true;
             String json =
                     action.apply(
-                            injected == null
-                                    ? EventCatalogRuntime.resolve(request.getServletContext())
-                                    : injected);
+                            EventCatalogRuntime.resolve(getServletContext()));
             response.setStatus(200);
             response.setContentType("application/json;charset=UTF-8");
             response.setCharacterEncoding("UTF-8");

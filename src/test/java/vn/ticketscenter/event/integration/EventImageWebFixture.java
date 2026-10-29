@@ -1,5 +1,6 @@
 package vn.ticketscenter.event.integration;
 
+import vn.ticketscenter.config.web.TestServlets;
 import static vn.ticketscenter.event.integration.EventImageHttpIT.invoke;
 
 import jakarta.servlet.MultipartConfigElement;
@@ -107,7 +108,12 @@ public final class EventImageWebFixture {
                                 .newInstance(),
                         null);
                 Servlet eventServlet =
-                        new EventApiServlet(service) {
+                        new EventApiServlet() {
+                            @Override
+                            public void init() {
+                                TestServlets.store(getServletContext(), service);
+                            }
+
                             @Override
                             protected void doGet(
                                     HttpServletRequest req, HttpServletResponse resp)

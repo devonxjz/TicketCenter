@@ -6,7 +6,7 @@ import java.io.*;
 import java.sql.SQLException;
 import vn.ticketscenter.audit.dto.AuditFilter;
 import vn.ticketscenter.audit.service.AuditService;
-import vn.ticketscenter.audit.service.AuditServiceImpl;
+import vn.ticketscenter.audit.service.AuditRuntime;
 import vn.ticketscenter.report.controller.ReadsideHttp;
 import vn.ticketscenter.report.dto.ReportFilter;
 import vn.ticketscenter.settlement.infrastructure.*;
@@ -15,16 +15,10 @@ import vn.ticketscenter.settlement.infrastructure.*;
         name = "FinanceAuditServlet",
         urlPatterns = {"/api/admin/audit-logs", "/api/admin/audit-logs/*"})
 public final class AuditServlet extends HttpServlet {
-    private AuditService service;
-
-    @Override
-    public void init() {
-        service = new AuditServiceImpl(FinanceRuntime.database(getServletContext()));
-    }
-
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
+        AuditService service = AuditRuntime.resolve(getServletContext());
         try {
             var actor = ReadsideHttp.actor(request);
             String path = request.getPathInfo();

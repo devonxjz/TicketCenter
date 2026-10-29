@@ -1,5 +1,6 @@
 package vn.ticketscenter.order.service;
 
+import vn.ticketscenter.config.web.TestServlets;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,7 +39,7 @@ class OrderHistoryDetailTest {
     void setUp() {
         fakeRepo = new FakeOrderRepo();
         orderService = new OrderServiceImpl(fakeRepo, new vn.ticketscenter.order.cache.RedisOrderCache(() -> null, java.time.Clock.systemUTC()));
-        servlet = new OrderApiServlet(orderService);
+        servlet = TestServlets.init(new OrderApiServlet(), orderService);
 
         buyerPrincipal = new UserPrincipal(BUYER_ID, PlatformRole.CUSTOMER, 1);
         otherBuyerPrincipal = new UserPrincipal(OTHER_BUYER_ID, PlatformRole.CUSTOMER, 1);

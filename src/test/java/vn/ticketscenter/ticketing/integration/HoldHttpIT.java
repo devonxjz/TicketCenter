@@ -1,5 +1,6 @@
 package vn.ticketscenter.ticketing.integration;
 
+import vn.ticketscenter.config.web.TestServlets;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import org.json.JSONObject;
@@ -42,10 +43,15 @@ class HoldHttpIT {
         invoke(tomcat, "setPort", new Class<?>[]{int.class}, 0);
         Object connector = invoke(tomcat, "getConnector", new Class<?>[]{});
         Object context = invoke(tomcat, "addContext", new Class<?>[]{String.class, String.class}, "", base.toString());
+        // the servlet looks its service up in the context; a filter is initialised when the context starts
+        filter(context, "fakes", new Filter() {
+            @Override public void init(FilterConfig config) { TestServlets.store(config.getServletContext(), f.service); }
+            @Override public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException { chain.doFilter(request, response); }
+        });
         filter(context, "request-validation", new RequestValidationFilter());
         filter(context, "csrf", new CsrfFilter());
         Class<?> contextType = loader.loadClass("org.apache.catalina.Context");
-        type.getMethod("addServlet", contextType, String.class, Servlet.class).invoke(null, context, "holds", new HoldApiServlet(f.service));
+        type.getMethod("addServlet", contextType, String.class, Servlet.class).invoke(null, context, "holds", new HoldApiServlet());
         for (String path : List.of("/api/holds", "/api/holds/*", "/api/me/hold", "/api/hold-options"))
             invoke(context, "addServletMappingDecoded", new Class<?>[]{String.class, String.class}, path, "holds");
         type.getMethod("addServlet", contextType, String.class, Servlet.class).invoke(null, context, "fixture-session", new HttpServlet() {

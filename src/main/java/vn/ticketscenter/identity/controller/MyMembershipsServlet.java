@@ -26,19 +26,11 @@ public class MyMembershipsServlet extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(MyMembershipsServlet.class.getName());
 
-    private OrganizationMembershipService membershipService;
-
-    public MyMembershipsServlet() {}
-
-    public MyMembershipsServlet(OrganizationMembershipService membershipService) {
-        this.membershipService = membershipService;
-    }
-
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         try {
             UserPrincipal actor = requireUser(req);
-            OrganizationMembershipService service = service(req.getServletContext());
+            OrganizationMembershipService service = service(getServletContext());
 
             // read my memberships and write the JSON reply
             List<MembershipSummaryDto> memberships = service.getMyMemberships(actor.actorId());
@@ -63,9 +55,6 @@ public class MyMembershipsServlet extends HttpServlet {
     }
 
     private OrganizationMembershipService service(ServletContext context) {
-        if (membershipService != null) {
-            return membershipService;
-        }
         IdentityServices services = IdentityServices.from(context);
         if (services == null) {
             throw IdentityErrorWriter.unavailable();

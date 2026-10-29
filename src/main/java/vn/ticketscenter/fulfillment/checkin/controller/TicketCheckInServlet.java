@@ -20,15 +20,6 @@ import java.util.UUID;
 @WebServlet(name = "TicketCheckInServlet", urlPatterns = "/api/check-ins")
 public class TicketCheckInServlet extends HttpServlet {
     private static final int MAX_BODY_LENGTH = 8192;
-    private final TicketCheckInService injected;
-
-    public TicketCheckInServlet() {
-        this(null);
-    }
-
-    public TicketCheckInServlet(TicketCheckInService service) {
-        injected = service;
-    }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
@@ -48,9 +39,7 @@ public class TicketCheckInServlet extends HttpServlet {
             UUID key = CheckInWeb.id(request.getHeader("Idempotency-Key"));
             var dto = readRequest(request);
             var service =
-                    injected == null
-                            ? CheckInRuntime.resolveScanner(request.getServletContext())
-                            : injected;
+                    CheckInRuntime.resolveScanner(getServletContext());
             var result = service.scan(actor, key, dto);
             response.setStatus(result.httpStatus());
             response.setContentType("application/json;charset=UTF-8");

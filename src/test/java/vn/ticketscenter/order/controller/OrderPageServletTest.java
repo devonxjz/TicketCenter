@@ -1,5 +1,6 @@
 package vn.ticketscenter.order.controller;
 
+import vn.ticketscenter.config.web.TestServlets;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -35,7 +36,7 @@ class OrderPageServletTest {
     void setUp() {
         fakeRepo = new FakeOrderRepo();
         orderService = new OrderServiceImpl(fakeRepo, new vn.ticketscenter.order.cache.RedisOrderCache(() -> null, java.time.Clock.systemUTC()));
-        servlet = new OrderPageServlet(orderService);
+        servlet = TestServlets.init(new OrderPageServlet(), orderService);
         buyerPrincipal = new UserPrincipal(BUYER_ID, PlatformRole.CUSTOMER, 1);
     }
 

@@ -1,5 +1,6 @@
 package vn.ticketscenter.identity.controller;
 
+import vn.ticketscenter.config.web.TestServlets;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -136,7 +137,7 @@ public class AuthOtpServletsTest {
             }
         };
 
-        OtpSendServlet servlet = new OtpSendServlet(mockOtpService);
+        OtpSendServlet servlet = TestServlets.init(new OtpSendServlet(), mockOtpService);
         String json = "{\"email\":\"user@test.vn\",\"purpose\":\"VERIFY_EMAIL\"}";
         HttpServletRequest req = createMockRequest("POST", "/api/auth/otp/send", json);
         HttpServletResponse resp = createMockResponse();
@@ -159,7 +160,7 @@ public class AuthOtpServletsTest {
             }
         };
 
-        OtpSendServlet servlet = new OtpSendServlet(mockOtpService);
+        OtpSendServlet servlet = TestServlets.init(new OtpSendServlet(), mockOtpService);
         String json = "{\"email\":\"user@test.vn\",\"purpose\":\"VERIFY_EMAIL\"}";
         HttpServletRequest req = createMockRequest("POST", "/api/auth/otp/send", json);
         HttpServletResponse resp = createMockResponse();
@@ -182,7 +183,7 @@ public class AuthOtpServletsTest {
             }
         };
 
-        OtpVerifyServlet servlet = new OtpVerifyServlet(mockOtpService);
+        OtpVerifyServlet servlet = TestServlets.init(new OtpVerifyServlet(), mockOtpService);
         String json = "{\"email\":\"user@test.vn\",\"purpose\":\"RESET_PASSWORD\",\"code\":\"123456\"}";
         HttpServletRequest req = createMockRequest("POST", "/api/auth/otp/verify", json);
         HttpServletResponse resp = createMockResponse();
@@ -206,7 +207,7 @@ public class AuthOtpServletsTest {
             }
         };
 
-        ForgotPasswordServlet servlet = new ForgotPasswordServlet(mockService);
+        ForgotPasswordServlet servlet = TestServlets.init(new ForgotPasswordServlet(), mockService);
         String json = "{\"email\":\"user@test.vn\"}";
         HttpServletRequest req = createMockRequest("POST", "/api/auth/password/forgot", json);
         HttpServletResponse resp = createMockResponse();
@@ -230,7 +231,7 @@ public class AuthOtpServletsTest {
             }
         };
 
-        PasswordResetServlet servlet = new PasswordResetServlet(mockService);
+        PasswordResetServlet servlet = TestServlets.init(new PasswordResetServlet(), mockService);
         String json = "{\"token\":\"valid.token.sig\",\"newPassword\":\"BrandNewPass123!\"}";
         HttpServletRequest req = createMockRequest("POST", "/api/auth/password/reset", json);
         HttpServletResponse resp = createMockResponse();

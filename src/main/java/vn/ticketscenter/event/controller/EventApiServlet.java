@@ -26,18 +26,9 @@ import java.util.stream.Collectors;
         })
 @MultipartConfig(maxFileSize = 5_242_880, maxRequestSize = 5_400_000, fileSizeThreshold = 0)
 public class EventApiServlet extends HttpServlet {
-    private final EventService injected;
-
-    public EventApiServlet() {
-        injected = null;
-    }
-
-    public EventApiServlet(EventService service) {
-        injected = service;
-    }
 
     private EventService service(HttpServletRequest request) {
-        return injected == null ? EventRuntime.resolve(request.getServletContext()) : injected;
+        return EventRuntime.resolve(getServletContext());
     }
 
     @Override
@@ -137,17 +128,15 @@ public class EventApiServlet extends HttpServlet {
                         java.time.Clock.systemUTC());
             }
             EventDto saved = service(request).save(principal, command);
-            if (injected == null) {
-                try {
-                    EventCatalogRuntime.cache(request.getServletContext())
-                            .invalidateCommitted(saved.id(), saved.organizationId());
-                } catch (Exception e) {
-                    java.util.logging.Logger.getLogger(EventApiServlet.class.getName())
-                            .log(
-                                    java.util.logging.Level.WARNING,
-                                    "Event catalog cache invalidation skipped",
-                                    e);
-                }
+            try {
+                EventCatalogRuntime.cache(request.getServletContext())
+                        .invalidateCommitted(saved.id(), saved.organizationId());
+            } catch (Exception e) {
+                java.util.logging.Logger.getLogger(EventApiServlet.class.getName())
+                        .log(
+                                java.util.logging.Level.WARNING,
+                                "Event catalog cache invalidation skipped",
+                                e);
             }
             HttpResponses.data(response, saved.toJson());
         } catch (RuntimeException e) {

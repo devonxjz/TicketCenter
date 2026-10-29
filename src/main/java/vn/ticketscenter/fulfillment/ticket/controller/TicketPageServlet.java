@@ -25,15 +25,6 @@ import java.util.UUID;
  */
 @WebServlet(urlPatterns = {"/me/tickets", "/tickets/*"})
 public class TicketPageServlet extends HttpServlet {
-    private final TicketService suppliedService;
-
-    public TicketPageServlet() {
-        this.suppliedService = null;
-    }
-
-    public TicketPageServlet(TicketService suppliedService) {
-        this.suppliedService = suppliedService;
-    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -82,8 +73,6 @@ public class TicketPageServlet extends HttpServlet {
     }
 
     private TicketService service() {
-        return suppliedService != null
-                ? suppliedService
-                : TicketRuntime.resolve(getServletContext());
+        return TicketRuntime.resolve(getServletContext());
     }
 }

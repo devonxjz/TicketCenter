@@ -1,5 +1,6 @@
 package vn.ticketscenter.identity.controller;
 
+import vn.ticketscenter.config.web.TestServlets;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -128,7 +129,7 @@ public class OrganizationRequestServletTest {
     @Test
     @DisplayName("POST /api/organization-requests returns 401 when unauthenticated")
     void testPostUnauthenticated() throws IOException {
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(createDummyService());
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), createDummyService());
         HttpServletRequest req = createMockRequest("POST", "/api/organization-requests", false, "{}");
         HttpServletResponse resp = createMockResponse();
 
@@ -141,7 +142,7 @@ public class OrganizationRequestServletTest {
     @Test
     @DisplayName("GET /api/me/organization-requests returns 401 when unauthenticated")
     void testGetMyRequestsUnauthenticated() throws IOException {
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(createDummyService());
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), createDummyService());
         HttpServletRequest req = createMockRequest("GET", "/api/me/organization-requests", false, null);
         HttpServletResponse resp = createMockResponse();
 
@@ -157,7 +158,7 @@ public class OrganizationRequestServletTest {
         UUID actorId = UUID.randomUUID();
         sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, new UserPrincipal(actorId, PlatformRole.CUSTOMER, 1));
 
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(createDummyService());
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), createDummyService());
         HttpServletRequest req = createMockRequest("POST", "/api/organization-requests", true, "invalid json");
         HttpServletResponse resp = createMockResponse();
 
@@ -190,7 +191,7 @@ public class OrganizationRequestServletTest {
             }
         };
 
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(mockService);
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), mockService);
         String body = "{\"name\":\"Acme Events\",\"contactEmail\":\"contact@acme.vn\",\"contactPhone\":\"0901234567\",\"description\":\"Desc\"}";
         HttpServletRequest req = createMockRequest("POST", "/api/organization-requests", true, body);
         HttpServletResponse resp = createMockResponse();
@@ -216,7 +217,7 @@ public class OrganizationRequestServletTest {
             }
         };
 
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(mockService);
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), mockService);
         String body = "{\"name\":\"\",\"contactEmail\":\"test@test.vn\"}";
         HttpServletRequest req = createMockRequest("POST", "/api/organization-requests", true, body);
         HttpServletResponse resp = createMockResponse();
@@ -242,7 +243,7 @@ public class OrganizationRequestServletTest {
             }
         };
 
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(mockService);
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), mockService);
         String body = "{\"name\":\"Duplicate Org\",\"contactEmail\":\"dup@test.vn\"}";
         HttpServletRequest req = createMockRequest("POST", "/api/organization-requests", true, body);
         HttpServletResponse resp = createMockResponse();
@@ -268,7 +269,7 @@ public class OrganizationRequestServletTest {
             }
         };
 
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(mockService);
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), mockService);
         String body = "{\"name\":\"Conflict Org\",\"contactEmail\":\"conf@test.vn\"}";
         HttpServletRequest req = createMockRequest("POST", "/api/organization-requests", true, body);
         requestHeaders.put("Idempotency-Key", "conflict-key-123");
@@ -295,7 +296,7 @@ public class OrganizationRequestServletTest {
             }
         };
 
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(mockService);
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), mockService);
         String body = "{\"name\":\"Suspended Org\",\"contactEmail\":\"susp@test.vn\"}";
         HttpServletRequest req = createMockRequest("POST", "/api/organization-requests", true, body);
         HttpServletResponse resp = createMockResponse();
@@ -326,7 +327,7 @@ public class OrganizationRequestServletTest {
             }
         };
 
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(mockService);
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), mockService);
         HttpServletRequest req = createMockRequest("GET", "/api/me/organization-requests", true, null);
         HttpServletResponse resp = createMockResponse();
 
@@ -360,7 +361,7 @@ public class OrganizationRequestServletTest {
             }
         };
 
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(mockService);
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), mockService);
         HttpServletRequest req = createMockRequest("GET", "/api/organization-requests/" + orgId, true, null);
         HttpServletResponse resp = createMockResponse();
 
@@ -385,7 +386,7 @@ public class OrganizationRequestServletTest {
             }
         };
 
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(mockService);
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), mockService);
         HttpServletRequest req = createMockRequest("GET", "/api/organization-requests/" + orgId, true, null);
         HttpServletResponse resp = createMockResponse();
 
@@ -410,7 +411,7 @@ public class OrganizationRequestServletTest {
             }
         };
 
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(mockService);
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), mockService);
         HttpServletRequest req = createMockRequest("GET", "/api/organization-requests/" + orgId, true, null);
         HttpServletResponse resp = createMockResponse();
 
@@ -426,7 +427,7 @@ public class OrganizationRequestServletTest {
         UUID actorId = UUID.randomUUID();
         sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, new UserPrincipal(actorId, PlatformRole.CUSTOMER, 1));
 
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(createDummyService());
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), createDummyService());
         HttpServletRequest req = createMockRequest("GET", "/api/organization-requests/not-a-uuid", true, null);
         HttpServletResponse resp = createMockResponse();
 

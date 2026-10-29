@@ -1,5 +1,6 @@
 package vn.ticketscenter.payment.controller;
 
+import vn.ticketscenter.config.web.TestServlets;
 import jakarta.servlet.ReadListener;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletInputStream;
@@ -62,7 +63,7 @@ class PayosCallbackServletTest {
         responseStatus = new AtomicInteger(200);
         forwardedPath = null;
         paymentService = new StubPaymentService();
-        servlet = new PayosCallbackServlet(paymentService);
+        servlet = TestServlets.init(new PayosCallbackServlet(), paymentService);
     }
 
     @Test

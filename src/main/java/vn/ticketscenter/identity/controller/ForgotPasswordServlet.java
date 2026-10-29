@@ -28,18 +28,7 @@ import java.io.IOException;
         })
 public class ForgotPasswordServlet extends HttpServlet {
 
-    private PasswordResetService passwordResetService;
-
-    public ForgotPasswordServlet() {}
-
-    public ForgotPasswordServlet(PasswordResetService passwordResetService) {
-        this.passwordResetService = passwordResetService;
-    }
-
     private PasswordResetService passwordResetService(ServletContext context) {
-        if (passwordResetService != null) {
-            return passwordResetService;
-        }
         IdentityServices services = IdentityServices.from(context);
         return services == null ? null : services.passwordResetService();
     }
@@ -53,7 +42,7 @@ public class ForgotPasswordServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        PasswordResetService service = passwordResetService(req.getServletContext());
+        PasswordResetService service = passwordResetService(getServletContext());
         if (service == null) {
             IdentityErrorWriter.databaseUnavailable(resp);
             return;

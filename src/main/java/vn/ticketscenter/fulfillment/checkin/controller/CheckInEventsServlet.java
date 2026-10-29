@@ -13,15 +13,6 @@ import java.util.stream.Collectors;
         name = "CheckInEventsServlet",
         urlPatterns = {"/api/check-ins/events", "/check-ins"})
 public class CheckInEventsServlet extends HttpServlet {
-    private final CheckInEventService injected;
-
-    public CheckInEventsServlet() {
-        this.injected = null;
-    }
-
-    public CheckInEventsServlet(CheckInEventService service) {
-        this.injected = service;
-    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -31,9 +22,7 @@ public class CheckInEventsServlet extends HttpServlet {
             String org = request.getParameter("organizationId");
             UUID organizationId = org == null ? null : CheckInWeb.id(org);
             CheckInEventService service =
-                    injected == null
-                            ? CheckInRuntime.resolve(request.getServletContext())
-                            : injected;
+                    CheckInRuntime.resolve(getServletContext());
             var events = service.events(actorId, organizationId);
             boolean json =
                     "/api/check-ins/events".equals(request.getServletPath())

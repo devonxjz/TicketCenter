@@ -1,6 +1,8 @@
 package vn.ticketscenter.identity.security;
 
+import jakarta.servlet.ServletContext;
 import vn.ticketscenter.config.identity.IdentityConfig;
+import vn.ticketscenter.config.persistence.FeatureContext;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -19,6 +21,11 @@ public final class LoginThrottle {
     private final int maxFailures;
     private final Duration window;
     private final Clock clock;
+
+    /** The throttle every login request on this node shares, kept in the servlet context. */
+    public static LoginThrottle from(ServletContext context) {
+        return FeatureContext.cached(context, LoginThrottle.class.getName(), LoginThrottle::new);
+    }
 
     public LoginThrottle() {
         this(

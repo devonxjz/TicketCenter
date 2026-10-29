@@ -23,25 +23,14 @@ import java.io.IOException;
         urlPatterns = {"/api/auth/otp/send"})
 public class OtpSendServlet extends HttpServlet {
 
-    private OtpService otpService;
-
-    public OtpSendServlet() {}
-
-    public OtpSendServlet(OtpService otpService) {
-        this.otpService = otpService;
-    }
-
     private OtpService otpService(ServletContext context) {
-        if (otpService != null) {
-            return otpService;
-        }
         IdentityServices services = IdentityServices.from(context);
         return services == null ? null : services.otpService();
     }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        OtpService service = otpService(req.getServletContext());
+        OtpService service = otpService(getServletContext());
         if (service == null) {
             IdentityErrorWriter.databaseUnavailable(resp);
             return;
