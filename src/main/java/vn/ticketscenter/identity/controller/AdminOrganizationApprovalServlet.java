@@ -5,6 +5,7 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import vn.ticketscenter.config.error.AppException;
 import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.config.identity.IdentityServices;
@@ -48,171 +49,136 @@ public class AdminOrganizationApprovalServlet extends HttpServlet {
         this.approvalService = approvalService;
     }
 
-    private OrganizationApprovalService getService(ServletContext context) {
-        if (this.approvalService != null) {
-            return this.approvalService;
-        }
-        IdentityServices services = IdentityServices.from(context);
-        return services == null ? null : services.organizationApprovalService();
-    }
-
     @Override
     public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        UserPrincipal admin = requireAdmin(req, resp);
-        if (admin == null) {
-            return;
-        }
-        OrganizationApprovalService service = getService(req.getServletContext());
-        if (service == null) {
-            IdentityErrorWriter.databaseUnavailable(resp);
-            return;
-        }
-
-        String path = PathIds.path(req);
-        if (path.equals(BASE) || path.equals(BASE + "/pending")) {
-            list(req, resp, service, admin, path.endsWith("/pending"));
-            return;
-        }
-        Matcher detailPath = DETAIL_PATH.matcher(path);
-        if (detailPath.matches()) {
-            readDetail(resp, service, admin, detailPath.group(1));
-            return;
-        }
-        notFound(resp);
-    }
-
-    private void list(
-            HttpServletRequest req,
-            HttpServletResponse resp,
-            OrganizationApprovalService service,
-            UserPrincipal admin,
-            boolean pendingOnly)
-            throws IOException {
-        int page = ApiRequest.positiveInt(req.getParameter("page"), 1);
-        int pageSize = ApiRequest.positiveInt(req.getParameter("pageSize"), 20);
-        OrganizationStatus status =
-                pendingOnly
-                        ? OrganizationStatus.PENDING_APPROVAL
-                        : statusOf(req.getParameter("status"));
-
-        List<OrganizationRequestSummaryDto> items =
-                service.listRequests(admin.actorId(), status, page, pageSize);
-        long total = service.countRequests(admin.actorId(), status);
-        HttpResponses.data(
-                resp, new OrganizationRequestPageDto(items, total, page, pageSize).toJson());
-    }
-
-    private void readDetail(
-            HttpServletResponse resp,
-            OrganizationApprovalService service,
-            UserPrincipal admin,
-            String idText)
-            throws IOException {
-        UUID organizationId = organizationId(resp, idText);
-        if (organizationId == null) {
-            return;
-        }
         try {
-            HttpResponses.data(
-                    resp, service.getRequestDetail(admin.actorId(), organizationId).toJson());
-        } catch (NoSuchElementException | SecurityException e) {
-            writeFailure(resp, e);
+            UserPrincipal admin = requireAdmin(req);
+            OrganizationApprovalService service = service(req.getServletContext());
+            String path = PathIds.path(req);
+
+            // perform action and build the JSON reply
+            String json;
+            Matcher detailPath = DETAIL_PATH.matcher(path);
+            if (path.equals(BASE) || path.equals(BASE + "/pending")) {
+                json = listRequests(req, service, admin, path.endsWith("/pending"));
+            } else if (detailPath.matches()) {
+                json = showRequest(service, admin, detailPath.group(1));
+            } else {
+                throw notFound();
+            }
+            HttpResponses.data(resp, json);
+        } catch (AppException rejected) {
+            HttpResponses.error(resp, rejected);
+        } catch (NoSuchElementException | SecurityException failure) {
+            writeFailure(resp, failure);
         }
     }
 
     @Override
     public void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        UserPrincipal admin = requireAdmin(req, resp);
-        if (admin == null) {
-            return;
-        }
-        OrganizationApprovalService service = getService(req.getServletContext());
-        if (service == null) {
-            IdentityErrorWriter.databaseUnavailable(resp);
-            return;
-        }
-
-        String path = PathIds.path(req);
-        Matcher approvePath = APPROVE_PATH.matcher(path);
-        if (approvePath.matches()) {
-            approve(req, resp, service, admin, approvePath.group(1));
-            return;
-        }
-        Matcher rejectPath = REJECT_PATH.matcher(path);
-        if (rejectPath.matches()) {
-            reject(req, resp, service, admin, rejectPath.group(1));
-            return;
-        }
-        notFound(resp);
-    }
-
-    private void approve(
-            HttpServletRequest req,
-            HttpServletResponse resp,
-            OrganizationApprovalService service,
-            UserPrincipal admin,
-            String idText)
-            throws IOException {
-        UUID organizationId = organizationId(resp, idText);
-        if (organizationId == null) {
-            return;
-        }
         try {
-            ApproveOrganizationRequestDto policy =
-                    ApproveOrganizationRequestDto.from(RequestFields.readJsonOrEmpty(req).asMap());
-            OrganizationRequestDetailDto detail =
-                    service.approve(
-                            admin.actorId(),
-                            organizationId,
-                            Optional.of(policy.commissionPolicy()));
-            HttpResponses.data(
-                    resp, OrganizationDecisionResultDto.approved(organizationId, detail).toJson());
+            UserPrincipal admin = requireAdmin(req);
+            OrganizationApprovalService service = service(req.getServletContext());
+            String path = PathIds.path(req);
+
+            // perform action and build the JSON reply
+            String json;
+            Matcher approvePath = APPROVE_PATH.matcher(path);
+            Matcher rejectPath = REJECT_PATH.matcher(path);
+            if (approvePath.matches()) {
+                json = approveRequest(req, service, admin, approvePath.group(1));
+            } else if (rejectPath.matches()) {
+                json = rejectRequest(req, service, admin, rejectPath.group(1));
+            } else {
+                throw notFound();
+            }
+            HttpResponses.data(resp, json);
+        } catch (AppException rejected) {
+            HttpResponses.error(resp, rejected);
         } catch (NoSuchElementException
                 | IllegalStateException
                 | IllegalArgumentException
-                | SecurityException e) {
-            writeFailure(resp, e);
+                | SecurityException failure) {
+            writeFailure(resp, failure);
         }
     }
 
-    private void reject(
+    private String listRequests(
             HttpServletRequest req,
-            HttpServletResponse resp,
+            OrganizationApprovalService service,
+            UserPrincipal admin,
+            boolean pendingOnly) {
+        int page = ApiRequest.positiveInt(req.getParameter("page"), 1);
+        int pageSize = ApiRequest.positiveInt(req.getParameter("pageSize"), 20);
+        OrganizationStatus status;
+        if (pendingOnly) {
+            status = OrganizationStatus.PENDING_APPROVAL;
+        } else {
+            status = statusOf(req.getParameter("status"));
+        }
+
+        List<OrganizationRequestSummaryDto> items =
+                service.listRequests(admin.actorId(), status, page, pageSize);
+        long total = service.countRequests(admin.actorId(), status);
+        return new OrganizationRequestPageDto(items, total, page, pageSize).toJson();
+    }
+
+    private String showRequest(
+            OrganizationApprovalService service, UserPrincipal admin, String idText) {
+        UUID organizationId = organizationId(idText);
+        return service.getRequestDetail(admin.actorId(), organizationId).toJson();
+    }
+
+    private String approveRequest(
+            HttpServletRequest req,
             OrganizationApprovalService service,
             UserPrincipal admin,
             String idText)
             throws IOException {
-        UUID organizationId = organizationId(resp, idText);
-        if (organizationId == null) {
-            return;
-        }
+        UUID organizationId = organizationId(idText);
+        ApproveOrganizationRequestDto policy =
+                ApproveOrganizationRequestDto.from(RequestFields.readJsonOrEmpty(req).asMap());
+        OrganizationRequestDetailDto detail =
+                service.approve(
+                        admin.actorId(), organizationId, Optional.of(policy.commissionPolicy()));
+        return OrganizationDecisionResultDto.approved(organizationId, detail).toJson();
+    }
+
+    private String rejectRequest(
+            HttpServletRequest req,
+            OrganizationApprovalService service,
+            UserPrincipal admin,
+            String idText)
+            throws IOException {
+        UUID organizationId = organizationId(idText);
         RequestFields body = RequestFields.readJsonOrEmpty(req);
         String reason = body.get("reason");
         if (reason == null || reason.isBlank()) {
             reason = body.get("rejectionReason");
         }
         if (reason == null || reason.trim().length() < 10 || reason.trim().length() > 500) {
-            HttpResponses.error(
-                    resp,
+            throw new AppException(
                     HttpServletResponse.SC_BAD_REQUEST,
                     "VALIDATION_ERROR",
                     "Lý do từ chối phải từ 10 đến 500 ký tự");
-            return;
         }
+
         String trimmedReason = reason.trim();
-        try {
-            OrganizationRequestDetailDto detail =
-                    service.reject(admin.actorId(), organizationId, trimmedReason);
-            HttpResponses.data(
-                    resp,
-                    OrganizationDecisionResultDto.rejected(organizationId, trimmedReason, detail)
-                            .toJson());
-        } catch (NoSuchElementException
-                | IllegalStateException
-                | IllegalArgumentException
-                | SecurityException e) {
-            writeFailure(resp, e);
+        OrganizationRequestDetailDto detail =
+                service.reject(admin.actorId(), organizationId, trimmedReason);
+        return OrganizationDecisionResultDto.rejected(organizationId, trimmedReason, detail)
+                .toJson();
+    }
+
+    private OrganizationApprovalService service(ServletContext context) {
+        if (approvalService != null) {
+            return approvalService;
         }
+        IdentityServices services = IdentityServices.from(context);
+        if (services == null) {
+            throw IdentityErrorWriter.unavailable();
+        }
+        return services.organizationApprovalService();
     }
 
     private static void writeFailure(HttpServletResponse resp, RuntimeException failure)
@@ -235,12 +201,10 @@ public class AdminOrganizationApprovalServlet extends HttpServlet {
         }
     }
 
-    /** The organisation id from the path, or {@code null} after answering 400. */
-    private static UUID organizationId(HttpServletResponse resp, String idText) throws IOException {
+    private static UUID organizationId(String idText) {
         UUID id = PathIds.uuidOrNull(idText);
         if (id == null) {
-            HttpResponses.error(
-                    resp,
+            throw new AppException(
                     HttpServletResponse.SC_BAD_REQUEST,
                     "VALIDATION_ERROR",
                     "Mã tổ chức không hợp lệ");
@@ -248,32 +212,26 @@ public class AdminOrganizationApprovalServlet extends HttpServlet {
         return id;
     }
 
-    /** The signed-in admin, or {@code null} after answering 401 or 403. */
-    private static UserPrincipal requireAdmin(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
+    private static UserPrincipal requireAdmin(HttpServletRequest req) {
         Optional<UserPrincipal> principal = SecurityContext.getCurrentUser(req);
         if (principal.isEmpty()) {
-            HttpResponses.error(
-                    resp,
+            throw new AppException(
                     HttpServletResponse.SC_UNAUTHORIZED,
                     "UNAUTHENTICATED",
                     "Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn");
-            return null;
         }
         if (!principal.get().isAdmin()) {
-            HttpResponses.error(
-                    resp,
+            throw new AppException(
                     HttpServletResponse.SC_FORBIDDEN,
                     "FORBIDDEN",
                     "Chỉ quản trị viên mới có quyền thực hiện thao tác này");
-            return null;
         }
         return principal.get();
     }
 
-    private static void notFound(HttpServletResponse resp) throws IOException {
-        HttpResponses.error(
-                resp, HttpServletResponse.SC_NOT_FOUND, "NOT_FOUND", "Đường dẫn không tồn tại");
+    private static AppException notFound() {
+        return new AppException(
+                HttpServletResponse.SC_NOT_FOUND, "NOT_FOUND", "Đường dẫn không tồn tại");
     }
 
     private static OrganizationStatus statusOf(String param) {

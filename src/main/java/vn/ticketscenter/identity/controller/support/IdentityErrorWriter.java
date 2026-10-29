@@ -1,6 +1,7 @@
 package vn.ticketscenter.identity.controller.support;
 
 import jakarta.servlet.http.HttpServletResponse;
+import vn.ticketscenter.config.error.AppException;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.identity.error.IdentityError;
 import vn.ticketscenter.identity.error.IdentityException;
@@ -47,8 +48,12 @@ public final class IdentityErrorWriter {
 
     /** The 503 every identity endpoint returns while persistence is not ready. */
     public static void databaseUnavailable(HttpServletResponse response) throws IOException {
-        HttpResponses.error(
-                response,
+        HttpResponses.error(response, unavailable());
+    }
+
+    /** The 503 failure, for endpoints that answer errors from one catch block. */
+    public static AppException unavailable() {
+        return new AppException(
                 HttpServletResponse.SC_SERVICE_UNAVAILABLE,
                 "DATABASE_UNAVAILABLE",
                 "Hệ thống cơ sở dữ liệu chưa sẵn sàng");

@@ -5,8 +5,10 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import vn.ticketscenter.config.error.AppException;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.config.identity.IdentityServices;
+import vn.ticketscenter.identity.controller.support.IdentityErrorWriter;
 import vn.ticketscenter.identity.dto.MembershipSummaryDto;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
@@ -32,55 +34,21 @@ public class MyMembershipsServlet extends HttpServlet {
         this.membershipService = membershipService;
     }
 
-    private OrganizationMembershipService getService(ServletContext context) {
-        if (this.membershipService != null) {
-            return this.membershipService;
-        }
-        IdentityServices services = IdentityServices.from(context);
-        return services == null ? null : services.organizationMembershipService();
-    }
-
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        Optional<UserPrincipal> principalOpt = SecurityContext.getCurrentUser(req);
-        if (principalOpt.isEmpty()) {
-            HttpResponses.error(
-                    resp,
-                    HttpServletResponse.SC_UNAUTHORIZED,
-                    "UNAUTHENTICATED",
-                    "Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn");
-            return;
-        }
-
-        OrganizationMembershipService service = getService(req.getServletContext());
-        if (service == null) {
-            HttpResponses.error(
-                    resp,
-                    HttpServletResponse.SC_SERVICE_UNAVAILABLE,
-                    "DATABASE_UNAVAILABLE",
-                    "Hệ thống cơ sở dữ liệu chưa sẵn sàng");
-            return;
-        }
-
         try {
-            List<MembershipSummaryDto> memberships =
-                    service.getMyMemberships(principalOpt.get().actorId());
+            UserPrincipal actor = requireUser(req);
+            OrganizationMembershipService service = service(req.getServletContext());
+
+            // read my memberships and write the JSON reply
+            List<MembershipSummaryDto> memberships = service.getMyMemberships(actor.actorId());
             String json =
                     memberships.stream()
-                            .map(
-                                    m ->
-                                            "{\"organizationId\":"
-                                                    + HttpResponses.jsonString(
-                                                            m.organizationId().toString())
-                                                    + ",\"organizationName\":"
-                                                    + HttpResponses.jsonString(m.organizationName())
-                                                    + ",\"role\":"
-                                                    + HttpResponses.jsonString(m.role().name())
-                                                    + ",\"isActive\":"
-                                                    + m.isActive()
-                                                    + "}")
+                            .map(MembershipSummaryDto::toJson)
                             .collect(Collectors.joining(",", "[", "]"));
             HttpResponses.data(resp, json);
+        } catch (AppException rejected) {
+            HttpResponses.error(resp, rejected);
         } catch (IllegalArgumentException ex) {
             HttpResponses.error(
                     resp, HttpServletResponse.SC_BAD_REQUEST, "BAD_REQUEST", ex.getMessage());
@@ -92,5 +60,27 @@ public class MyMembershipsServlet extends HttpServlet {
                     "SERVER_ERROR",
                     "Đã xảy ra lỗi hệ thống.");
         }
+    }
+
+    private OrganizationMembershipService service(ServletContext context) {
+        if (membershipService != null) {
+            return membershipService;
+        }
+        IdentityServices services = IdentityServices.from(context);
+        if (services == null) {
+            throw IdentityErrorWriter.unavailable();
+        }
+        return services.organizationMembershipService();
+    }
+
+    private static UserPrincipal requireUser(HttpServletRequest req) {
+        Optional<UserPrincipal> principal = SecurityContext.getCurrentUser(req);
+        if (principal.isEmpty()) {
+            throw new AppException(
+                    HttpServletResponse.SC_UNAUTHORIZED,
+                    "UNAUTHENTICATED",
+                    "Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn");
+        }
+        return principal.get();
     }
 }

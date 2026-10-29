@@ -5,6 +5,7 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import vn.ticketscenter.config.error.AppException;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.config.web.JsonObjectParser;
 import vn.ticketscenter.config.identity.IdentityServices;
@@ -13,7 +14,6 @@ import vn.ticketscenter.identity.controller.support.PathIds;
 import vn.ticketscenter.identity.dto.OrganizationRequestCreateDto;
 import vn.ticketscenter.identity.dto.OrganizationRequestDetailDto;
 import vn.ticketscenter.identity.dto.OrganizationRequestSummaryDto;
-import vn.ticketscenter.identity.error.IdentityException;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.identity.service.OrganizationRequestService;
@@ -53,114 +53,98 @@ public class OrganizationRequestServlet extends HttpServlet {
         this.organizationRequestService = organizationRequestService;
     }
 
-    private OrganizationRequestService getService(ServletContext context) {
-        if (this.organizationRequestService != null) {
-            return this.organizationRequestService;
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        try {
+            UserPrincipal principal = requirePrincipal(req);
+            OrganizationRequestService service = service(req.getServletContext());
+            String path = PathIds.path(req);
+
+            // perform action and build the JSON reply
+            String json;
+            Matcher detailPath = DETAIL_PATH.matcher(path);
+            if (path.equals("/api/me/organization-requests")) {
+                json = listMyRequests(service, principal);
+            } else if (detailPath.matches()) {
+                json = showRequest(service, principal, detailPath.group(1));
+            } else {
+                throw notFound();
+            }
+            HttpResponses.data(resp, json);
+        } catch (AppException rejected) {
+            HttpResponses.error(resp, rejected);
         }
-        IdentityServices services = IdentityServices.from(context);
-        return services == null ? null : services.organizationRequestService();
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        UserPrincipal principal = requirePrincipal(req, resp);
-        if (principal == null) {
-            return;
-        }
-        OrganizationRequestService service = getService(req.getServletContext());
-        if (service == null) {
-            IdentityErrorWriter.databaseUnavailable(resp);
-            return;
-        }
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        try {
+            UserPrincipal principal = requirePrincipal(req);
+            OrganizationRequestService service = service(req.getServletContext());
+            if (!PathIds.path(req).equals("/api/organization-requests")) {
+                throw notFound();
+            }
 
-        String path = PathIds.path(req);
-        if (path.equals("/api/me/organization-requests")) {
-            List<OrganizationRequestSummaryDto> mine = service.getMyRequests(principal.actorId());
-            HttpResponses.data(
-                    resp,
-                    mine.stream()
-                            .map(OrganizationRequestSummaryDto::toJson)
-                            .collect(Collectors.joining(",", "[", "]")));
-            return;
-        }
-        Matcher detailPath = DETAIL_PATH.matcher(path);
-        if (detailPath.matches()) {
-            readDetail(resp, service, principal, detailPath.group(1));
-            return;
-        }
-        notFound(resp);
-    }
-
-    private void readDetail(
-            HttpServletResponse resp,
-            OrganizationRequestService service,
-            UserPrincipal principal,
-            String idText)
-            throws IOException {
-        UUID organizationId = PathIds.uuidOrNull(idText);
-        if (organizationId == null) {
+            // submit the request and write the JSON reply
+            OrganizationRequestDetailDto detail = submitRequest(req, service, principal);
+            HttpResponses.created(resp, detail.toJson());
+        } catch (AppException rejected) {
+            HttpResponses.error(resp, rejected);
+        } catch (RuntimeException e) {
+            LOGGER.log(Level.SEVERE, "Unexpected error submitting organization request", e);
             HttpResponses.error(
                     resp,
+                    HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "INTERNAL_ERROR",
+                    "Có lỗi xảy ra trong quá trình xử lý yêu cầu");
+        }
+    }
+
+    private static String listMyRequests(
+            OrganizationRequestService service, UserPrincipal principal) {
+        List<OrganizationRequestSummaryDto> mine = service.getMyRequests(principal.actorId());
+        return mine.stream()
+                .map(OrganizationRequestSummaryDto::toJson)
+                .collect(Collectors.joining(",", "[", "]"));
+    }
+
+    private static String showRequest(
+            OrganizationRequestService service, UserPrincipal principal, String idText) {
+        UUID organizationId = PathIds.uuidOrNull(idText);
+        if (organizationId == null) {
+            throw new AppException(
                     HttpServletResponse.SC_BAD_REQUEST,
                     "INVALID_ORGANIZATION_ID",
                     "Mã tổ chức không hợp lệ");
-            return;
         }
         try {
-            HttpResponses.data(
-                    resp,
-                    service.getRequestDetail(
-                                    principal.actorId(), principal.isAdmin(), organizationId)
-                            .toJson());
+            return service.getRequestDetail(
+                            principal.actorId(), principal.isAdmin(), organizationId)
+                    .toJson();
         } catch (NoSuchElementException e) {
-            HttpResponses.error(
-                    resp,
+            throw new AppException(
                     HttpServletResponse.SC_NOT_FOUND,
                     "ORGANIZATION_NOT_FOUND",
                     "Không tìm thấy hồ sơ yêu cầu tổ chức");
         } catch (SecurityException e) {
-            HttpResponses.error(
-                    resp,
+            throw new AppException(
                     HttpServletResponse.SC_FORBIDDEN,
                     "FORBIDDEN",
                     "Bạn không có quyền truy cập hồ sơ này");
         }
     }
 
-    @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        UserPrincipal principal = requirePrincipal(req, resp);
-        if (principal == null) {
-            return;
-        }
-        OrganizationRequestService service = getService(req.getServletContext());
-        if (service == null) {
-            IdentityErrorWriter.databaseUnavailable(resp);
-            return;
-        }
-        if (PathIds.path(req).equals("/api/organization-requests")) {
-            submit(req, resp, service, principal);
-            return;
-        }
-        notFound(resp);
-    }
-
-    private void submit(
-            HttpServletRequest req,
-            HttpServletResponse resp,
-            OrganizationRequestService service,
-            UserPrincipal principal)
-            throws IOException {
+    private static OrganizationRequestDetailDto submitRequest(
+            HttpServletRequest req, OrganizationRequestService service, UserPrincipal principal) {
+        // get parameters from the JSON body
         Map<String, String> json;
         try {
             json = JsonObjectParser.parse(req.getReader());
         } catch (IllegalArgumentException | IOException e) {
-            HttpResponses.error(
-                    resp,
+            throw new AppException(
                     HttpServletResponse.SC_BAD_REQUEST,
                     "INVALID_PAYLOAD",
                     "Nội dung yêu cầu không phải định dạng JSON hợp lệ");
-            return;
         }
         OrganizationRequestCreateDto dto =
                 new OrganizationRequestCreateDto(
@@ -174,49 +158,43 @@ public class OrganizationRequestServlet extends HttpServlet {
                         json.get("eventEndTime"),
                         json.get("eventVenue"));
 
+        // store the request; validation failures become 400 replies
         try {
-            OrganizationRequestDetailDto detail =
-                    service.submitRequest(
-                            principal.actorId(), dto, req.getHeader("Idempotency-Key"));
-            HttpResponses.created(resp, detail.toJson());
-        } catch (IdentityException e) {
-            IdentityErrorWriter.write(resp, e, null);
+            return service.submitRequest(
+                    principal.actorId(), dto, req.getHeader("Idempotency-Key"));
         } catch (IllegalArgumentException e) {
-            HttpResponses.error(
-                    resp, HttpServletResponse.SC_BAD_REQUEST, "VALIDATION_ERROR", e.getMessage());
+            throw new AppException(
+                    HttpServletResponse.SC_BAD_REQUEST, "VALIDATION_ERROR", e.getMessage());
         } catch (IllegalStateException e) {
-            HttpResponses.error(
-                    resp,
-                    HttpServletResponse.SC_BAD_REQUEST,
-                    "BAD_REQUEST",
-                    e.getMessage() != null ? e.getMessage() : "");
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Unexpected error submitting organization request", e);
-            HttpResponses.error(
-                    resp,
-                    HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    "INTERNAL_ERROR",
-                    "Có lỗi xảy ra trong quá trình xử lý yêu cầu");
+            String message = e.getMessage() != null ? e.getMessage() : "";
+            throw new AppException(HttpServletResponse.SC_BAD_REQUEST, "BAD_REQUEST", message);
         }
     }
 
-    /** The signed-in user, or {@code null} after answering 401. */
-    private static UserPrincipal requirePrincipal(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
+    private OrganizationRequestService service(ServletContext context) {
+        if (organizationRequestService != null) {
+            return organizationRequestService;
+        }
+        IdentityServices services = IdentityServices.from(context);
+        if (services == null) {
+            throw IdentityErrorWriter.unavailable();
+        }
+        return services.organizationRequestService();
+    }
+
+    private static UserPrincipal requirePrincipal(HttpServletRequest req) {
         Optional<UserPrincipal> principal = SecurityContext.getCurrentUser(req);
         if (principal.isEmpty()) {
-            HttpResponses.error(
-                    resp,
+            throw new AppException(
                     HttpServletResponse.SC_UNAUTHORIZED,
                     "UNAUTHENTICATED",
                     "Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn");
-            return null;
         }
         return principal.get();
     }
 
-    private static void notFound(HttpServletResponse resp) throws IOException {
-        HttpResponses.error(
-                resp, HttpServletResponse.SC_NOT_FOUND, "NOT_FOUND", "Đường dẫn không tồn tại");
+    private static AppException notFound() {
+        return new AppException(
+                HttpServletResponse.SC_NOT_FOUND, "NOT_FOUND", "Đường dẫn không tồn tại");
     }
 }
