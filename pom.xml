@@ -149,7 +149,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>3.5.2</version>
+                <version>3.6.1</version>
             </plugin>
 
             <!-- Eclipse Jetty EE11 Plugin (Servlet 6.1 / EL 6.0, khớp Tomcat 11) for Rapid Local Development -->
