@@ -37,7 +37,9 @@ public final class SettlementReadCache {
     }
 
     public void invalidate(UUID event) {
-        for (Kind kind : Kind.values()) backend.deleteQuietly(key(event, kind));
+        for (Kind kind : Kind.values()) {
+            backend.deleteQuietly(key(event, kind));
+        }
     }
 
     private static String key(UUID event, Kind kind) {

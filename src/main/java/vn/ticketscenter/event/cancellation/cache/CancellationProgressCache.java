@@ -57,19 +57,23 @@ public class CancellationProgressCache {
     }
 
     public void publish(CancellationProgressDto progress) {
-        try (var redis = connections.get()) {
+        try (Jedis redis = connections.get()) {
             redis.setex(PROGRESS_PREFIX + progress.eventId(), 10, progress.json());
         }
     }
 
     public Optional<String> get(UUID id) {
-        try (var redis = connections.get()) {
+        try (Jedis redis = connections.get()) {
             String json = redis.get(PROGRESS_PREFIX + id);
-            if (json == null || json.length() > 8192) return Optional.empty();
-            var fields = JsonObjectParser.parse(new StringReader(json));
-            if (!validFields(id, fields)) return Optional.empty();
+            if (json == null || json.length() > 8192) {
+                return Optional.empty();
+            }
+            Map<String, String> fields = JsonObjectParser.parse(new StringReader(json));
+            if (!validFields(id, fields)) {
+                return Optional.empty();
+            }
 
-            var normalized =
+            String normalized =
                     new CancellationProgressDto(
                                     id,
                                     null,
@@ -88,7 +92,9 @@ public class CancellationProgressCache {
                             .json();
             // Reject coerced number strings and percentages that differ from SQL's typed
             // projection.
-            if (!normalized.equals(json)) return Optional.empty();
+            if (!normalized.equals(json)) {
+                return Optional.empty();
+            }
             return Optional.of(json); // A hit does not renew the ten-second TTL.
         } catch (Exception unavailable) {
             return Optional.empty();
@@ -100,7 +106,7 @@ public class CancellationProgressCache {
                 .invalidateCommitted(progress.eventId(), progress.organizationId());
         new CheckInEventCacheImpl(connections)
                 .invalidate(progress.eventId(), progress.organizationId());
-        try (var redis = connections.get()) {
+        try (Jedis redis = connections.get()) {
             // Remove stale purchase/refund actions; mutations still verify their authority in SQL.
             clearTicketProjections(redis);
             redis.del(PROGRESS_PREFIX + progress.eventId(), AdminRefundCacheImpl.PENDING_COUNT_KEY);
@@ -110,17 +116,22 @@ public class CancellationProgressCache {
     private static boolean validFields(UUID id, Map<String, String> fields) {
         if (!fields.keySet().equals(PROGRESS_FIELDS)
                 || !id.toString().equals(fields.get("eventId"))
-                || !Set.of("PENDING", "IN_PROGRESS", "COMPLETED").contains(fields.get("status")))
+                || !Set.of("PENDING", "IN_PROGRESS", "COMPLETED").contains(fields.get("status"))) {
             return false;
+        }
         for (String key : COUNT_FIELDS) {
-            if (!fields.get(key).matches("[0-9]+") || Long.parseLong(fields.get(key)) < 0)
+            if (!fields.get(key).matches("[0-9]+") || Long.parseLong(fields.get(key)) < 0) {
                 return false;
+            }
         }
         if (Long.parseLong(fields.get("processedOrders"))
-                > Long.parseLong(fields.get("totalOrders"))) return false;
-        var percentage = new BigDecimal(fields.get("progressPercentage"));
-        if (percentage.signum() < 0 || percentage.compareTo(BigDecimal.valueOf(100)) > 0)
+                > Long.parseLong(fields.get("totalOrders"))) {
             return false;
+        }
+        var percentage = new BigDecimal(fields.get("progressPercentage"));
+        if (percentage.signum() < 0 || percentage.compareTo(BigDecimal.valueOf(100)) > 0) {
+            return false;
+        }
         Instant.parse(fields.get("updatedAt"));
         Instant.parse(fields.get("cancelledAt"));
         return fields.get("reason") != null && fields.get("reason").length() <= 500;

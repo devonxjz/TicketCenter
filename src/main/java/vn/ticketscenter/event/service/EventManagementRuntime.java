@@ -22,10 +22,10 @@ public final class EventManagementRuntime {
     }
 
     private static Services create(ServletContext context) {
-        var registry = FeatureContext.registry(context, null, EventProblem::unavailable);
+        PersistenceRegistry registry = FeatureContext.registry(context, null, EventProblem::unavailable);
         var repository =
                 new EventManagementRepository(new EventTransactions(registry.transactionManager()));
-        var idempotency = EventIdempotencyStore.configured();
+        EventIdempotencyStore idempotency = EventIdempotencyStore.configured();
         var orphans = new EventCoverOrphanJournal();
         var management =
                 new EventManagementServiceImpl(

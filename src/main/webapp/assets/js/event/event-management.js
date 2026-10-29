@@ -1,7 +1,7 @@
 'use strict';
 /**
- * Quản trị & Xét duyệt sự kiện (Organizer & Admin Review Flow).
- * Tuân thủ mô hình tư duy tuần tự:
+ * Event management and review (organiser and admin).
+ * Laid out in order:
  * 1. Root Guard & Config
  * 2. Shared State, Constants & DOM Utilities
  * 3. Network & Mutation Engine (CSRF, Idempotency, Upload)
@@ -310,7 +310,7 @@
 
     // 5. PAGE CONTROLLERS
 
-    // 5.1 Danh sách sự kiện tổ chức
+    // 5.1 organisation event list
     async function listPage() {
         let page = 1, revision = 0;
         await fetchOrganizations($('organization'), new URLSearchParams(location.search).get('organizationId'));
@@ -413,7 +413,7 @@
         await load();
     }
 
-    // 5.2 Trình chỉnh sửa sự kiện (Editor)
+    // 5.2 event editor
     async function editorPage() {
         const params = new URLSearchParams(location.search);
         let eventId = params.get('eventId') || params.get('id');
@@ -566,7 +566,7 @@
         await load();
     }
 
-    // 5.3 Xét duyệt sự kiện dành cho Admin (Review)
+    // 5.3 admin event review
     async function reviewPage() {
         let page = 1, selected = null, reviewRevision = 0, listRevision = 0, reviewId = null, reviewOpener = null;
 

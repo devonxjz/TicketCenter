@@ -1,5 +1,7 @@
 package vn.ticketscenter.event.service;
 
+import vn.ticketscenter.event.cache.EventIdempotencyStore;
+import vn.ticketscenter.event.dao.EventManagementRepository;
 import vn.ticketscenter.event.EventException;
 import vn.ticketscenter.event.dto.*;
 import vn.ticketscenter.event.dao.EventRepository;
@@ -16,7 +18,7 @@ public class EventServiceImpl implements EventService {
     private final EventRepository repository;
     private final StorageService storage;
     private final boolean maintenance;
-    private final vn.ticketscenter.event.cache.EventIdempotencyStore redisLeases;
+    private final EventIdempotencyStore redisLeases;
 
     public EventServiceImpl(EventRepository repository, StorageService storage) {
         this(repository, storage, false);
@@ -25,7 +27,7 @@ public class EventServiceImpl implements EventService {
     public EventServiceImpl(
             EventRepository repository,
             StorageService storage,
-            vn.ticketscenter.event.cache.EventIdempotencyStore redisLeases) {
+            EventIdempotencyStore redisLeases) {
         this.repository = Objects.requireNonNull(repository);
         this.storage = Objects.requireNonNull(storage);
         this.maintenance = false;
@@ -43,21 +45,23 @@ public class EventServiceImpl implements EventService {
 
     @Override
     public EventDto save(UserPrincipal actor, EventSave command) {
-        if (command.kind() == EventSave.Kind.MIGRATE)
+        if (command.kind() == EventSave.Kind.MIGRATE) {
             throw new EventException(
                     403,
                     "MAINTENANCE_FORBIDDEN",
                     "Migration is not available through Manager requests");
+        }
         return saveInternal(actor, command, false);
     }
 
     @Override
     public EventDto migrateCover(UUID eventId, long version, UUID requestId, byte[] image) {
-        if (!maintenance)
+        if (!maintenance) {
             throw new EventException(
                     403,
                     "MAINTENANCE_FORBIDDEN",
                     "Migration requires the CLI maintenance capability");
+        }
         return saveInternal(
                 null,
                 new EventSave(requestId, EventSave.Kind.MIGRATE, eventId, version, null, image),
@@ -67,8 +71,9 @@ public class EventServiceImpl implements EventService {
     private EventDto saveInternal(UserPrincipal actor, EventSave command, boolean maintenanceCall) {
         byte[] image = command.image();
         try {
-            if (image != null)
+            if (image != null) {
                 image = ImageContentValidator.readAndValidate(new ByteArrayInputStream(image));
+            }
         } catch (IOException e) {
             throw new EventException(400, "IMAGE_INVALID", "Image cannot be decoded");
         }
@@ -80,8 +85,10 @@ public class EventServiceImpl implements EventService {
                         fingerprint,
                         image != null,
                         maintenanceCall);
-        if (claim.replay() != null) return claim.replay();
-        vn.ticketscenter.event.cache.EventIdempotencyStore.Lease redisLease = null;
+        if (claim.replay() != null) {
+            return claim.replay();
+        }
+        EventIdempotencyStore.Lease redisLease = null;
         if (redisLeases != null) {
             try {
                 redisLease =
@@ -120,7 +127,7 @@ public class EventServiceImpl implements EventService {
                         redisLeases.completed(
                                 redisLease,
                                 fingerprint,
-                                new vn.ticketscenter.event.dao.EventManagementRepository.Result(
+                                new EventManagementRepository.Result(
                                         200,
                                         "{\"data\":" + saved.toJson() + "}",
                                         saved.organizationId(),
@@ -130,8 +137,11 @@ public class EventServiceImpl implements EventService {
                 }
                 return saved;
             } catch (EventException e) {
-                if (e.status() < 500 && !e.code().equals("STALE_REQUEST")) release(claim, true);
-                else release(claim, false);
+                if (e.status() < 500 && !e.code().equals("STALE_REQUEST")) {
+                    release(claim, true);
+                } else {
+                    release(claim, false);
+                }
                 throw e;
             }
         } finally {
@@ -214,9 +224,10 @@ public class EventServiceImpl implements EventService {
 
     @Override
     public List<EventRepository.MigrationImage> migrationInventory() {
-        if (!maintenance)
+        if (!maintenance) {
             throw new EventException(
                     403, "MAINTENANCE_FORBIDDEN", "Migration requires CLI maintenance capability");
+        }
         return repository.migrationInventory();
     }
 

@@ -17,8 +17,9 @@ public final class EventRequestParser {
         StringBuilder data = new StringBuilder();
         char[] buffer = new char[2048];
         for (int n; (n = reader.read(buffer)) != -1; ) {
-            if (data.length() + n > 65536)
+            if (data.length() + n > 65536) {
                 throw new EventProblem(413, "EVENT_INPUT_TOO_LARGE", "Dữ liệu sự kiện quá lớn.");
+            }
             data.append(buffer, 0, n);
         }
         return data.toString().isBlank()
@@ -36,22 +37,30 @@ public final class EventRequestParser {
                 expect(':');
                 space();
                 String value;
-                if (index < source.length() && source.charAt(index) == '"') value = string();
-                else {
+                if (index < source.length() && source.charAt(index) == '"') {
+                    value = string();
+                } else {
                     int start = index;
                     while (index < source.length()
-                            && "0123456789-eE+.".indexOf(source.charAt(index)) >= 0) index++;
+                            && "0123456789-eE+.".indexOf(source.charAt(index)) >= 0) {
+                        index++;
+                    }
                     value = source.substring(start, index);
-                    if (!value.matches("-?(0|[1-9][0-9]*)(\\.[0-9]+)?([eE][+-]?[0-9]+)?"))
+                    if (!value.matches("-?(0|[1-9][0-9]*)(\\.[0-9]+)?([eE][+-]?[0-9]+)?")) {
                         throw invalid();
+                    }
                 }
-                if (result.putIfAbsent(key, value) != null) throw invalid();
+                if (result.putIfAbsent(key, value) != null) {
+                    throw invalid();
+                }
                 space();
             } while (take(','));
             expect('}');
         }
         space();
-        if (index != source.length()) throw invalid();
+        if (index != source.length()) {
+            throw invalid();
+        }
         return Map.copyOf(result);
     }
 
@@ -61,13 +70,19 @@ public final class EventRequestParser {
         StringBuilder result = new StringBuilder();
         while (index < source.length()) {
             char c = source.charAt(index++);
-            if (c == '"') return result.toString();
-            if (c < 0x20) throw invalid();
+            if (c == '"') {
+                return result.toString();
+            }
+            if (c < 0x20) {
+                throw invalid();
+            }
             if (c != '\\') {
                 result.append(c);
                 continue;
             }
-            if (index == source.length()) throw invalid();
+            if (index == source.length()) {
+                throw invalid();
+            }
             char escape = source.charAt(index++);
             switch (escape) {
                 case '"', '\\', '/' -> result.append(escape);
@@ -77,11 +92,15 @@ public final class EventRequestParser {
                 case 'r' -> result.append('\r');
                 case 't' -> result.append('\t');
                 case 'u' -> {
-                    if (index + 4 > source.length()) throw invalid();
+                    if (index + 4 > source.length()) {
+                        throw invalid();
+                    }
                     int value = 0;
                     for (int i = 0; i < 4; i++) {
                         char hex = source.charAt(index++);
-                        if ("0123456789abcdefABCDEF".indexOf(hex) < 0) throw invalid();
+                        if ("0123456789abcdefABCDEF".indexOf(hex) < 0) {
+                            throw invalid();
+                        }
                         value = value * 16 + Character.digit(hex, 16);
                     }
                     result.append((char) value);
@@ -98,7 +117,9 @@ public final class EventRequestParser {
     }
 
     private void expectRaw(char c) {
-        if (!take(c)) throw invalid();
+        if (!take(c)) {
+            throw invalid();
+        }
     }
 
     private boolean take(char c) {
@@ -110,7 +131,9 @@ public final class EventRequestParser {
     }
 
     private void space() {
-        while (index < source.length() && " \t\r\n".indexOf(source.charAt(index)) >= 0) index++;
+        while (index < source.length() && " \t\r\n".indexOf(source.charAt(index)) >= 0) {
+            index++;
+        }
     }
 
     private EventProblem invalid() {

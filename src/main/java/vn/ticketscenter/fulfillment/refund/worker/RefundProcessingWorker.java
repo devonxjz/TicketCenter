@@ -21,8 +21,9 @@ public final class RefundProcessingWorker {
         this.store = Objects.requireNonNull(store);
         this.gateway = Objects.requireNonNull(gateway);
         this.leases = Objects.requireNonNull(leases);
-        if (batchSize < 1 || batchSize > 1000)
+        if (batchSize < 1 || batchSize > 1000) {
             throw new IllegalArgumentException("Batch must be 1..1000");
+        }
         this.batchSize = batchSize;
     }
 
@@ -32,15 +33,19 @@ public final class RefundProcessingWorker {
 
     int run(String kind) {
         int applied = 0;
-        for (var candidate : store.candidates(kind, batchSize)) {
+        for (RefundWorkerStore.Candidate candidate : store.candidates(kind, batchSize)) {
             try {
-                var lease = leases.acquire(candidate.refundId());
-                if (lease.isEmpty()) continue;
-                try (var handle = lease.get()) {
-                    var claimed = store.claim(candidate, UUID.randomUUID());
-                    if (claimed.isEmpty()) continue;
-                    var claim = claimed.get();
-                    var outcome = transfer(claim);
+                Optional<RefundLease.Handle> lease = leases.acquire(candidate.refundId());
+                if (lease.isEmpty()) {
+                    continue;
+                }
+                try (RefundLease.Handle handle = lease.get()) {
+                    Optional<RefundWorkerStore.Claim> claimed = store.claim(candidate, UUID.randomUUID());
+                    if (claimed.isEmpty()) {
+                        continue;
+                    }
+                    RefundWorkerStore.Claim claim = claimed.get();
+                    RefundProcessingWorker.GatewayOutcome outcome = transfer(claim);
                     store.record(claim, outcome.result().gatewayResult(), outcome.error());
                     applied++;
                 }
@@ -55,13 +60,14 @@ public final class RefundProcessingWorker {
 
     private GatewayOutcome transfer(RefundWorkerStore.Claim claim) {
         try {
-            var result =
+            RefundTransferResult result =
                     claim.kind().equals("EXECUTE")
                             ? gateway.executeRefund(claim.request())
                             : gateway.queryRefundStatus(
                                     claim.providerReference(), claim.request().attemptId());
-            if (result == null || result.status() == null)
+            if (result == null || result.status() == null) {
                 throw new IllegalStateException("Missing gateway result");
+            }
             String error =
                     result.status() == RefundGateway.Status.FAILED ? "GATEWAY_DECLINED" : null;
             return new GatewayOutcome(result, error);

@@ -1,5 +1,6 @@
 package vn.ticketscenter.order.coupon.controller;
 
+import java.io.BufferedReader;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -24,15 +25,15 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 /**
- * Controller API quản trị mã giảm giá Coupon (LIEM-06 / UI-14).
- * - GET /api/admin/coupons: Lấy tất cả coupon (Admin)
- * - GET /api/organizations/{orgId}/coupons: Lấy coupon theo tổ chức
- * - POST /api/organizations/{orgId}/coupons: Tạo mới coupon
- * - GET /api/coupons/{id}: Chi tiết coupon
- * - PUT /api/coupons/{id}: Cập nhật coupon
- * - POST /api/coupons/{id}/activate: Kích hoạt coupon
- * - POST /api/coupons/{id}/deactivate: Vô hiệu hóa coupon
- * - DELETE /api/coupons/{id}: Xóa coupon
+ * Coupon administration API (LIEM-06 / UI-14).
+ * - GET /api/admin/coupons: every coupon (admin)
+ * - GET /api/organizations/{orgId}/coupons: an organisation's coupons
+ * - POST /api/organizations/{orgId}/coupons: create a coupon
+ * - GET /api/coupons/{id}: one coupon
+ * - PUT /api/coupons/{id}: update a coupon
+ * - POST /api/coupons/{id}/activate: activate a coupon
+ * - POST /api/coupons/{id}/deactivate: deactivate a coupon
+ * - DELETE /api/coupons/{id}: delete a coupon
  */
 @WebServlet(
         name = "CouponAdminServlet",
@@ -173,7 +174,7 @@ public class CouponAdminServlet extends HttpServlet {
     }
 
     private static String readBody(HttpServletRequest request) throws IOException {
-        try (var reader = request.getReader()) {
+        try (BufferedReader reader = request.getReader()) {
             return reader.lines().collect(Collectors.joining());
         }
     }

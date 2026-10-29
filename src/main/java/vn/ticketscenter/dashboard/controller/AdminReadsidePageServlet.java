@@ -1,5 +1,7 @@
 package vn.ticketscenter.dashboard.controller;
 
+import java.sql.Connection;
+import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.settlement.service.FinanceException;
 import vn.ticketscenter.settlement.service.FinanceRuntime;
 import jakarta.servlet.ServletException;
@@ -25,8 +27,8 @@ public final class AdminReadsidePageServlet extends HttpServlet {
                         case "/finance/overview" -> "dashboard/overview.jsp";
                         default -> throw new FinanceException("NOT_FOUND", 404);
                     };
-            var actor = ReadsideWeb.actor(request);
-            try (var db = FinanceRuntime.database(getServletContext()).open()) {
+            UserPrincipal actor = ReadsideWeb.actor(request);
+            try (Connection db = FinanceRuntime.database(getServletContext()).open()) {
                 FinanceAuthorization.requireAdmin(db, actor);
             }
             request.setAttribute("financeOrganizationId", "");

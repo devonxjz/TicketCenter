@@ -1,5 +1,6 @@
 package vn.ticketscenter.config.persistence;
 
+import jakarta.persistence.EntityManager;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import jakarta.persistence.EntityManagerFactory;
@@ -22,7 +23,9 @@ public final class PersistenceRegistry implements AutoCloseable {
         for (DatabasePrincipal principal : DatabasePrincipal.values()) {
             String user = DatabaseConfig.getPrincipalUser(principal);
             String password = DatabaseConfig.getPrincipalPassword(principal);
-            if (user == null || password == null) continue;
+            if (user == null || password == null) {
+                continue;
+            }
 
             HikariConfig pool = new HikariConfig();
             pool.setPoolName("ticketscenter-" + principal.name().toLowerCase());
@@ -71,10 +74,12 @@ public final class PersistenceRegistry implements AutoCloseable {
     }
 
     public boolean isReady() {
-        if (factories.isEmpty()) return false;
+        if (factories.isEmpty()) {
+            return false;
+        }
         try {
             for (EntityManagerFactory factory : factories.values()) {
-                var entityManager = factory.createEntityManager();
+                EntityManager entityManager = factory.createEntityManager();
                 try {
                     entityManager.createNativeQuery("SELECT 1", Integer.class).getSingleResult();
                 } finally {

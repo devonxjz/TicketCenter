@@ -43,7 +43,9 @@ public final class LoginThrottle {
     /** @return seconds the caller must wait, or 0 when a login attempt is allowed */
     public long retryAfterSeconds(String identifier, String client) {
         Entry entry = entries.get(key(identifier, client));
-        if (entry == null) return 0;
+        if (entry == null) {
+            return 0;
+        }
         Instant unlock = entry.windowStart().plus(window);
         if (!clock.instant().isBefore(unlock)) {
             entries.remove(key(identifier, client), entry);

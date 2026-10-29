@@ -45,7 +45,7 @@
                 <form id="forgotPasswordForm">
                     <input type="hidden" name="_csrf" value="${sessionScope.TC_CSRF_TOKEN}">
 
-                    <!-- Bước 1: Gửi OTP -->
+                    <!-- step 1: send the OTP -->
                     <div id="stepSend">
                         <div class="mb-3">
                             <label class="filter-label" for="emailInput">Email tài khoản</label>
@@ -59,7 +59,7 @@
                         </button>
                     </div>
 
-                    <!-- Bước 2: Nhập OTP -->
+                    <!-- step 2: enter the OTP -->
                     <div id="stepVerify" class="d-none mt-4">
                         <div class="mb-3">
                             <label class="filter-label" for="otpCodeInput">Mã OTP (6 chữ số)</label>

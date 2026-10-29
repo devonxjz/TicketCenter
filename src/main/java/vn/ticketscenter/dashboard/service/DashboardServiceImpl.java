@@ -36,10 +36,12 @@ public final class DashboardServiceImpl implements DashboardService {
 
     @Override
     public String admin(UserPrincipal actor) throws SQLException {
-        try (var db = database.open()) {
+        try (Connection db = database.open()) {
             FinanceAuthorization.requireAdmin(db, actor);
             String hit = cache.get();
-            if (hit != null) return hit;
+            if (hit != null) {
+                return hit;
+            }
             String json =
                     FinanceJson.write(
                             Map.of("data", repository.overview(db, null, clock.instant())));
@@ -50,7 +52,7 @@ public final class DashboardServiceImpl implements DashboardService {
 
     @Override
     public String organization(UserPrincipal actor, UUID org) throws SQLException {
-        try (var db = database.open()) {
+        try (Connection db = database.open()) {
             FinanceAuthorization.requireManager(db, actor, org);
             repository.requireOrganization(db, org);
             return FinanceJson.write(Map.of("data", repository.overview(db, org, clock.instant())));

@@ -10,7 +10,7 @@ import static vn.ticketscenter.config.web.Json.object;
 import static vn.ticketscenter.config.web.Json.text;
 
 /**
- * Tóm tắt thông tin vé hiển thị trong danh sách "Vé của tôi" (LIEM-05).
+ * A ticket as the "My tickets" list shows it (LIEM-05).
  */
 public record TicketSummaryDto(
         UUID id,

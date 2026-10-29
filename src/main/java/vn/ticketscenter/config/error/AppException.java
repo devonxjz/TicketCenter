@@ -1,8 +1,8 @@
 package vn.ticketscenter.config.error;
 
 /**
- * Gốc của mọi lỗi nghiệp vụ/hạ tầng của ứng dụng. Mang theo mã HTTP và mã lỗi ổn định để
- * {@code ErrorPageServlet} (và các servlet API) dựng phản hồi thống nhất mà không đoán từ loại exception.
+ * Root of every business or infrastructure error. It carries the HTTP status and a stable error code so
+ * {@code ErrorPageServlet} (and the API servlets) build one reply shape without guessing from the exception type.
  */
 public class AppException extends RuntimeException {
 

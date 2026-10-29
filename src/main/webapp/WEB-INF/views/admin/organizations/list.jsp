@@ -166,7 +166,7 @@
         </main>
     </div>
 
-    <!-- Modal Phê Duyệt -->
+    <!-- approve modal -->
     <div class="modal fade" id="approveModal" tabindex="-1" aria-labelledby="approveModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content rounded-0">
@@ -183,7 +183,7 @@
                             Phê duyệt hồ sơ: <strong id="approveOrgName" class="text-dark"></strong>
                         </p>
 
-                        <!-- Card thông tin Sự kiện khởi tạo và Tổ chức -->
+                        <!-- first event and organisation details -->
                         <div class="card bg-light border p-3 mb-3" id="approveEventSection">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <span class="fw-bold text-dark small text-uppercase">
@@ -256,7 +256,7 @@
         </div>
     </div>
 
-    <!-- Modal Từ Chối -->
+    <!-- reject modal -->
     <div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content rounded-0">

@@ -104,13 +104,17 @@ public final class RedisActiveHoldCache {
     /** Snapshot must come from an ACTIVE hold read in DB, with current ownership checked by its caller. */
     public boolean fill(FillToken token, ActiveHoldProjection projection) {
         Objects.requireNonNull(projection);
-        if (token == null || !token.actorId.equals(projection.buyerId())) return false;
+        if (token == null || !token.actorId.equals(projection.buyerId())) {
+            return false;
+        }
         try (Jedis jedis = connections.get()) {
             long ttl =
                     Math.min(
                             MARKER_TTL_MILLIS,
                             Duration.between(clock.instant(), projection.expiresAt()).toMillis());
-            if (ttl < 1) return false;
+            if (ttl < 1) {
+                return false;
+            }
             return Long.valueOf(1)
                     .equals(
                             jedis.eval(
@@ -137,14 +141,15 @@ public final class RedisActiveHoldCache {
         }
     }
 
-    /** Xóa active hold đã cache của mọi người dùng (hủy sự kiện). */
+    /** Drops every user's cached active hold (event cancellation). */
     public static void evictAll(Jedis redis) {
         RedisScan.deleteMatching(redis, "tc:user:active-hold:*");
     }
 
     public static String redisKey(UUID actorId) {
-        if (actorId == null || actorId.equals(new UUID(0, 0)))
+        if (actorId == null || actorId.equals(new UUID(0, 0))) {
             throw new IllegalArgumentException("actorId must be a nonzero UUID");
+        }
         return "tc:user:active-hold:" + actorId;
     }
 
@@ -159,8 +164,9 @@ public final class RedisActiveHoldCache {
     private static boolean validMarker(String value) {
         if (value == null
                 || !value.matches(
-                        "1\\|M\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"))
+                        "1\\|M\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")) {
             return false;
+        }
         return !UUID.fromString(value.substring(4)).equals(new UUID(0, 0));
     }
 
@@ -175,10 +181,12 @@ public final class RedisActiveHoldCache {
                 output.writeLong(projection.expiresAt().getEpochSecond());
                 output.writeInt(projection.expiresAt().getNano());
                 output.writeByte(projection.items().size());
-                for (var item : projection.items()) {
+                for (ActiveHoldProjection.Item item : projection.items()) {
                     writeUuid(output, item.zoneId());
                     output.writeBoolean(item.seatId() != null);
-                    if (item.seatId() != null) writeUuid(output, item.seatId());
+                    if (item.seatId() != null) {
+                        writeUuid(output, item.seatId());
+                    }
                     output.writeByte(item.quantity());
                     output.writeUTF(item.unitPrice().toPlainString());
                 }
@@ -190,36 +198,51 @@ public final class RedisActiveHoldCache {
     }
 
     private static Optional<ActiveHoldProjection> decode(String payload) {
-        if (payload.length() > MAX_PAYLOAD_CHARS) return Optional.empty();
+        if (payload.length() > MAX_PAYLOAD_CHARS) {
+            return Optional.empty();
+        }
         try {
             byte[] bytes = Base64.getUrlDecoder().decode(payload);
-            if (!Base64.getUrlEncoder().withoutPadding().encodeToString(bytes).equals(payload))
+            if (!Base64.getUrlEncoder().withoutPadding().encodeToString(bytes).equals(payload)) {
                 return Optional.empty();
+            }
             try (var input = new DataInputStream(new ByteArrayInputStream(bytes))) {
-                if (input.readUnsignedByte() != 2) return Optional.empty();
+                if (input.readUnsignedByte() != 2) {
+                    return Optional.empty();
+                }
                 UUID id = readUuid(input);
                 UUID buyer = readUuid(input);
                 UUID event = readUuid(input);
                 long seconds = input.readLong();
                 int nanos = input.readInt();
-                if (nanos < 0 || nanos > 999_999_999) return Optional.empty();
+                if (nanos < 0 || nanos > 999_999_999) {
+                    return Optional.empty();
+                }
                 Instant expires = Instant.ofEpochSecond(seconds, nanos);
                 int count = input.readUnsignedByte();
-                if (count < 1 || count > 8) return Optional.empty();
+                if (count < 1 || count > 8) {
+                    return Optional.empty();
+                }
                 var items = new ArrayList<ActiveHoldProjection.Item>();
                 for (int index = 0; index < count; index++) {
                     UUID zone = readUuid(input);
                     int hasSeat = input.readUnsignedByte();
-                    if (hasSeat > 1) return Optional.empty();
+                    if (hasSeat > 1) {
+                        return Optional.empty();
+                    }
                     UUID seat = hasSeat == 1 ? readUuid(input) : null;
                     int quantity = input.readUnsignedByte();
                     String price = input.readUTF();
-                    if (!price.matches("0|[1-9][0-9]{0,18}")) return Optional.empty();
+                    if (!price.matches("0|[1-9][0-9]{0,18}")) {
+                        return Optional.empty();
+                    }
                     items.add(
                             new ActiveHoldProjection.Item(
                                     zone, seat, quantity, new BigDecimal(price)));
                 }
-                if (input.available() != 0) return Optional.empty();
+                if (input.available() != 0) {
+                    return Optional.empty();
+                }
                 return Optional.of(new ActiveHoldProjection(id, buyer, event, expires, items));
             }
         } catch (IOException | RuntimeException corrupt) {

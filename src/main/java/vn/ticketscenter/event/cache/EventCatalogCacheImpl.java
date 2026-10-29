@@ -30,7 +30,9 @@ public final class EventCatalogCacheImpl implements EventCatalogCache, EventCach
     public Optional<String> get(String key) {
         if (invalidationPending()) {
             invalidateCommitted(null, null);
-            if (invalidationPending()) return Optional.empty();
+            if (invalidationPending()) {
+                return Optional.empty();
+            }
         }
         try (Jedis redis = connections.get()) {
             String json = redis.get(key);
@@ -49,7 +51,9 @@ public final class EventCatalogCacheImpl implements EventCatalogCache, EventCach
     public void put(String key, String json, int ttlSeconds) {
         if (invalidationPending()
                 || json.length() > MAX_CHARACTERS
-                || !CachedJsonValidator.isResponse(json)) return;
+                || !CachedJsonValidator.isResponse(json)) {
+            return;
+        }
         try (Jedis redis = connections.get()) {
             redis.setex(key, ttlSeconds, json);
         } catch (RuntimeException ignored) {
@@ -72,7 +76,9 @@ public final class EventCatalogCacheImpl implements EventCatalogCache, EventCach
         if (generation == null
                 || invalidationPending()
                 || json.length() > MAX_CHARACTERS
-                || !CachedJsonValidator.isResponse(json)) return;
+                || !CachedJsonValidator.isResponse(json)) {
+            return;
+        }
         try (Jedis redis = connections.get()) {
             redis.eval(
                     "if (redis.call('GET',KEYS[1]) or '0')==ARGV[1] then return redis.call('SET',KEYS[2],ARGV[2],'EX',ARGV[3]) end return 0",
@@ -112,7 +118,8 @@ public final class EventCatalogCacheImpl implements EventCatalogCache, EventCach
 
     private void unavailable() {
         long now = System.currentTimeMillis(), next = nextWarning.get();
-        if (now >= next && nextWarning.compareAndSet(next, now + 60_000))
+        if (now >= next && nextWarning.compareAndSet(next, now + 60_000)) {
             LOGGER.warning("Event catalog Redis unavailable; falling back to SQL Server.");
+        }
     }
 }

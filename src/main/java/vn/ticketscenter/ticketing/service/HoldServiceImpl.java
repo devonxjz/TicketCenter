@@ -31,18 +31,19 @@ public final class HoldServiceImpl implements HoldService {
             var response =
                     new RedisHoldIdempotency.CompletedResponse(
                             receipt.httpStatus(), "application/json;charset=UTF-8", receipt.body());
-            var state =
+            RedisHoldIdempotency.Result state =
                     receipts.acquire(actor.id(), command.key().toString(), command.fingerprint());
-            if (state instanceof RedisHoldIdempotency.Acquired acquired)
+            if (state instanceof RedisHoldIdempotency.Acquired acquired) {
                 receipts.complete(
                         acquired.claim(), response, RedisHoldIdempotency.MAX_RESULT_RETENTION);
-            else
+            } else {
                 receipts.recoverConfirmedResult(
                         actor.id(),
                         command.key().toString(),
                         command.fingerprint(),
                         response,
                         RedisHoldIdempotency.MAX_RESULT_RETENTION);
+            }
         } catch (RuntimeException redisUnavailable) {
         }
         return receipt;
@@ -50,14 +51,14 @@ public final class HoldServiceImpl implements HoldService {
 
     @Override
     public CurrentHold current(HoldActor actor) {
-        var cached = activeCache.lookup(actor.id());
+        RedisActiveHoldCache.Lookup cached = activeCache.lookup(actor.id());
         CurrentHold current = repository.current(actor);
         if (!cached.projection().equals(current.projection())) {
             if (cached.projection().isPresent()) {
                 activeCache.invalidateAfterCommit(actor.id());
                 return current;
             }
-            var token = cached.fillToken().orElse(null);
+            RedisActiveHoldCache.FillToken token = cached.fillToken().orElse(null);
             current.projection().ifPresent(projection -> activeCache.fill(token, projection));
         }
         return current;

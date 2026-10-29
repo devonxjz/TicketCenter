@@ -24,13 +24,19 @@ public final class CancellationReviewServiceImpl implements CancellationReviewSe
     @Override
     public String execute(
             UserPrincipal actor, UUID eventId, String action, String reason, UUID key) {
-        if (actor == null) throw new RefundException(401, "AUTH_REQUIRED", "Cần đăng nhập.");
-        if (eventId == null || !ACTIONS.contains(action)) throw invalid();
+        if (actor == null) {
+            throw new RefundException(401, "AUTH_REQUIRED", "Cần đăng nhập.");
+        }
+        if (eventId == null || !ACTIONS.contains(action)) {
+            throw invalid();
+        }
         if (DECISIONS.contains(action) && !actor.isAdmin()) {
             throw new RefundException(
                     403, "ADMIN_REQUIRED", "Chỉ quản trị viên được quyết định yêu cầu hủy.");
         }
-        if (!action.equals("READ") && key == null) throw invalid();
+        if (!action.equals("READ") && key == null) {
+            throw invalid();
+        }
         if (action.equals("REQUEST") || action.equals("REJECT")) {
             reason = new EventCancelRequestDto(reason).reason();
         } else if (reason != null) {

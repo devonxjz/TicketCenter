@@ -19,7 +19,9 @@ public final class RedisOwnedLease {
             Supplier<Jedis> connections, String key, SetParams expiry) {
         String token = UUID.randomUUID().toString();
         try (Jedis redis = connections.get()) {
-            if (!"OK".equals(redis.set(key, token, expiry.nx()))) return Optional.empty();
+            if (!"OK".equals(redis.set(key, token, expiry.nx()))) {
+                return Optional.empty();
+            }
         }
         return Optional.of(
                 () -> {

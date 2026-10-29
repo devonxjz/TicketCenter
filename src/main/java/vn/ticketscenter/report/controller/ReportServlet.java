@@ -1,5 +1,6 @@
 package vn.ticketscenter.report.controller;
 
+import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.settlement.service.FinanceException;
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebServlet;
@@ -22,8 +23,8 @@ public final class ReportServlet extends HttpServlet {
         ReportService reports = ReportRuntime.resolve(getServletContext());
         DashboardService overview = DashboardRuntime.resolve(getServletContext());
         try {
-            var actor = ReadsideWeb.actor(request);
-            var params = ReadsideWeb.parameters(request);
+            UserPrincipal actor = ReadsideWeb.actor(request);
+            Map<String, String> params = ReadsideWeb.parameters(request);
             String path = request.getServletPath();
             if (path.equals("/api/reports/options")) {
                 ReadsideWeb.json(
@@ -35,10 +36,12 @@ public final class ReportServlet extends HttpServlet {
             Object organizationRoute =
                     request.getAttribute(OrganizationReadsideRoutesFilter.ROUTE_ATTRIBUTE);
             if (organizationRoute != null) {
-                var route = ReadsideWeb.organizationRoute((String) organizationRoute);
+                Object[] route = ReadsideWeb.organizationRoute((String) organizationRoute);
                 org = (UUID) route[0];
                 if (route[1].equals("overview")) {
-                    if (!params.isEmpty()) throw new FinanceException("INVALID_FILTER", 400);
+                    if (!params.isEmpty()) {
+                        throw new FinanceException("INVALID_FILTER", 400);
+                    }
                     try {
                         ReadsideWeb.json(response, overview.organization(actor, org));
                     } catch (SQLException e) {
@@ -47,7 +50,7 @@ public final class ReportServlet extends HttpServlet {
                     return;
                 }
             }
-            var filter = ReportFilter.parse(params, org);
+            ReportFilter filter = ReportFilter.parse(params, org);
             if (path.equals("/api/reports/export")) {
                 response.setContentType("text/csv;charset=UTF-8");
                 response.setHeader(
@@ -58,12 +61,13 @@ public final class ReportServlet extends HttpServlet {
                 response.setHeader("Cache-Control", "no-store");
                 response.setHeader("X-Content-Type-Options", "nosniff");
                 reports.export(actor, filter, response.getOutputStream());
-            } else
+            } else {
                 ReadsideWeb.json(
                         response,
                         path.equals("/api/admin/reports")
                                 ? reports.jsonAdmin(actor, filter)
                                 : reports.json(actor, filter));
+            }
         } catch (FinanceException e) {
             ReadsideWeb.error(response, e);
         } catch (SQLException e) {

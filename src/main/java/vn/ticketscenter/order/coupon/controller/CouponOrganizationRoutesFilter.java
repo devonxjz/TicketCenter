@@ -1,5 +1,6 @@
 package vn.ticketscenter.order.coupon.controller;
 
+import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.DispatcherType;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
@@ -26,7 +27,7 @@ public final class CouponOrganizationRoutesFilter implements Filter {
             chain.doFilter(request, response);
             return;
         }
-        var dispatcher = request.getServletContext().getNamedDispatcher("CouponAdminServlet");
+        RequestDispatcher dispatcher = request.getServletContext().getNamedDispatcher("CouponAdminServlet");
         if (dispatcher == null) {
             ((HttpServletResponse) response).sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
             return;

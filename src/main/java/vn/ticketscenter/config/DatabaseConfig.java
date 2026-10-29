@@ -3,13 +3,13 @@ package vn.ticketscenter.config;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
 
 /**
- * Cấu hình kết nối cơ sở dữ liệu Microsoft SQL Server (Azure SQL / Local).
- * Tách biệt các thiết lập về máy chủ, cổng, tên database, thông tin xác thực và timeout.
+ * Connection settings for Microsoft SQL Server (Azure SQL or local).
+ * Host, port, database name, credentials and timeouts are read separately.
  */
 public final class DatabaseConfig {
 
     private DatabaseConfig() {
-        // Utility class không cho phép khởi tạo instance
+        // utility class
     }
 
     public static String getHost() {

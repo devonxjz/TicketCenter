@@ -1,5 +1,6 @@
 package vn.ticketscenter.identity.security;
 
+import java.util.UUID;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -23,7 +24,7 @@ public final class DatabaseActorFilter implements Filter {
     public static void withActor(
             ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
-        var previous = DatabaseActorContext.current();
+        UUID previous = DatabaseActorContext.current();
         DatabaseActorContext.set(
                 SecurityContext.getCurrentUser((HttpServletRequest) request)
                         .map(UserPrincipal::actorId)

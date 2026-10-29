@@ -2,11 +2,11 @@
     'use strict';
 
     /**
-     * Quản lý thành viên tổ chức (Organization Members)
-     * Tư duy tuần tự: 1. Hằng số & DOM -> 2. Trạng thái -> 3. Render -> 4. Hành động -> 5. Sự kiện
+     * Organisation members
+     * Order: 1. constants & DOM -> 2. state -> 3. render -> 4. actions -> 5. events
      */
 
-    // 1. HẰNG SỐ & DOM HELPERS
+    // 1. CONSTANTS & DOM HELPERS
     const contextPath = window.TC_CONTEXT_PATH ||
         document.querySelector('meta[name="context-path"]')?.getAttribute('content') ||
         (window.location?.pathname?.startsWith('/ticketscenter') ? '/ticketscenter' : '');
@@ -42,7 +42,7 @@
         }
     }
 
-    // 2. TRẠNG THÁI (STATE)
+    // 2. STATE
     let currentMembers = [];
     let activeManagerCount = 0;
     let memberRequest = 0;
@@ -204,7 +204,7 @@
         attachRowActionListeners();
     }
 
-    // 4. HÀNH ĐỘNG (ACTIONS)
+    // 4. ACTIONS
 
     function isCurrentScope(context) {
         return !!(context && context.scope === organizationScope && context.orgId === getActiveOrgId());
@@ -599,7 +599,7 @@
         }
     }
 
-    // 5. GẮN SỰ KIỆN & KHỞI TẠO (EVENTS & INITIALIZATION)
+    // 5. EVENTS & INITIALIZATION
 
     function attachRowActionListeners() {
         document.querySelectorAll('.btn-change-role').forEach(btn => {

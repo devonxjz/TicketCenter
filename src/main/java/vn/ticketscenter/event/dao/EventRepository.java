@@ -1,5 +1,6 @@
 package vn.ticketscenter.event.dao;
 
+import vn.ticketscenter.config.web.HttpResponses;
 import static vn.ticketscenter.event.dao.EventJdbc.*;
 
 import vn.ticketscenter.event.dto.*;
@@ -94,8 +95,9 @@ public class EventRepository {
         return tx(
                 manager,
                 c -> {
-                    if (!maintenance && actor == null)
+                    if (!maintenance && actor == null) {
                         throw failure(401, "AUTH_REQUIRED", "Sign in first");
+                    }
                     EventFields f = command.fields();
                     Object[] saved =
                             row(
@@ -123,8 +125,9 @@ public class EventRepository {
                                     f == null ? null : f.endTime(),
                                     asset == null ? null : asset.publicId(),
                                     asset == null ? null : asset.secureUrl());
-                    if (Boolean.TRUE.equals(saved[0]))
+                    if (Boolean.TRUE.equals(saved[0])) {
                         return EventDto.fromSnapshot((String) saved[1]);
+                    }
                     EventDto result = find(c, claim.eventId());
                     execute(
                             c,
@@ -182,8 +185,9 @@ public class EventRepository {
                                             + " FROM dbo.vw_PublicEvents e WHERE event_id=? AND "
                                             + RealEventVisibility.predicate("e"),
                                     id);
-                    if (rows.isEmpty())
+                    if (rows.isEmpty()) {
                         throw failure(404, "EVENT_NOT_FOUND", "Event was not found");
+                    }
                     return rows.getFirst();
                 });
     }
@@ -226,14 +230,15 @@ public class EventRepository {
                                                     + " WHERE o.user_id=? ORDER BY o.name",
                                             actor.actorId());
                             ResultSet r = q.executeQuery()) {
-                        while (r.next())
+                        while (r.next()) {
                             organizations.add(
                                     "{\"id\":\""
                                             + id(r, 1)
                                             + "\",\"name\":"
-                                            + vn.ticketscenter.config.web.HttpResponses.jsonString(
+                                            + HttpResponses.jsonString(
                                                     r.getString(2))
                                             + "}");
+                        }
                     }
                     try (PreparedStatement q =
                                     query(
@@ -241,17 +246,18 @@ public class EventRepository {
                                             "SELECT id,name,slug FROM dbo.vw_EventCategories ORDER"
                                                     + " BY name");
                             ResultSet r = q.executeQuery()) {
-                        while (r.next())
+                        while (r.next()) {
                             categories.add(
                                     "{\"id\":\""
                                             + id(r, 1)
                                             + "\",\"name\":"
-                                            + vn.ticketscenter.config.web.HttpResponses.jsonString(
+                                            + HttpResponses.jsonString(
                                                     r.getString(2))
                                             + ",\"slug\":"
-                                            + vn.ticketscenter.config.web.HttpResponses.jsonString(
+                                            + HttpResponses.jsonString(
                                                     r.getString(3))
                                             + "}");
+                        }
                     }
                     return "{\"organizations\":["
                             + String.join(",", organizations)
@@ -275,7 +281,7 @@ public class EventRepository {
                                                     + ",e.category_slug,e.event_image,e.event_image"
                                                     + " FROM dbo.vw_ManagedEvents e ORDER BY e.id");
                             ResultSet r = q.executeQuery()) {
-                        while (r.next())
+                        while (r.next()) {
                             list.add(
                                     new MigrationImage(
                                             event(r),
@@ -283,19 +289,23 @@ public class EventRepository {
                                             r.getString(14),
                                             r.getString(15),
                                             r.getString(18)));
+                        }
                     }
                     return List.copyOf(list);
                 });
     }
 
     public List<Cleanup> claimCleanup(int limit) {
-        if (limit < 1 || limit > 100) throw new IllegalArgumentException("Invalid cleanup limit");
+        if (limit < 1 || limit > 100) {
+            throw new IllegalArgumentException("Invalid cleanup limit");
+        }
         return tx(
                 worker,
                 c -> {
                     List<Cleanup> list = new ArrayList<>();
-                    for (Object[] row : rows(c, "EXEC dbo.usp_EventImageClaimCleanup ?", limit))
+                    for (Object[] row : rows(c, "EXEC dbo.usp_EventImageClaimCleanup ?", limit)) {
                         list.add(new Cleanup((String) row[0], uuid(row[1])));
+                    }
                     return List.copyOf(list);
                 });
     }
@@ -318,7 +328,9 @@ public class EventRepository {
     private static void authorize(
             Connection c, UserPrincipal actor, UUID organizationId, boolean maintenance)
             throws SQLException {
-        if (!maintenance && actor == null) throw failure(401, "AUTH_REQUIRED", "Sign in first");
+        if (!maintenance && actor == null) {
+            throw failure(401, "AUTH_REQUIRED", "Sign in first");
+        }
         execute(
                 c,
                 "EXEC dbo.usp_EventImageAuthorize ?,?,?,?",
@@ -329,7 +341,9 @@ public class EventRepository {
     }
 
     private static void currentUser(Connection c, UserPrincipal actor) throws SQLException {
-        if (actor == null) throw failure(401, "AUTH_REQUIRED", "Sign in first");
+        if (actor == null) {
+            throw failure(401, "AUTH_REQUIRED", "Sign in first");
+        }
         execute(c, "EXEC dbo.usp_EventRequireSession ?,?", actor.actorId(), actor.authVersion());
     }
 
@@ -340,7 +354,9 @@ public class EventRepository {
     private static EventDto find(Connection c, UUID id) throws SQLException {
         List<EventDto> rows =
                 events(c, "SELECT " + COLUMNS + " FROM dbo.vw_ManagedEvents e WHERE e.id=?", id);
-        if (rows.isEmpty()) throw failure(404, "EVENT_NOT_FOUND", "Event was not found");
+        if (rows.isEmpty()) {
+            throw failure(404, "EVENT_NOT_FOUND", "Event was not found");
+        }
         return rows.getFirst();
     }
 }

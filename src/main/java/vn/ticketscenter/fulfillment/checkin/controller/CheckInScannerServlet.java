@@ -1,5 +1,6 @@
 package vn.ticketscenter.fulfillment.checkin.controller;
 
+import java.util.UUID;
 import vn.ticketscenter.fulfillment.checkin.service.CheckInRuntime;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -15,8 +16,8 @@ public class CheckInScannerServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws IOException, ServletException {
         try {
-            var actor = CheckInWeb.actor(request);
-            var event = CheckInWeb.id(request.getParameter("eventId"));
+            UUID actor = CheckInWeb.actor(request);
+            UUID event = CheckInWeb.id(request.getParameter("eventId"));
             CheckInRuntime.resolve(request.getServletContext()).window(actor, event);
             response.setHeader("Cache-Control", "no-store");
             request.getRequestDispatcher("/WEB-INF/views/checkin/scanner.jsp")

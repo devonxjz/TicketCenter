@@ -1,5 +1,7 @@
 package vn.ticketscenter.config.web;
 
+import vn.ticketscenter.report.controller.OrganizationReadsideRoutesFilter;
+import vn.ticketscenter.identity.service.SessionValidator;
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.*;
@@ -30,12 +32,12 @@ public final class OrganizationApiRoutesFilter implements Filter {
             return;
         }
         // Named forwarding can run before annotation-ordered REQUEST filters.
-        var principal = SecurityContext.getCurrentUser(httpRequest).orElse(null);
+        UserPrincipal principal = SecurityContext.getCurrentUser(httpRequest).orElse(null);
         if (principal == null) {
             HttpResponses.error(httpResponse, 401, "UNAUTHENTICATED", "Bạn cần đăng nhập.");
             return;
         }
-        var auth = IdentityServices.sessionValidator(httpRequest.getServletContext());
+        SessionValidator auth = IdentityServices.sessionValidator(httpRequest.getServletContext());
         if (auth == null) {
             HttpResponses.error(httpResponse, 503, "AUTH_UNAVAILABLE", "Hệ thống xác thực chưa sẵn sàng.");
             return;
@@ -45,14 +47,14 @@ public final class OrganizationApiRoutesFilter implements Filter {
             HttpResponses.error(httpResponse, 401, "SESSION_EXPIRED", "Phiên đăng nhập đã hết hạn.");
             return;
         }
-        var dispatcher = request.getServletContext().getNamedDispatcher("FinanceReportServlet");
+        RequestDispatcher dispatcher = request.getServletContext().getNamedDispatcher("FinanceReportServlet");
         if (dispatcher == null) {
             HttpResponses.error(httpResponse, 503, "REPORT_UNAVAILABLE", "Hệ thống báo cáo chưa sẵn sàng.");
             return;
         }
         // Preserve the wildcard route contract even if another servlet receives this request later.
         request.setAttribute(
-                vn.ticketscenter.report.controller.OrganizationReadsideRoutesFilter.ROUTE_ATTRIBUTE,
+                OrganizationReadsideRoutesFilter.ROUTE_ATTRIBUTE,
                 path.substring("/api/organizations".length()));
         var routed =
                 new HttpServletRequestWrapper(httpRequest) {

@@ -1,5 +1,6 @@
 package vn.ticketscenter.config.worker;
 
+import java.util.List;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.event.dao.EventCancellationRepository;
@@ -17,16 +18,18 @@ public final class EventCancellationJob {
             int batchSize) {
         this.transactions = Objects.requireNonNull(transactions);
         this.repository = Objects.requireNonNull(repository);
-        if (batchSize < 1) throw new IllegalArgumentException("batchSize must be positive");
+        if (batchSize < 1) {
+            throw new IllegalArgumentException("batchSize must be positive");
+        }
         this.batchSize = batchSize;
     }
 
     public int runOnce() {
-        var work =
+        List<Object> work =
                 transactions.execute(
                         DatabasePrincipal.WORKER,
                         entityManager -> repository.findWork(entityManager, batchSize));
-        for (var item : work) {
+        for (Object item : work) {
             transactions.execute(
                     DatabasePrincipal.WORKER,
                     entityManager -> {

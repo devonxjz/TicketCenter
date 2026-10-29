@@ -1,5 +1,7 @@
 package vn.ticketscenter.fulfillment.checkin.controller;
 
+import vn.ticketscenter.identity.security.UserPrincipal;
+import vn.ticketscenter.identity.service.SessionValidator;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import vn.ticketscenter.config.web.ApiRequest;
@@ -14,7 +16,7 @@ final class CheckInWeb {
     private CheckInWeb() {}
 
     static UUID actor(HttpServletRequest request) {
-        var principal =
+        UserPrincipal principal =
                 SecurityContext.getCurrentUser(request)
                         .orElseThrow(
                                 () ->
@@ -24,9 +26,10 @@ final class CheckInWeb {
                                                 "Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn."));
         // Named forwarding may precede the shared REQUEST filter; HTML pages also need session
         // validation.
-        var auth = IdentityServices.sessionValidator(request.getServletContext());
-        if (auth == null)
+        SessionValidator auth = IdentityServices.sessionValidator(request.getServletContext());
+        if (auth == null) {
             throw new CheckInException(503, "AUTH_UNAVAILABLE", "Hệ thống xác thực chưa sẵn sàng.");
+        }
         if (!auth.isSessionValid(principal.actorId(), principal.authVersion())) {
             SecurityContext.clearSession(request);
             throw new CheckInException(
@@ -41,13 +44,14 @@ final class CheckInWeb {
     }
 
     static void error(HttpServletResponse response, RuntimeException exception) throws IOException {
-        if (exception instanceof CheckInException e)
+        if (exception instanceof CheckInException e) {
             HttpResponses.error(response, e);
-        else
+        } else {
             HttpResponses.error(
                     response,
                     503,
                     "DATABASE_UNAVAILABLE",
                     "Hệ thống soát vé tạm thời không khả dụng.");
+        }
     }
 }

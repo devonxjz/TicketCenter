@@ -1,5 +1,11 @@
 package vn.ticketscenter.config.persistence;
 
+import java.io.IOException;
+import java.net.InetAddress;
+import java.nio.file.Path;
+import java.util.UUID;
+import vn.ticketscenter.config.redis.RedisClientProvider;
+import vn.ticketscenter.event.service.EventCatalogRuntime;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
 import jakarta.servlet.annotation.WebListener;
@@ -38,7 +44,7 @@ public final class PersistenceListener implements ServletContextListener {
         event.getServletContext().setAttribute(REGISTRY_ATTRIBUTE, registry);
         if (registry.hasPrincipal(DatabasePrincipal.BUYER)) {
             try {
-                vn.ticketscenter.event.service.EventCatalogRuntime.resolve(
+                EventCatalogRuntime.resolve(
                                 event.getServletContext())
                         .warmAsync();
             } catch (Exception ex) {
@@ -83,7 +89,7 @@ public final class PersistenceListener implements ServletContextListener {
                             .equalsIgnoreCase(
                                     String.valueOf(AppConfig.get("outbox.worker.enabled"))
                                             .trim())) {
-                String owner = hostname() + "-" + java.util.UUID.randomUUID();
+                String owner = hostname() + "-" + UUID.randomUUID();
                 OutboxWorker outbox =
                         new OutboxWorker(
                                 registry.transactionManager(),
@@ -104,22 +110,28 @@ public final class PersistenceListener implements ServletContextListener {
 
     @Override
     public void contextDestroyed(ServletContextEvent event) {
-        if (cancellationWorker != null) cancellationWorker.shutdownNow();
-        if (refundWorker != null) refundWorker.shutdownNow();
-        if (outboxExecutor != null) outboxExecutor.shutdownNow();
+        if (cancellationWorker != null) {
+            cancellationWorker.shutdownNow();
+        }
+        if (refundWorker != null) {
+            refundWorker.shutdownNow();
+        }
+        if (outboxExecutor != null) {
+            outboxExecutor.shutdownNow();
+        }
         Object registry = event.getServletContext().getAttribute(REGISTRY_ATTRIBUTE);
         if (registry instanceof PersistenceRegistry persistenceRegistry) {
             persistenceRegistry.close();
         }
         try {
-            vn.ticketscenter.config.redis.RedisClientProvider.getInstance().close();
+            RedisClientProvider.getInstance().close();
         } catch (Exception ignored) {
         }
     }
 
     private static RefundGateway simulatedRefundGateway() {
         return new RefundGatewayImpl(
-                java.nio.file.Path.of(
+                Path.of(
                         AppConfig.get(
                                 AppConfig.Keys.REFUND_STATE_DIRECTORY, "data/refund-gateway")),
                 RefundGateway.Status.valueOf(
@@ -156,8 +168,8 @@ public final class PersistenceListener implements ServletContextListener {
 
     private static String hostname() {
         try {
-            return java.net.InetAddress.getLocalHost().getHostName();
-        } catch (java.io.IOException | RuntimeException exception) {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (IOException | RuntimeException exception) {
             return "node";
         }
     }

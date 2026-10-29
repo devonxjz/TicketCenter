@@ -8,8 +8,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 /**
- * Health check endpoint phục vụ kiểm tra liveness của ứng dụng.
- * Hợp đồng: GET /health/live -> HTTP 200 {"data":{"status":"UP"}}
+ * Liveness check of the application.
+ * Contract: GET /health/live -> HTTP 200 {"data":{"status":"UP"}}
  */
 @WebServlet(
         name = "HealthServlet",

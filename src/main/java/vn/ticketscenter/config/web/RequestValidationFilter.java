@@ -56,7 +56,9 @@ public final class RequestValidationFilter implements Filter {
 
     private boolean isImageUpload(HttpServletRequest request) {
         String contentType = request.getContentType();
-        if (contentType == null || !contentType.startsWith("multipart/form-data")) return false;
+        if (contentType == null || !contentType.startsWith("multipart/form-data")) {
+            return false;
+        }
         String path = ApiRequest.path(request);
         return path.matches("/api/events/[0-9a-fA-F-]{36}/(cover|edit)")
                 || path.matches("/api/organizations/[0-9a-fA-F-]{36}/events")

@@ -1,5 +1,7 @@
 package vn.ticketscenter.event.cancellation.dao;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.UUID;
@@ -24,7 +26,7 @@ public final class CancellationReviewRepository implements CancellationReviewSer
     @Override
     public String execute(
             UserPrincipal actor, UUID eventId, String action, String reason, UUID key) {
-        var principal = actor.isAdmin() ? DatabasePrincipal.ADMIN : DatabasePrincipal.MANAGER;
+        DatabasePrincipal principal = actor.isAdmin() ? DatabasePrincipal.ADMIN : DatabasePrincipal.MANAGER;
         return run(principal, connection -> review(connection, actor, eventId, action, reason, key));
     }
 
@@ -38,14 +40,16 @@ public final class CancellationReviewRepository implements CancellationReviewSer
 
     private static String queue(Connection connection, UserPrincipal actor, int page, int size)
             throws SQLException {
-        try (var call = connection.prepareStatement("EXEC dbo.sp_event_cancellation_queue ?,?,?,?")) {
+        try (PreparedStatement call = connection.prepareStatement("EXEC dbo.sp_event_cancellation_queue ?,?,?,?")) {
             call.setQueryTimeout(20);
             call.setString(1, actor.actorId().toString());
             call.setInt(2, actor.authVersion());
             call.setInt(3, page);
             call.setInt(4, size);
-            try (var result = call.executeQuery()) {
-                if (!result.next()) throw new SQLException("Missing queue response");
+            try (ResultSet result = call.executeQuery()) {
+                if (!result.next()) {
+                    throw new SQLException("Missing queue response");
+                }
                 return result.getString(1);
             }
         }
@@ -54,7 +58,7 @@ public final class CancellationReviewRepository implements CancellationReviewSer
     private static String review(
             Connection connection, UserPrincipal actor, UUID eventId, String action, String reason, UUID key)
             throws SQLException {
-        try (var call = connection.prepareStatement("EXEC dbo.sp_event_cancellation_review ?,?,?,?,?,?")) {
+        try (PreparedStatement call = connection.prepareStatement("EXEC dbo.sp_event_cancellation_review ?,?,?,?,?,?")) {
             call.setQueryTimeout(20);
             call.setString(1, eventId.toString());
             call.setString(2, actor.actorId().toString());
@@ -66,20 +70,29 @@ public final class CancellationReviewRepository implements CancellationReviewSer
             boolean rows = call.execute();
             // Drain all results before commit; a late SQL error must roll the operation back.
             while (rows || call.getUpdateCount() != -1) {
-                if (rows)
-                    try (var result = call.getResultSet()) {
-                        while (result.next()) if (json == null) json = result.getString("response_json");
+                if (rows) {
+                    try (ResultSet result = call.getResultSet()) {
+                        while (result.next()) {
+                            if (json == null) {
+                                json = result.getString("response_json");
+                            }
+                        }
                     }
+                }
                 rows = call.getMoreResults();
             }
-            if (json == null) throw new SQLException("Missing cancellation review response");
+            if (json == null) {
+                throw new SQLException("Missing cancellation review response");
+            }
             return json;
         }
     }
 
     private static RefundException translated(RuntimeException failure) {
         for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
-            if (!(cause instanceof SQLException sql)) continue;
+            if (!(cause instanceof SQLException sql)) {
+                continue;
+            }
             int status =
                     switch (sql.getErrorCode()) {
                         case 54300, 54200 -> 400;

@@ -28,7 +28,9 @@ public class OtpRepository {
 
     public Optional<Otp> findById(EntityManager em, UUID id) {
         Objects.requireNonNull(em, "EntityManager must not be null");
-        if (id == null) return Optional.empty();
+        if (id == null) {
+            return Optional.empty();
+        }
         return Optional.ofNullable(em.find(Otp.class, id));
     }
 
@@ -109,7 +111,9 @@ public class OtpRepository {
             EntityManager em, String emailNormalized, OtpPurpose purpose, Instant now) {
         Objects.requireNonNull(em, "EntityManager must not be null");
         Objects.requireNonNull(now, "Instant now must not be null");
-        if (emailNormalized == null || emailNormalized.isBlank() || purpose == null) return 0;
+        if (emailNormalized == null || emailNormalized.isBlank() || purpose == null) {
+            return 0;
+        }
         return em.createQuery(
                         "UPDATE Otp o SET o.invalidatedAt = :now "
                                 + "WHERE LOWER(o.emailNormalized) = :email AND o.purpose = :purpose "
@@ -121,9 +125,9 @@ public class OtpRepository {
     }
 
     /**
-     * Tiêu thụ OTP một cách nguyên tử (atomic conditional update).
-     * Trả về true nếu và chỉ nếu cập nhật thành công
-     * (chống race condition 2 request verify đồng thời).
+     * Consumes an OTP atomically (conditional update).
+     * True only when the update succeeded
+     * (two concurrent verify requests cannot both win).
      */
     public boolean consumeOtpAtomically(EntityManager em, UUID otpId, Instant now) {
         Objects.requireNonNull(em, "EntityManager must not be null");
@@ -141,7 +145,7 @@ public class OtpRepository {
     }
 
     /**
-     * Tăng số lần thử sai. Tự động vô hiệu hóa (gán invalidatedAt) nếu chạm ngưỡng 5 lần.
+     * Counts a failed attempt; the OTP is invalidated (invalidatedAt set) after 5.
      */
     public int incrementFailedAttempts(EntityManager em, UUID otpId, Instant now) {
         Objects.requireNonNull(em, "EntityManager must not be null");

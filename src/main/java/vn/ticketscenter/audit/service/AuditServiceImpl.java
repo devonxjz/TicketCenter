@@ -19,7 +19,7 @@ public final class AuditServiceImpl implements AuditService {
 
     @Override
     public String list(UserPrincipal actor, AuditFilter filter) throws SQLException {
-        try (var db = database.open()) {
+        try (Connection db = database.open()) {
             FinanceAuthorization.requireAdmin(db, actor);
             return FinanceJson.write(Map.of("data", repository.list(db, filter)));
         }
@@ -27,7 +27,7 @@ public final class AuditServiceImpl implements AuditService {
 
     @Override
     public String detail(UserPrincipal actor, UUID id) throws SQLException {
-        try (var db = database.open()) {
+        try (Connection db = database.open()) {
             FinanceAuthorization.requireAdmin(db, actor);
             return FinanceJson.write(Map.of("data", repository.detail(db, id)));
         }

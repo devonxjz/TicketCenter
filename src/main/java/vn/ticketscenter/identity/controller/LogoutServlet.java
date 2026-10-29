@@ -29,7 +29,7 @@ public class LogoutServlet extends HttpServlet {
                     "Yêu cầu thiếu hoặc mã CSRF không hợp lệ");
             return;
         }
-        // Hủy phiên an toàn và có tính lũy thỏa (idempotent, gọi nhiều lần không lỗi)
+        // end the session; idempotent, so repeated calls do not fail
         SecurityContext.clearSession(request);
         String accept = request.getHeader("Accept");
         if (accept != null && accept.contains("text/html")) {

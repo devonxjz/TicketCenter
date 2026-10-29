@@ -1,5 +1,6 @@
 package vn.ticketscenter.order.service;
 
+import java.util.Optional;
 import vn.ticketscenter.order.cache.RedisOrderCache;
 import vn.ticketscenter.order.dto.*;
 import vn.ticketscenter.order.dao.OrderRepository;
@@ -26,7 +27,7 @@ public final class OrderServiceImpl implements OrderService {
 
     @Override
     public CurrentCheckout checkout(OrderActor actor, UUID holdId) {
-        var lookup = cache.lookup(actor.id(), holdId);
+        RedisOrderCache.Lookup lookup = cache.lookup(actor.id(), holdId);
         CurrentCheckout current = repository.checkout(actor, holdId);
         if (lookup.order().isPresent() && !lookup.order().equals(current.order())) {
             cache.invalidateAfterCommit(
@@ -36,11 +37,12 @@ public final class OrderServiceImpl implements OrderService {
         current.order()
                 .ifPresent(
                         order -> {
-                            if (order.canEditCoupon())
+                            if (order.canEditCoupon()) {
                                 cache.fill(lookup.token().orElse(null), order);
-                            else
+                            } else {
                                 cache.invalidateAfterCommit(
                                         actor.id(), holdId, order.snapshot().orderId());
+                            }
                         });
         return current;
     }
@@ -66,7 +68,7 @@ public final class OrderServiceImpl implements OrderService {
     public OrderDetailDto orderDetail(OrderActor actor, UUID orderId) {
         Objects.requireNonNull(actor, "actor is required");
         Objects.requireNonNull(orderId, "orderId is required");
-        var opt = repository.findOrderDetail(orderId, actor.id(), actor.authVersion());
+        Optional<OrderDetailDto> opt = repository.findOrderDetail(orderId, actor.id(), actor.authVersion());
         if (opt.isEmpty()) {
             repository.assertOrderAccess(orderId, actor.id());
             throw new OrderException(404, "ORDER_NOT_FOUND", "Order was not found.");

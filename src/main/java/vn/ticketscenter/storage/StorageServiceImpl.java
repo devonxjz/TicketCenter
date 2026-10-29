@@ -1,5 +1,6 @@
 package vn.ticketscenter.storage;
 
+import java.nio.charset.StandardCharsets;
 import vn.ticketscenter.config.AppConfig;
 import java.io.*;
 import java.net.URI;
@@ -15,8 +16,9 @@ public final class StorageServiceImpl implements StorageService {
 
     public StorageServiceImpl(Path directory, String context) {
         this.directory = directory.toAbsolutePath().normalize();
-        if (context == null || !context.matches("(?:/[A-Za-z0-9_-]+)?"))
+        if (context == null || !context.matches("(?:/[A-Za-z0-9_-]+)?")) {
             throw new IllegalArgumentException("invalid application context");
+        }
         this.context = context;
     }
 
@@ -25,7 +27,9 @@ public final class StorageServiceImpl implements StorageService {
         String base = AppConfig.get(AppConfig.Keys.APP_BASE_URL);
         String context =
                 base == null || base.isBlank() ? "/ticketscenter" : URI.create(base).getPath();
-        if (context.endsWith("/")) context = context.substring(0, context.length() - 1);
+        if (context.endsWith("/")) {
+            context = context.substring(0, context.length() - 1);
+        }
         return new StorageServiceImpl(
                 Path.of(
                         configured == null || configured.isBlank()
@@ -43,7 +47,9 @@ public final class StorageServiceImpl implements StorageService {
     }
 
     public Optional<Path> file(String filename) {
-        if (filename == null || !filename.matches("[a-f0-9]{64}\\.img")) return Optional.empty();
+        if (filename == null || !filename.matches("[a-f0-9]{64}\\.img")) {
+            return Optional.empty();
+        }
         Path file = directory.resolve(filename);
         return Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)
                 ? Optional.of(file)
@@ -66,8 +72,9 @@ public final class StorageServiceImpl implements StorageService {
                             existing.get()
                                     .secureUrl()
                                     .substring(existing.get().secureUrl().lastIndexOf('/') + 1));
-            if (!Arrays.equals(bytes, Files.readAllBytes(file)))
+            if (!Arrays.equals(bytes, Files.readAllBytes(file))) {
                 throw new IOException("Image ID belongs to different content");
+            }
             return existing.get();
         }
         Files.createDirectories(directory);
@@ -78,8 +85,9 @@ public final class StorageServiceImpl implements StorageService {
             try {
                 Files.move(temporary, target);
             } catch (FileAlreadyExistsException race) {
-                if (!Arrays.equals(bytes, Files.readAllBytes(target)))
+                if (!Arrays.equals(bytes, Files.readAllBytes(target))) {
                     throw new IOException("Image ID belongs to different content", race);
+                }
             }
         } finally {
             Files.deleteIfExists(temporary);
@@ -110,15 +118,16 @@ public final class StorageServiceImpl implements StorageService {
         if (publicId == null
                 || !publicId.matches("[a-zA-Z0-9][a-zA-Z0-9/_-]{0,254}")
                 || publicId.contains("//")
-                || publicId.endsWith("/"))
+                || publicId.endsWith("/")) {
             throw new IllegalArgumentException("invalid image public ID");
+        }
         try {
             return HexFormat.of()
                     .formatHex(
                             MessageDigest.getInstance("SHA-256")
                                     .digest(
                                             publicId.getBytes(
-                                                    java.nio.charset.StandardCharsets.UTF_8)));
+                                                    StandardCharsets.UTF_8)));
         } catch (NoSuchAlgorithmException impossible) {
             throw new IllegalStateException(impossible);
         }

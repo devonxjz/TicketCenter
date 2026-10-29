@@ -1,5 +1,6 @@
 package vn.ticketscenter.config.identity;
 
+import java.util.Optional;
 import jakarta.servlet.ServletContext;
 import vn.ticketscenter.config.persistence.FeatureContext;
 import vn.ticketscenter.config.persistence.PersistenceRegistry;
@@ -97,14 +98,22 @@ public record IdentityServices(
      * @return the services, or {@code null} while the database is not available
      */
     public static IdentityServices from(ServletContext context) {
-        if (context == null) return null;
-        if (context.getAttribute(ATTRIBUTE) instanceof IdentityServices services) return services;
+        if (context == null) {
+            return null;
+        }
+        if (context.getAttribute(ATTRIBUTE) instanceof IdentityServices services) {
+            return services;
+        }
         synchronized (context) {
-            if (context.getAttribute(ATTRIBUTE) instanceof IdentityServices services) return services;
-            var registry = FeatureContext.registry(context).filter(PersistenceRegistry::isReady);
-            if (registry.isEmpty()) return null;
-            var transactions = registry.get().transactionManager();
-            var services = create(transactions, RedisClientProvider.getInstance(), new EmailSenderImpl());
+            if (context.getAttribute(ATTRIBUTE) instanceof IdentityServices services) {
+                return services;
+            }
+            Optional<PersistenceRegistry> registry = FeatureContext.registry(context).filter(PersistenceRegistry::isReady);
+            if (registry.isEmpty()) {
+                return null;
+            }
+            TransactionManager transactions = registry.get().transactionManager();
+            IdentityServices services = create(transactions, RedisClientProvider.getInstance(), new EmailSenderImpl());
             context.setAttribute(ATTRIBUTE, services);
             return services;
         }
@@ -115,9 +124,12 @@ public record IdentityServices(
      * takes precedence, which lets a test replace the real one.
      */
     public static SessionValidator sessionValidator(ServletContext context) {
-        if (context == null) return null;
-        if (context.getAttribute(SESSION_VALIDATOR_ATTRIBUTE) instanceof SessionValidator override)
+        if (context == null) {
+            return null;
+        }
+        if (context.getAttribute(SESSION_VALIDATOR_ATTRIBUTE) instanceof SessionValidator override) {
             return override;
+        }
         IdentityServices services = from(context);
         return services == null ? null : services.sessionValidator();
     }

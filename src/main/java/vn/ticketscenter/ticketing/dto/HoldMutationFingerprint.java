@@ -16,8 +16,9 @@ public final class HoldMutationFingerprint {
     }
 
     public static String cancel(UUID holdId) {
-        if (holdId == null || holdId.equals(new UUID(0, 0)))
+        if (holdId == null || holdId.equals(new UUID(0, 0))) {
             throw new IllegalArgumentException("holdId must be a nonzero UUID");
+        }
         return hash("tc:hold:mutation:v1:CANCEL\n" + holdId);
     }
 

@@ -37,13 +37,13 @@
     <!-- Central Auth Card -->
     <main class="container my-auto py-5">
         <div class="auth-container shadow-sm">
-            <!-- Auth Switcher Tabs (Chỉ 2 tab Đăng nhập và Đăng ký) -->
+            <!-- login / register tabs -->
             <div class="auth-tabs" id="authTabsHeader">
                 <a href="${fn:escapeXml(loginUrl)}" class="auth-tab-btn">Đăng nhập</a>
                 <a href="${fn:escapeXml(registerUrl)}" class="auth-tab-btn active">Đăng ký</a>
             </div>
 
-            <!-- Bước 1: Form Đăng Ký -->
+            <!-- step 1: registration form -->
             <div id="formRegister">
                 <h2 class="h4 fw-bold mb-1 text-dark">Tạo tài khoản mới</h2>
                 <p class="small text-muted mb-4">Đăng ký tài khoản để mua vé nhanh chóng và quản lý đơn hàng.</p>
@@ -101,7 +101,7 @@
                 </form>
             </div>
 
-            <!-- Bước 2: Nhập mã OTP trực tiếp tại chỗ sau khi đăng ký thành công -->
+            <!-- step 2: enter the OTP right here after registering -->
             <div id="formOtp" class="d-none">
                 <div class="text-center mb-4">
                     <div class="d-inline-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-circle mb-3 tc-avatar-56">

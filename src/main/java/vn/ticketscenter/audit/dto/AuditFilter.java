@@ -35,7 +35,7 @@ public record AuditFilter(
 
     public static AuditFilter parse(Map<String, String> values) {
         try {
-            var shared = ReportFilter.parse(values, null);
+            ReportFilter shared = ReportFilter.parse(values, null);
             String action = text(values.get("action"), "[A-Z][A-Z0-9_]{0,99}"),
                     type = text(values.get("entityType"), "[A-Za-z][A-Za-z0-9_]{0,99}"),
                     id = text(values.get("entityId"), "[A-Za-z0-9_-]{1,100}");
@@ -43,8 +43,9 @@ public record AuditFilter(
             if (target != null && !target.isBlank()) {
                 String alias = target.startsWith("dbo.") ? target.substring(4) : target;
                 String mapped = TARGET_TYPES.get(alias);
-                if (mapped == null || (type != null && !type.equals(mapped)))
+                if (mapped == null || (type != null && !type.equals(mapped))) {
                     throw new IllegalArgumentException();
+                }
                 type = mapped;
             }
             return new AuditFilter(
@@ -64,8 +65,12 @@ public record AuditFilter(
     }
 
     private static String text(String value, String pattern) {
-        if (value == null || value.isBlank()) return null;
-        if (!value.matches(pattern)) throw new IllegalArgumentException();
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        if (!value.matches(pattern)) {
+            throw new IllegalArgumentException();
+        }
         return value;
     }
 

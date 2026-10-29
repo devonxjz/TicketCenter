@@ -12,7 +12,9 @@ final class CachedJsonValidator {
     static boolean isResponse(String source) {
         if (!source.startsWith("{\"data\":")
                 || source.length() < 10
-                || (source.charAt(8) != '[' && source.charAt(8) != '{')) return false;
+                || (source.charAt(8) != '[' && source.charAt(8) != '{')) {
+            return false;
+        }
         try {
             var reader = new CachedJsonValidator(source);
             reader.value(0);
@@ -24,9 +26,13 @@ final class CachedJsonValidator {
     }
 
     private void value(int depth) {
-        if (depth > 32) throw invalid();
+        if (depth > 32) {
+            throw invalid();
+        }
         space();
-        if (index >= source.length()) throw invalid();
+        if (index >= source.length()) {
+            throw invalid();
+        }
         switch (source.charAt(index)) {
             case '{' -> object(depth + 1);
             case '[' -> array(depth + 1);
@@ -41,7 +47,9 @@ final class CachedJsonValidator {
     private void object(int depth) {
         index++;
         space();
-        if (take('}')) return;
+        if (take('}')) {
+            return;
+        }
         do {
             space();
             string();
@@ -56,7 +64,9 @@ final class CachedJsonValidator {
     private void array(int depth) {
         index++;
         space();
-        if (take(']')) return;
+        if (take(']')) {
+            return;
+        }
         do {
             value(depth);
             space();
@@ -68,18 +78,27 @@ final class CachedJsonValidator {
         expect('"');
         while (index < source.length()) {
             char c = source.charAt(index++);
-            if (c == '"') return;
-            if (c < 0x20) throw invalid();
+            if (c == '"') {
+                return;
+            }
+            if (c < 0x20) {
+                throw invalid();
+            }
             if (c == '\\') {
-                if (index >= source.length()) throw invalid();
+                if (index >= source.length()) {
+                    throw invalid();
+                }
                 char escaped = source.charAt(index++);
                 if (escaped == 'u') {
                     for (int i = 0; i < 4; i++) {
                         if (index >= source.length()
-                                || "0123456789abcdefABCDEF".indexOf(source.charAt(index++)) < 0)
+                                || "0123456789abcdefABCDEF".indexOf(source.charAt(index++)) < 0) {
                             throw invalid();
+                        }
                     }
-                } else if ("\"\\/bfnrt".indexOf(escaped) < 0) throw invalid();
+                } else if ("\"\\/bfnrt".indexOf(escaped) < 0) {
+                    throw invalid();
+                }
             }
         }
         throw invalid();
@@ -87,10 +106,16 @@ final class CachedJsonValidator {
 
     private void number() {
         take('-');
-        if (!take('0')) digits();
-        if (take('.')) digits();
+        if (!take('0')) {
+            digits();
+        }
+        if (take('.')) {
+            digits();
+        }
         if (take('e') || take('E')) {
-            if (!take('+')) take('-');
+            if (!take('+')) {
+                take('-');
+            }
             digits();
         }
     }
@@ -99,17 +124,25 @@ final class CachedJsonValidator {
         int start = index;
         while (index < source.length()
                 && source.charAt(index) >= '0'
-                && source.charAt(index) <= '9') index++;
-        if (start == index) throw invalid();
+                && source.charAt(index) <= '9') {
+            index++;
+        }
+        if (start == index) {
+            throw invalid();
+        }
     }
 
     private void literal(String text) {
-        if (!source.startsWith(text, index)) throw invalid();
+        if (!source.startsWith(text, index)) {
+            throw invalid();
+        }
         index += text.length();
     }
 
     private void expect(char c) {
-        if (!take(c)) throw invalid();
+        if (!take(c)) {
+            throw invalid();
+        }
     }
 
     private boolean take(char c) {
@@ -121,7 +154,9 @@ final class CachedJsonValidator {
     }
 
     private void space() {
-        while (index < source.length() && " \r\n\t".indexOf(source.charAt(index)) >= 0) index++;
+        while (index < source.length() && " \r\n\t".indexOf(source.charAt(index)) >= 0) {
+            index++;
+        }
     }
 
     private IllegalArgumentException invalid() {

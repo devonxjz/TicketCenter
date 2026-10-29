@@ -1,5 +1,6 @@
 package vn.ticketscenter.settlement.service;
 
+import java.sql.SQLException;
 import java.util.*;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.settlement.commission.dto.CommissionRuleCreateDto;
@@ -19,9 +20,9 @@ public interface FinanceMutationService {
 
     Map<String, Object> payout(
             UserPrincipal actor, UUID settlement, UUID key, PayoutRequestDto terms)
-            throws java.sql.SQLException;
+            throws SQLException;
 
     Map<String, Object> reconcile(
             UserPrincipal actor, UUID settlement, UUID payout, PayoutRequestDto terms)
-            throws java.sql.SQLException;
+            throws SQLException;
 }

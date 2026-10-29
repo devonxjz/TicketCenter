@@ -160,17 +160,27 @@ public final class RedisHoldIdempotency {
         String completed = completedValue(requestHash, response);
         try (Jedis jedis = connections.get()) {
             String observed = jedis.get(redisKey);
-            if (observed == null) return false;
+            if (observed == null) {
+                return false;
+            }
             Result state = readResult(observed, requestHash);
-            if (state instanceof Replay replay) return replay.response().equals(response);
-            if (!(state instanceof InProgress)) return false;
+            if (state instanceof Replay replay) {
+                return replay.response().equals(response);
+            }
+            if (!(state instanceof InProgress)) {
+                return false;
+            }
             Object result =
                     jedis.eval(
                             RedisScripts.REPLACE_IF_EQUALS_PX,
                             List.of(redisKey),
                             List.of(observed, completed, Long.toString(millis)));
-            if (Long.valueOf(1).equals(result)) return true;
-            if (Long.valueOf(0).equals(result)) return false;
+            if (Long.valueOf(1).equals(result)) {
+                return true;
+            }
+            if (Long.valueOf(0).equals(result)) {
+                return false;
+            }
             throw unavailable();
         } catch (RuntimeException unavailable) {
             throw unavailable();

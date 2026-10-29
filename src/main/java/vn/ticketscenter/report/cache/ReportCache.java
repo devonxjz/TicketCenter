@@ -33,7 +33,9 @@ public final class ReportCache {
                 backend.increment("tc:finance:report:g:" + scope);
                 generation = backend.get("tc:finance:report:g:" + scope);
             }
-            if (generation == null) return null;
+            if (generation == null) {
+                return null;
+            }
             String identity =
                     actor.actorId() + "|" + actor.authVersion() + "|" + filter.cacheIdentity();
             String hash =
@@ -57,11 +59,12 @@ public final class ReportCache {
 
     /** Call only after committed financial writes; global and tenant pages share generations. */
     public static void invalidateAfterCommit(UUID organizationId) {
-        var cache = redis();
+        ReportCache cache = redis();
         try {
             cache.backend.increment("tc:finance:report:g:global");
-            if (organizationId != null)
+            if (organizationId != null) {
                 cache.backend.increment("tc:finance:report:g:org:" + organizationId);
+            }
         } catch (RuntimeException ignored) {
         }
     }

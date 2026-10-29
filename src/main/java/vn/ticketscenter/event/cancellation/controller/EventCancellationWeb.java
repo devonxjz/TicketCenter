@@ -1,5 +1,8 @@
 package vn.ticketscenter.event.cancellation.controller;
 
+import jakarta.servlet.ServletContext;
+import java.io.BufferedReader;
+import java.util.Map;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -48,14 +51,15 @@ final class EventCancellationWeb {
     }
 
     static UserPrincipal actor(HttpServletRequest request) {
-        var actor =
+        UserPrincipal actor =
                 SecurityContext.getCurrentUser(request)
                         .orElseThrow(
                                 () ->
                                         new RefundException(
                                                 401, "UNAUTHENTICATED", "Bạn cần đăng nhập."));
-        if (!actor.isAdmin())
+        if (!actor.isAdmin()) {
             throw new RefundException(403, "ADMIN_REQUIRED", "Chỉ quản trị viên được hủy sự kiện.");
+        }
         return actor; // SQL verifies the current status, authVersion and role.
     }
 
@@ -76,7 +80,7 @@ final class EventCancellationWeb {
     static String readBody(HttpServletRequest request) throws IOException {
         var source = new StringBuilder();
         char[] buffer = new char[1024];
-        try (var reader = request.getReader()) {
+        try (BufferedReader reader = request.getReader()) {
             for (int count; (count = reader.read(buffer)) != -1; ) {
                 source.append(buffer, 0, count);
                 if (source.length() > MAX_BODY_LENGTH) {
@@ -91,11 +95,12 @@ final class EventCancellationWeb {
     static EventCancelRequestDto parse(String body) {
         try {
             // Require a string reason; the shared parser also accepts numeric/null values.
-            var fields = JsonObjectParser.parse(new StringReader(body));
+            Map<String, String> fields = JsonObjectParser.parse(new StringReader(body));
             if (fields.size() != 1
                     || !fields.containsKey("reason")
-                    || !body.stripLeading().matches("(?s)\\{\\s*\"reason\"\\s*:\\s*\".*"))
+                    || !body.stripLeading().matches("(?s)\\{\\s*\"reason\"\\s*:\\s*\".*")) {
                 throw invalid();
+            }
             return new EventCancelRequestDto(fields.get("reason"));
         } catch (IOException | IllegalArgumentException failure) {
             throw invalid();
@@ -103,11 +108,13 @@ final class EventCancellationWeb {
     }
 
     static EventCancellationService service(HttpServletRequest request) {
-        var context = request.getServletContext();
+        ServletContext context = request.getServletContext();
         synchronized (context) {
-            var existing = context.getAttribute(EventCancellationService.class.getName());
-            if (existing instanceof EventCancellationService service) return service;
-            var configured = context.getAttribute(PersistenceListener.REGISTRY_ATTRIBUTE);
+            Object existing = context.getAttribute(EventCancellationService.class.getName());
+            if (existing instanceof EventCancellationService service) {
+                return service;
+            }
+            Object configured = context.getAttribute(PersistenceListener.REGISTRY_ATTRIBUTE);
             if (!(configured instanceof PersistenceRegistry registry)
                     || !registry.hasPrincipal(DatabasePrincipal.ADMIN)) {
                 throw new RefundException(

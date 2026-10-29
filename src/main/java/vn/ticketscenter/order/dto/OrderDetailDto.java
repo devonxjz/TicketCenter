@@ -15,7 +15,7 @@ import static vn.ticketscenter.config.web.Json.object;
 import static vn.ticketscenter.config.web.Json.text;
 
 /**
- * Chi tiết đầy đủ của đơn hàng (LIEM-06 / UI-06).
+ * One order in full (LIEM-06 / UI-06).
  */
 public record OrderDetailDto(
         UUID id,
@@ -44,8 +44,12 @@ public record OrderDetailDto(
         Objects.requireNonNull(id, "id is required");
         Objects.requireNonNull(orderCode, "orderCode is required");
         Objects.requireNonNull(status, "status is required");
-        if (items == null) items = List.of();
-        if (tickets == null) tickets = List.of();
+        if (items == null) {
+            items = List.of();
+        }
+        if (tickets == null) {
+            tickets = List.of();
+        }
     }
 
     public record OrderItemDetail(

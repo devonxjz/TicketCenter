@@ -617,7 +617,7 @@
         overlay.hidden = false;
     }
 
-    // Chuyển sang thanh toán đơn vé. Nếu autoPay=true thì tiến hành chuyển khoản payOS ngay.
+    // go to checkout; with autoPay=true start the payOS payment right away
     function openCheckout(holdId, autoPay = false) {
         root.location.assign(context + "/checkout?prepare=1&holdId=" + encodeURIComponent(holdId) + (autoPay ?
             "&pay=now" : ""));
@@ -633,7 +633,7 @@
             }));
     }
 
-    // Khu ghế ngồi: chọn số lượng trước, sau đó chọn đúng bấy nhiêu ghế trong danh sách ghế còn trống máy chủ trả về.
+    // seated zone: pick the quantity first, then exactly that many of the free seats the server returned
     function syncSeatZones() {
         let wantedSeats = 0;
         const missing = [],
@@ -740,7 +740,7 @@
                     if (zone.autoQuantity && !box.checked && plannedCount >= 8) box.disabled = true;
                 for (const box of zone.boxes)
                     if (!zone.autoQuantity && !box.checked && zone.picked >= zone.wanted) box.disabled = true;
-                // Số ghế còn có thể thêm = 8 trừ các vé đã chọn ở khu khác.
+                // seats still allowed = 8 minus the tickets picked in other zones
                 zone.counter.max = String(Math.max(0, Math.min(zone.boxes.length, 8 - (plannedCount - zone
                     .wanted))));
             }
@@ -887,7 +887,7 @@
                 controls.append(label);
                 field.append(controls);
             } else {
-                // Chọn số lượng trước; sơ đồ ghế thật (theo hàng, kèm ghế đang giữ/đã bán) hiện ra sau đó.
+                // pick the quantity first; the real seat map (by row, with held/sold seats) appears after
                 const stock = element("p", zone.availableSeats.length ? "Vé ngồi · " + zone.availableSeats.length +
                     " ghế trống" : "Vé ngồi · Đã hết ghế trống");
                 stock.className = "hold-seat-stock";
@@ -996,7 +996,7 @@
                 renderOptions(state.options);
             }
         }
-        // "Thanh toán ngay": lượt giữ vừa được máy chủ xác nhận thì chuyển thẳng sang thanh toán.
+        // "Pay now": once the server confirms the hold, go straight to checkout
         if (submittingHold && ["selecting", "expired", "uncertain"].includes(state.phase)) {
             submittingHold = false;
             payNow = false;

@@ -18,13 +18,17 @@ public class UserRepository {
 
     public Optional<User> findById(EntityManager entityManager, UUID id) {
         Objects.requireNonNull(entityManager, "entityManager must not be null");
-        if (id == null) return Optional.empty();
+        if (id == null) {
+            return Optional.empty();
+        }
         return Optional.ofNullable(entityManager.find(User.class, id));
     }
 
     public Optional<User> findByNormalizedEmail(EntityManager entityManager, String email) {
         Objects.requireNonNull(entityManager, "entityManager must not be null");
-        if (email == null || email.isBlank()) return Optional.empty();
+        if (email == null || email.isBlank()) {
+            return Optional.empty();
+        }
         try {
             User user =
                     entityManager
@@ -41,7 +45,9 @@ public class UserRepository {
 
     public Optional<User> findByNormalizedUserName(EntityManager entityManager, String userName) {
         Objects.requireNonNull(entityManager, "entityManager must not be null");
-        if (userName == null || userName.isBlank()) return Optional.empty();
+        if (userName == null || userName.isBlank()) {
+            return Optional.empty();
+        }
         try {
             User user =
                     entityManager
@@ -58,7 +64,9 @@ public class UserRepository {
 
     public boolean existsByNormalizedEmail(EntityManager entityManager, String email) {
         Objects.requireNonNull(entityManager, "entityManager must not be null");
-        if (email == null || email.isBlank()) return false;
+        if (email == null || email.isBlank()) {
+            return false;
+        }
         Long count =
                 entityManager
                         .createQuery(
@@ -71,7 +79,9 @@ public class UserRepository {
 
     public boolean existsByNormalizedUserName(EntityManager entityManager, String userName) {
         Objects.requireNonNull(entityManager, "entityManager must not be null");
-        if (userName == null || userName.isBlank()) return false;
+        if (userName == null || userName.isBlank()) {
+            return false;
+        }
         Long count =
                 entityManager
                         .createQuery(

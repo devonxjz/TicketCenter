@@ -1,5 +1,6 @@
 package vn.ticketscenter.report.dao;
 
+import java.time.Instant;
 import java.sql.*;
 import java.util.*;
 import vn.ticketscenter.config.persistence.SqlCall;
@@ -13,7 +14,7 @@ public final class ReadProjection {
         for (String column : columns) {
             Object value;
             if (column.endsWith("_at") || column.equals("end_time")) {
-                var timestamp =
+                Timestamp timestamp =
                         row.getTimestamp(column, Calendar.getInstance(TimeZone.getTimeZone("UTC")));
                 value = timestamp == null ? null : timestamp.toInstant();
             } else if (column.equals("is_confirmed")) {
@@ -26,8 +27,9 @@ public final class ReadProjection {
                 value = row.getString(column);
                 if (value instanceof String text
                         && (column.equals("id") || column.endsWith("_id"))
-                        && text.matches("[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}"))
+                        && text.matches("[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}")) {
                     value = UUID.fromString(text).toString();
+                }
             }
             result.put(camel(column), value);
         }
@@ -69,9 +71,9 @@ public final class ReadProjection {
     /** Maps the first row of a query that always answers (COUNT, SUM, a table function total). */
     public static <T> T first(Connection db, String sql, List<Object> parameters, SqlCall.RowMapper<T> mapper)
             throws SQLException {
-        try (var statement = db.prepareStatement(sql)) {
+        try (PreparedStatement statement = db.prepareStatement(sql)) {
             bind(statement, parameters);
-            try (var row = statement.executeQuery()) {
+            try (ResultSet row = statement.executeQuery()) {
                 row.next();
                 return mapper.map(row);
             }
@@ -80,11 +82,13 @@ public final class ReadProjection {
 
     public static <T> List<T> list(Connection db, String sql, List<Object> parameters, SqlCall.RowMapper<T> mapper)
             throws SQLException {
-        try (var statement = db.prepareStatement(sql)) {
+        try (PreparedStatement statement = db.prepareStatement(sql)) {
             bind(statement, parameters);
             var rows = new ArrayList<T>();
-            try (var row = statement.executeQuery()) {
-                while (row.next()) rows.add(mapper.map(row));
+            try (ResultSet row = statement.executeQuery()) {
+                while (row.next()) {
+                    rows.add(mapper.map(row));
+                }
             }
             return rows;
         }
@@ -95,14 +99,18 @@ public final class ReadProjection {
         for (int i = 0; i < parameters.size(); i++) {
             Object value = parameters.get(i);
             int n = i + 1;
-            if (value instanceof java.time.Instant instant)
+            if (value instanceof Instant instant) {
                 statement.setTimestamp(
                         n,
                         Timestamp.from(instant),
                         Calendar.getInstance(TimeZone.getTimeZone("UTC")));
-            else if (value instanceof UUID id) statement.setString(n, id.toString());
-            else if (value == null) statement.setNull(n, Types.VARCHAR);
-            else statement.setObject(n, value);
+            } else if (value instanceof UUID id) {
+                statement.setString(n, id.toString());
+            } else if (value == null) {
+                statement.setNull(n, Types.VARCHAR);
+            } else {
+                statement.setObject(n, value);
+            }
         }
     }
 }

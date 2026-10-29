@@ -155,7 +155,7 @@
                         </div>
                     </form>
 
-                    <!-- Danh sách hồ sơ đã gửi -->
+                    <!-- requests already sent -->
                     <div class="mt-4 pt-3 border-top">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h6 class="fw-bold mb-0 text-dark">

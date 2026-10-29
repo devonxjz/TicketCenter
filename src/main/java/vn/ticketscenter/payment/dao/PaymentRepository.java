@@ -106,7 +106,7 @@ public class PaymentRepository {
                 SqlCall.onConnection(
                         buyer,
                         conn -> {
-                            var row =
+                            Optional<PaymentRepository.PayableOrder> row =
                                     SqlCall.queryOptional(
                                             conn,
                                             """
@@ -130,12 +130,19 @@ public class PaymentRepository {
                             return row.get();
                         },
                         ERRORS);
-        if (!"PENDING_PAYMENT".equals(order.orderStatus()) || !"ACTIVE".equals(order.holdStatus()))
+        if (!"PENDING_PAYMENT".equals(order.orderStatus()) || !"ACTIVE".equals(order.holdStatus())) {
             throw PaymentException.orderNotPayable();
-        if (!"PUBLISHED".equals(order.eventStatus())) throw PaymentException.eventUnavailable();
+        }
+        if (!"PUBLISHED".equals(order.eventStatus())) {
+            throw PaymentException.eventUnavailable();
+        }
         long remainingMs = order.expiresAt().toEpochMilli() - System.currentTimeMillis();
-        if (remainingMs <= 0) throw PaymentException.orderNotPayable();
-        if (order.total().signum() == 0) throw new ZeroOrderDetectedException();
+        if (remainingMs <= 0) {
+            throw PaymentException.orderNotPayable();
+        }
+        if (order.total().signum() == 0) {
+            throw new ZeroOrderDetectedException();
+        }
         return Duration.ofMillis(remainingMs);
     }
 
@@ -159,7 +166,7 @@ public class PaymentRepository {
         return SqlCall.onConnection(
                 buyer,
                 conn -> {
-                    var status =
+                    Optional<PaymentStatusResult> status =
                             SqlCall.queryOptional(
                                     conn,
                                     """
@@ -174,7 +181,9 @@ public class PaymentRepository {
                                     ERRORS,
                                     orderId,
                                     actorId);
-                    if (status.isEmpty()) assertOrderAccess(conn, orderId);
+                    if (status.isEmpty()) {
+                        assertOrderAccess(conn, orderId);
+                    }
                     return status;
                 },
                 ERRORS);
@@ -182,7 +191,9 @@ public class PaymentRepository {
 
     private static PaymentStatusResult paymentStatus(ResultSet rs) throws SQLException {
         BigDecimal amount = rs.getBigDecimal("payment_amount");
-        if (amount == null) amount = rs.getBigDecimal("total_amount");
+        if (amount == null) {
+            amount = rs.getBigDecimal("total_amount");
+        }
         String currency = rs.getString("currency");
         return new PaymentStatusResult(
                 UUID.fromString(rs.getString("order_id")),
@@ -197,7 +208,9 @@ public class PaymentRepository {
     // ---------------------------------------------------------------- Worker: settle with the payOS result
 
     public Optional<PaymentRecord> findPaymentByTxnRef(String txnRef) {
-        if (txnRef == null || txnRef.isBlank()) return Optional.empty();
+        if (txnRef == null || txnRef.isBlank()) {
+            return Optional.empty();
+        }
         return SqlCall.onConnection(
                 worker,
                 conn ->
@@ -221,8 +234,9 @@ public class PaymentRepository {
      * match exactly one payment; an ambiguous match is treated as unknown rather than guessed.
      */
     public Optional<PaymentRecord> findPaymentByTxnRefPrefix(String txnRefPrefix) {
-        if (txnRefPrefix == null || !txnRefPrefix.matches("[A-Za-z0-9-]{1,90}"))
+        if (txnRefPrefix == null || !txnRefPrefix.matches("[A-Za-z0-9-]{1,90}")) {
             return Optional.empty();
+        }
         List<String> matches =
                 SqlCall.onConnection(
                         worker,
@@ -314,7 +328,9 @@ public class PaymentRepository {
                                         UNAVAILABLE,
                                         orderId),
                         UNAVAILABLE);
-        if (quantity == null || quantity < 1) throw PaymentException.unavailable();
+        if (quantity == null || quantity < 1) {
+            throw PaymentException.unavailable();
+        }
 
         JSONArray tickets = new JSONArray();
         for (int i = 0; i < quantity; i++) {

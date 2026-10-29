@@ -1,5 +1,6 @@
 package vn.ticketscenter.settlement.service;
 
+import java.sql.SQLException;
 import java.util.*;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.settlement.cache.SettlementReadCache;
@@ -55,7 +56,7 @@ public final class FinanceMutationServiceImpl implements FinanceMutationService 
             case "rules" -> repository.rules(actor, id);
             case "summary" -> repository.summary(actor, id);
             case "blockers" -> {
-                var rows = repository.blockers(actor, id);
+                List<Map<String, Object>> rows = repository.blockers(actor, id);
                 yield Map.of("blockerCount", rows.size(), "items", rows);
             }
             case "payouts" -> repository.payouts(actor, id);
@@ -66,10 +67,13 @@ public final class FinanceMutationServiceImpl implements FinanceMutationService 
     @Override
     public Map<String, Object> commission(
             UserPrincipal actor, UUID org, UUID rule, UUID key, CommissionRuleCreateDto terms) {
-        if (rule == null) return repository.createRule(actor, org, key, terms);
+        if (rule == null) {
+            return repository.createRule(actor, org, key, terms);
+        }
         UUID currentOrg = repository.ruleOrganization(actor, rule);
-        if (org != null && !org.equals(currentOrg))
+        if (org != null && !org.equals(currentOrg)) {
             throw new FinanceException("COMMISSION_RULE_INVALID", 400);
+        }
         return repository.updateRule(actor, rule, currentOrg, key, terms);
     }
 
@@ -86,7 +90,7 @@ public final class FinanceMutationServiceImpl implements FinanceMutationService 
     @Override
     public Map<String, Object> payout(
             UserPrincipal actor, UUID settlement, UUID key, PayoutRequestDto terms)
-            throws java.sql.SQLException {
+            throws SQLException {
         repository.requireAdministrator(actor);
         return new PayoutExecutionService(repository, adapter)
                 .execute(actor, settlement, key, terms);
@@ -95,14 +99,18 @@ public final class FinanceMutationServiceImpl implements FinanceMutationService 
     @Override
     public Map<String, Object> reconcile(
             UserPrincipal actor, UUID settlement, UUID payout, PayoutRequestDto terms)
-            throws java.sql.SQLException {
+            throws SQLException {
         repository.requireAdministrator(actor);
-        var existing =
+        Map<String, Object> existing =
                 terms == null
                         ? repository.payoutForReconciliation(actor, settlement, payout)
                         : repository.existing(actor, settlement, payout, terms);
-        if (existing == null) throw new FinanceException("NOT_FOUND", 404);
-        if (!"PENDING".equals(existing.get("status"))) return existing;
+        if (existing == null) {
+            throw new FinanceException("NOT_FOUND", 404);
+        }
+        if (!"PENDING".equals(existing.get("status"))) {
+            return existing;
+        }
         PayoutAdapter.Result verified;
         try {
             verified = adapter.lookup(payout);

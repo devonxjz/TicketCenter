@@ -3,7 +3,7 @@ const contextPath = document.querySelector('meta[name="context-path"]').content;
 const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 let cooldownTimer = null;
 let remainingCooldown = 0;
-// Tự động điền email nếu có trên query URL
+// fill in the email when the URL has one
 document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const emailParam = urlParams.get('email');

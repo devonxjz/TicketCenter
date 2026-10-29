@@ -50,7 +50,7 @@
             </div>
         </div>
 
-        <!-- Thông tin sự kiện -->
+        <!-- event -->
         <div class="detail-card">
             <h5 class="fw-bold mb-3"><i class="fa-solid fa-calendar-check text-primary me-2"></i>Thông
                 Tin Sự Kiện</h5>
@@ -64,7 +64,7 @@
             </p>
         </div>
 
-        <!-- Chi tiết các vé trong đơn hàng -->
+        <!-- order lines -->
         <div class="detail-card">
             <h5 class="fw-bold mb-3"><i class="fa-solid fa-ticket text-primary me-2"></i>Danh Sách Vé
                 Mua</h5>
@@ -128,7 +128,7 @@
             </div>
         </div>
 
-        <!-- Danh sách vé đã phát hành nếu đã thanh toán -->
+        <!-- issued tickets, once the order is paid -->
         <c:if test="${not empty order.tickets}">
             <div class="detail-card">
                 <h5 class="fw-bold mb-3"><i class="fa-solid fa-qrcode text-primary me-2"></i>Vé & Mã QR

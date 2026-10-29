@@ -11,7 +11,7 @@ final class AdminRefundJson {
     private AdminRefundJson() {}
 
     static AdminRefundDecisionRequestDto decision(String source) {
-        var fields = object(source);
+        Map<String, String> fields = object(source);
         if (!fields.containsKey("decision") || !DECISION_FIELDS.containsAll(fields.keySet())) {
             throw RefundException.invalid();
         }
@@ -25,7 +25,9 @@ final class AdminRefundJson {
     }
 
     static void retry(String source) {
-        if (!object(source).isEmpty()) throw RefundException.invalid();
+        if (!object(source).isEmpty()) {
+            throw RefundException.invalid();
+        }
     }
 
     private static Map<String, String> object(String source) {
@@ -35,7 +37,9 @@ final class AdminRefundJson {
         if (!reader.take('}')) {
             do {
                 String key = reader.string();
-                if (fields.containsKey(key)) throw RefundException.invalid();
+                if (fields.containsKey(key)) {
+                    throw RefundException.invalid();
+                }
                 reader.expect(':');
                 fields.put(key, reader.takeNull() ? null : reader.string());
             } while (reader.take(','));

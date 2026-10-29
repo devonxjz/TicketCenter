@@ -1,5 +1,6 @@
 package vn.ticketscenter.ticketing.service;
 
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
@@ -32,9 +33,9 @@ public final class HoldRuntime implements ServletContextListener {
     }
 
     private static HoldService create(FeatureContext.Resources resources) {
-        var buyer = resources.strictPool("hold-buyer", BUYER);
-        var worker = resources.strictPool("hold-worker", WORKER);
-        var redis = RedisClientProvider.getInstance();
+        HikariDataSource buyer = resources.strictPool("hold-buyer", BUYER);
+        HikariDataSource worker = resources.strictPool("hold-worker", WORKER);
+        RedisClientProvider redis = RedisClientProvider.getInstance();
         return new HoldServiceImpl(
                 new HoldRepository(ConnectionBudgets.wrap(buyer), ConnectionBudgets.wrap(worker)),
                 new RedisActiveHoldCache(redis::getResource, Clock.systemUTC()),
@@ -53,7 +54,9 @@ public final class HoldRuntime implements ServletContextListener {
 
     @Override
     public void contextDestroyed(ServletContextEvent event) {
-        if (expiry != null) expiry.shutdownNow();
+        if (expiry != null) {
+            expiry.shutdownNow();
+        }
         FeatureContext.close(event.getServletContext(), SERVICE_ATTRIBUTE);
     }
 

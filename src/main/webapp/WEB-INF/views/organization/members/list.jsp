@@ -118,7 +118,7 @@
         </main>
     </div>
 
-    <!-- Modal 1: Thêm thành viên -->
+    <!-- modal 1: add a member -->
     <div class="modal fade" id="addMemberModal" tabindex="-1" aria-labelledby="addMemberModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content rounded-0">
@@ -168,7 +168,7 @@
         </div>
     </div>
 
-    <!-- Modal 2: Đổi vai trò -->
+    <!-- modal 2: change role -->
     <div class="modal fade" id="changeRoleModal" tabindex="-1" aria-labelledby="changeRoleModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -228,7 +228,7 @@
         </div>
     </div>
 
-    <!-- Modal 3: Xác nhận vô hiệu hóa -->
+    <!-- modal 3: confirm deactivation -->
     <div class="modal fade" id="deactivateModal" tabindex="-1" aria-labelledby="deactivateModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">

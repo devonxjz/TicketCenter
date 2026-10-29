@@ -1,5 +1,6 @@
 package vn.ticketscenter.fulfillment.ticket.service;
 
+import java.util.Optional;
 import vn.ticketscenter.fulfillment.ticket.cache.TicketCache;
 import vn.ticketscenter.fulfillment.ticket.dto.TicketDetailDto;
 import vn.ticketscenter.fulfillment.ticket.dto.TicketSummaryDto;
@@ -35,7 +36,9 @@ public class TicketServiceImpl implements TicketService {
 
     @Override
     public List<TicketSummaryDto> getMyTickets(UUID actorId, int authVersion) {
-        if (actorId == null) throw TicketException.unauthenticated();
+        if (actorId == null) {
+            throw TicketException.unauthenticated();
+        }
         return repository.findTicketsByBuyerId(actorId, authVersion);
     }
 
@@ -46,10 +49,14 @@ public class TicketServiceImpl implements TicketService {
 
     @Override
     public TicketDetailDto getTicketDetail(UUID actorId, int authVersion, UUID ticketId) {
-        if (actorId == null) throw TicketException.unauthenticated();
-        if (ticketId == null) throw TicketException.badRequest("ticketId is required");
+        if (actorId == null) {
+            throw TicketException.unauthenticated();
+        }
+        if (ticketId == null) {
+            throw TicketException.badRequest("ticketId is required");
+        }
 
-        var opt = repository.findById(ticketId, actorId, authVersion);
+        Optional<TicketRecord> opt = repository.findById(ticketId, actorId, authVersion);
         if (opt.isEmpty()) {
             repository.assertTicketAccess(ticketId, actorId);
             throw TicketException.notFound();
@@ -60,7 +67,7 @@ public class TicketServiceImpl implements TicketService {
             throw TicketException.forbidden();
         }
 
-        // Kiểm tra cache hoặc nạp vào cache
+        // read through the cache
         return cache.getTicketDetail(ticketId)
                 .filter(
                         cached ->
@@ -82,10 +89,14 @@ public class TicketServiceImpl implements TicketService {
     @Override
     public byte[] getTicketQrPng(
             UUID actorId, int authVersion, UUID ticketId, int width, int height) {
-        if (actorId == null) throw TicketException.unauthenticated();
-        if (ticketId == null) throw TicketException.badRequest("ticketId is required");
+        if (actorId == null) {
+            throw TicketException.unauthenticated();
+        }
+        if (ticketId == null) {
+            throw TicketException.badRequest("ticketId is required");
+        }
 
-        var opt = repository.findById(ticketId, actorId, authVersion);
+        Optional<TicketRecord> opt = repository.findById(ticketId, actorId, authVersion);
         if (opt.isEmpty()) {
             repository.assertTicketAccess(ticketId, actorId);
             throw TicketException.notFound();
@@ -97,12 +108,12 @@ public class TicketServiceImpl implements TicketService {
         }
 
         long version = record.version();
-        var cachedPng = cache.getTicketQrPng(ticketId, version);
+        Optional<byte[]> cachedPng = cache.getTicketQrPng(ticketId, version);
         if (cachedPng.isPresent()) {
             return cachedPng.get();
         }
 
-        // Tạo display name cho QR canonical payload
+        // display name for the canonical QR payload
         String displayName = record.eventTitle();
         if (record.seatLabel() != null && !record.seatLabel().isBlank()) {
             displayName += " - " + record.seatLabel();
@@ -113,7 +124,7 @@ public class TicketServiceImpl implements TicketService {
         String envelope = qrSigner.buildEnvelope(ticketId, displayName);
         byte[] pngBytes = SignedTicketQrSigner.generateQrPng(envelope, width, height);
 
-        // Lưu vào cache với TTL hữu hạn
+        // cache with a bounded TTL
         cache.putTicketQrPng(ticketId, version, pngBytes);
         return pngBytes;
     }
