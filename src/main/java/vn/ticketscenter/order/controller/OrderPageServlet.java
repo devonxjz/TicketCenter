@@ -21,9 +21,8 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Controller phục vụ giao diện trang người dùng cho Đơn hàng (LIEM-06 / UI-06).
- * - GET /me/orders: Lịch sử đơn hàng của người dùng.
- * - GET /orders/{orderId}: Chi tiết đơn hàng.
+ * Buyer order pages (LIEM-06 / UI-06): {@code GET /me/orders} is the order history and
+ * {@code GET /orders/{orderId}} shows one order.
  */
 @WebServlet(urlPatterns = {"/me/orders", "/orders/*"})
 public class OrderPageServlet extends HttpServlet {
@@ -40,43 +39,54 @@ public class OrderPageServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        String path = ApiRequest.path(request);
-
-        var userOpt = SecurityContext.getCurrentUser(request);
-        if (userOpt.isEmpty()) {
+        UserPrincipal user = SecurityContext.getCurrentUser(request).orElse(null);
+        if (user == null) {
             LoginRedirect.send(request, response);
             return;
         }
 
-        UserPrincipal principal = userOpt.get();
-        OrderActor actor = new OrderActor(principal.actorId(), principal.authVersion());
-
+        // perform action and set URL to the matching view
+        String path = ApiRequest.path(request);
+        OrderActor actor = new OrderActor(user.actorId(), user.authVersion());
+        String url;
         try {
-            if ("/me/orders".equals(path)) {
-                int page = ApiRequest.positiveInt(request.getParameter("page"), 1);
-                int size = ApiRequest.positiveInt(request.getParameter("size"), 10);
-                String status = request.getParameter("status");
-
-                OrderRepository.OrderHistoryPage historyPage =
-                        service().orderHistory(actor, page, size, status);
-                request.setAttribute("historyPage", historyPage);
-                request.setAttribute("currentStatus", status);
-                request.getRequestDispatcher("/WEB-INF/views/order/my-orders.jsp")
-                        .forward(request, response);
+            if (path.equals("/me/orders")) {
+                url = showMyOrders(request, actor);
             } else if (path.matches("^/orders/[^/]+$")) {
-                UUID orderId = UUID.fromString(path.split("/")[2]);
-                OrderDetailDto order = service().orderDetail(actor, orderId);
-                request.setAttribute("order", order);
-                request.getRequestDispatcher("/WEB-INF/views/order/order-detail.jsp")
-                        .forward(request, response);
+                url = showOrderDetail(request, actor, path);
             } else {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                return;
             }
         } catch (OrderException e) {
             response.sendError(e.status(), e.getMessage());
+            return;
         } catch (IllegalArgumentException e) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid order request");
+            return;
         }
+
+        // forward request and response objects to specified URL
+        request.getRequestDispatcher(url).forward(request, response);
+    }
+
+    private String showMyOrders(HttpServletRequest request, OrderActor actor) {
+        int page = ApiRequest.positiveInt(request.getParameter("page"), 1);
+        int size = ApiRequest.positiveInt(request.getParameter("size"), 10);
+        String status = request.getParameter("status");
+
+        OrderRepository.OrderHistoryPage historyPage =
+                service().orderHistory(actor, page, size, status);
+        request.setAttribute("historyPage", historyPage);
+        request.setAttribute("currentStatus", status);
+        return "/WEB-INF/views/order/my-orders.jsp";
+    }
+
+    private String showOrderDetail(HttpServletRequest request, OrderActor actor, String path) {
+        UUID orderId = UUID.fromString(path.split("/")[2]);
+        OrderDetailDto order = service().orderDetail(actor, orderId);
+        request.setAttribute("order", order);
+        return "/WEB-INF/views/order/order-detail.jsp";
     }
 
     private OrderService service() {
@@ -84,5 +94,4 @@ public class OrderPageServlet extends HttpServlet {
                 ? suppliedService
                 : OrderRuntime.resolve(getServletContext());
     }
-
 }

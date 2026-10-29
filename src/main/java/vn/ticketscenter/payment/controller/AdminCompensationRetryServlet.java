@@ -1,5 +1,6 @@
 package vn.ticketscenter.payment.controller;
 
+import vn.ticketscenter.config.error.AppException;
 import vn.ticketscenter.config.web.ApiRequest;
 
 import jakarta.servlet.annotation.WebServlet;
@@ -43,36 +44,17 @@ public class AdminCompensationRetryServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
-        Matcher route =
-                ROUTE.matcher(ApiRequest.path(request));
-        if (!route.matches()) {
-            HttpResponses.error(response, 404, "ROUTE_NOT_FOUND", "Đường dẫn không hợp lệ.");
-            return;
-        }
-        UserPrincipal actor = SecurityContext.getCurrentUser(request).orElse(null);
-        if (actor == null) {
-            HttpResponses.error(response, 401, "UNAUTHENTICATED", "Bạn cần đăng nhập.");
-            return;
-        }
-        if (!actor.isAdmin()) {
-            HttpResponses.error(
-                    response, 403, "ADMIN_REQUIRED", "Chỉ quản trị viên mới được thử lại bù trừ.");
-            return;
-        }
-        // Checked here as well as in CsrfFilter so the write never depends on filter wiring alone.
-        if (!SecurityContext.validateCsrfToken(request)) {
-            HttpResponses.error(
-                    response, 403, "CSRF_TOKEN_INVALID", "Yêu cầu thiếu hoặc mã CSRF không hợp lệ");
-            return;
-        }
-        UUID payment;
         try {
-            payment = UUID.fromString(route.group(1));
-        } catch (IllegalArgumentException invalid) {
-            HttpResponses.error(response, 400, "INVALID_PAYMENT_ID", "Mã thanh toán không hợp lệ.");
-            return;
-        }
-        try {
+            Matcher route = route(request);
+            UserPrincipal actor = requireAdmin(request);
+            // Checked here as well as in CsrfFilter so the write never depends on filter wiring alone.
+            if (!SecurityContext.validateCsrfToken(request)) {
+                throw new AppException(
+                        403, "CSRF_TOKEN_INVALID", "Yêu cầu thiếu hoặc mã CSRF không hợp lệ");
+            }
+            UUID payment = paymentId(route);
+
+            // retry the compensation and write the JSON reply
             UUID compensation =
                     injected != null
                             ? injected.apply(actor, payment)
@@ -84,7 +66,7 @@ public class AdminCompensationRetryServlet extends HttpServlet {
                             + "\",\"paymentId\":\""
                             + payment
                             + "\",\"status\":\"PENDING\"}");
-        } catch (CompensationRetryRepository.Rejected rejected) {
+        } catch (AppException rejected) {
             HttpResponses.error(response, rejected);
         } catch (RuntimeException failure) {
             LOGGER.log(Level.SEVERE, "Compensation retry failed", failure);
@@ -94,6 +76,35 @@ public class AdminCompensationRetryServlet extends HttpServlet {
                     "COMPENSATION_UNAVAILABLE",
                     "Chưa thể xử lý yêu cầu. Vui lòng thử lại.");
         }
+    }
+
+    /** Checked before the actor so unknown routes answer 404. */
+    private static Matcher route(HttpServletRequest request) {
+        Matcher route = ROUTE.matcher(ApiRequest.path(request));
+        if (!route.matches()) {
+            throw new AppException(404, "ROUTE_NOT_FOUND", "Đường dẫn không hợp lệ.");
+        }
+        return route;
+    }
+
+    private static UUID paymentId(Matcher route) {
+        try {
+            return UUID.fromString(route.group(1));
+        } catch (IllegalArgumentException invalid) {
+            throw new AppException(400, "INVALID_PAYMENT_ID", "Mã thanh toán không hợp lệ.");
+        }
+    }
+
+    private static UserPrincipal requireAdmin(HttpServletRequest request) {
+        UserPrincipal actor = SecurityContext.getCurrentUser(request).orElse(null);
+        if (actor == null) {
+            throw new AppException(401, "UNAUTHENTICATED", "Bạn cần đăng nhập.");
+        }
+        if (!actor.isAdmin()) {
+            throw new AppException(
+                    403, "ADMIN_REQUIRED", "Chỉ quản trị viên mới được thử lại bù trừ.");
+        }
+        return actor;
     }
 
     private UUID retry(HttpServletRequest request, UserPrincipal actor, UUID payment) {

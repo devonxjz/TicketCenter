@@ -4,6 +4,7 @@ import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import vn.ticketscenter.config.web.ApiRequest;
+import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.identity.security.LoginRedirect;
 import vn.ticketscenter.identity.security.SecurityContext;
 import java.io.IOException;
@@ -24,16 +25,20 @@ public class EventManagementPagesServlet extends HttpServlet {
         String path = ApiRequest.path(request);
         response.setHeader("Cache-Control", "no-store");
         if (path.equals("/events/review") && !user.get().isAdmin()) {
-            vn.ticketscenter.config.web.HttpResponses.error(
+            HttpResponses.error(
                     response, 403, "EVENT_FORBIDDEN", "Chỉ quản trị viên được thẩm định sự kiện.");
             return;
         }
-        String view =
-                path.equals("/events/review")
-                        ? "/WEB-INF/views/admin/event-approval.jsp"
-                        : path.endsWith("/editor")
-                                ? "/WEB-INF/views/organizer/event-editor.jsp"
-                                : "/WEB-INF/views/organizer/events.jsp";
+
+        // set URL to the matching view
+        String view;
+        if (path.equals("/events/review")) {
+            view = "/WEB-INF/views/admin/event-approval.jsp";
+        } else if (path.endsWith("/editor")) {
+            view = "/WEB-INF/views/organizer/event-editor.jsp";
+        } else {
+            view = "/WEB-INF/views/organizer/events.jsp";
+        }
         request.getRequestDispatcher(view).forward(request, response);
     }
 }
