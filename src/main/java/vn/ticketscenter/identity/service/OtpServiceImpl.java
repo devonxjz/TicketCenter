@@ -87,18 +87,16 @@ public class OtpServiceImpl implements OtpService {
             return rejectUnknownAccount(request.purpose());
         }
         requireCooldownElapsed(em, normalizedEmail, request.purpose(), now);
-        otpRepository.invalidateExistingOtpsByEmail(em, normalizedEmail, request.purpose(), now);
-
         String code = otpHasher.generateOtpCode();
         Instant expiresAt = now.plus(OTP_EXPIRY_MINUTES, ChronoUnit.MINUTES);
-        otpRepository.save(
+        otpRepository.issue(
                 em,
-                new Otp(
-                        user,
-                        normalizedEmail,
-                        request.purpose(),
-                        otpHasher.hashOtp(code),
-                        expiresAt));
+                user.getId(),
+                normalizedEmail,
+                request.purpose(),
+                otpHasher.hashOtp(code),
+                expiresAt,
+                now);
 
         return OtpEmailComposer.compose(
                 request.email(), request.purpose(), user.getFullName(), code, OTP_EXPIRY_MINUTES);
@@ -142,7 +140,7 @@ public class OtpServiceImpl implements OtpService {
             transactions.execute(
                     DatabasePrincipal.AUTH,
                     em -> {
-                        otpRepository.invalidateExistingOtpsByEmail(
+                        otpRepository.invalidateOpen(
                                 em, normalizedEmail, request.purpose(), Instant.now());
                         return null;
                     });
@@ -219,13 +217,7 @@ public class OtpServiceImpl implements OtpService {
         int attempts =
                 transactions.execute(
                         DatabasePrincipal.AUTH,
-                        em -> {
-                            otpRepository.incrementFailedAttempts(em, otp.getId(), now);
-                            return otpRepository
-                                    .findById(em, otp.getId())
-                                    .map(Otp::getFailedAttempts)
-                                    .orElse(otp.getFailedAttempts() + 1);
-                        });
+                        em -> otpRepository.recordFailure(em, otp.getId(), now));
         if (attempts >= MAX_FAILED_ATTEMPTS) {
             return new IdentityException(
                     IdentityError.OTP_MAX_ATTEMPTS_EXCEEDED,
@@ -247,14 +239,14 @@ public class OtpServiceImpl implements OtpService {
                 DatabasePrincipal.AUTH,
                 em -> {
                     User user = requireUser(em, normalizedEmail);
-                    if (!otpRepository.consumeOtpAtomically(em, otp.getId(), now)) {
+                    if (!otpRepository.consume(em, otp.getId(), now)) {
                         throw new IdentityException(
                                 IdentityError.OTP_ALREADY_USED,
                                 "OTP_ALREADY_USED: Mã OTP đã được xác thực bởi một yêu cầu khác");
                     }
                     return switch (request.purpose()) {
                         case VERIFY_EMAIL -> {
-                            userRepository.updateEmailVerifiedAt(em, user.getId(), now);
+                            userRepository.markEmailVerified(em, user.getId(), now);
                             yield OtpVerifyResponseDto.forEmailVerification(
                                     "Xác minh email thành công");
                         }

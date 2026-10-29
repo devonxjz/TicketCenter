@@ -49,8 +49,7 @@ public class OrganizationRepositoryTest {
             String userName = "req" + suffix;
 
             User requester = tm.execute(DatabasePrincipal.AUTH, em -> {
-                User user = new User(email, userName, "Org Requester", "hash12345678");
-                userRepository.save(em, user);
+                User user = userRepository.findById(em, userRepository.register(em, email, userName, "Org Requester", "hash12345678")).orElseThrow();
                 return user;
             });
 

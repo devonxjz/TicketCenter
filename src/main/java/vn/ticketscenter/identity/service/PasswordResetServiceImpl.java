@@ -91,8 +91,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
                             String newPasswordHash = passwordHasher.hash(request.newPassword());
 
                             // store the new password and raise authVersion
-                            userRepository.updatePasswordHashAndAuthVersion(
-                                    em, user.getId(), newPasswordHash);
+                            userRepository.resetPassword(em, user.getId(), newPasswordHash);
 
                             // drop the user's Redis cache
                             sessionCache.evict(user.getId());
