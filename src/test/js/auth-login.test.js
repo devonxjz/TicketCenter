@@ -9,14 +9,13 @@ function fixture(networkFailure = false) {
         addEventListener:(_, fn)=>{submit=fn;},submit:()=>{fallback=true;}});
     for(const [id,value] of Object.entries({loginForm:form,identifier:element({value:'buyer'}),password:element({value:'secret'}),
         'login-csrf':element({value:'csrf-value'}),alertBox:element({}),btnLogin:element({})})) elements.set(id,value);
-    const document = {getElementById:id=>elements.get(id)};
+    const metas = {'context-path':'/app','csrf-token':'csrf-value'};
+    const document = {getElementById:id=>elements.get(id),
+        querySelector:selector=>({content:metas[selector.match(/name="([^"]+)"/)[1]]})};
     const window = {location:{href:'https://tickets.example/app/auth/login'}};
     const fetch = async (path,options)=>{calls.push({path,options});if(networkFailure)throw new Error('network lost');
         return {ok:true,json:async()=>({data:{authenticated:true,redirect:target}})};};
-    const source = fs.readFileSync('src/main/webapp/WEB-INF/views/auth/login.jsp','utf8');
-    const script = source.match(/<script>([\s\S]*?)<\/script>/)[1]
-        .replaceAll('${pageContext.request.contextPath}','/app')
-        .replaceAll('${csrfToken != null ? csrfToken : sessionScope.TC_CSRF_TOKEN}','csrf-value');
+    const script = fs.readFileSync('src/main/webapp/assets/js/auth/login.js','utf8');
     vm.runInNewContext(script,{document,window,fetch,URL});
     return {target,calls,form,window,submit:()=>submit({preventDefault(){}}),fallback:()=>fallback};
 }

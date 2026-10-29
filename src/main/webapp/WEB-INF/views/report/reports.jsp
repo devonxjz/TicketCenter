@@ -1,11 +1,8 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
-<%
-    request.setAttribute("financeTitle", "Báo cáo tài chính & doanh thu");
-    request.setAttribute("financePage", "reports");
-    request.setAttribute(
-            "financeIntro",
-            "Đối chiếu doanh thu, hoàn tiền và số phải trả theo cùng bộ lọc. Tiền nguyên VND, thời gian theo UTC.");
-%>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<c:set var="financeTitle" value="Báo cáo tài chính & doanh thu" scope="request" />
+<c:set var="financePage" value="reports" scope="request" />
+<c:set var="financeIntro" value="Đối chiếu doanh thu, hoàn tiền và số phải trả theo cùng bộ lọc. Tiền nguyên VND, thời gian theo UTC." scope="request" />
 <%@ include file="_header.jsp" %>
 <section class="finance-panel" aria-labelledby="filter-title">
     <div class="finance-panel-heading">

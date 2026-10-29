@@ -1,10 +1,9 @@
 <%@ page pageEncoding="UTF-8" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <label>Tổ chức
     <select name="organizationId" id="organization" aria-label="Tổ chức"></select>
 </label>
-<%
-    if (!"overview".equals(request.getAttribute("financePage"))) {
-%>
+<c:if test="${financePage ne 'overview'}">
 <label>Sự kiện
     <select name="eventId" id="event" disabled>
         <option value="">Tất cả sự kiện</option>
@@ -23,6 +22,4 @@
         <option value="100">100</option>
     </select>
 </label>
-<%
-    }
-%>
+</c:if>

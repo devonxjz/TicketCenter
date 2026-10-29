@@ -69,10 +69,9 @@
                 <button id="review-retry" type="button" class="btn btn-outline-dark mb-3" hidden>Thử lại</button>
                 <div id="review-content" hidden>
                     <p id="review-summary" class="text-muted"></p>
-                    <p id="review-schedule" style="white-space:pre-wrap"></p>
-                    <img id="review-cover" alt="Ảnh sự kiện cần duyệt" class="mb-3"
-                        style="max-width:100%;max-height:260px" hidden>
-                    <p id="review-description" style="white-space:pre-wrap"></p>
+                    <p class="tc-pre-wrap" id="review-schedule"></p>
+                    <img id="review-cover" alt="Ảnh sự kiện cần duyệt" class="mb-3 tc-review-image" hidden>
+                    <p class="tc-pre-wrap" id="review-description"></p>
                     <p id="review-rejection" class="text-danger"></p>
                     <h3 class="h5">Tồn kho và sơ đồ ghế</h3>
                     <div id="review-zones"></div>

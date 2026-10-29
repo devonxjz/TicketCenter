@@ -67,7 +67,7 @@
                     </div>
                     <label for="cancellation-event-id" class="filter-label">Chọn sự kiện</label>
                     <div class="tc-cancel-actions">
-                        <select id="cancellation-event-id" class="form-select" style="max-width:520px" required>
+                        <select id="cancellation-event-id" class="form-select tc-select-wide" required>
                             <option value="">Đang tải danh sách…</option>
                         </select>
                         <button class="btn btn-dark">Xem yêu cầu</button>

@@ -63,6 +63,7 @@ public class OrganizerServlet extends HttpServlet {
             }
             case "/organizer/coupons" -> {
                 view = "/WEB-INF/views/organizer/coupons.jsp";
+                resp.setHeader("Cache-Control", "no-store");
                 activeTab = "coupons";
             }
             case "/organizer/members" -> {
@@ -71,6 +72,7 @@ public class OrganizerServlet extends HttpServlet {
             }
             default -> {
                 view = "/WEB-INF/views/organizer/dashboard.jsp";
+                resp.setHeader("Cache-Control", "no-store");
                 activeTab = "dashboard";
             }
         }

@@ -1,14 +1,11 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
-<%@ page import="vn.ticketscenter.settlement.controller.FinanceHtml" %>
-<%
-    request.setAttribute("financeTitle", "Chính sách hoa hồng");
-    request.setAttribute("financePage", "commission");
-    request.setAttribute("financeAdmin", true);
-    request.setAttribute("financeWritable", true);
-    request.setAttribute(
-            "financeIntro",
-            "Thiết lập tỷ lệ và phí cố định theo tổ chức. Chính sách đã gắn với sự kiện được khóa sửa để giữ nguyên lịch sử tính phí.");
-%>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<c:set var="financeTitle" value="Chính sách hoa hồng" scope="request" />
+<c:set var="financePage" value="commission" scope="request" />
+<c:set var="financeAdmin" value="${true}" scope="request" />
+<c:set var="financeWritable" value="${true}" scope="request" />
+<c:set var="financeIntro" value="Thiết lập tỷ lệ và phí cố định theo tổ chức. Chính sách đã gắn với sự kiện được khóa sửa để giữ nguyên lịch sử tính phí." scope="request" />
 <%@ include file="../../finance/_header.jsp" %>
 <section class="finance-panel">
     <div class="finance-panel-heading">
@@ -18,7 +15,7 @@
     <label>Tổ chức
         <select id="organization" required>
             <option value="">Chọn tổ chức</option>
-            <%= FinanceHtml.options(request.getAttribute("organizations"),"name") %>
+            <c:forEach items="${organizations}" var="option"><option value="${fn:escapeXml(option.id)}"><c:out value="${option.name}" /></option></c:forEach>
         </select>
     </label>
     <div class="scroll" tabindex="0" aria-label="Danh sách chính sách hoa hồng">

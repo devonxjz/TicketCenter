@@ -95,12 +95,12 @@
                     <table class="table-custom">
                         <thead>
                             <tr>
-                                <th style="width: 25%;">Họ tên & Tên đăng nhập</th>
-                                <th style="width: 25%;">Email</th>
-                                <th style="width: 15%;">Vai trò</th>
-                                <th style="width: 12%;">Trạng thái</th>
-                                <th style="width: 11%;">Ngày tham gia</th>
-                                <th style="width: 12%;" class="text-end">Thao tác</th>
+                                <th class="tc-col-25">Họ tên & Tên đăng nhập</th>
+                                <th class="tc-col-25">Email</th>
+                                <th class="tc-col-15">Vai trò</th>
+                                <th class="tc-col-12">Trạng thái</th>
+                                <th class="tc-col-11">Ngày tham gia</th>
+                                <th class="text-end tc-col-12">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody id="memberTableBody">

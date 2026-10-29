@@ -66,6 +66,9 @@ public class PublicPagesServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + redirect);
             return;
         }
+        if (path.equals("/checkout") || path.equals("/profile")) {
+            resp.setHeader("Cache-Control", "no-store");
+        }
         String view =
                 switch (path) {
                     case "/checkout" -> "/WEB-INF/views/public/checkout.jsp";

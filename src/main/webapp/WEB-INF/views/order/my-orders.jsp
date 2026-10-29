@@ -55,7 +55,7 @@
         <c:choose>
             <c:when test="${empty historyPage.orders}">
                 <div class="text-center py-5 bg-white rounded-4 border border-dashed p-5">
-                    <i class="fa-solid fa-cart-shopping text-muted mb-3" style="font-size: 56px;"></i>
+                    <i class="fa-solid fa-cart-shopping text-muted mb-3 tc-icon-56"></i>
                     <h4 class="fw-bold">Bạn chưa có đơn hàng nào</h4>
                     <p class="text-muted">Sau khi đặt vé thành công, đơn hàng của bạn sẽ hiển thị tại
                         đây.</p>
