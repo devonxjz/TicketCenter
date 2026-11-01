@@ -12,7 +12,7 @@
 ![Redis](https://img.shields.io/badge/Redis-Jedis_5-DC382D?style=for-the-badge&logo=redis&logoColor=white)
 ![payOS](https://img.shields.io/badge/payOS-Payment_Link-00A86B?style=for-the-badge)
 
-<img src="docs/images/readme/home.webp" alt="Trang khám phá sự kiện của TicketsCenter" width="100%">
+<img src="docs/images/readme/home.png" alt="Trang khám phá sự kiện của TicketsCenter" width="100%">
 
 [Tính năng](#-tính-năng-theo-vai-trò) · [Kiến trúc](#-kiến-trúc) · [Cơ sở dữ liệu](#-sql-server-là-nơi-giữ-luật-nghiệp-vụ) · [Chạy local](#-chạy-local) · [Tài liệu](#-tài-liệu)
 
@@ -48,22 +48,22 @@ và nhật ký chỉ được ghi thêm. Java chỉ điều phối HTTP, phiên 
 Trang chủ có banner nổi bật, lọc theo danh mục (Âm nhạc, Sân khấu, Hội thảo, Thể thao...), tìm kiếm theo tên hoặc địa điểm
 và sắp xếp. Trang chi tiết hiển thị lịch diễn, địa điểm, ban tổ chức, thời gian mở bán, giá từ thấp nhất và tình trạng từng khu.
 
-<img src="docs/images/readme/event-detail.webp" alt="Chi tiết sự kiện" width="100%">
+<img src="docs/images/readme/event-detail.png" alt="Chi tiết sự kiện" width="100%">
 
 #### Chọn vé và giữ chỗ (UI-02, UI-04)
 Người mua chọn khu (vé đứng hoặc ghế ngồi trên sơ đồ), tối đa **8 vé mỗi lượt**. Máy chủ đối chiếu giá và chỗ trống rồi
 **giữ vé trong 10 phút**. Có thể *Thanh toán ngay* hoặc *Giữ vé, thanh toán sau*. Ở bước checkout, hệ thống chỉ gợi ý những mã
 giảm giá đơn hàng đủ điều kiện dùng; mức giảm tối đa là 30%.
 
-<img src="docs/images/readme/select-tickets.webp" alt="Chọn khu vé và số lượng" width="100%">
+<img src="docs/images/readme/select-tickets.png" alt="Chọn khu vé và số lượng" width="100%">
 
 #### Tài khoản: đăng nhập, đăng ký, OTP, đặt lại mật khẩu (UI-03)
 
 <table>
   <tr>
-    <td width="33%"><img src="docs/images/readme/login.webp" alt="Đăng nhập"></td>
-    <td width="33%"><img src="docs/images/readme/register.webp" alt="Đăng ký"></td>
-    <td width="33%"><img src="docs/images/readme/forgot-password.webp" alt="Quên mật khẩu"></td>
+    <td width="33%"><img src="docs/images/readme/login.png" alt="Đăng nhập"></td>
+    <td width="33%"><img src="docs/images/readme/register.png" alt="Đăng ký"></td>
+    <td width="33%"><img src="docs/images/readme/forgot-password.png" alt="Quên mật khẩu"></td>
   </tr>
   <tr>
     <td align="center"><b>Đăng nhập</b><br><sub>Email hoặc username, CSRF theo phiên</sub></td>
@@ -78,16 +78,16 @@ một mã QR được ký số để xuất trình lúc vào cửa.
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/readme/my-orders.webp" alt="Đơn hàng của tôi"></td>
-    <td width="50%"><img src="docs/images/readme/order-detail.webp" alt="Chi tiết đơn hàng"></td>
+    <td width="50%"><img src="docs/images/readme/my-orders.png" alt="Đơn hàng của tôi"></td>
+    <td width="50%"><img src="docs/images/readme/order-detail.png" alt="Chi tiết đơn hàng"></td>
   </tr>
   <tr>
     <td align="center"><b>Đơn hàng của tôi</b></td>
     <td align="center"><b>Chi tiết đơn</b>: vé mua, giảm giá, tổng tiền</td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/images/readme/my-tickets.webp" alt="Vé của tôi"></td>
-    <td width="50%"><img src="docs/images/readme/ticket-detail.webp" alt="Chi tiết vé điện tử"></td>
+    <td width="50%"><img src="docs/images/readme/my-tickets.png" alt="Vé của tôi"></td>
+    <td width="50%"><img src="docs/images/readme/ticket-detail.png" alt="Chi tiết vé điện tử"></td>
   </tr>
   <tr>
     <td align="center"><b>Vé của tôi</b></td>
@@ -101,8 +101,8 @@ Người mua có thể yêu cầu hoàn vé chưa sử dụng trước giờ di�
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/readme/profile.webp" alt="Hồ sơ tài khoản"></td>
-    <td width="50%"><img src="docs/images/readme/organizer-request.webp" alt="Đăng ký đối tác ban tổ chức"></td>
+    <td width="50%"><img src="docs/images/readme/profile.png" alt="Hồ sơ tài khoản"></td>
+    <td width="50%"><img src="docs/images/readme/organizer-request.png" alt="Đăng ký đối tác ban tổ chức"></td>
   </tr>
   <tr>
     <td align="center"><b>Hồ sơ tài khoản</b></td>
@@ -118,7 +118,7 @@ Người mua có thể yêu cầu hoàn vé chưa sử dụng trước giờ di�
 Số sự kiện, số sự kiện chờ duyệt, số đơn đã thanh toán, doanh thu lũy kế, dòng tiền ròng và biểu đồ 7 ngày gần nhất.
 Một người có thể quản lý nhiều tổ chức và chuyển qua lại bằng bộ chọn.
 
-<img src="docs/images/readme/organizer-dashboard.webp" alt="Tổng quan tổ chức" width="100%">
+<img src="docs/images/readme/organizer-dashboard.png" alt="Tổng quan tổ chức" width="100%">
 
 #### Sự kiện, khu vé và sơ đồ ghế (UI-12, UI-13)
 Manager tạo hồ sơ sự kiện (ảnh bìa, danh mục, địa điểm, lịch mở bán), thêm **khu ghế ngồi** (số hàng × ghế mỗi hàng) hoặc
@@ -127,8 +127,8 @@ Manager tạo hồ sơ sự kiện (ảnh bìa, danh mục, địa điểm, lị
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/readme/organizer-events.webp" alt="Danh sách sự kiện của tổ chức"></td>
-    <td width="50%"><img src="docs/images/readme/event-editor.webp" alt="Biên tập sự kiện và hạng vé"></td>
+    <td width="50%"><img src="docs/images/readme/organizer-events.png" alt="Danh sách sự kiện của tổ chức"></td>
+    <td width="50%"><img src="docs/images/readme/event-editor.png" alt="Biên tập sự kiện và hạng vé"></td>
   </tr>
   <tr>
     <td align="center"><b>Sự kiện của tổ chức</b>: trạng thái duyệt</td>
@@ -140,8 +140,8 @@ Manager tạo hồ sơ sự kiện (ảnh bìa, danh mục, địa điểm, lị
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/readme/organizer-members.webp" alt="Nhân sự và phân quyền"></td>
-    <td width="50%"><img src="docs/images/readme/organizer-reports.webp" alt="Báo cáo tài chính và doanh thu"></td>
+    <td width="50%"><img src="docs/images/readme/organizer-members.png" alt="Nhân sự và phân quyền"></td>
+    <td width="50%"><img src="docs/images/readme/organizer-reports.png" alt="Báo cáo tài chính và doanh thu"></td>
   </tr>
   <tr>
     <td align="center"><b>Nhân sự và phân quyền</b><br><sub>Manager / Soát vé; không thể gỡ Manager cuối cùng</sub></td>
@@ -162,8 +162,8 @@ quét cùng lúc.
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/readme/checkin-select.webp" alt="Chọn sự kiện soát vé"></td>
-    <td width="50%"><img src="docs/images/readme/checkin-scanner.webp" alt="Cổng soát vé"></td>
+    <td width="50%"><img src="docs/images/readme/checkin-select.png" alt="Chọn sự kiện soát vé"></td>
+    <td width="50%"><img src="docs/images/readme/checkin-scanner.png" alt="Cổng soát vé"></td>
   </tr>
   <tr>
     <td align="center"><b>Chọn sự kiện soát vé</b> (UI-15)</td>
@@ -179,22 +179,22 @@ quét cùng lúc.
 Các hàng đợi cần xử lý (tổ chức và sự kiện chờ duyệt, yêu cầu hoàn vé, quyết toán nháp), quy mô hệ thống và tài chính lũy kế
 toàn sàn.
 
-<img src="docs/images/readme/admin-dashboard.webp" alt="Tổng quan hệ thống" width="100%">
+<img src="docs/images/readme/admin-dashboard.png" alt="Tổng quan hệ thống" width="100%">
 
 #### Duyệt tổ chức, sự kiện và hoàn tiền (UI-19, UI-20, UI-21)
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/readme/admin-organizations.webp" alt="Thẩm định hồ sơ ban tổ chức"></td>
-    <td width="50%"><img src="docs/images/readme/admin-events.webp" alt="Thẩm định sự kiện"></td>
+    <td width="50%"><img src="docs/images/readme/admin-organizations.png" alt="Thẩm định hồ sơ ban tổ chức"></td>
+    <td width="50%"><img src="docs/images/readme/admin-events.png" alt="Thẩm định sự kiện"></td>
   </tr>
   <tr>
     <td align="center"><b>Thẩm định ban tổ chức</b><br><sub>Duyệt kèm chính sách hoa hồng ban đầu</sub></td>
     <td align="center"><b>Thẩm định sự kiện</b><br><sub>Công khai, từ chối có lý do, hủy sự kiện</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/images/readme/admin-refunds.webp" alt="Yêu cầu hoàn tiền"></td>
-    <td width="50%"><img src="docs/images/readme/admin-audit.webp" alt="Nhật ký hệ thống"></td>
+    <td width="50%"><img src="docs/images/readme/admin-refunds.png" alt="Yêu cầu hoàn tiền"></td>
+    <td width="50%"><img src="docs/images/readme/admin-audit.png" alt="Nhật ký hệ thống"></td>
   </tr>
   <tr>
     <td align="center"><b>Yêu cầu hoàn tiền</b><br><sub>Duyệt/từ chối, theo dõi từng lần chuyển tiền</sub></td>
@@ -206,9 +206,9 @@ toàn sàn.
 
 <table>
   <tr>
-    <td width="33%"><img src="docs/images/readme/admin-commission.webp" alt="Chính sách hoa hồng"></td>
-    <td width="33%"><img src="docs/images/readme/admin-settlements.webp" alt="Quyết toán và chi trả"></td>
-    <td width="33%"><img src="docs/images/readme/admin-reports.webp" alt="Báo cáo toàn hệ thống"></td>
+    <td width="33%"><img src="docs/images/readme/admin-commission.png" alt="Chính sách hoa hồng"></td>
+    <td width="33%"><img src="docs/images/readme/admin-settlements.png" alt="Quyết toán và chi trả"></td>
+    <td width="33%"><img src="docs/images/readme/admin-reports.png" alt="Báo cáo toàn hệ thống"></td>
   </tr>
   <tr>
     <td align="center"><b>Chính sách hoa hồng</b><br><sub>Tỷ lệ % + phí cố định; khóa sửa khi đã áp dụng</sub></td>
