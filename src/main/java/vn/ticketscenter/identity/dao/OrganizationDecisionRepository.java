@@ -1,8 +1,7 @@
 package vn.ticketscenter.identity.dao;
 
-import org.hibernate.Session;
-import org.hibernate.jdbc.ReturningWork;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
+import vn.ticketscenter.config.persistence.SqlCall;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.identity.error.IdentityError;
 import vn.ticketscenter.identity.error.IdentityException;
@@ -39,7 +38,7 @@ public class OrganizationDecisionRepository {
             String contactEmail,
             String contactPhone,
             String description) {
-        return inSession(
+        return SqlCall.inSession(
                 transactions,
                 DatabasePrincipal.BUYER,
                 connection -> {
@@ -52,9 +51,10 @@ public class OrganizationDecisionRepository {
                         call.setNString(4, contactPhone);
                         call.setNString(5, description);
                         try (ResultSet row = call.executeQuery()) {
-                            if (!row.next())
+                            if (!row.next()) {
                                 throw new IllegalStateException(
                                         "Organization submission returned no result");
+                            }
                             return uuid(row.getString("organization_id"));
                         }
                     } catch (SQLException failure) {
@@ -69,7 +69,7 @@ public class OrganizationDecisionRepository {
             UUID adminId,
             CommissionPolicy policy,
             InitialEvent event) {
-        return inSession(
+        return SqlCall.inSession(
                 transactions,
                 DatabasePrincipal.ADMIN,
                 connection -> {
@@ -105,9 +105,10 @@ public class OrganizationDecisionRepository {
                             call.setObject(10, utc(event.endTime()), Types.TIMESTAMP);
                         }
                         try (ResultSet row = call.executeQuery()) {
-                            if (!row.next())
+                            if (!row.next()) {
                                 throw new IllegalStateException(
                                         "Organization approval returned no result");
+                            }
                             return new Approval(
                                     uuid(row.getString("assigned_manager_id")),
                                     uuid(row.getString("commission_rule_id")),
@@ -121,7 +122,7 @@ public class OrganizationDecisionRepository {
 
     public void reject(
             TransactionManager transactions, UUID organizationId, UUID adminId, String reason) {
-        inSession(
+        SqlCall.inSession(
                 transactions,
                 DatabasePrincipal.ADMIN,
                 connection -> {
@@ -138,11 +139,6 @@ public class OrganizationDecisionRepository {
                 });
     }
 
-    private static <T> T inSession(
-            TransactionManager transactions, DatabasePrincipal principal, ReturningWork<T> work) {
-        return transactions.execute(
-                principal, em -> em.unwrap(Session.class).doReturningWork(work));
-    }
 
     /** Maps the procedures' THROW numbers onto the exceptions the service has always raised. */
     static RuntimeException translate(SQLException failure) {

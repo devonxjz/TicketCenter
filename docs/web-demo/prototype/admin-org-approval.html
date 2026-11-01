@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Duyệt Hồ Sơ Tổ Chức — TicketsCenter Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-light min-h-screen">
+    <div class="small text-center py-2 bg-light text-muted" role="note">Prototype tĩnh • Dữ liệu và thao tác mô phỏng • Chưa kết nối backend, email hoặc cổng thanh toán.</div>
+
+    <!-- Top Admin Bar -->
+    <nav class="admin-navbar sticky-top">
+        <div class="container-fluid d-flex align-items-center justify-content-between p-0">
+            <div class="d-flex align-items-center gap-3">
+                <a class="navbar-brand-custom" href="index.html">
+                    TicketsCenter
+                </a>
+                <span class="status-pill status-neutral">Quản Trị Hệ Thống</span>
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+                <span class="small text-muted d-none d-sm-inline">admin@ticketscenter.vn</span>
+                <a href="index.html" class="btn btn-sm btn-outline-dark rounded-0 px-3">
+                    Xem sàn bán vé
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Layout -->
+    <div class="dashboard-layout">
+        
+        <!-- Sidebar -->
+        <aside class="dashboard-sidebar">
+            <div class="sidebar-title">Trung tâm Quản trị</div>
+            <ul class="sidebar-menu">
+                <li><a href="admin-dashboard.html">• Tổng quan vận hành</a></li>
+                <li><a href="admin-org-approval.html" class="active">• Duyệt hồ sơ tổ chức</a></li>
+                <li><a href="admin-event-approval.html">• Duyệt & Hủy sự kiện</a></li>
+                <li><a href="admin-refund-approval.html">• Xử lý hoàn vé</a></li>
+                <li><a href="admin-settlements.html">• Hoa hồng & Quyết toán</a></li>
+                <li><a href="admin-audit-logs.html">• Nhật ký hệ thống</a></li>
+            </ul>
+
+            <div class="sidebar-title">Điều hướng nhanh</div>
+            <ul class="sidebar-menu">
+                <li><a href="index.html">• Cổng người mua</a></li>
+                <li><a href="organizer-dashboard.html">• Cổng Ban tổ chức</a></li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="dashboard-content">
+            
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center pb-4 mb-4 border-bottom">
+                <div>
+                    <h1 class="h4 fw-bold mb-1 text-dark">Thẩm Định Hồ Sơ Đối Tác Ban Tổ Chức</h1>
+                    <p class="small text-muted mb-0">Duyệt cùng hồ sơ Organization, tạo quy tắc phí ban đầu và cấp MANAGER cho requester trong một giao dịch.</p>
+                </div>
+            </div>
+
+            <!-- Rule Notice Banner -->
+            <div class="p-3 bg-white border border-secondary-subtle small mb-4">
+                <strong>Quy trình phê duyệt:</strong> Khi Quản trị viên chấp thuận hồ sơ, tài khoản người đại diện sẽ lập tức được cấp quyền <em>Quản lý tổ chức (Manager)</em> và có quyền tạo, gửi duyệt sự kiện. Chỉ sự kiện được quản trị công khai mới bán vé. Duyệt lặp trả cùng Organization, không tạo hồ sơ thứ hai.
+            </div>
+
+            <!-- Table 1: Pending Approvals -->
+            <div class="panel-box bg-white mb-5">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">Hồ sơ đối tác chờ xét duyệt (3 hồ sơ)</h2>
+                        <span class="small text-muted">Hồ sơ đăng ký mới gửi đến hệ thống</span>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table-custom">
+                        <thead>
+                            <tr>
+                                <th>Tên tổ chức & Mã hồ sơ</th>
+                                <th>Người đại diện & Email</th>
+                                <th>Ngày nộp</th>
+                                <th>Liên hệ hồ sơ (minh họa)</th>
+                                <th>Cài đặt hoa hồng sàn</th>
+                                <th class="text-end">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <strong class="d-block text-dark">Bảo tàng Phụ nữ Việt Nam</strong>
+                                    <span class="small text-muted">Organization: 0109887766</span>
+                                </td>
+                                <td>
+                                    <span class="d-block text-dark">Nguyễn Thị Hồng</span>
+                                    <span class="small text-muted">hong.nguyen@vwm.gov.vn</span>
+                                </td>
+                                <td>24/09/2026</td>
+                                <td>
+                                    <span class="d-block text-dark">BIDV — CN Hoàn Kiếm</span>
+                                    <span class="small text-muted">STK: 12410000889922</span>
+                                </td>
+                                <td>
+                                    <select class="form-select form-select-sm rounded-0 border-secondary-subtle" style="width: 110px;">
+                                        <option value="5">5.0%</option>
+                                        <option value="8" selected>8.0% (Ví dụ cấu hình)</option>
+                                        <option value="10">10.0%</option>
+                                    </select>
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-inline-flex gap-2">
+                                        <button class="btn btn-sm btn-dark rounded-0 px-3 py-1" onclick="alert('Mô phỏng: Organization → APPROVED; tạo CommissionRule và assignRole(requester, MANAGER) cùng giao dịch dự kiến.')">
+                                            Phê duyệt
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger rounded-0 px-2 py-1" onclick="prompt('Nhập lý do từ chối hồ sơ:')">
+                                            Từ chối
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td>
+                                    <strong class="d-block text-dark">Công ty Cổ phần Giải trí Hanoi Live</strong>
+                                    <span class="small text-muted">Organization: 0107654321</span>
+                                </td>
+                                <td>
+                                    <span class="d-block text-dark">Trần Minh Quân</span>
+                                    <span class="small text-muted">quan.tran@hanoilive.vn</span>
+                                </td>
+                                <td>23/09/2026</td>
+                                <td>
+                                    <span class="d-block text-dark">Techcombank — CN Thăng Long</span>
+                                    <span class="small text-muted">STK: 19034567891011</span>
+                                </td>
+                                <td>
+                                    <select class="form-select form-select-sm rounded-0 border-secondary-subtle" style="width: 110px;">
+                                        <option value="5">5.0%</option>
+                                        <option value="8" selected>8.0% (Ví dụ cấu hình)</option>
+                                        <option value="10">10.0%</option>
+                                    </select>
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-inline-flex gap-2">
+                                        <button class="btn btn-sm btn-dark rounded-0 px-3 py-1" onclick="alert('Mô phỏng: Organization → APPROVED; tạo CommissionRule và assignRole(requester, MANAGER) cùng giao dịch dự kiến.')">
+                                            Phê duyệt
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger rounded-0 px-2 py-1" onclick="prompt('Nhập lý do từ chối hồ sơ:')">
+                                            Từ chối
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td>
+                                    <strong class="d-block text-dark">Saigon Stage Entertainment Ltd</strong>
+                                    <span class="small text-muted">Organization: 0314567890</span>
+                                </td>
+                                <td>
+                                    <span class="d-block text-dark">Lê Hoàng Yến</span>
+                                    <span class="small text-muted">yen.le@saigonstage.vn</span>
+                                </td>
+                                <td>22/09/2026</td>
+                                <td>
+                                    <span class="d-block text-dark">Vietcombank — CN Bến Thành</span>
+                                    <span class="small text-muted">STK: 0071001234567</span>
+                                </td>
+                                <td>
+                                    <select class="form-select form-select-sm rounded-0 border-secondary-subtle" style="width: 110px;">
+                                        <option value="5">5.0%</option>
+                                        <option value="8" selected>8.0% (Ví dụ cấu hình)</option>
+                                        <option value="10">10.0%</option>
+                                    </select>
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-inline-flex gap-2">
+                                        <button class="btn btn-sm btn-dark rounded-0 px-3 py-1" onclick="alert('Mô phỏng: Organization → APPROVED; tạo CommissionRule và assignRole(requester, MANAGER) cùng giao dịch dự kiến.')">
+                                            Phê duyệt
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger rounded-0 px-2 py-1" onclick="prompt('Nhập lý do từ chối hồ sơ:')">
+                                            Từ chối
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Table 2: Active Partner Organizations -->
+            <div class="panel-box bg-white">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">Ban tổ chức đang hoạt động</h2>
+                        <span class="small text-muted">Các đối tác đã thẩm định và đang phát hành sự kiện trên hệ thống</span>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table-custom">
+                        <thead>
+                            <tr>
+                                <th>Tên tổ chức</th>
+                                <th>Người quản lý (Manager)</th>
+                                <th>Sự kiện đang chạy</th>
+                                <th>Tỷ lệ hoa hồng</th>
+                                <th>Trạng thái</th>
+                                <th class="text-end">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <strong class="text-dark">Vietnam Show Corp</strong>
+                                </td>
+                                <td>Nguyễn Hoàng Nam (buyer@ticketscenter.vn)</td>
+                                <td>3 sự kiện</td>
+                                <td><span class="status-pill status-neutral">8.0%</span></td>
+                                <td><span class="status-pill status-success">Đang hoạt động</span></td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-outline-dark rounded-0 px-2 py-1" onclick="alert('Mô phỏng: Tạo phiên bản CommissionRule mới; không sửa điều khoản đã gắn cho Event công khai.')">
+                                        Sửa hoa hồng
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <strong class="text-dark">Vietnam Sports League</strong>
+                                </td>
+                                <td>Phạm Minh Đạt (dat.pham@vsl.vn)</td>
+                                <td>1 sự kiện</td>
+                                <td><span class="status-pill status-neutral">5.0%</span></td>
+                                <td><span class="status-pill status-success">Đang hoạt động</span></td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-outline-dark rounded-0 px-2 py-1" onclick="alert('Mô phỏng: Tạo phiên bản CommissionRule mới; không sửa điều khoản đã gắn cho Event công khai.')">
+                                        Sửa hoa hồng
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+</body>
+</html>

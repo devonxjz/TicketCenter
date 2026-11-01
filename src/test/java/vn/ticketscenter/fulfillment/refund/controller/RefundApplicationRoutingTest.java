@@ -9,7 +9,7 @@ import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.junit.jupiter.api.Test;
 import vn.ticketscenter.identity.service.SessionValidator;
-import vn.ticketscenter.identity.config.IdentityServices;
+import vn.ticketscenter.config.identity.IdentityServices;
 import vn.ticketscenter.config.web.OrganizationApiRoutesFilter;
 import static org.junit.jupiter.api.Assertions.*;
 import static vn.ticketscenter.fulfillment.refund.controller.RefundRequestServletsTest.proxy;

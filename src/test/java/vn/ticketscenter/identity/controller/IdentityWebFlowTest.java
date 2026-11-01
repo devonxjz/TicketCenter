@@ -1,7 +1,10 @@
 package vn.ticketscenter.identity.controller;
 
+import vn.ticketscenter.config.web.TestServlets;
 import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,8 +22,11 @@ import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.SessionValidationFilter;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.identity.service.LoginService;
+import vn.ticketscenter.identity.service.LoginServiceImpl;
 import vn.ticketscenter.identity.service.ProfileService;
+import vn.ticketscenter.identity.service.ProfileServiceImpl;
 import vn.ticketscenter.identity.service.RegistrationService;
+import vn.ticketscenter.identity.service.RegistrationServiceImpl;
 import vn.ticketscenter.identity.service.SessionValidator;
 import vn.ticketscenter.identity.service.PasswordHasher;
 
@@ -166,7 +172,7 @@ public class IdentityWebFlowTest {
         HttpServletRequest req = createMockRequest("GET", "/api/auth/csrf", true);
         HttpServletResponse resp = createMockResponse();
 
-        servlet.doGet(req, resp);
+        servlet.service(req, resp);
 
         assertEquals(200, responseStatus.get());
         String body = responseBuffer.toString();
@@ -270,8 +276,15 @@ public class IdentityWebFlowTest {
             }
         };
 
-        SessionValidationFilter filter = new SessionValidationFilter(mockService);
-        HttpServletRequest req = createMockRequest("GET", "/api/me", true);
+        SessionValidationFilter filter = new SessionValidationFilter();
+        ServletContext context = TestServlets.context(mockService);
+        HttpServletRequest req =
+                new HttpServletRequestWrapper(createMockRequest("GET", "/api/me", true)) {
+                    @Override
+                    public ServletContext getServletContext() {
+                        return context;
+                    }
+                };
         HttpServletResponse resp = createMockResponse();
 
         filter.doFilter(req, resp, createMockChain());
@@ -289,7 +302,7 @@ public class IdentityWebFlowTest {
         HttpServletRequest req = createMockRequest("GET", "/api/me", false);
         HttpServletResponse resp = createMockResponse();
 
-        servlet.doGet(req, resp);
+        servlet.service(req, resp);
 
         assertEquals(401, responseStatus.get());
         assertTrue(responseBuffer.toString().contains("UNAUTHENTICATED"));
@@ -302,7 +315,7 @@ public class IdentityWebFlowTest {
         UserPrincipal principal = new UserPrincipal(actorId, PlatformRole.CUSTOMER, 1);
         sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, principal);
 
-        ProfileService mockService = new ProfileService(
+        ProfileService mockService = new ProfileServiceImpl(
                 new TransactionManager(Map.of()), new UserRepository()) {
             @Override
             public CurrentUserDto getCurrentUser(UUID id) {
@@ -310,11 +323,11 @@ public class IdentityWebFlowTest {
             }
         };
 
-        MeServlet servlet = new MeServlet(mockService);
+        MeServlet servlet = TestServlets.init(new MeServlet(), mockService);
         HttpServletRequest req = createMockRequest("GET", "/api/me", true);
         HttpServletResponse resp = createMockResponse();
 
-        servlet.doGet(req, resp);
+        servlet.service(req, resp);
 
         assertEquals(200, responseStatus.get());
         String body = responseBuffer.toString();
@@ -335,7 +348,7 @@ public class IdentityWebFlowTest {
         HttpServletRequest req = createMockRequest("POST", "/api/auth/logout", true);
         HttpServletResponse resp = createMockResponse();
 
-        servlet.doPost(req, resp);
+        servlet.service(req, resp);
 
         assertEquals(200, responseStatus.get());
         assertTrue(responseBuffer.toString().contains("\"loggedOut\":true"));
@@ -347,7 +360,7 @@ public class IdentityWebFlowTest {
         sessionAttributes.put("TC_CURRENT_USER", "dummy-user");
         sessionAttributes.put("TC_CSRF_TOKEN", "dummy-token");
         LogoutServlet servlet=new LogoutServlet();
-        servlet.doPost(createMockRequest("POST","/auth/logout",true),createMockResponse());
+        servlet.service(createMockRequest("POST","/auth/logout",true),createMockResponse());
         assertEquals(403,responseStatus.get());
         assertEquals("dummy-user",sessionAttributes.get("TC_CURRENT_USER"));
     }
@@ -359,7 +372,7 @@ public class IdentityWebFlowTest {
         HttpServletRequest req = createMockRequest("GET", "/auth/login", false);
         HttpServletResponse resp = createMockResponse();
 
-        servlet.doGet(req, resp);
+        servlet.service(req, resp);
 
         assertEquals("/WEB-INF/views/auth/login.jsp", requestAttributes.get("FORWARDED_TO"));
         assertNotNull(requestAttributes.get("csrfToken"));
@@ -372,7 +385,7 @@ public class IdentityWebFlowTest {
         HttpServletRequest req = createMockRequest("GET", "/auth/register", false);
         HttpServletResponse resp = createMockResponse();
 
-        servlet.doGet(req, resp);
+        servlet.service(req, resp);
 
         assertEquals("/WEB-INF/views/auth/register.jsp", requestAttributes.get("FORWARDED_TO"));
         assertNotNull(requestAttributes.get("csrfToken"));
@@ -384,7 +397,7 @@ public class IdentityWebFlowTest {
         UUID actorId = UUID.randomUUID();
         UserPrincipal principal = new UserPrincipal(actorId, PlatformRole.CUSTOMER, 0);
 
-        LoginService mockService = new LoginService(
+        LoginService mockService = new LoginServiceImpl(
                 new TransactionManager(Map.of()), new UserRepository(), new PasswordHasher()) {
             @Override
             public UserPrincipal login(LoginRequestDto request) {
@@ -392,14 +405,14 @@ public class IdentityWebFlowTest {
             }
         };
 
-        LoginServlet servlet = new LoginServlet(mockService);
+        LoginServlet servlet = TestServlets.init(new LoginServlet(), mockService);
         requestParams.put("identifier", "user@test.vn");
         requestParams.put("password", "SecurePassword123!");
 
         HttpServletRequest req = createMockRequest("POST", "/api/auth/login", true);
         HttpServletResponse resp = createMockResponse();
 
-        servlet.doPost(req, resp);
+        servlet.service(req, resp);
 
         assertEquals(200, responseStatus.get());
         assertTrue(responseBuffer.toString().contains("\"authenticated\":true"));
@@ -415,7 +428,7 @@ public class IdentityWebFlowTest {
         UUID actorId = UUID.randomUUID();
         UserPrincipal admin = new UserPrincipal(actorId, PlatformRole.ADMIN, 0);
 
-        LoginService mockService = new LoginService(
+        LoginService mockService = new LoginServiceImpl(
                 new TransactionManager(Map.of()), new UserRepository(), new PasswordHasher()) {
             @Override
             public UserPrincipal login(LoginRequestDto request) {
@@ -423,14 +436,14 @@ public class IdentityWebFlowTest {
             }
         };
 
-        LoginServlet servlet = new LoginServlet(mockService);
+        LoginServlet servlet = TestServlets.init(new LoginServlet(), mockService);
         requestParams.put("identifier", "admin@test.vn");
         requestParams.put("password", "Pass12345678!");
 
         HttpServletRequest req = createMockRequest("POST", "/api/auth/login", true);
         HttpServletResponse resp = createMockResponse();
 
-        servlet.doPost(req, resp);
+        servlet.service(req, resp);
 
         assertEquals(200, responseStatus.get());
         assertTrue(responseBuffer.toString().contains("\"redirect\":\"/\""));
@@ -443,7 +456,7 @@ public class IdentityWebFlowTest {
         UUID actorId = UUID.randomUUID();
         UserPrincipal staff = new UserPrincipal(actorId, PlatformRole.CUSTOMER, 0, vn.ticketscenter.identity.model.OrganizationRole.CHECK_IN_STAFF);
 
-        LoginService mockService = new LoginService(
+        LoginService mockService = new LoginServiceImpl(
                 new TransactionManager(Map.of()), new UserRepository(), new PasswordHasher()) {
             @Override
             public UserPrincipal login(LoginRequestDto request) {
@@ -451,14 +464,14 @@ public class IdentityWebFlowTest {
             }
         };
 
-        LoginServlet servlet = new LoginServlet(mockService);
+        LoginServlet servlet = TestServlets.init(new LoginServlet(), mockService);
         requestParams.put("identifier", "staff@test.vn");
         requestParams.put("password", "Pass12345678!");
 
         HttpServletRequest req = createMockRequest("POST", "/api/auth/login", true);
         HttpServletResponse resp = createMockResponse();
 
-        servlet.doPost(req, resp);
+        servlet.service(req, resp);
 
         assertEquals(200, responseStatus.get());
         assertTrue(responseBuffer.toString().contains("\"redirect\":\"/\""));
@@ -471,7 +484,7 @@ public class IdentityWebFlowTest {
         UUID actorId = UUID.randomUUID();
         UserPrincipal manager = new UserPrincipal(actorId, PlatformRole.CUSTOMER, 0, vn.ticketscenter.identity.model.OrganizationRole.MANAGER);
 
-        LoginService mockService = new LoginService(
+        LoginService mockService = new LoginServiceImpl(
                 new TransactionManager(Map.of()), new UserRepository(), new PasswordHasher()) {
             @Override
             public UserPrincipal login(LoginRequestDto request) {
@@ -479,14 +492,14 @@ public class IdentityWebFlowTest {
             }
         };
 
-        LoginServlet servlet = new LoginServlet(mockService);
+        LoginServlet servlet = TestServlets.init(new LoginServlet(), mockService);
         requestParams.put("identifier", "manager@test.vn");
         requestParams.put("password", "Pass12345678!");
 
         HttpServletRequest req = createMockRequest("POST", "/api/auth/login", true);
         HttpServletResponse resp = createMockResponse();
 
-        servlet.doPost(req, resp);
+        servlet.service(req, resp);
 
         assertEquals(200, responseStatus.get());
         assertTrue(responseBuffer.toString().contains("\"redirect\":\"/\""));
@@ -496,7 +509,7 @@ public class IdentityWebFlowTest {
     @Test
     @DisplayName("LoginServlet trả về 401 ACCOUNT_DISABLED khi tài khoản bị khóa")
     void testLoginServletAccountDisabled() throws Exception {
-        LoginService mockService = new LoginService(
+        LoginService mockService = new LoginServiceImpl(
                 new TransactionManager(Map.of()), new UserRepository(), new PasswordHasher()) {
             @Override
             public UserPrincipal login(LoginRequestDto request) {
@@ -504,14 +517,14 @@ public class IdentityWebFlowTest {
             }
         };
 
-        LoginServlet servlet = new LoginServlet(mockService);
+        LoginServlet servlet = TestServlets.init(new LoginServlet(), mockService);
         requestParams.put("identifier", "disabled@test.vn");
         requestParams.put("password", "SecurePassword123!");
 
         HttpServletRequest req = createMockRequest("POST", "/api/auth/login", true);
         HttpServletResponse resp = createMockResponse();
 
-        servlet.doPost(req, resp);
+        servlet.service(req, resp);
 
         assertEquals(401, responseStatus.get());
         assertTrue(responseBuffer.toString().contains("ACCOUNT_DISABLED"));
@@ -520,7 +533,7 @@ public class IdentityWebFlowTest {
     @Test
     @DisplayName("RegisterServlet trả về 200 registered: true khi thông tin hợp lệ")
     void testRegisterServletSuccess() throws Exception {
-        RegistrationService mockService = new RegistrationService(
+        RegistrationService mockService = new RegistrationServiceImpl(
                 new TransactionManager(Map.of()), new UserRepository(), new PasswordHasher()) {
             @Override
             public boolean register(vn.ticketscenter.identity.dto.RegisterRequestDto request) {
@@ -528,7 +541,7 @@ public class IdentityWebFlowTest {
             }
         };
 
-        RegisterServlet servlet = new RegisterServlet(mockService);
+        RegisterServlet servlet = TestServlets.init(new RegisterServlet(), mockService);
         requestParams.put("userName", "newuser");
         requestParams.put("fullName", "Nguyen Van New");
         requestParams.put("email", "newuser@test.vn");
@@ -537,7 +550,7 @@ public class IdentityWebFlowTest {
         HttpServletRequest req = createMockRequest("POST", "/api/auth/register", true);
         HttpServletResponse resp = createMockResponse();
 
-        servlet.doPost(req, resp);
+        servlet.service(req, resp);
 
         assertEquals(200, responseStatus.get());
         assertTrue(responseBuffer.toString().contains("\"registered\":true"));
@@ -546,7 +559,7 @@ public class IdentityWebFlowTest {
     @Test
     @DisplayName("RegisterServlet trả về 400 VALIDATION_FAILED khi dữ liệu không hợp lệ")
     void testRegisterServletValidationFailed() throws Exception {
-        RegistrationService mockService = new RegistrationService(
+        RegistrationService mockService = new RegistrationServiceImpl(
                 new TransactionManager(Map.of()), new UserRepository(), new PasswordHasher()) {
             @Override
             public boolean register(vn.ticketscenter.identity.dto.RegisterRequestDto request) {
@@ -554,7 +567,7 @@ public class IdentityWebFlowTest {
             }
         };
 
-        RegisterServlet servlet = new RegisterServlet(mockService);
+        RegisterServlet servlet = TestServlets.init(new RegisterServlet(), mockService);
         requestParams.put("userName", "newuser");
         requestParams.put("fullName", "Nguyen Van New");
         requestParams.put("email", "newuser@test.vn");
@@ -563,7 +576,7 @@ public class IdentityWebFlowTest {
         HttpServletRequest req = createMockRequest("POST", "/api/auth/register", true);
         HttpServletResponse resp = createMockResponse();
 
-        servlet.doPost(req, resp);
+        servlet.service(req, resp);
 
         assertEquals(400, responseStatus.get());
         assertTrue(responseBuffer.toString().contains("VALIDATION_FAILED"));

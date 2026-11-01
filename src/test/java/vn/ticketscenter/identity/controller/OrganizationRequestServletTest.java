@@ -1,5 +1,6 @@
 package vn.ticketscenter.identity.controller;
 
+import vn.ticketscenter.config.web.TestServlets;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -19,6 +20,7 @@ import vn.ticketscenter.identity.dao.UserRepository;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.identity.service.OrganizationRequestService;
+import vn.ticketscenter.identity.service.OrganizationRequestServiceImpl;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -50,7 +52,7 @@ public class OrganizationRequestServletTest {
     }
 
     private OrganizationRequestService createDummyService() {
-        return new OrganizationRequestService(
+        return new OrganizationRequestServiceImpl(
                 new TransactionManager(Map.of()),
                 new OrganizationRepository(),
                 new UserRepository()
@@ -127,7 +129,7 @@ public class OrganizationRequestServletTest {
     @Test
     @DisplayName("POST /api/organization-requests returns 401 when unauthenticated")
     void testPostUnauthenticated() throws IOException {
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(createDummyService());
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), createDummyService());
         HttpServletRequest req = createMockRequest("POST", "/api/organization-requests", false, "{}");
         HttpServletResponse resp = createMockResponse();
 
@@ -140,7 +142,7 @@ public class OrganizationRequestServletTest {
     @Test
     @DisplayName("GET /api/me/organization-requests returns 401 when unauthenticated")
     void testGetMyRequestsUnauthenticated() throws IOException {
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(createDummyService());
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), createDummyService());
         HttpServletRequest req = createMockRequest("GET", "/api/me/organization-requests", false, null);
         HttpServletResponse resp = createMockResponse();
 
@@ -156,7 +158,7 @@ public class OrganizationRequestServletTest {
         UUID actorId = UUID.randomUUID();
         sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, new UserPrincipal(actorId, PlatformRole.CUSTOMER, 1));
 
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(createDummyService());
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), createDummyService());
         HttpServletRequest req = createMockRequest("POST", "/api/organization-requests", true, "invalid json");
         HttpServletResponse resp = createMockResponse();
 
@@ -178,7 +180,7 @@ public class OrganizationRequestServletTest {
                 OrganizationStatus.PENDING_APPROVAL, actorId, Instant.now(), null
         );
 
-        OrganizationRequestService mockService = new OrganizationRequestService(
+        OrganizationRequestService mockService = new OrganizationRequestServiceImpl(
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
             @Override
             public OrganizationRequestDetailDto submitRequest(UUID id, OrganizationRequestCreateDto dto, String key) {
@@ -189,7 +191,7 @@ public class OrganizationRequestServletTest {
             }
         };
 
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(mockService);
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), mockService);
         String body = "{\"name\":\"Acme Events\",\"contactEmail\":\"contact@acme.vn\",\"contactPhone\":\"0901234567\",\"description\":\"Desc\"}";
         HttpServletRequest req = createMockRequest("POST", "/api/organization-requests", true, body);
         HttpServletResponse resp = createMockResponse();
@@ -207,7 +209,7 @@ public class OrganizationRequestServletTest {
         UUID actorId = UUID.randomUUID();
         sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, new UserPrincipal(actorId, PlatformRole.CUSTOMER, 1));
 
-        OrganizationRequestService mockService = new OrganizationRequestService(
+        OrganizationRequestService mockService = new OrganizationRequestServiceImpl(
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
             @Override
             public OrganizationRequestDetailDto submitRequest(UUID id, OrganizationRequestCreateDto dto, String key) {
@@ -215,7 +217,7 @@ public class OrganizationRequestServletTest {
             }
         };
 
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(mockService);
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), mockService);
         String body = "{\"name\":\"\",\"contactEmail\":\"test@test.vn\"}";
         HttpServletRequest req = createMockRequest("POST", "/api/organization-requests", true, body);
         HttpServletResponse resp = createMockResponse();
@@ -232,7 +234,7 @@ public class OrganizationRequestServletTest {
         UUID actorId = UUID.randomUUID();
         sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, new UserPrincipal(actorId, PlatformRole.CUSTOMER, 1));
 
-        OrganizationRequestService mockService = new OrganizationRequestService(
+        OrganizationRequestService mockService = new OrganizationRequestServiceImpl(
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
             @Override
             public OrganizationRequestDetailDto submitRequest(UUID id, OrganizationRequestCreateDto dto, String key) {
@@ -241,7 +243,7 @@ public class OrganizationRequestServletTest {
             }
         };
 
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(mockService);
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), mockService);
         String body = "{\"name\":\"Duplicate Org\",\"contactEmail\":\"dup@test.vn\"}";
         HttpServletRequest req = createMockRequest("POST", "/api/organization-requests", true, body);
         HttpServletResponse resp = createMockResponse();
@@ -258,7 +260,7 @@ public class OrganizationRequestServletTest {
         UUID actorId = UUID.randomUUID();
         sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, new UserPrincipal(actorId, PlatformRole.CUSTOMER, 1));
 
-        OrganizationRequestService mockService = new OrganizationRequestService(
+        OrganizationRequestService mockService = new OrganizationRequestServiceImpl(
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
             @Override
             public OrganizationRequestDetailDto submitRequest(UUID id, OrganizationRequestCreateDto dto, String key) {
@@ -267,7 +269,7 @@ public class OrganizationRequestServletTest {
             }
         };
 
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(mockService);
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), mockService);
         String body = "{\"name\":\"Conflict Org\",\"contactEmail\":\"conf@test.vn\"}";
         HttpServletRequest req = createMockRequest("POST", "/api/organization-requests", true, body);
         requestHeaders.put("Idempotency-Key", "conflict-key-123");
@@ -285,7 +287,7 @@ public class OrganizationRequestServletTest {
         UUID actorId = UUID.randomUUID();
         sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, new UserPrincipal(actorId, PlatformRole.CUSTOMER, 1));
 
-        OrganizationRequestService mockService = new OrganizationRequestService(
+        OrganizationRequestService mockService = new OrganizationRequestServiceImpl(
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
             @Override
             public OrganizationRequestDetailDto submitRequest(UUID id, OrganizationRequestCreateDto dto, String key) {
@@ -294,7 +296,7 @@ public class OrganizationRequestServletTest {
             }
         };
 
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(mockService);
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), mockService);
         String body = "{\"name\":\"Suspended Org\",\"contactEmail\":\"susp@test.vn\"}";
         HttpServletRequest req = createMockRequest("POST", "/api/organization-requests", true, body);
         HttpServletResponse resp = createMockResponse();
@@ -316,7 +318,7 @@ public class OrganizationRequestServletTest {
                 orgId, "My Org", "org@test.vn", OrganizationStatus.PENDING_APPROVAL, Instant.now(), null
         );
 
-        OrganizationRequestService mockService = new OrganizationRequestService(
+        OrganizationRequestService mockService = new OrganizationRequestServiceImpl(
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
             @Override
             public List<OrganizationRequestSummaryDto> getMyRequests(UUID id) {
@@ -325,7 +327,7 @@ public class OrganizationRequestServletTest {
             }
         };
 
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(mockService);
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), mockService);
         HttpServletRequest req = createMockRequest("GET", "/api/me/organization-requests", true, null);
         HttpServletResponse resp = createMockResponse();
 
@@ -348,7 +350,7 @@ public class OrganizationRequestServletTest {
                 OrganizationStatus.PENDING_APPROVAL, actorId, Instant.now(), null
         );
 
-        OrganizationRequestService mockService = new OrganizationRequestService(
+        OrganizationRequestService mockService = new OrganizationRequestServiceImpl(
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
             @Override
             public OrganizationRequestDetailDto getRequestDetail(UUID id, boolean admin, UUID targetOrgId) {
@@ -359,7 +361,7 @@ public class OrganizationRequestServletTest {
             }
         };
 
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(mockService);
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), mockService);
         HttpServletRequest req = createMockRequest("GET", "/api/organization-requests/" + orgId, true, null);
         HttpServletResponse resp = createMockResponse();
 
@@ -376,7 +378,7 @@ public class OrganizationRequestServletTest {
         UUID orgId = UUID.randomUUID();
         sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, new UserPrincipal(actorId, PlatformRole.CUSTOMER, 1));
 
-        OrganizationRequestService mockService = new OrganizationRequestService(
+        OrganizationRequestService mockService = new OrganizationRequestServiceImpl(
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
             @Override
             public OrganizationRequestDetailDto getRequestDetail(UUID id, boolean admin, UUID targetOrgId) {
@@ -384,7 +386,7 @@ public class OrganizationRequestServletTest {
             }
         };
 
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(mockService);
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), mockService);
         HttpServletRequest req = createMockRequest("GET", "/api/organization-requests/" + orgId, true, null);
         HttpServletResponse resp = createMockResponse();
 
@@ -401,7 +403,7 @@ public class OrganizationRequestServletTest {
         UUID orgId = UUID.randomUUID();
         sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, new UserPrincipal(actorId, PlatformRole.CUSTOMER, 1));
 
-        OrganizationRequestService mockService = new OrganizationRequestService(
+        OrganizationRequestService mockService = new OrganizationRequestServiceImpl(
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
             @Override
             public OrganizationRequestDetailDto getRequestDetail(UUID id, boolean admin, UUID targetOrgId) {
@@ -409,7 +411,7 @@ public class OrganizationRequestServletTest {
             }
         };
 
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(mockService);
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), mockService);
         HttpServletRequest req = createMockRequest("GET", "/api/organization-requests/" + orgId, true, null);
         HttpServletResponse resp = createMockResponse();
 
@@ -425,7 +427,7 @@ public class OrganizationRequestServletTest {
         UUID actorId = UUID.randomUUID();
         sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, new UserPrincipal(actorId, PlatformRole.CUSTOMER, 1));
 
-        OrganizationRequestServlet servlet = new OrganizationRequestServlet(createDummyService());
+        OrganizationRequestServlet servlet = TestServlets.init(new OrganizationRequestServlet(), createDummyService());
         HttpServletRequest req = createMockRequest("GET", "/api/organization-requests/not-a-uuid", true, null);
         HttpServletResponse resp = createMockResponse();
 

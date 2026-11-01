@@ -1,7 +1,7 @@
 package vn.ticketscenter.report.dto;
 import java.util.*;
 import org.junit.jupiter.api.Test;
-import vn.ticketscenter.settlement.infrastructure.FinanceException;
+import vn.ticketscenter.settlement.service.FinanceException;
 import static org.junit.jupiter.api.Assertions.*;
 class ReportExportScopeTest {
     Map<String,String> values(){return new HashMap<>(Map.of("from","2026-10-01T00:00:00Z","to","2026-10-02T00:00:00Z"));}

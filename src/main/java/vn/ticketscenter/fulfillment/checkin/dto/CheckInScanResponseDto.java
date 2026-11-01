@@ -3,7 +3,10 @@ package vn.ticketscenter.fulfillment.checkin.dto;
 import java.time.Instant;
 import java.util.UUID;
 
-import static vn.ticketscenter.config.web.HttpResponses.jsonString;
+import static vn.ticketscenter.config.web.Json.field;
+import static vn.ticketscenter.config.web.Json.nullableText;
+import static vn.ticketscenter.config.web.Json.number;
+import static vn.ticketscenter.config.web.Json.object;
 
 public record CheckInScanResponseDto(
         String status,
@@ -39,27 +42,17 @@ public record CheckInScanResponseDto(
     }
 
     public String toJson() {
-        return "{\"success\":"
-                + success()
-                + ",\"status\":"
-                + jsonString(status)
-                + ",\"ticketId\":"
-                + jsonString(ticketId == null ? null : ticketId.toString())
-                + ",\"ticketCode\":"
-                + jsonString(ticketCode)
-                + ",\"customerName\":"
-                + jsonString(customerName)
-                + ",\"zoneName\":"
-                + jsonString(zoneName)
-                + ",\"seatLabel\":"
-                + jsonString(seatLabel)
-                + ",\"checkedInAt\":"
-                + jsonString(checkedInAt == null ? null : checkedInAt.toString())
-                + ",\"scannedAt\":"
-                + jsonString(scannedAt.toString())
-                + ",\"message\":"
-                + jsonString(message())
-                + "}";
+        return object(
+                field("success", number(success())),
+                field("status", nullableText(status)),
+                field("ticketId", nullableText(ticketId)),
+                field("ticketCode", nullableText(ticketCode)),
+                field("customerName", nullableText(customerName)),
+                field("zoneName", nullableText(zoneName)),
+                field("seatLabel", nullableText(seatLabel)),
+                field("checkedInAt", nullableText(checkedInAt)),
+                field("scannedAt", nullableText(scannedAt)),
+                field("message", nullableText(message())));
     }
 
     @Override

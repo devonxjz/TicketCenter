@@ -1,13 +1,15 @@
 package vn.ticketscenter.settlement.dao;
 
+import java.security.MessageDigest;
+import vn.ticketscenter.settlement.service.FinanceException;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Consumer;
+import vn.ticketscenter.config.persistence.SqlCall;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.settlement.commission.dto.CommissionRuleCreateDto;
-import vn.ticketscenter.settlement.infrastructure.*;
 import vn.ticketscenter.settlement.payout.*;
 
 /** Canonical bound JDBC projections; procedures own all finance writes. */
@@ -63,22 +65,17 @@ public final class FinanceRepository implements PayoutStore {
         return admin(
                 actor,
                 c -> {
-                    List<Map<String, Object>> orgs, events;
-                    try (var q =
-                            c.prepareStatement(
-                                    "SELECT TOP(500) id,name FROM dbo.vw_FinanceOrganizations ORDER BY name,id")) {
-                        FinanceJdbc.bind(q);
-                        orgs = FinanceJdbc.list(q);
-                    }
+                    List<Map<String, Object>> orgs =
+                            FinanceJdbc.list(
+                                    c, "SELECT TOP(500) id,name FROM dbo.vw_FinanceOrganizations ORDER BY name,id");
                     String eventSql =
                             "SELECT TOP(500) id,title,organization_id,settlement_id,settlement_status FROM dbo.vw_FinanceEvents"
                                     + (endedOnly ? " WHERE end_time<=?" : "")
                                     + " ORDER BY created_at DESC,id";
-                    try (var q = c.prepareStatement(eventSql)) {
-                        if (endedOnly) FinanceJdbc.bind(q, Instant.now());
-                        else FinanceJdbc.bind(q);
-                        events = FinanceJdbc.list(q);
-                    }
+                    List<Map<String, Object>> events =
+                            endedOnly
+                                    ? FinanceJdbc.list(c, eventSql, Instant.now())
+                                    : FinanceJdbc.list(c, eventSql);
                     return Map.of("organizations", orgs, "events", events);
                 });
     }
@@ -88,12 +85,7 @@ public final class FinanceRepository implements PayoutStore {
                 actor,
                 c -> {
                     require(c, "dbo.vw_FinanceOrganizations", org);
-                    try (var q =
-                            c.prepareStatement(
-                                    "SELECT rule_id,organization_id,rate_percent,fixed_fee,effective_from,effective_to,associated_events_count FROM dbo.vw_CommissionRuleUsage WHERE organization_id=? ORDER BY effective_from DESC,rule_id")) {
-                        FinanceJdbc.bind(q, org);
-                        return FinanceJdbc.list(q);
-                    }
+                    return FinanceJdbc.list(c, "SELECT rule_id,organization_id,rate_percent,fixed_fee,effective_from,effective_to,associated_events_count FROM dbo.vw_CommissionRuleUsage WHERE organization_id=? ORDER BY effective_from DESC,rule_id", org);
                 });
     }
 
@@ -101,20 +93,19 @@ public final class FinanceRepository implements PayoutStore {
         return admin(
                 actor,
                 c -> {
-                    try (var q =
-                            c.prepareStatement(
-                                    """
-                    SELECT e.id,e.title,e.end_time
-                    FROM dbo.vw_FinanceEvents e
-                    WHERE e.end_time<=? AND (e.settlement_status IS NULL OR e.settlement_status='DRAFT')
-                      AND EXISTS(SELECT 1 FROM dbo.vw_OrderFinancialSummary f WHERE f.event_id=e.id AND f.status='PAID')
-                      AND NOT EXISTS(SELECT 1 FROM dbo.fn_GetSettlementBlockers(e.id,?))
-                    ORDER BY e.end_time,e.id
-                    """)) {
-                        var now = Instant.now();
-                        FinanceJdbc.bind(q, now, now);
-                        return FinanceJdbc.list(q);
-                    }
+                    Instant now = Instant.now();
+                    return FinanceJdbc.list(
+                            c,
+                            """
+                            SELECT e.id,e.title,e.end_time
+                            FROM dbo.vw_FinanceEvents e
+                            WHERE e.end_time<=? AND (e.settlement_status IS NULL OR e.settlement_status='DRAFT')
+                              AND EXISTS(SELECT 1 FROM dbo.vw_OrderFinancialSummary f WHERE f.event_id=e.id AND f.status='PAID')
+                              AND NOT EXISTS(SELECT 1 FROM dbo.fn_GetSettlementBlockers(e.id,?))
+                            ORDER BY e.end_time,e.id
+                            """,
+                            now,
+                            now);
                 });
     }
 
@@ -130,7 +121,7 @@ public final class FinanceRepository implements PayoutStore {
 
     public Map<String, Object> createRule(
             UserPrincipal actor, UUID org, UUID key, CommissionRuleCreateDto terms) {
-        var result =
+        Map<String, Object> result =
                 admin(
                         actor,
                         c ->
@@ -151,7 +142,7 @@ public final class FinanceRepository implements PayoutStore {
 
     public Map<String, Object> updateRule(
             UserPrincipal actor, UUID rule, UUID org, UUID key, CommissionRuleCreateDto terms) {
-        var result =
+        Map<String, Object> result =
                 admin(
                         actor,
                         c ->
@@ -176,26 +167,28 @@ public final class FinanceRepository implements PayoutStore {
                 actor,
                 c -> {
                     require(c, "dbo.vw_FinanceEvents", event);
-                    try (var q =
-                            c.prepareStatement(
-                                    "SELECT settlement_id,event_id,organization_id,status,gross_revenue,total_refund,total_commission,net_payable,paid_amount,pending_amount,available_to_pay,confirmed_at,end_time FROM dbo.vw_SettlementSummary WHERE event_id=?")) {
-                        FinanceJdbc.bind(q, event);
-                        var rows = FinanceJdbc.list(q);
-                        if (!rows.isEmpty()) return rows.getFirst();
+                    List<Map<String, Object>> settled =
+                            FinanceJdbc.list(
+                                    c,
+                                    "SELECT settlement_id,event_id,organization_id,status,gross_revenue,total_refund,total_commission,net_payable,paid_amount,pending_amount,available_to_pay,confirmed_at,end_time FROM dbo.vw_SettlementSummary WHERE event_id=?",
+                                    event);
+                    if (!settled.isEmpty()) {
+                        return settled.getFirst();
                     }
-                    try (var q =
-                            c.prepareStatement(
-                                    "SELECT event_id,organization_id,end_time,gross_revenue,total_refund,total_commission,net_payable FROM dbo.vw_EventSalesReport WHERE event_id=?")) {
-                        FinanceJdbc.bind(q, event);
-                        var row = FinanceJdbc.list(q).getFirst();
-                        row.put("settlementId", null);
-                        row.put("status", "DRAFT");
-                        row.put("paidAmount", BigDecimal.ZERO);
-                        row.put("pendingAmount", BigDecimal.ZERO);
-                        row.put("availableToPay", row.get("netPayable"));
-                        row.put("confirmedAt", null);
-                        return row;
-                    }
+                    // No settlement yet: show the sales report as an unpaid draft.
+                    Map<String, Object> row =
+                            FinanceJdbc.list(
+                                            c,
+                                            "SELECT event_id,organization_id,end_time,gross_revenue,total_refund,total_commission,net_payable FROM dbo.vw_EventSalesReport WHERE event_id=?",
+                                            event)
+                                    .getFirst();
+                    row.put("settlementId", null);
+                    row.put("status", "DRAFT");
+                    row.put("paidAmount", BigDecimal.ZERO);
+                    row.put("pendingAmount", BigDecimal.ZERO);
+                    row.put("availableToPay", row.get("netPayable"));
+                    row.put("confirmedAt", null);
+                    return row;
                 });
     }
 
@@ -204,12 +197,7 @@ public final class FinanceRepository implements PayoutStore {
                 actor,
                 c -> {
                     require(c, "dbo.vw_FinanceEvents", event);
-                    try (var q =
-                            c.prepareStatement(
-                                    "SELECT blocker_type,object_id,detail FROM dbo.fn_GetSettlementBlockers(?,?) ORDER BY blocker_type,object_id")) {
-                        FinanceJdbc.bind(q, event, Instant.now());
-                        return FinanceJdbc.list(q);
-                    }
+                    return FinanceJdbc.list(c, "SELECT blocker_type,object_id,detail FROM dbo.fn_GetSettlementBlockers(?,?) ORDER BY blocker_type,object_id", event, Instant.now());
                 });
     }
 
@@ -240,12 +228,7 @@ public final class FinanceRepository implements PayoutStore {
                 actor,
                 c -> {
                     require(c, "dbo.vw_FinanceSettlements", settlement);
-                    try (var q =
-                            c.prepareStatement(
-                                    "SELECT payout_id,settlement_id,amount,status,verification_state,provider_reference,processed_at FROM dbo.vw_SettlementPayouts WHERE settlement_id=? ORDER BY created_at DESC,payout_id DESC")) {
-                        FinanceJdbc.bind(q, settlement);
-                        return FinanceJdbc.list(q);
-                    }
+                    return FinanceJdbc.list(c, "SELECT payout_id,settlement_id,amount,status,verification_state,provider_reference,processed_at FROM dbo.vw_SettlementPayouts WHERE settlement_id=? ORDER BY created_at DESC,payout_id DESC", settlement);
                 });
     }
 
@@ -254,16 +237,18 @@ public final class FinanceRepository implements PayoutStore {
         return admin(
                 actor,
                 c -> {
-                    try (var q =
-                            c.prepareStatement(
-                                    "SELECT payout_id,settlement_id,amount,status,verification_state,provider_reference,processed_at,settlement_status,net_payable,paid_amount,pending_amount,available_to_pay FROM dbo.vw_SettlementPayouts WHERE payout_id=? AND settlement_id=?")) {
-                        FinanceJdbc.bind(q, payout, settlement);
-                        var rows = FinanceJdbc.list(q);
-                        if (rows.isEmpty()) throw new FinanceException("NOT_FOUND", 404);
-                        var result = rows.getFirst();
-                        result.put("isReplay", true);
-                        return result;
+                    List<Map<String, Object>> rows =
+                            FinanceJdbc.list(
+                                    c,
+                                    "SELECT payout_id,settlement_id,amount,status,verification_state,provider_reference,processed_at,settlement_status,net_payable,paid_amount,pending_amount,available_to_pay FROM dbo.vw_SettlementPayouts WHERE payout_id=? AND settlement_id=?",
+                                    payout,
+                                    settlement);
+                    if (rows.isEmpty()) {
+                        throw new FinanceException("NOT_FOUND", 404);
                     }
+                    Map<String, Object> result = rows.getFirst();
+                    result.put("isReplay", true);
+                    return result;
                 });
     }
 
@@ -271,7 +256,7 @@ public final class FinanceRepository implements PayoutStore {
     public Map<String, Object> recordStored(
             UserPrincipal actor, UUID settlement, UUID payout, PayoutAdapter.Result verified) {
         UUID[] org = {null}, event = {null};
-        var result =
+        Map<String, Object> result =
                 admin(
                         actor,
                         c -> {
@@ -283,12 +268,14 @@ public final class FinanceRepository implements PayoutStore {
                                             settlement);
                             BigDecimal amount;
                             byte[] fingerprint;
-                            try (var q =
+                            try (PreparedStatement q =
                                     c.prepareStatement(
                                             "SELECT amount,request_fingerprint FROM dbo.vw_SettlementPayouts WHERE payout_id=? AND settlement_id=?")) {
                                 FinanceJdbc.bind(q, payout, settlement);
-                                try (var rows = q.executeQuery()) {
-                                    if (!rows.next()) throw new FinanceException("NOT_FOUND", 404);
+                                try (ResultSet rows = q.executeQuery()) {
+                                    if (!rows.next()) {
+                                        throw new FinanceException("NOT_FOUND", 404);
+                                    }
                                     amount = rows.getBigDecimal(1);
                                     fingerprint = rows.getBytes(2);
                                 }
@@ -322,20 +309,23 @@ public final class FinanceRepository implements PayoutStore {
         return admin(
                 actor,
                 c -> {
-                    try (var q =
+                    try (PreparedStatement q =
                             c.prepareStatement(
                                     "SELECT payout_id,settlement_id,amount,status,verification_state,provider_reference,processed_at,request_fingerprint,settlement_status,net_payable,paid_amount,pending_amount,available_to_pay FROM dbo.vw_SettlementPayouts WHERE payout_id=?")) {
                         FinanceJdbc.bind(q, key);
-                        try (var rows = q.executeQuery()) {
-                            if (!rows.next()) return null;
+                        try (ResultSet rows = q.executeQuery()) {
+                            if (!rows.next()) {
+                                return null;
+                            }
                             if (!settlement
                                             .toString()
                                             .equalsIgnoreCase(rows.getString("settlement_id"))
-                                    || !java.security.MessageDigest.isEqual(
+                                    || !MessageDigest.isEqual(
                                             terms.fingerprint(settlement),
-                                            rows.getBytes("request_fingerprint")))
+                                            rows.getBytes("request_fingerprint"))) {
                                 throw new FinanceException("PAYOUT_TERMS_CONFLICT", 409);
-                            var result = FinanceJdbc.row(rows);
+                            }
+                            Map<String, Object> result = FinanceJdbc.row(rows);
                             result.remove("requestFingerprint");
                             result.put("isReplay", true);
                             return result;
@@ -383,12 +373,12 @@ public final class FinanceRepository implements PayoutStore {
     private Map<String, Object> mutate(
             UserPrincipal actor, String lookup, UUID id, String call, Object... values) {
         UUID[] org = {null}, event = {null};
-        var result =
+        Map<String, Object> result =
                 admin(
                         actor,
                         c -> {
                             org[0] = organization(c, lookup, id);
-                            var response = FinanceJdbc.call(c, call, values);
+                            Map<String, Object> response = FinanceJdbc.call(c, call, values);
                             event[0] =
                                     response.get("eventId") != null
                                             ? UUID.fromString(response.get("eventId").toString())
@@ -420,35 +410,39 @@ public final class FinanceRepository implements PayoutStore {
     }
 
     private static UUID organization(Connection c, String sql, UUID id) throws SQLException {
-        try (var q = c.prepareStatement(sql)) {
+        try (PreparedStatement q = c.prepareStatement(sql)) {
             FinanceJdbc.bind(q, id);
-            try (var rows = q.executeQuery()) {
-                if (!rows.next()) throw new FinanceException("NOT_FOUND", 404);
+            try (ResultSet rows = q.executeQuery()) {
+                if (!rows.next()) {
+                    throw new FinanceException("NOT_FOUND", 404);
+                }
                 return UUID.fromString(rows.getString(1));
             }
         }
     }
 
     private static void require(Connection c, String view, UUID id) throws SQLException {
-        if (id == null) throw new FinanceException("INVALID_ID", 400);
-        try (var q = c.prepareStatement("SELECT id FROM " + view + " WHERE id=?")) {
+        if (id == null) {
+            throw new FinanceException("INVALID_ID", 400);
+        }
+        try (PreparedStatement q = c.prepareStatement("SELECT id FROM " + view + " WHERE id=?")) {
             FinanceJdbc.bind(q, id);
-            try (var row = q.executeQuery()) {
-                if (!row.next()) throw new FinanceException("NOT_FOUND", 404);
+            try (ResultSet row = q.executeQuery()) {
+                if (!row.next()) {
+                    throw new FinanceException("NOT_FOUND", 404);
+                }
             }
         }
     }
 
-    @FunctionalInterface
-    private interface Read<T> {
-        T run(Connection c) throws SQLException;
-    }
-
-    private <T> T admin(UserPrincipal actor, Read<T> operation) {
-        if (actor == null) throw new FinanceException("UNAUTHENTICATED", 401);
-        try (var c = database.open()) {
-            if (!c.getAutoCommit())
+    private <T> T admin(UserPrincipal actor, SqlCall.SqlWork<T> operation) {
+        if (actor == null) {
+            throw new FinanceException("UNAUTHENTICATED", 401);
+        }
+        try (Connection c = database.open()) {
+            if (!c.getAutoCommit()) {
                 throw new SQLException("Finance connection must use procedure-owned transactions");
+            }
             FinanceAuthorization.requireAdmin(c, actor);
             return operation.run(c);
         } catch (SQLException failure) {

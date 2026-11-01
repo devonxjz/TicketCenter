@@ -1,11 +1,8 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
-<%
-    request.setAttribute("financeTitle", "Nhật ký hệ thống");
-    request.setAttribute("financePage", "audit");
-    request.setAttribute(
-            "financeIntro",
-            "Tra cứu các thao tác tài chính theo người thực hiện, đối tượng và thời gian. Chi tiết chỉ hiển thị thông tin được phép trong hệ thống.");
-%>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<c:set var="financeTitle" value="Nhật ký hệ thống" scope="request" />
+<c:set var="financePage" value="audit" scope="request" />
+<c:set var="financeIntro" value="Tra cứu các thao tác tài chính theo người thực hiện, đối tượng và thời gian. Chi tiết chỉ hiển thị thông tin được phép trong hệ thống." scope="request" />
 <%@ include file="../report/_header.jsp" %>
 <section class="finance-panel">
     <div class="finance-panel-heading">

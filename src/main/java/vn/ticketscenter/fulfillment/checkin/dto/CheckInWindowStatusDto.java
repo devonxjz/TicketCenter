@@ -1,8 +1,13 @@
 package vn.ticketscenter.fulfillment.checkin.dto;
 
-import vn.ticketscenter.config.web.HttpResponses;
 import java.time.Instant;
 import java.util.UUID;
+
+import static vn.ticketscenter.config.web.Json.field;
+import static vn.ticketscenter.config.web.Json.nullableText;
+import static vn.ticketscenter.config.web.Json.number;
+import static vn.ticketscenter.config.web.Json.object;
+import static vn.ticketscenter.config.web.Json.text;
 
 public record CheckInWindowStatusDto(
         UUID eventId,
@@ -13,20 +18,13 @@ public record CheckInWindowStatusDto(
         Instant currentServerTime,
         String message) {
     public String toJson() {
-        return "{\"eventId\":\""
-                + eventId
-                + "\",\"isOpen\":"
-                + isOpen
-                + ",\"status\":\""
-                + status
-                + "\",\"windowStart\":\""
-                + windowStart
-                + "\",\"windowEnd\":\""
-                + windowEnd
-                + "\",\"currentServerTime\":\""
-                + currentServerTime
-                + "\",\"message\":"
-                + HttpResponses.jsonString(message)
-                + "}";
+        return object(
+                field("eventId", text(String.valueOf(eventId))),
+                field("isOpen", number(isOpen)),
+                field("status", text(String.valueOf(status))),
+                field("windowStart", text(String.valueOf(windowStart))),
+                field("windowEnd", text(String.valueOf(windowEnd))),
+                field("currentServerTime", text(String.valueOf(currentServerTime))),
+                field("message", nullableText(message)));
     }
 }

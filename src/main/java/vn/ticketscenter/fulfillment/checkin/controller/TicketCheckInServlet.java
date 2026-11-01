@@ -1,5 +1,7 @@
 package vn.ticketscenter.fulfillment.checkin.controller;
 
+import vn.ticketscenter.fulfillment.checkin.dto.CheckInScanResponseDto;
+import vn.ticketscenter.fulfillment.checkin.service.CheckInRuntime;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,15 +22,6 @@ import java.util.UUID;
 @WebServlet(name = "TicketCheckInServlet", urlPatterns = "/api/check-ins")
 public class TicketCheckInServlet extends HttpServlet {
     private static final int MAX_BODY_LENGTH = 8192;
-    private final TicketCheckInService injected;
-
-    public TicketCheckInServlet() {
-        this(null);
-    }
-
-    public TicketCheckInServlet(TicketCheckInService service) {
-        injected = service;
-    }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
@@ -46,12 +39,10 @@ public class TicketCheckInServlet extends HttpServlet {
             }
 
             UUID key = CheckInWeb.id(request.getHeader("Idempotency-Key"));
-            var dto = readRequest(request);
-            var service =
-                    injected == null
-                            ? CheckInRuntime.resolveScanner(request.getServletContext())
-                            : injected;
-            var result = service.scan(actor, key, dto);
+            CheckInScanRequestDto dto = readRequest(request);
+            TicketCheckInService service =
+                    CheckInRuntime.resolveScanner(getServletContext());
+            CheckInScanResponseDto result = service.scan(actor, key, dto);
             response.setStatus(result.httpStatus());
             response.setContentType("application/json;charset=UTF-8");
             response.setHeader("Cache-Control", "no-store");
@@ -63,7 +54,9 @@ public class TicketCheckInServlet extends HttpServlet {
 
     private static CheckInScanRequestDto readRequest(HttpServletRequest request)
             throws IOException {
-        if (request.getContentLengthLong() > MAX_BODY_LENGTH) throw oversized();
+        if (request.getContentLengthLong() > MAX_BODY_LENGTH) {
+            throw oversized();
+        }
 
         char[] chars = new char[MAX_BODY_LENGTH + 1];
         Reader reader = request.getReader();
@@ -72,7 +65,9 @@ public class TicketCheckInServlet extends HttpServlet {
                 && (read = reader.read(chars, count, chars.length - count)) != -1) {
             count += read;
         }
-        if (count > MAX_BODY_LENGTH) throw oversized();
+        if (count > MAX_BODY_LENGTH) {
+            throw oversized();
+        }
 
         Map<String, String> body;
         try {

@@ -2,6 +2,7 @@ package vn.ticketscenter.identity.service;
 
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.TransactionManager;
+import vn.ticketscenter.identity.cache.UserSessionCache;
 import vn.ticketscenter.identity.model.User;
 import vn.ticketscenter.identity.model.UserStatus;
 import vn.ticketscenter.identity.dao.UserRepository;
@@ -68,7 +69,7 @@ public class SessionValidator {
                 em -> {
                     User user = userRepository.findById(em, actorId).orElse(null);
                     if (user != null) {
-                        userRepository.updateAuthVersion(em, actorId, user.getAuthVersion() + 1);
+                        userRepository.revokeSessions(em, actorId);
                         cache.evict(actorId);
                     }
                     return null;

@@ -1,7 +1,7 @@
 package vn.ticketscenter.fulfillment.checkin.dao;
 
-import org.hibernate.Session;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
+import vn.ticketscenter.config.persistence.SqlCall;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.fulfillment.checkin.CheckInException;
 
@@ -24,9 +24,24 @@ public class CheckInEventRepository {
             Instant endTime,
             String status,
             long issued,
-            long checkedIn) {
+            long checkedIn,
+            Instant checkInOpenAt) {
+        public EventInfo(
+                UUID eventId,
+                UUID organizationId,
+                String title,
+                String venue,
+                Instant startTime,
+                Instant endTime,
+                String status,
+                long issued,
+                long checkedIn) {
+            this(eventId, organizationId, title, venue, startTime, endTime, status, issued, checkedIn, null);
+        }
+
+        /** Per-event override when set, otherwise one hour before the start. */
         public Instant windowStart() {
-            return startTime.minusSeconds(3600);
+            return checkInOpenAt != null ? checkInOpenAt : startTime.minusSeconds(3600);
         }
 
         public boolean isOpen(Instant now) {
@@ -51,7 +66,7 @@ public class CheckInEventRepository {
 
     private static final String EVENT_COLUMNS =
             """
-            SELECT e.id,e.organization_id,e.title,e.venue_name,e.start_time,e.end_time,e.status
+            SELECT e.id,e.organization_id,e.title,e.venue_name,e.start_time,e.end_time,e.status,e.checkin_open_at
             FROM dbo.vw_CheckInEvents e
             """;
 
@@ -63,7 +78,9 @@ public class CheckInEventRepository {
                         query.setString(1, actorId.toString());
                         try (ResultSet rows = query.executeQuery()) {
                             List<UUID> ids = new ArrayList<>();
-                            while (rows.next()) ids.add(UUID.fromString(rows.getString(1)));
+                            while (rows.next()) {
+                                ids.add(UUID.fromString(rows.getString(1)));
+                            }
                             ids.sort(Comparator.comparing(UUID::toString));
                             return List.copyOf(ids);
                         }
@@ -87,7 +104,9 @@ public class CheckInEventRepository {
                         query.setString(3, actorId.toString());
                         try (ResultSet rows = query.executeQuery()) {
                             List<EventInfo> events = new ArrayList<>();
-                            while (rows.next()) events.add(event(rows));
+                            while (rows.next()) {
+                                events.add(event(rows));
+                            }
                             return List.copyOf(events);
                         }
                     }
@@ -101,9 +120,10 @@ public class CheckInEventRepository {
                             prepare(connection, EVENT_COLUMNS + " WHERE e.id=?")) {
                         query.setString(1, eventId.toString());
                         try (ResultSet rows = query.executeQuery()) {
-                            if (!rows.next())
+                            if (!rows.next()) {
                                 throw new CheckInException(
                                         404, "EVENT_NOT_FOUND", "Sự kiện không tồn tại.");
+                            }
                             EventInfo event = event(rows);
                             try (PreparedStatement access =
                                     prepare(
@@ -114,11 +134,12 @@ public class CheckInEventRepository {
                                 access.setString(1, actorId.toString());
                                 access.setString(2, event.organizationId().toString());
                                 try (ResultSet membership = access.executeQuery()) {
-                                    if (!membership.next())
+                                    if (!membership.next()) {
                                         throw new CheckInException(
                                                 403,
                                                 "CHECK_IN_FORBIDDEN",
                                                 "Bạn không có quyền soát vé tại sự kiện này.");
+                                    }
                                 }
                             }
                             return event;
@@ -147,7 +168,8 @@ public class CheckInEventRepository {
                                     event.endTime(),
                                     event.status(),
                                     rows.getLong(1),
-                                    rows.getLong(2));
+                                    rows.getLong(2),
+                                    event.checkInOpenAt());
                         }
                     }
                 });
@@ -161,7 +183,8 @@ public class CheckInEventRepository {
                             "SELECT CASE WHEN EXISTS (SELECT 1 "
                                     + MEMBERSHIP
                                     + " AND m.organization_id=e.organization_id) THEN 1 ELSE 0 END,"
-                                    + " CASE WHEN e.organization_id=? AND e.start_time=? AND e.end_time=? AND e.status=? THEN 1 ELSE 0 END"
+                                    + " CASE WHEN e.organization_id=? AND e.start_time=? AND e.end_time=? AND e.status=?"
+                                    + " AND ISNULL(e.checkin_open_at,'1900-01-01')=? THEN 1 ELSE 0 END"
                                     + " FROM dbo.vw_CheckInEvents e WHERE e.id=?";
                     try (PreparedStatement query = prepare(connection, sql)) {
                         query.setString(1, actorId.toString());
@@ -169,16 +192,24 @@ public class CheckInEventRepository {
                         utc(query, 3, cached.startTime());
                         utc(query, 4, cached.endTime());
                         query.setString(5, cached.status());
-                        query.setString(6, eventId.toString());
+                        utc(
+                                query,
+                                6,
+                                cached.checkInOpenAt() == null
+                                        ? Instant.parse("1900-01-01T00:00:00Z")
+                                        : cached.checkInOpenAt());
+                        query.setString(7, eventId.toString());
                         try (ResultSet rows = query.executeQuery()) {
-                            if (!rows.next())
+                            if (!rows.next()) {
                                 throw new CheckInException(
                                         404, "EVENT_NOT_FOUND", "Sự kiện không tồn tại.");
-                            if (!rows.getBoolean(1))
+                            }
+                            if (!rows.getBoolean(1)) {
                                 throw new CheckInException(
                                         403,
                                         "CHECK_IN_FORBIDDEN",
                                         "Bạn không có quyền soát vé tại sự kiện này.");
+                            }
                             return cached.eventId().equals(eventId) && rows.getBoolean(2);
                         }
                     }
@@ -193,24 +224,19 @@ public class CheckInEventRepository {
                         query.setString(1, eventId.toString());
                         utc(query, 2, now);
                         try (ResultSet rows = query.executeQuery()) {
-                            if (!rows.next())
+                            if (!rows.next()) {
                                 throw new SQLException("Missing check-in window result");
+                            }
                             return rows.getBoolean(1);
                         }
                     }
                 });
     }
 
-    private <T> T read(SqlRead<T> work) {
-        return transactions.execute(
-                DatabasePrincipal.CHECK_IN,
-                entityManager -> entityManager.unwrap(Session.class).doReturningWork(work::apply));
+    private <T> T read(SqlCall.SqlWork<T> work) {
+        return SqlCall.inSession(transactions, DatabasePrincipal.CHECK_IN, work);
     }
 
-    @FunctionalInterface
-    private interface SqlRead<T> {
-        T apply(Connection connection) throws SQLException;
-    }
 
     private static PreparedStatement prepare(Connection connection, String sql)
             throws SQLException {
@@ -229,14 +255,16 @@ public class CheckInEventRepository {
                 instant(row, 6),
                 row.getString(7),
                 0,
-                0);
+                0,
+                row.getObject(8) == null ? null : instant(row, 8));
     }
 
     private static Instant instant(ResultSet row, int index) throws SQLException {
         // SQL Server datetimeoffset must retain its offset; LocalDateTime is converted
         // by the driver into the JVM's timezone and can shift the window by seven hours.
-        if (row.getMetaData().getColumnType(index) == -155) // SQL Server DATETIMEOFFSET JDBC type
+        if (row.getMetaData().getColumnType(index) == -155) { // SQL Server DATETIMEOFFSET JDBC type
         return row.getObject(index, OffsetDateTime.class).toInstant();
+        }
         return row.getObject(index, LocalDateTime.class).toInstant(ZoneOffset.UTC);
     }
 

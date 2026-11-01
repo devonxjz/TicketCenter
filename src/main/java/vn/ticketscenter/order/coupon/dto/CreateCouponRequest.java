@@ -7,7 +7,7 @@ import java.time.Instant;
 import java.util.Objects;
 
 /**
- * DTO yêu cầu tạo mới mã giảm giá Coupon (LIEM-06).
+ * Request to create a coupon (LIEM-06).
  */
 public record CreateCouponRequest(
         String code,

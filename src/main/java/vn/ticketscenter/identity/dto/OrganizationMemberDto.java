@@ -1,10 +1,15 @@
 package vn.ticketscenter.identity.dto;
 
-import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.identity.model.OrganizationRole;
 
 import java.time.Instant;
 import java.util.UUID;
+
+import static vn.ticketscenter.config.web.Json.field;
+import static vn.ticketscenter.config.web.Json.nullableText;
+import static vn.ticketscenter.config.web.Json.number;
+import static vn.ticketscenter.config.web.Json.object;
+import static vn.ticketscenter.config.web.Json.text;
 
 public record OrganizationMemberDto(
         UUID membershipId,
@@ -16,22 +21,14 @@ public record OrganizationMemberDto(
         boolean isActive,
         Instant joinedAt) {
     public String toJson() {
-        return "{\"membershipId\":"
-                + HttpResponses.jsonString(membershipId != null ? membershipId.toString() : "")
-                + ",\"userId\":"
-                + HttpResponses.jsonString(userId != null ? userId.toString() : "")
-                + ",\"userName\":"
-                + HttpResponses.jsonString(userName)
-                + ",\"fullName\":"
-                + HttpResponses.jsonString(fullName)
-                + ",\"email\":"
-                + HttpResponses.jsonString(email)
-                + ",\"role\":"
-                + HttpResponses.jsonString(role != null ? role.name() : "")
-                + ",\"isActive\":"
-                + isActive
-                + ",\"joinedAt\":"
-                + (joinedAt != null ? HttpResponses.jsonString(joinedAt.toString()) : "null")
-                + "}";
+        return object(
+                field("membershipId", text(membershipId)),
+                field("userId", text(userId)),
+                field("userName", nullableText(userName)),
+                field("fullName", nullableText(fullName)),
+                field("email", nullableText(email)),
+                field("role", text(role)),
+                field("isActive", number(isActive)),
+                field("joinedAt", nullableText(joinedAt)));
     }
 }

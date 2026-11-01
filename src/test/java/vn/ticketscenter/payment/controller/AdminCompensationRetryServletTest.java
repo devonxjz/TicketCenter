@@ -1,9 +1,11 @@
 package vn.ticketscenter.payment.controller;
 
+import vn.ticketscenter.config.web.TestServlets;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.junit.jupiter.api.Test;
+import vn.ticketscenter.payment.dao.CompensationRetryRepository;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
@@ -13,7 +15,7 @@ import java.io.StringWriter;
 import java.lang.reflect.Proxy;
 import java.sql.SQLException;
 import java.util.UUID;
-import java.util.function.BiFunction;
+import vn.ticketscenter.payment.dao.CompensationRetryStore;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -54,10 +56,10 @@ class AdminCompensationRetryServletTest {
     }
 
     private static RuntimeException failure(int code) {
-        return AdminCompensationRetryServlet.translate(new IllegalStateException(new SQLException("failed", "S0001", code)));
+        return CompensationRetryRepository.translate(new IllegalStateException(new SQLException("failed", "S0001", code)));
     }
 
-    private Result call(UserPrincipal actor, String csrfHeader, String uri, BiFunction<UserPrincipal, UUID, UUID> retry) throws Exception {
+    private Result call(UserPrincipal actor, String csrfHeader, String uri, CompensationRetryStore retry) throws Exception {
         Result result = new Result();
         HttpSession session = (HttpSession) Proxy.newProxyInstance(HttpSession.class.getClassLoader(), new Class<?>[]{HttpSession.class},
                 (proxy, method, args) -> "getAttribute".equals(method.getName())
@@ -77,7 +79,7 @@ class AdminCompensationRetryServletTest {
                     if ("getWriter".equals(method.getName())) return new PrintWriter(result.body, true);
                     return null;
                 });
-        new AdminCompensationRetryServlet(retry) { void run() throws Exception { doPost(request, response); } }.run();
+        TestServlets.init(new AdminCompensationRetryServlet() { void run() throws Exception { doPost(request, response); } }, retry).run();
         return result;
     }
 

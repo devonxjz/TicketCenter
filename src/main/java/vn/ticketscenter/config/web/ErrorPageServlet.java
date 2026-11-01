@@ -14,9 +14,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Đích của các <error-page> trong web.xml: mọi sendError(...) và exception chưa bắt đều về đây.
- * Trang HTML nhận giao diện lỗi của hệ thống; request API (hoặc Accept: application/json) vẫn nhận
- * envelope JSON chuẩn. Không bao giờ đưa stack trace hay thông điệp nội bộ ra cho người dùng.
+ * Target of the <error-page> in web.xml: every sendError(...) and uncaught exception ends here.
+ * HTML pages get the system error page; API requests (or Accept: application/json) still get the
+ * standard JSON envelope. Stack traces and internal messages never reach the user.
  */
 @WebServlet(
         name = "ErrorPageServlet",
@@ -29,13 +29,13 @@ public class ErrorPageServlet extends HttpServlet {
     protected void service(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         Object statusAttribute = request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE);
-        // Truy cập trực tiếp /error-handler (không phải error dispatch) được coi như trang không
-        // tồn tại.
+        // a direct request for /error-handler (not an error dispatch) is treated as a page that does
+        // not exist
         int status =
                 statusAttribute instanceof Integer code ? code : HttpServletResponse.SC_NOT_FOUND;
         Object failure = request.getAttribute(RequestDispatcher.ERROR_EXCEPTION);
         AppException appFailure = findAppException(failure);
-        // Exception chưa bắt do container gán 500; AppException mang đúng mã HTTP của nó.
+        // the container gives an uncaught exception 500; an AppException keeps its own HTTP status
         if (appFailure != null && statusAttribute instanceof Integer code && code == 500) {
             status = appFailure.status();
         }

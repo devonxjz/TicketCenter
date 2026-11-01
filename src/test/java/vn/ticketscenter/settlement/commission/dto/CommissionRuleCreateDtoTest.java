@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import vn.ticketscenter.settlement.commission.CommissionRuleException;
+import vn.ticketscenter.config.error.AppException;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -39,7 +39,7 @@ class CommissionRuleCreateDtoTest {
     @ParameterizedTest(name = "{0}")
     @MethodSource("invalidTerms")
     void rejectsInvalidTerms(String reason, BigDecimal rate, long fee, Instant from, Instant to) {
-        var error = assertThrows(CommissionRuleException.class,
+        var error = assertThrows(AppException.class,
                 () -> new CommissionRuleCreateDto(rate, fee, from, to));
 
         assertEquals("COMMISSION_RULE_INVALID", error.code());

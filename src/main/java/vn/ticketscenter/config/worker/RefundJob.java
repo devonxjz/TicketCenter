@@ -1,10 +1,10 @@
 package vn.ticketscenter.config.worker;
 
 import vn.ticketscenter.config.persistence.TransactionManager;
-import vn.ticketscenter.fulfillment.refund.worker.RedisRefundLease;
+import vn.ticketscenter.fulfillment.refund.cache.RefundLeaseImpl;
 import vn.ticketscenter.fulfillment.refund.worker.RefundProcessingWorker;
 import vn.ticketscenter.fulfillment.refund.worker.RefundReconciliationJob;
-import vn.ticketscenter.fulfillment.refund.worker.RefundWorkerRepository;
+import vn.ticketscenter.fulfillment.refund.dao.RefundWorkerRepository;
 import vn.ticketscenter.payment.integration.RefundGateway;
 
 import java.util.Objects;
@@ -18,7 +18,7 @@ public final class RefundJob {
                 new RefundProcessingWorker(
                         new RefundWorkerRepository(transactions),
                         gateway,
-                        new RedisRefundLease(),
+                        new RefundLeaseImpl(),
                         batchSize));
     }
 

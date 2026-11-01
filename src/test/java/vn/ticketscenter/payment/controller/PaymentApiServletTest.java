@@ -1,5 +1,6 @@
 package vn.ticketscenter.payment.controller;
 
+import vn.ticketscenter.config.web.TestServlets;
 import jakarta.servlet.ReadListener;
 import jakarta.servlet.ServletInputStream;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,6 +16,7 @@ import vn.ticketscenter.order.controller.OrderApiServlet;
 import vn.ticketscenter.payment.dto.PaymentInitiationResult;
 import vn.ticketscenter.payment.service.PaymentException;
 import vn.ticketscenter.payment.service.PaymentService;
+import vn.ticketscenter.payment.service.PaymentServiceImpl;
 
 import java.io.*;
 import java.lang.reflect.Proxy;
@@ -40,7 +42,7 @@ class PaymentApiServletTest {
     private StubPaymentService paymentService;
     private OrderApiServlet servlet;
 
-    private static class StubPaymentService extends PaymentService {
+    private static class StubPaymentService extends PaymentServiceImpl {
         PaymentInitiationResult resultToReturn;
         PaymentException exceptionToThrow;
         UUID capturedActorId;
@@ -90,7 +92,7 @@ class PaymentApiServletTest {
         requestHeaders.put("Idempotency-Key", List.of(IDEMPOTENCY_KEY.toString()));
 
         paymentService = new StubPaymentService();
-        servlet = new OrderApiServlet(null, paymentService);
+        servlet = TestServlets.init(new OrderApiServlet(), null, paymentService);
     }
 
     @Test

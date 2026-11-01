@@ -6,7 +6,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import vn.ticketscenter.config.web.HttpResponses;
-import vn.ticketscenter.identity.config.IdentityServices;
+import vn.ticketscenter.config.identity.IdentityServices;
 import vn.ticketscenter.identity.controller.support.IdentityErrorWriter;
 import vn.ticketscenter.identity.dto.CurrentUserDto;
 import vn.ticketscenter.identity.security.SecurityContext;
@@ -19,49 +19,40 @@ import java.util.Optional;
 @WebServlet(name = "MeServlet", urlPatterns = "/api/me")
 public class MeServlet extends HttpServlet {
 
-    private ProfileService profileService;
-
-    public MeServlet() {}
-
-    public MeServlet(ProfileService profileService) {
-        this.profileService = profileService;
-    }
-
     private ProfileService profileService(ServletContext context) {
-        if (profileService != null) return profileService;
         IdentityServices services = IdentityServices.from(context);
         return services == null ? null : services.profileService();
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        Optional<UserPrincipal> principalOpt = SecurityContext.getCurrentUser(req);
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        Optional<UserPrincipal> principalOpt = SecurityContext.getCurrentUser(request);
         if (principalOpt.isEmpty()) {
             HttpResponses.error(
-                    resp,
+                    response,
                     HttpServletResponse.SC_UNAUTHORIZED,
                     "UNAUTHENTICATED",
                     "Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn");
             return;
         }
 
-        ProfileService service = profileService(req.getServletContext());
+        ProfileService service = profileService(getServletContext());
         if (service == null) {
-            IdentityErrorWriter.databaseUnavailable(resp);
+            IdentityErrorWriter.databaseUnavailable(response);
             return;
         }
 
         CurrentUserDto user = service.getCurrentUser(principalOpt.get().actorId());
         if (user == null) {
-            SecurityContext.clearSession(req);
+            SecurityContext.clearSession(request);
             HttpResponses.error(
-                    resp,
+                    response,
                     HttpServletResponse.SC_UNAUTHORIZED,
                     "UNAUTHENTICATED",
                     "Tài khoản không tồn tại hoặc đã bị xóa");
             return;
         }
 
-        HttpResponses.data(resp, user.toJson());
+        HttpResponses.data(response, user.toJson());
     }
 }

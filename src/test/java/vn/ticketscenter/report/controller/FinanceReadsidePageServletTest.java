@@ -9,7 +9,7 @@ import java.util.*;
 import org.junit.jupiter.api.Test;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.security.*;
-import vn.ticketscenter.settlement.infrastructure.FinanceDatabase;
+import vn.ticketscenter.settlement.dao.FinanceDatabase;
 import static org.junit.jupiter.api.Assertions.*;
 
 class FinanceReadsidePageServletTest {

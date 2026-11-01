@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kiểm Duyệt & Hủy Sự Kiện — TicketsCenter Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-light min-h-screen">
+    <div class="small text-center py-2 bg-light text-muted" role="note">Prototype tĩnh • Dữ liệu và thao tác mô phỏng • Chưa kết nối backend, email hoặc cổng thanh toán.</div>
+
+    <!-- Top Admin Bar -->
+    <nav class="admin-navbar sticky-top">
+        <div class="container-fluid d-flex align-items-center justify-content-between p-0">
+            <div class="d-flex align-items-center gap-3">
+                <a class="navbar-brand-custom" href="index.html">
+                    TicketsCenter
+                </a>
+                <span class="status-pill status-neutral">Quản Trị Hệ Thống</span>
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+                <span class="small text-muted d-none d-sm-inline">admin@ticketscenter.vn</span>
+                <a href="index.html" class="btn btn-sm btn-outline-dark rounded-0 px-3">
+                    Xem sàn bán vé
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Layout -->
+    <div class="dashboard-layout">
+        
+        <!-- Sidebar -->
+        <aside class="dashboard-sidebar">
+            <div class="sidebar-title">Trung tâm Quản trị</div>
+            <ul class="sidebar-menu">
+                <li><a href="admin-dashboard.html">• Tổng quan vận hành</a></li>
+                <li><a href="admin-org-approval.html">• Duyệt hồ sơ tổ chức</a></li>
+                <li><a href="admin-event-approval.html" class="active">• Duyệt & Hủy sự kiện</a></li>
+                <li><a href="admin-refund-approval.html">• Xử lý hoàn vé</a></li>
+                <li><a href="admin-settlements.html">• Hoa hồng & Quyết toán</a></li>
+                <li><a href="admin-audit-logs.html">• Nhật ký hệ thống</a></li>
+            </ul>
+
+            <div class="sidebar-title">Điều hướng nhanh</div>
+            <ul class="sidebar-menu">
+                <li><a href="index.html">• Cổng người mua</a></li>
+                <li><a href="organizer-dashboard.html">• Cổng Ban tổ chức</a></li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="dashboard-content">
+            
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center pb-4 mb-4 border-bottom">
+                <div>
+                    <h1 class="h4 fw-bold mb-1 text-dark">Kiểm Duyệt & Quản Trị Chương Trình Sự Kiện</h1>
+                    <p class="small text-muted mb-0">Thẩm định nội dung trước khi mở bán công khai hoặc xử lý tình huống dừng khẩn cấp.</p>
+                </div>
+            </div>
+
+            <!-- Auto-Refund Rule Alert -->
+            <div class="p-3 bg-white border border-danger-subtle text-danger small mb-4">
+                <strong>Lưu ý nghiệp vụ hoàn tiền tự động:</strong> Khi Quản trị viên bấm nút <strong>Hủy khẩn cấp</strong>, hệ thống dự kiến dừng bán/check-in, giải phóng Hold và tạo/tiếp tục Refund theo từng Order cho vé đủ điều kiện, hoàn theo paidAmount. Chỉ hủy trước startTime; vé USED là ngoại lệ cần quản trị xử lý, không tự hoàn.
+            </div>
+
+            <!-- 1. Pending Approvals -->
+            <div class="panel-box bg-white mb-5">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">Chương trình chờ duyệt mở bán (2 sự kiện)</h2>
+                        <span class="small text-muted">Kiểm tra thông tin giấy phép, địa điểm và sơ đồ phân hạng vé</span>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table-custom">
+                        <thead>
+                            <tr>
+                                <th>Tên sự kiện & Đơn vị tổ chức</th>
+                                <th>Thời gian diễn ra</th>
+                                <th>Địa điểm</th>
+                                <th>Quy mô & Giá vé</th>
+                                <th class="text-end">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <strong class="d-block text-dark">Chuyên Đề: Di Sản Phụ Nữ Việt Nam</strong>
+                                    <span class="small text-muted">Bảo tàng Phụ nữ Việt Nam</span>
+                                </td>
+                                <td>15/11/2026 • 09:00</td>
+                                <td>Hội trường VWM, Hà Nội</td>
+                                <td>200 vé (80.000 đ)</td>
+                                <td class="text-end">
+                                    <div class="d-inline-flex gap-2">
+                                        <button class="btn btn-sm btn-dark rounded-0 px-3 py-1" onclick="alert('Mô phỏng: Event → PUBLISHED và chốt CommissionRule; chỉ mở bán trong [saleStart, saleEnd).')">
+                                            Duyệt mở bán
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger rounded-0 px-2 py-1" onclick="prompt('Nhập lý do từ chối kiểm duyệt:')">
+                                            Từ chối
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <strong class="d-block text-dark">Hòa Nhạc Giao Hưởng Mùa Thu 2026</strong>
+                                    <span class="small text-muted">Saigon Stage Entertainment Ltd</span>
+                                </td>
+                                <td>20/12/2026 • 20:00</td>
+                                <td>Nhà hát Lớn TP.HCM</td>
+                                <td>500 vé (Từ 300.000 đ)</td>
+                                <td class="text-end">
+                                    <div class="d-inline-flex gap-2">
+                                        <button class="btn btn-sm btn-dark rounded-0 px-3 py-1" onclick="alert('Mô phỏng: Event → PUBLISHED và chốt CommissionRule; chỉ mở bán trong [saleStart, saleEnd).')">
+                                            Duyệt mở bán
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger rounded-0 px-2 py-1" onclick="prompt('Nhập lý do từ chối kiểm duyệt:')">
+                                            Từ chối
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 2. Published Events -->
+            <div class="panel-box bg-white">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">Chương trình đang mở bán công khai</h2>
+                        <span class="small text-muted">Danh sách sự kiện đang phát hành trên sàn TicketsCenter</span>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table-custom">
+                        <thead>
+                            <tr>
+                                <th>Tên sự kiện</th>
+                                <th>Đơn vị tổ chức</th>
+                                <th>Vé đã bán</th>
+                                <th>Doanh thu tạm tính</th>
+                                <th>Trạng thái</th>
+                                <th class="text-end">Thao tác khẩn cấp</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <strong class="d-block text-dark">Vé Tham Quan Bảo Tàng Phụ Nữ Việt Nam</strong>
+                                    <span class="small text-muted">Hà Nội</span>
+                                </td>
+                                <td>Bảo tàng Phụ nữ VN</td>
+                                <td>820 / 1.000 vé</td>
+                                <td class="fw-bold text-dark">65.600.000 đ</td>
+                                <td><span class="status-pill status-success">Đang mở bán</span></td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-outline-danger rounded-0 px-2 py-1" onclick="if(confirm('CẢNH BÁO: Mô phỏng: Hủy trước startTime sẽ dừng bán và xử lý Refund cho vé đủ điều kiện; không hoàn trùng hoặc tự hoàn vé USED. Tiếp tục?')) alert('Mô phỏng: Event → CANCELLED; khởi động xử lý Refund theo từng Order, chưa báo mọi vé đã hoàn.')">
+                                        Hủy khẩn cấp (Hoàn tiền)
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <strong class="d-block text-dark">Giải Bóng Rổ Đấu Trường Danh Vọng 2026</strong>
+                                    <span class="small text-muted">TP.HCM</span>
+                                </td>
+                                <td>Vietnam Sports League</td>
+                                <td>1.450 / 2.000 vé</td>
+                                <td class="fw-bold text-dark">217.500.000 đ</td>
+                                <td><span class="status-pill status-success">Đang mở bán</span></td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-outline-danger rounded-0 px-2 py-1" onclick="if(confirm('CẢNH BÁO: Mô phỏng: Hủy trước startTime sẽ dừng bán và xử lý Refund cho vé đủ điều kiện; không hoàn trùng hoặc tự hoàn vé USED. Tiếp tục?')) alert('Mô phỏng: Event → CANCELLED; khởi động xử lý Refund theo từng Order, chưa báo mọi vé đã hoàn.')">
+                                        Hủy khẩn cấp (Hoàn tiền)
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+</body>
+</html>

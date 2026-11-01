@@ -1,5 +1,6 @@
 package vn.ticketscenter.fulfillment.ticket.controller;
 
+import vn.ticketscenter.config.web.TestServlets;
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.WriteListener;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,6 +12,7 @@ import vn.ticketscenter.fulfillment.ticket.dto.TicketDetailDto;
 import vn.ticketscenter.fulfillment.ticket.dto.TicketSummaryDto;
 import vn.ticketscenter.fulfillment.ticket.service.TicketException;
 import vn.ticketscenter.fulfillment.ticket.service.TicketService;
+import vn.ticketscenter.fulfillment.ticket.service.TicketServiceImpl;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
@@ -40,7 +42,7 @@ class TicketApiServletTest {
     private StubTicketService service;
     private TicketApiServlet servlet;
 
-    private static class StubTicketService extends TicketService {
+    private static class StubTicketService extends TicketServiceImpl {
         TicketDetailDto detailToReturn;
         List<TicketSummaryDto> summariesToReturn = new ArrayList<>();
         byte[] qrBytesToReturn = new byte[]{0x10, 0x20, 0x30};
@@ -114,7 +116,7 @@ class TicketApiServletTest {
                 250000L, "ACTIVE", Instant.now(), 1L
         ));
 
-        servlet = new TicketApiServlet(service);
+        servlet = TestServlets.init(new TicketApiServlet(), service);
     }
 
     @Test

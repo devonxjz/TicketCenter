@@ -14,9 +14,9 @@ import java.io.IOException;
 public class EventDetailServlet extends HttpServlet {
 
     @Override
-    public void doGet(HttpServletRequest req, HttpServletResponse resp)
+    public void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        resp.setHeader("Cache-Control", "no-store");
-        req.getRequestDispatcher("/WEB-INF/views/public/event-detail.jsp").forward(req, resp);
+        response.setHeader("Cache-Control", "no-store");
+        request.getRequestDispatcher("/WEB-INF/views/public/event-detail.jsp").forward(request, response);
     }
 }

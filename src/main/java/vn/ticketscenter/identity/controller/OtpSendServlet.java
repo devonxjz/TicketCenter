@@ -6,7 +6,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import vn.ticketscenter.config.web.HttpResponses;
-import vn.ticketscenter.identity.config.IdentityServices;
+import vn.ticketscenter.config.identity.IdentityServices;
 import vn.ticketscenter.identity.controller.support.IdentityErrorWriter;
 import vn.ticketscenter.identity.controller.support.JsonObjectBuilder;
 import vn.ticketscenter.identity.controller.support.RequestFields;
@@ -23,40 +23,29 @@ import java.io.IOException;
         urlPatterns = {"/api/auth/otp/send"})
 public class OtpSendServlet extends HttpServlet {
 
-    private OtpService otpService;
-
-    public OtpSendServlet() {}
-
-    public OtpSendServlet(OtpService otpService) {
-        this.otpService = otpService;
-    }
-
     private OtpService otpService(ServletContext context) {
-        if (otpService != null) {
-            return otpService;
-        }
         IdentityServices services = IdentityServices.from(context);
         return services == null ? null : services.otpService();
     }
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        OtpService service = otpService(req.getServletContext());
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        OtpService service = otpService(getServletContext());
         if (service == null) {
-            IdentityErrorWriter.databaseUnavailable(resp);
+            IdentityErrorWriter.databaseUnavailable(response);
             return;
         }
         try {
-            RequestFields fields = RequestFields.read(req);
+            RequestFields fields = RequestFields.read(request);
             String email = fields.get("email");
             if (email == null || email.isBlank()) {
                 throw new IdentityException(
                         IdentityError.VALIDATION_FAILED, "Email không được để trống");
             }
             service.sendOtp(new OtpSendRequestDto(email, parsePurpose(fields.get("purpose"))));
-            HttpResponses.data(resp, JsonObjectBuilder.object().put("sent", true).build());
+            HttpResponses.data(response, JsonObjectBuilder.object().put("sent", true).build());
         } catch (RuntimeException failure) {
-            IdentityErrorWriter.write(resp, failure, "Đã xảy ra lỗi khi gửi mã OTP");
+            IdentityErrorWriter.write(response, failure, "Đã xảy ra lỗi khi gửi mã OTP");
         }
     }
 

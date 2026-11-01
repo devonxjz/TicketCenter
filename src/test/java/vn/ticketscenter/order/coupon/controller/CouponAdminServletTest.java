@@ -1,5 +1,6 @@
 package vn.ticketscenter.order.coupon.controller;
 
+import vn.ticketscenter.config.web.TestServlets;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,8 +11,9 @@ import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.order.coupon.dto.CouponAdminDto;
 import vn.ticketscenter.order.coupon.dto.CreateCouponRequest;
 import vn.ticketscenter.order.coupon.dto.UpdateCouponRequest;
-import vn.ticketscenter.order.coupon.repository.CouponAdminRepository;
+import vn.ticketscenter.order.coupon.dao.CouponAdminRepository;
 import vn.ticketscenter.order.coupon.service.CouponAdminService;
+import vn.ticketscenter.order.coupon.service.CouponAdminServiceImpl;
 
 import java.io.BufferedReader;
 import java.io.PrintWriter;
@@ -39,8 +41,8 @@ class CouponAdminServletTest {
     void setUp() {
         adminPrincipal = new UserPrincipal(ADMIN_ID, PlatformRole.ADMIN, 1);
         fakeRepo = new FakeRepo();
-        CouponAdminService service = new CouponAdminService(fakeRepo, null);
-        servlet = new CouponAdminServlet(service);
+        CouponAdminService service = new CouponAdminServiceImpl(fakeRepo, null);
+        servlet = TestServlets.init(new CouponAdminServlet(), service);
     }
 
     @Test

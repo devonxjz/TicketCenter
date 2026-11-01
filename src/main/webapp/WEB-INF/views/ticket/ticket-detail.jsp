@@ -86,7 +86,7 @@
 
                     <div class="info-row">
                         <span class="info-label">Địa điểm</span>
-                        <span class="info-val small text-muted text-end" style="max-width: 250px;">
+                        <span class="info-val small text-muted text-end tc-text-limit">
                             ${fn:escapeXml(not empty ticket.venueAddress ? ticket.venueAddress : ticket.venueName)}
                         </span>
                     </div>

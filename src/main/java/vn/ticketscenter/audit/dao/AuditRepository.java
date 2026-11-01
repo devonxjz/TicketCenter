@@ -5,7 +5,7 @@ import java.util.*;
 import vn.ticketscenter.audit.dto.AuditFilter;
 import vn.ticketscenter.audit.service.AuditMetadata;
 import vn.ticketscenter.report.dao.ReadProjection;
-import vn.ticketscenter.settlement.infrastructure.FinanceException;
+import vn.ticketscenter.settlement.service.FinanceException;
 
 public final class AuditRepository {
     private static final String COLUMNS =
@@ -43,29 +43,16 @@ public final class AuditRepository {
                     " AND EXISTS (SELECT 1 FROM dbo.fn_AuditOrganizationMatch(?,a.entity_type,a.entity_id,a.metadata_json))";
             params.add(f.organizationId());
         }
-        long total;
-        try (var query = db.prepareStatement("SELECT COUNT_BIG(*)" + where)) {
-            ReadProjection.bind(query, params);
-            try (var row = query.executeQuery()) {
-                row.next();
-                total = row.getLong(1);
-            }
-        }
-        var rows = new ArrayList<Map<String, Object>>();
-        try (var query =
-                db.prepareStatement(
-                        "SELECT "
-                                + COLUMNS
-                                + where
-                                + " ORDER BY a.created_at DESC,a.id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY")) {
-            var all = new ArrayList<>(params);
-            all.add(f.offset());
-            all.add(f.pageSize());
-            ReadProjection.bind(query, all);
-            try (var row = query.executeQuery()) {
-                while (row.next()) rows.add(project(row));
-            }
-        }
+        long total = ReadProjection.first(db, "SELECT COUNT_BIG(*)" + where, params, row -> row.getLong(1));
+        ArrayList<Object> all = new ArrayList<>(params);
+        all.add(f.offset());
+        all.add(f.pageSize());
+        List<Map<String, Object>> rows =
+                ReadProjection.list(
+                        db,
+                        "SELECT " + COLUMNS + where + " ORDER BY a.created_at DESC,a.id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY",
+                        all,
+                        this::project);
         return Map.of(
                 "rows",
                 rows,
@@ -84,17 +71,19 @@ public final class AuditRepository {
     }
 
     public Map<String, Object> detail(Connection db, UUID id) throws SQLException {
-        try (var query = db.prepareStatement("SELECT " + COLUMNS + SOURCE + " WHERE a.id=?")) {
+        try (PreparedStatement query = db.prepareStatement("SELECT " + COLUMNS + SOURCE + " WHERE a.id=?")) {
             query.setString(1, id.toString());
-            try (var row = query.executeQuery()) {
-                if (!row.next()) throw new FinanceException("NOT_FOUND", 404);
+            try (ResultSet row = query.executeQuery()) {
+                if (!row.next()) {
+                    throw new FinanceException("NOT_FOUND", 404);
+                }
                 return project(row);
             }
         }
     }
 
     private Map<String, Object> project(ResultSet row) throws SQLException {
-        var result =
+        Map<String, Object> result =
                 ReadProjection.row(
                         row,
                         List.of(

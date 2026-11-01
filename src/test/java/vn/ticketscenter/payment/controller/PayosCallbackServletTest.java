@@ -1,5 +1,6 @@
 package vn.ticketscenter.payment.controller;
 
+import vn.ticketscenter.config.web.TestServlets;
 import jakarta.servlet.ReadListener;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletInputStream;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import vn.ticketscenter.payment.dto.PaymentReturnResult;
 import vn.ticketscenter.payment.dto.PayosWebhookResult;
 import vn.ticketscenter.payment.service.PaymentService;
+import vn.ticketscenter.payment.service.PaymentServiceImpl;
 
 import java.io.ByteArrayInputStream;
 import java.io.PrintWriter;
@@ -34,7 +36,7 @@ class PayosCallbackServletTest {
     private StubPaymentService paymentService;
     private PayosCallbackServlet servlet;
 
-    private static class StubPaymentService extends PaymentService {
+    private static class StubPaymentService extends PaymentServiceImpl {
         PayosWebhookResult webhookResult = PayosWebhookResult.confirmed();
         PaymentReturnResult returnResult = new PaymentReturnResult(
                 true, true, "CAPTURED", "TXN-1", Optional.of(UUID.randomUUID()), new BigDecimal("100000"), "Success");
@@ -61,7 +63,7 @@ class PayosCallbackServletTest {
         responseStatus = new AtomicInteger(200);
         forwardedPath = null;
         paymentService = new StubPaymentService();
-        servlet = new PayosCallbackServlet(paymentService);
+        servlet = TestServlets.init(new PayosCallbackServlet(), paymentService);
     }
 
     @Test

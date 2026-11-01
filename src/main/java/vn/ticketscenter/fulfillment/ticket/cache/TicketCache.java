@@ -6,7 +6,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Hợp đồng bộ nhớ đệm cho vé và mã QR (LIEM-05).
+ * Cache for tickets and QR codes (LIEM-05).
  */
 public interface TicketCache {
     Optional<TicketDetailDto> getTicketDetail(UUID ticketId);

@@ -14,8 +14,30 @@ public record RefundSummaryDto(
         String eventName,
         String reason,
         String rejectionReason) {
+    public String statusLabel() {
+        return switch (status) {
+            case "REQUESTED" -> "Chờ duyệt";
+            case "APPROVED" -> "Đã duyệt, chờ chuyển tiền";
+            case "PROCESSING" -> "Đang chuyển tiền";
+            case "COMPLETED" -> "Đã hoàn tiền";
+            case "REJECTED" -> "Bị từ chối";
+            case "RETRYABLE" -> "Chuyển tiền thất bại, cần xử lý";
+            case "NEEDS_RECONCILIATION" -> "Đang xác minh giao dịch";
+            default -> status;
+        };
+    }
+
     public String json() {
-        return "{\"refundId\":"
+        return "{" + fields() + "}";
+    }
+
+    /** The created summary plus a message for the buyer. */
+    public String json(String message) {
+        return "{" + fields() + ",\"message\":" + text(message) + "}";
+    }
+
+    private String fields() {
+        return "\"refundId\":"
                 + text(refundId.toString())
                 + ",\"orderId\":"
                 + text(orderId.toString())
@@ -32,7 +54,6 @@ public record RefundSummaryDto(
                 + ",\"reason\":"
                 + text(reason)
                 + ",\"rejectionReason\":"
-                + text(rejectionReason)
-                + "}";
+                + text(rejectionReason);
     }
 }

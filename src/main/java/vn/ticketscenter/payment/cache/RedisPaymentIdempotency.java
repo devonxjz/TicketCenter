@@ -9,22 +9,16 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
+import vn.ticketscenter.config.redis.RedisScripts;
 
 public final class RedisPaymentIdempotency {
     public static final Duration DEFAULT_RETENTION = Duration.ofMinutes(10);
     public static final Duration LOCK_TIMEOUT = Duration.ofSeconds(5);
 
-    // KEYS[1]: key Redis cần cập nhật.
-    // ARGV[1]: mã đánh dấu yêu cầu đang xử lý, tức pendingMarker.
-    // ARGV[2]: kết quả muốn lưu.
-    // ARGV[3]: thời gian tồn tại của kết quả, tính bằng mili giây.
-
-    private static final String COMPLETE_LUA =
-            """
-            if redis.call('GET', KEYS[1]) ~= ARGV[1] then return 0 end
-            redis.call('PSETEX', KEYS[1], ARGV[3], ARGV[2])
-            return 1
-            """;
+    // KEYS[1]: the Redis key to update.
+    // ARGV[1]: the in-progress marker (pendingMarker).
+    // ARGV[2]: the result to store.
+    // ARGV[3]: how long the result lives, in milliseconds.
 
     private final Supplier<Jedis> connections;
     private final ConcurrentMap<String, MemoryRecord> memoryStore;
@@ -112,7 +106,7 @@ public final class RedisPaymentIdempotency {
             try (Jedis client = connections.get()) {
                 Object result =
                         client.eval(
-                                COMPLETE_LUA,
+                                RedisScripts.REPLACE_IF_EQUALS_PX,
                                 1,
                                 redisKey,
                                 pendingMarker,
@@ -297,7 +291,9 @@ public final class RedisPaymentIdempotency {
     public static final Duration WEBHOOK_RETENTION = Duration.ofDays(7);
 
     public String getCachedWebhook(String txnRef, String providerReference) {
-        if (txnRef == null || txnRef.isBlank()) return null;
+        if (txnRef == null || txnRef.isBlank()) {
+            return null;
+        }
         String key = webhookKey(txnRef, providerReference);
         if (connections == null) {
             long now = System.currentTimeMillis();
@@ -313,7 +309,9 @@ public final class RedisPaymentIdempotency {
     }
 
     public void cacheWebhook(String txnRef, String providerReference, String responseJson) {
-        if (txnRef == null || txnRef.isBlank() || responseJson == null) return;
+        if (txnRef == null || txnRef.isBlank() || responseJson == null) {
+            return;
+        }
         String key = webhookKey(txnRef, providerReference);
         if (connections == null) {
             long now = System.currentTimeMillis();

@@ -7,7 +7,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 
-/** The payOS operations the payment feature needs; {@link PayosClient} talks to the real API. */
+/** The payOS operations the payment feature needs; {@link PayosGatewayImpl} talks to the real API. */
 public interface PayosGateway extends AutoCloseable {
     /** Past this age an unpaid link has expired (links expire with the seat hold), so "never created" is final. */
     Duration PAYMENT_WINDOW = Duration.ofMinutes(30);
@@ -67,8 +67,9 @@ public interface PayosGateway extends AutoCloseable {
      */
     static Result interpret(
             Optional<LinkStatus> maybeLink, BigDecimal amount, boolean windowClosed) {
-        if (maybeLink.isEmpty())
+        if (maybeLink.isEmpty()) {
             return windowClosed ? new Result(Outcome.FAILED, null) : Result.unknown();
+        }
         LinkStatus link = maybeLink.get();
         String status = link.status() == null ? "" : link.status();
         return switch (status) {

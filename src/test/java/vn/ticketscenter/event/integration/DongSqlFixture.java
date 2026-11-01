@@ -30,9 +30,9 @@ final class DongSqlFixture {
         }
     };
     final EventManagementRepository repository=new EventManagementRepository(transactions);
-    final RedisEventCatalogCache cache=new RedisEventCatalogCache(DongSqlFixture::redis);
+    final EventCatalogCacheImpl cache=new EventCatalogCacheImpl(DongSqlFixture::redis);
     final RedisEventIdempotencyStore idempotency=new RedisEventIdempotencyStore(DongSqlFixture::redis);
-    final EventManagementService service=new EventManagementService(repository,idempotency,cache);
+    final EventManagementService service=new EventManagementServiceImpl(repository,idempotency,cache);
     DongSqlFixture() throws Exception {
         try(Connection c=connection(null)){
             c.setAutoCommit(false);
@@ -65,7 +65,7 @@ final class DongSqlFixture {
     EventCommand command(String op,UUID event,UUID zone,Map<String,String> fields){return EventCommand.input(op,null,event,zone,fields,Clock.systemUTC());}
     UUID seated(UUID event,String name,int rows,int per){return id(service.mutate(actor,UUID.randomUUID().toString(),command("ZONE_CREATE",event,null,Map.of("name",name,"zoneType","SEATED","basePrice","300000","rows",Integer.toString(rows),"seatsPerRow",Integer.toString(per)))),"zoneId");}
     UUID standing(UUID event,String name,int capacity){return id(service.mutate(actor,UUID.randomUUID().toString(),command("ZONE_CREATE",event,null,Map.of("name",name,"zoneType","STANDING","basePrice","0","capacity",Integer.toString(capacity)))),"zoneId");}
-    EventCoverService covers(StorageService storage,EventCoverService.Orphans orphans){return new EventCoverService(repository,idempotency,service,storage,orphans);}
+    EventCoverService covers(StorageService storage,EventCoverService.Orphans orphans){return new EventCoverServiceImpl(repository,idempotency,service,storage,orphans);}
     static byte[] png() throws IOException {var image=new java.awt.image.BufferedImage(2,2,java.awt.image.BufferedImage.TYPE_INT_RGB);var out=new ByteArrayOutputStream();javax.imageio.ImageIO.write(image,"png",out);return out.toByteArray();}
     static final class Storage implements StorageService {
         int uploads,deletes;boolean fail;String lastUrl;

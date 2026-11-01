@@ -7,8 +7,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.UUID;
-import vn.ticketscenter.settlement.infrastructure.FinanceException;
-import vn.ticketscenter.settlement.infrastructure.FinanceJson;
+import vn.ticketscenter.settlement.service.FinanceException;
+import vn.ticketscenter.settlement.dto.FinanceJson;
 
 public record PayoutRequestDto(
         BigDecimal amount,
@@ -22,12 +22,16 @@ public record PayoutRequestDto(
         } catch (ArithmeticException | NullPointerException failure) {
             throw invalid();
         }
-        if (amount.signum() <= 0 || amount.precision() > 19) throw invalid();
+        if (amount.signum() <= 0 || amount.precision() > 19) {
+            throw invalid();
+        }
         bankAccountNumber = term(bankAccountNumber, 64);
         bankName = term(bankName, 100);
         accountHolderName = term(accountHolderName, 200);
         note = note == null ? "" : note.strip();
-        if (note.length() > 500) throw invalid();
+        if (note.length() > 500) {
+            throw invalid();
+        }
         try {
             FinanceJson.write(List.of(bankAccountNumber, bankName, accountHolderName, note));
         } catch (IllegalArgumentException failure) {
@@ -54,8 +58,9 @@ public record PayoutRequestDto(
     }
 
     private static String term(String raw, int max) {
-        if (raw == null || raw.isBlank() || raw.length() > max || raw.chars().anyMatch(c -> c < 32))
+        if (raw == null || raw.isBlank() || raw.length() > max || raw.chars().anyMatch(c -> c < 32)) {
             throw invalid();
+        }
         return raw.strip();
     }
 

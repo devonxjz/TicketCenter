@@ -25,7 +25,7 @@ class EventManagementServiceTest {
         public void completed(Lease lease,String hash,Result r){calls.add("completed");if(failCompletion)throw new IllegalStateException("Redis unavailable");}
         public void release(Lease lease){calls.add("release");}
     }
-    private EventManagementService service(Repository repository,Idempotency store){return new EventManagementService(repository,store,(e,o)->calls.add("invalidate"));}
+    private EventManagementService service(Repository repository,Idempotency store){return new EventManagementServiceImpl(repository,store,(e,o)->calls.add("invalidate"));}
     @Test void committedDeleteSurvivesJournalFailureAndDurableReplayRepairsIt() {
         var deleted=new Result(200,"{\"data\":{\"status\":\"DELETED\"}}",id,id,"{\"publicId\":\"fixture/cover\",\"coverImageUrl\":\"https://fixture.example.test/cover.png\"}");
         var repo=new Repository() {
@@ -33,7 +33,7 @@ class EventManagementServiceTest {
             @Override public Result command(Actor a,String key,String hash,EventCommand c){calls.add("commit");replay=true;return deleted;}
         };
         var attempts=new java.util.concurrent.atomic.AtomicInteger();var recorded=new ArrayList<vn.ticketscenter.storage.StoredAsset>();
-        var service=new EventManagementService(repo,new Idempotency(),(e,o)->calls.add("invalidate"),(e,a)->{
+        var service=new EventManagementServiceImpl(repo,new Idempotency(),(e,o)->calls.add("invalidate"),(e,a)->{
             if(attempts.incrementAndGet()==1)throw new IllegalStateException("Journal unavailable");recorded.add(a);
         });
         var deleting=new EventCommand("DELETE",null,id,null,Map.of());

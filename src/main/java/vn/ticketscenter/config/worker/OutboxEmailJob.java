@@ -1,5 +1,6 @@
 package vn.ticketscenter.config.worker;
 
+import java.math.BigDecimal;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.identity.integration.mail.EmailMessage;
@@ -17,7 +18,7 @@ public final class OutboxEmailJob implements OutboxWorker.EmailJob {
             String name,
             String orderCode,
             String eventTitle,
-            java.math.BigDecimal amount) {}
+            BigDecimal amount) {}
 
     public interface ContextLoader {
         Context load(UUID outboxId, String eventType);
@@ -45,14 +46,16 @@ public final class OutboxEmailJob implements OutboxWorker.EmailJob {
                                             .setParameter("id", id)
                                             .setParameter("t", type)
                                             .getResultList();
-                            if (rows.isEmpty()) return null;
+                            if (rows.isEmpty()) {
+                                return null;
+                            }
                             Object[] r = rows.get(0);
                             return new Context(
                                     (String) r[0],
                                     (String) r[1],
                                     (String) r[2],
                                     (String) r[3],
-                                    (java.math.BigDecimal) r[4]);
+                                    (BigDecimal) r[4]);
                         });
     }
 
@@ -75,8 +78,9 @@ public final class OutboxEmailJob implements OutboxWorker.EmailJob {
                             "Unsupported outbox event type: " + eventType);
         }
         Context c = loader.load(outboxId, eventType);
-        if (c == null)
+        if (c == null) {
             throw new IllegalStateException("No email context for outbox row " + outboxId);
+        }
         String money = NumberFormat.getInstance(Locale.of("vi", "VN")).format(c.amount()) + " VND";
         String body =
                 "Xin chào "

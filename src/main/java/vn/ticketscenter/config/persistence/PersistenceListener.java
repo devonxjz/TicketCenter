@@ -1,5 +1,11 @@
 package vn.ticketscenter.config.persistence;
 
+import java.io.IOException;
+import java.net.InetAddress;
+import java.nio.file.Path;
+import java.util.UUID;
+import vn.ticketscenter.config.redis.RedisClientProvider;
+import vn.ticketscenter.event.service.EventCatalogRuntime;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
 import jakarta.servlet.annotation.WebListener;
@@ -11,7 +17,7 @@ import vn.ticketscenter.config.worker.OutboxWorker;
 import vn.ticketscenter.config.worker.RefundJob;
 import vn.ticketscenter.event.dao.EventCancellationRepository;
 import vn.ticketscenter.payment.integration.RefundGateway;
-import vn.ticketscenter.payment.integration.SimulatedRefundGateway;
+import vn.ticketscenter.payment.integration.RefundGatewayImpl;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -38,7 +44,7 @@ public final class PersistenceListener implements ServletContextListener {
         event.getServletContext().setAttribute(REGISTRY_ATTRIBUTE, registry);
         if (registry.hasPrincipal(DatabasePrincipal.BUYER)) {
             try {
-                vn.ticketscenter.event.controller.EventCatalogRuntime.resolve(
+                EventCatalogRuntime.resolve(
                                 event.getServletContext())
                         .warmAsync();
             } catch (Exception ex) {
@@ -83,7 +89,7 @@ public final class PersistenceListener implements ServletContextListener {
                             .equalsIgnoreCase(
                                     String.valueOf(AppConfig.get("outbox.worker.enabled"))
                                             .trim())) {
-                String owner = hostname() + "-" + java.util.UUID.randomUUID();
+                String owner = hostname() + "-" + UUID.randomUUID();
                 OutboxWorker outbox =
                         new OutboxWorker(
                                 registry.transactionManager(),
@@ -91,7 +97,7 @@ public final class PersistenceListener implements ServletContextListener {
                                         OutboxEmailJob.databaseLoader(
                                                 registry.transactionManager()),
                                         new vn.ticketscenter.identity.integration.mail
-                                                .SmtpEmailSender()),
+                                                .EmailSenderImpl()),
                                 owner);
                 outboxExecutor =
                         Executors.newSingleThreadScheduledExecutor(
@@ -104,22 +110,28 @@ public final class PersistenceListener implements ServletContextListener {
 
     @Override
     public void contextDestroyed(ServletContextEvent event) {
-        if (cancellationWorker != null) cancellationWorker.shutdownNow();
-        if (refundWorker != null) refundWorker.shutdownNow();
-        if (outboxExecutor != null) outboxExecutor.shutdownNow();
+        if (cancellationWorker != null) {
+            cancellationWorker.shutdownNow();
+        }
+        if (refundWorker != null) {
+            refundWorker.shutdownNow();
+        }
+        if (outboxExecutor != null) {
+            outboxExecutor.shutdownNow();
+        }
         Object registry = event.getServletContext().getAttribute(REGISTRY_ATTRIBUTE);
         if (registry instanceof PersistenceRegistry persistenceRegistry) {
             persistenceRegistry.close();
         }
         try {
-            vn.ticketscenter.config.redis.RedisClientProvider.getInstance().close();
+            RedisClientProvider.getInstance().close();
         } catch (Exception ignored) {
         }
     }
 
     private static RefundGateway simulatedRefundGateway() {
-        return new SimulatedRefundGateway(
-                java.nio.file.Path.of(
+        return new RefundGatewayImpl(
+                Path.of(
                         AppConfig.get(
                                 AppConfig.Keys.REFUND_STATE_DIRECTORY, "data/refund-gateway")),
                 RefundGateway.Status.valueOf(
@@ -156,8 +168,8 @@ public final class PersistenceListener implements ServletContextListener {
 
     private static String hostname() {
         try {
-            return java.net.InetAddress.getLocalHost().getHostName();
-        } catch (java.io.IOException | RuntimeException exception) {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (IOException | RuntimeException exception) {
             return "node";
         }
     }

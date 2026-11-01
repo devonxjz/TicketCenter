@@ -1,5 +1,6 @@
 package vn.ticketscenter.identity.controller;
 
+import vn.ticketscenter.config.web.TestServlets;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -19,10 +20,12 @@ import vn.ticketscenter.identity.dao.OtpRepository;
 import vn.ticketscenter.identity.dao.UserRepository;
 import vn.ticketscenter.identity.service.OtpHasher;
 import vn.ticketscenter.identity.service.OtpService;
+import vn.ticketscenter.identity.service.OtpServiceImpl;
 import vn.ticketscenter.identity.service.PasswordHasher;
 import vn.ticketscenter.identity.service.PasswordResetService;
+import vn.ticketscenter.identity.service.PasswordResetServiceImpl;
 import vn.ticketscenter.identity.service.ResetTokenCodec;
-import vn.ticketscenter.identity.service.UserSessionCache;
+import vn.ticketscenter.identity.cache.UserSessionCache;
 
 import java.io.BufferedReader;
 import java.io.PrintWriter;
@@ -125,7 +128,7 @@ public class AuthOtpServletsTest {
     @Test
     @DisplayName("OtpSendServlet gửi OTP thành công trả về HTTP 200 sent: true")
     void testOtpSendServletSuccess() throws Exception {
-        OtpService mockOtpService = new OtpService(
+        OtpService mockOtpService = new OtpServiceImpl(
                 new TransactionManager(Map.of()), new OtpRepository(), new UserRepository(),
                 new OtpHasher("secret"), new ResetTokenCodec("secret"), new FakeEmailSender()) {
             @Override
@@ -134,7 +137,7 @@ public class AuthOtpServletsTest {
             }
         };
 
-        OtpSendServlet servlet = new OtpSendServlet(mockOtpService);
+        OtpSendServlet servlet = TestServlets.init(new OtpSendServlet(), mockOtpService);
         String json = "{\"email\":\"user@test.vn\",\"purpose\":\"VERIFY_EMAIL\"}";
         HttpServletRequest req = createMockRequest("POST", "/api/auth/otp/send", json);
         HttpServletResponse resp = createMockResponse();
@@ -148,7 +151,7 @@ public class AuthOtpServletsTest {
     @Test
     @DisplayName("OtpSendServlet trả về 429 khi cooldown đang kích hoạt")
     void testOtpSendServletCooldown() throws Exception {
-        OtpService mockOtpService = new OtpService(
+        OtpService mockOtpService = new OtpServiceImpl(
                 new TransactionManager(Map.of()), new OtpRepository(), new UserRepository(),
                 new OtpHasher("secret"), new ResetTokenCodec("secret"), new FakeEmailSender()) {
             @Override
@@ -157,7 +160,7 @@ public class AuthOtpServletsTest {
             }
         };
 
-        OtpSendServlet servlet = new OtpSendServlet(mockOtpService);
+        OtpSendServlet servlet = TestServlets.init(new OtpSendServlet(), mockOtpService);
         String json = "{\"email\":\"user@test.vn\",\"purpose\":\"VERIFY_EMAIL\"}";
         HttpServletRequest req = createMockRequest("POST", "/api/auth/otp/send", json);
         HttpServletResponse resp = createMockResponse();
@@ -171,7 +174,7 @@ public class AuthOtpServletsTest {
     @Test
     @DisplayName("OtpVerifyServlet xác thực thành công cho RESET_PASSWORD trả về resetToken")
     void testOtpVerifyServletSuccess() throws Exception {
-        OtpService mockOtpService = new OtpService(
+        OtpService mockOtpService = new OtpServiceImpl(
                 new TransactionManager(Map.of()), new OtpRepository(), new UserRepository(),
                 new OtpHasher("secret"), new ResetTokenCodec("secret"), new FakeEmailSender()) {
             @Override
@@ -180,7 +183,7 @@ public class AuthOtpServletsTest {
             }
         };
 
-        OtpVerifyServlet servlet = new OtpVerifyServlet(mockOtpService);
+        OtpVerifyServlet servlet = TestServlets.init(new OtpVerifyServlet(), mockOtpService);
         String json = "{\"email\":\"user@test.vn\",\"purpose\":\"RESET_PASSWORD\",\"code\":\"123456\"}";
         HttpServletRequest req = createMockRequest("POST", "/api/auth/otp/verify", json);
         HttpServletResponse resp = createMockResponse();
@@ -194,9 +197,9 @@ public class AuthOtpServletsTest {
     @Test
     @DisplayName("ForgotPasswordServlet trả về HTTP 200 với thông điệp trung tính")
     void testForgotPasswordServletSuccess() throws Exception {
-        PasswordResetService mockService = new PasswordResetService(
+        PasswordResetService mockService = new PasswordResetServiceImpl(
                 new TransactionManager(Map.of()), new UserRepository(),
-                new OtpService(new TransactionManager(Map.of()), new OtpRepository(), new UserRepository(), new OtpHasher("secret"), new ResetTokenCodec("secret"), new FakeEmailSender()),
+                new OtpServiceImpl(new TransactionManager(Map.of()), new OtpRepository(), new UserRepository(), new OtpHasher("secret"), new ResetTokenCodec("secret"), new FakeEmailSender()),
                 new ResetTokenCodec("secret"), new PasswordHasher(), UserSessionCache.disabled()) {
             @Override
             public String forgotPassword(ForgotPasswordRequestDto request) {
@@ -204,7 +207,7 @@ public class AuthOtpServletsTest {
             }
         };
 
-        ForgotPasswordServlet servlet = new ForgotPasswordServlet(mockService);
+        ForgotPasswordServlet servlet = TestServlets.init(new ForgotPasswordServlet(), mockService);
         String json = "{\"email\":\"user@test.vn\"}";
         HttpServletRequest req = createMockRequest("POST", "/api/auth/password/forgot", json);
         HttpServletResponse resp = createMockResponse();
@@ -218,9 +221,9 @@ public class AuthOtpServletsTest {
     @Test
     @DisplayName("PasswordResetServlet đổi mật khẩu thành công trả về reset: true")
     void testPasswordResetServletSuccess() throws Exception {
-        PasswordResetService mockService = new PasswordResetService(
+        PasswordResetService mockService = new PasswordResetServiceImpl(
                 new TransactionManager(Map.of()), new UserRepository(),
-                new OtpService(new TransactionManager(Map.of()), new OtpRepository(), new UserRepository(), new OtpHasher("secret"), new ResetTokenCodec("secret"), new FakeEmailSender()),
+                new OtpServiceImpl(new TransactionManager(Map.of()), new OtpRepository(), new UserRepository(), new OtpHasher("secret"), new ResetTokenCodec("secret"), new FakeEmailSender()),
                 new ResetTokenCodec("secret"), new PasswordHasher(), UserSessionCache.disabled()) {
             @Override
             public boolean resetPassword(PasswordResetRequestDto request) {
@@ -228,7 +231,7 @@ public class AuthOtpServletsTest {
             }
         };
 
-        PasswordResetServlet servlet = new PasswordResetServlet(mockService);
+        PasswordResetServlet servlet = TestServlets.init(new PasswordResetServlet(), mockService);
         String json = "{\"token\":\"valid.token.sig\",\"newPassword\":\"BrandNewPass123!\"}";
         HttpServletRequest req = createMockRequest("POST", "/api/auth/password/reset", json);
         HttpServletResponse resp = createMockResponse();

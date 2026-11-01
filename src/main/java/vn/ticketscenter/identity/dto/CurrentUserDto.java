@@ -1,9 +1,14 @@
 package vn.ticketscenter.identity.dto;
 
-import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.identity.model.PlatformRole;
 
 import java.util.UUID;
+
+import static vn.ticketscenter.config.web.Json.field;
+import static vn.ticketscenter.config.web.Json.nullableText;
+import static vn.ticketscenter.config.web.Json.number;
+import static vn.ticketscenter.config.web.Json.object;
+import static vn.ticketscenter.config.web.Json.text;
 
 public record CurrentUserDto(
         UUID id,
@@ -13,18 +18,12 @@ public record CurrentUserDto(
         PlatformRole platformRole,
         boolean admin) {
     public String toJson() {
-        return "{\"id\":"
-                + HttpResponses.jsonString(String.valueOf(id))
-                + ",\"email\":"
-                + HttpResponses.jsonString(email)
-                + ",\"userName\":"
-                + HttpResponses.jsonString(userName)
-                + ",\"fullName\":"
-                + HttpResponses.jsonString(fullName)
-                + ",\"platformRole\":"
-                + HttpResponses.jsonString(String.valueOf(platformRole))
-                + ",\"admin\":"
-                + admin
-                + "}";
+        return object(
+                field("id", text(String.valueOf(id))),
+                field("email", nullableText(email)),
+                field("userName", nullableText(userName)),
+                field("fullName", nullableText(fullName)),
+                field("platformRole", text(String.valueOf(platformRole))),
+                field("admin", number(admin)));
     }
 }

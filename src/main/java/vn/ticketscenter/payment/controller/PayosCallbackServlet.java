@@ -1,11 +1,14 @@
 package vn.ticketscenter.payment.controller;
 
+import java.util.UUID;
+import java.util.Enumeration;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import vn.ticketscenter.config.PayosConfig;
+import vn.ticketscenter.config.web.ApiRequest;
+import vn.ticketscenter.config.payment.PayosConfig;
 import vn.ticketscenter.payment.dto.PaymentReturnResult;
 import vn.ticketscenter.payment.dto.PayosWebhookResult;
 import vn.ticketscenter.payment.service.PaymentRuntime;
@@ -21,15 +24,6 @@ import java.util.Map;
         urlPatterns = {PayosConfig.WEBHOOK_PATH, PayosConfig.RETURN_PATH, PayosConfig.CANCEL_PATH})
 public class PayosCallbackServlet extends HttpServlet {
     private static final int MAX_WEBHOOK_BYTES = 64 * 1024;
-    private final PaymentService suppliedService;
-
-    public PayosCallbackServlet() {
-        this.suppliedService = null;
-    }
-
-    public PayosCallbackServlet(PaymentService suppliedService) {
-        this.suppliedService = suppliedService;
-    }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
@@ -64,7 +58,7 @@ public class PayosCallbackServlet extends HttpServlet {
             return;
         }
         request.setAttribute("paymentResult", result);
-        request.setAttribute("orderId", result.orderId().map(java.util.UUID::toString).orElse(""));
+        request.setAttribute("orderId", result.orderId().map(UUID::toString).orElse(""));
         request.setAttribute("txnRef", result.txnRef());
         request.setAttribute("amount", result.amount());
         request.setAttribute("success", result.success());
@@ -74,13 +68,11 @@ public class PayosCallbackServlet extends HttpServlet {
     }
 
     private PaymentService service() {
-        return suppliedService != null
-                ? suppliedService
-                : PaymentRuntime.resolve(getServletContext());
+        return PaymentRuntime.resolve(getServletContext());
     }
 
     private static String path(HttpServletRequest request) {
-        return request.getRequestURI().substring(request.getContextPath().length());
+        return ApiRequest.path(request);
     }
 
     /** @return the UTF-8 body, or null when it exceeds {@link #MAX_WEBHOOK_BYTES} */
@@ -91,11 +83,13 @@ public class PayosCallbackServlet extends HttpServlet {
 
     private static Map<String, String> queryParams(HttpServletRequest request) {
         Map<String, String> params = new HashMap<>();
-        var names = request.getParameterNames();
+        Enumeration<String> names = request.getParameterNames();
         while (names.hasMoreElements()) {
             String name = names.nextElement();
             String value = request.getParameter(name);
-            if (value != null && !value.isBlank()) params.put(name, value);
+            if (value != null && !value.isBlank()) {
+                params.put(name, value);
+            }
         }
         return params;
     }

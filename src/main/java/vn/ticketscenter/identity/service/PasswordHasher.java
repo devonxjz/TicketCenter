@@ -1,5 +1,6 @@
 package vn.ticketscenter.identity.service;
 
+import java.security.MessageDigest;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import java.security.NoSuchAlgorithmException;
@@ -32,7 +33,9 @@ public class PasswordHasher {
     }
 
     public boolean verify(String password, String storedHash) {
-        if (password == null || storedHash == null) return false;
+        if (password == null || storedHash == null) {
+            return false;
+        }
         String[] parts = storedHash.split(":");
         try {
             int iterations;
@@ -40,7 +43,9 @@ public class PasswordHasher {
             byte[] hash;
             if (parts.length == 4 && PREFIX.equals(parts[0])) {
                 iterations = Integer.parseInt(parts[1]);
-                if (iterations < LEGACY_ITERATIONS || iterations > 10_000_000) return false;
+                if (iterations < LEGACY_ITERATIONS || iterations > 10_000_000) {
+                    return false;
+                }
                 salt = Base64.getDecoder().decode(parts[2]);
                 hash = Base64.getDecoder().decode(parts[3]);
             } else if (parts.length == 2) {
@@ -50,7 +55,7 @@ public class PasswordHasher {
             } else {
                 return false;
             }
-            return java.security.MessageDigest.isEqual(
+            return MessageDigest.isEqual(
                     hash, pbkdf2(password.toCharArray(), salt, iterations));
         } catch (IllegalArgumentException malformed) {
             return false;
@@ -59,9 +64,13 @@ public class PasswordHasher {
 
     /** True when the stored hash was produced with fewer iterations than the current setting. */
     public boolean needsRehash(String storedHash) {
-        if (storedHash == null) return false;
+        if (storedHash == null) {
+            return false;
+        }
         String[] parts = storedHash.split(":");
-        if (parts.length == 2) return true;
+        if (parts.length == 2) {
+            return true;
+        }
         try {
             return parts.length == 4
                     && PREFIX.equals(parts[0])

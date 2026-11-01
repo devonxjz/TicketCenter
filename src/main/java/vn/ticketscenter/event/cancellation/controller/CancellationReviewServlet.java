@@ -1,17 +1,20 @@
 package vn.ticketscenter.event.cancellation.controller;
 
+import vn.ticketscenter.event.cancellation.dto.CancellationProgressDto;
+import vn.ticketscenter.identity.security.UserPrincipal;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.UUID;
+import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.config.persistence.PersistenceListener;
 import vn.ticketscenter.config.persistence.PersistenceRegistry;
 import vn.ticketscenter.config.web.HttpResponses;
-import vn.ticketscenter.event.cancellation.service.CancellationProgressCacheHelper;
-import vn.ticketscenter.event.cancellation.service.CancellationReviewRepository;
-import vn.ticketscenter.event.cancellation.service.CancellationReviewService;
+import vn.ticketscenter.event.cancellation.cache.CancellationProgressCache;
+import vn.ticketscenter.event.cancellation.dao.CancellationReviewRepository;
+import vn.ticketscenter.event.cancellation.service.CancellationReviewServiceImpl;
 import vn.ticketscenter.event.dao.EventCancellationRepository;
 import vn.ticketscenter.fulfillment.refund.service.RefundException;
 import vn.ticketscenter.identity.security.SecurityContext;
@@ -38,33 +41,35 @@ public final class CancellationReviewServlet extends HttpServlet {
         response.setHeader("Cache-Control", "no-store");
         try {
             String[] path =
-                    request.getRequestURI()
-                            .substring(request.getContextPath().length())
+                    ApiRequest.path(request)
                             .split("/", -1);
             boolean admin = path.length == 6 && path[2].equals("admin") && path[3].equals("events");
             boolean manager = path.length == 5 && path[2].equals("events");
-            if (!admin && !manager)
+            if (!admin && !manager) {
                 throw new RefundException(404, "ROUTE_NOT_FOUND", "Đường dẫn không tồn tại.");
+            }
 
-            var actor =
+            UserPrincipal actor =
                     SecurityContext.getCurrentUser(request)
                             .orElseThrow(
                                     () ->
                                             new RefundException(
                                                     401, "AUTH_REQUIRED", "Cần đăng nhập."));
-            if (admin && !actor.isAdmin())
+            if (admin && !actor.isAdmin()) {
                 throw new RefundException(403, "ADMIN_REQUIRED", "Cần quyền quản trị viên.");
+            }
 
             String endpoint = path[path.length - 1];
             String action = action(request.getMethod(), endpoint);
-            var eventId = EventCancellationWeb.id(path[admin ? 4 : 3]);
+            UUID eventId = EventCancellationWeb.id(path[admin ? 4 : 3]);
             UUID key = null;
             String reason = null;
             if (!action.equals("READ")) {
                 key = EventCancellationWeb.mutation(request);
                 if (action.equals("APPROVE")) {
-                    if (!EventCancellationWeb.readBody(request).strip().equals("{}"))
+                    if (!EventCancellationWeb.readBody(request).strip().equals("{}")) {
                         throw EventCancellationWeb.invalid();
+                    }
                 } else {
                     reason = EventCancellationWeb.body(request).reason();
                 }
@@ -77,13 +82,13 @@ public final class CancellationReviewServlet extends HttpServlet {
                 throw new RefundException(
                         503, "DATABASE_UNAVAILABLE", "Hệ thống hủy chưa sẵn sàng.");
             }
-            var cache = new CancellationProgressCacheHelper();
+            var cache = new CancellationProgressCache();
             var service =
-                    new CancellationReviewService(
+                    new CancellationReviewServiceImpl(
                             new CancellationReviewRepository(registry.transactionManager()),
                             id -> {
                                 // The service invokes this after approval commits.
-                                var projection =
+                                CancellationProgressDto projection =
                                         new EventCancellationRepository(
                                                         registry.transactionManager())
                                                 .progress(actor, id);

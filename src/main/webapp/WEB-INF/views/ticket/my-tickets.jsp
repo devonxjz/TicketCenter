@@ -30,7 +30,7 @@
         <c:choose>
             <c:when test="${empty tickets}">
                 <div class="empty-state">
-                    <i class="fa-regular fa-folder-open text-muted" style="font-size: 64px;"></i>
+                    <i class="fa-regular fa-folder-open text-muted tc-icon-64"></i>
                     <h4 class="fw-bold mt-3">Bạn chưa có vé nào</h4>
                     <p class="text-muted">Các vé bạn mua thành công sẽ xuất hiện tại đây.</p>
                     <a href="${pageContext.request.contextPath}/" class="btn btn-primary px-4 py-2 mt-2">

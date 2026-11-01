@@ -10,6 +10,7 @@ import vn.ticketscenter.fulfillment.checkin.integration.ScanFixture;
 import vn.ticketscenter.fulfillment.refund.dto.AdminRefundDecisionRequestDto;
 import vn.ticketscenter.fulfillment.refund.dao.AdminRefundRepository;
 import vn.ticketscenter.fulfillment.refund.service.AdminRefundDecisionService;
+import vn.ticketscenter.fulfillment.refund.service.AdminRefundDecisionServiceImpl;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.payment.dao.PaymentRepository;
@@ -71,7 +72,7 @@ class RefundEventSqlIntegrationTest {
         UUID refund=UUID.fromString(ScanFixture.scalar("SELECT CONVERT(varchar(36),id) FROM dbo.tc_refund_obligations WHERE order_id=? AND purpose='CUSTOMER_REFUND'",order.orderId()));
         int adminVersion=Integer.parseInt(ScanFixture.scalar("SELECT auth_version FROM dbo.tc_users WHERE id=?",administrator));
         var admin=new UserPrincipal(administrator,PlatformRole.ADMIN,adminVersion);
-        var decisions=new AdminRefundDecisionService(new AdminRefundRepository(PaymentCrossDomainSqlTest.source("admin",administrator)),(a,k,r)->{});
+        var decisions=new AdminRefundDecisionServiceImpl(new AdminRefundRepository(PaymentCrossDomainSqlTest.source("admin",administrator)),(a,k,r)->{});
         var request=new AdminRefundDecisionRequestDto("APPROVE","Verified combined purchase",null);
         UUID key=UUID.randomUUID();
         var approved=decisions.decide(admin,refund,request,key);

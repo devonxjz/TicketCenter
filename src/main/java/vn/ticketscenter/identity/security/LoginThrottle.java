@@ -1,6 +1,8 @@
 package vn.ticketscenter.identity.security;
 
-import vn.ticketscenter.config.IdentityConfig;
+import jakarta.servlet.ServletContext;
+import vn.ticketscenter.config.identity.IdentityConfig;
+import vn.ticketscenter.config.persistence.FeatureContext;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -20,6 +22,11 @@ public final class LoginThrottle {
     private final Duration window;
     private final Clock clock;
 
+    /** The throttle every login request on this node shares, kept in the servlet context. */
+    public static LoginThrottle from(ServletContext context) {
+        return FeatureContext.cached(context, LoginThrottle.class.getName(), LoginThrottle::new);
+    }
+
     public LoginThrottle() {
         this(
                 IdentityConfig.getLoginMaxFailures(),
@@ -36,7 +43,9 @@ public final class LoginThrottle {
     /** @return seconds the caller must wait, or 0 when a login attempt is allowed */
     public long retryAfterSeconds(String identifier, String client) {
         Entry entry = entries.get(key(identifier, client));
-        if (entry == null) return 0;
+        if (entry == null) {
+            return 0;
+        }
         Instant unlock = entry.windowStart().plus(window);
         if (!clock.instant().isBefore(unlock)) {
             entries.remove(key(identifier, client), entry);

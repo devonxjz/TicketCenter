@@ -1,5 +1,7 @@
 package vn.ticketscenter.fulfillment.checkin.controller;
 
+import java.util.UUID;
+import vn.ticketscenter.fulfillment.checkin.service.CheckInRuntime;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,27 +17,16 @@ import java.util.stream.Collectors;
 @WebServlet(name = "EventCheckInLogsServlet", urlPatterns = "/api/check-ins/recent-internal")
 public class EventCheckInLogsServlet extends HttpServlet {
     public static final String EVENT_ATTRIBUTE = EventCheckInLogsServlet.class.getName() + ".event";
-    private final TicketCheckInService injected;
-
-    public EventCheckInLogsServlet() {
-        this(null);
-    }
-
-    public EventCheckInLogsServlet(TicketCheckInService service) {
-        injected = service;
-    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         try {
-            var actor = CheckInWeb.actor(request);
-            var event = CheckInWeb.id((String) request.getAttribute(EVENT_ATTRIBUTE));
+            UUID actor = CheckInWeb.actor(request);
+            UUID event = CheckInWeb.id((String) request.getAttribute(EVENT_ATTRIBUTE));
             int limit = pageSize(request.getParameter("pageSize"));
-            var service =
-                    injected == null
-                            ? CheckInRuntime.resolveScanner(request.getServletContext())
-                            : injected;
+            TicketCheckInService service =
+                    CheckInRuntime.resolveScanner(getServletContext());
             String logs =
                     service.recent(actor, event, limit).stream()
                             .map(RecentCheckInLogDto::toJson)
@@ -47,7 +38,9 @@ public class EventCheckInLogsServlet extends HttpServlet {
     }
 
     private static int pageSize(String value) {
-        if (value == null) return 20;
+        if (value == null) {
+            return 20;
+        }
         try {
             return Integer.parseInt(value);
         } catch (NumberFormatException exception) {

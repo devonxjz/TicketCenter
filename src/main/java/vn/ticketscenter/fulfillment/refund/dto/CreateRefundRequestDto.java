@@ -11,10 +11,13 @@ public record CreateRefundRequestDto(UUID orderId, List<UUID> ticketIds, String 
                 || ticketIds.size() > 8
                 || ticketIds.stream().anyMatch(Objects::isNull)
                 || new HashSet<>(ticketIds).size() != ticketIds.size()
-                || reason == null) throw RefundException.invalid();
-        reason = reason.strip();
-        if (reason.codePointCount(0, reason.length()) < 10 || reason.length() > 500)
+                || reason == null) {
             throw RefundException.invalid();
+        }
+        reason = reason.strip();
+        if (reason.codePointCount(0, reason.length()) < 10 || reason.length() > 500) {
+            throw RefundException.invalid();
+        }
         ticketIds = ticketIds.stream().sorted(Comparator.comparing(UUID::toString)).toList();
     }
 }

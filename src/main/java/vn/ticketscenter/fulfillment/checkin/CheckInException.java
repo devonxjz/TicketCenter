@@ -8,8 +8,4 @@ public final class CheckInException extends AppException {
     public CheckInException(int httpStatus, String code, String message) {
         super(httpStatus, code, message);
     }
-
-    public int httpStatus() {
-        return status();
-    }
 }

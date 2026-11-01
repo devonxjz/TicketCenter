@@ -22,7 +22,7 @@ class TicketCheckInServiceTest {
             return new CheckInScanResponseDto(state,TICKET,"TEST-CODE",name,"Khu A","A1",Instant.EPOCH,Instant.EPOCH,ORG);
         }};
     private final CheckInScanCache cache=new CheckInScanCache(){public Lease lock(UUID id){return ()->closed++;}public void completed(UUID a,UUID k,CheckInScanResponseDto r){cached++;}};
-    private final TicketCheckInService service=new TicketCheckInService(repository,new SignedQrDecoder(SECRET),cache);
+    private final TicketCheckInService service=new TicketCheckInServiceImpl(repository,new SignedQrDecoder(SECRET),cache);
     @Test void authenticQrUsesUuidAndNameOnlyForDisplay()throws Exception{
         assertTrue(service.scan(ACTOR,KEY,new CheckInScanRequestDto(EVENT,qr(),null)).success());assertEquals(TICKET,found);assertEquals("Tên QR",welcome);assertFalse(invalid);assertEquals(1,cached);assertEquals(1,closed);
     }

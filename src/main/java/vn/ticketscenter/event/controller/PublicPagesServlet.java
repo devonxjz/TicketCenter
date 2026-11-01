@@ -5,12 +5,12 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import vn.ticketscenter.config.web.ApiRequest;
+import vn.ticketscenter.identity.security.LoginRedirect;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
 
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.Set;
 
@@ -41,21 +41,14 @@ public class PublicPagesServlet extends HttpServlet {
                     "/organizer/request");
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        String path = req.getRequestURI().substring(req.getContextPath().length());
+        String path = ApiRequest.path(request);
 
         if (AUTH_REQUIRED_PAGES.contains(path)) {
-            Optional<UserPrincipal> user = SecurityContext.getCurrentUser(req);
+            Optional<UserPrincipal> user = SecurityContext.getCurrentUser(request);
             if (user.isEmpty()) {
-                String targetUri = req.getRequestURI();
-                if (req.getQueryString() != null && !req.getQueryString().isBlank()) {
-                    targetUri += "?" + req.getQueryString();
-                }
-                resp.sendRedirect(
-                        req.getContextPath()
-                                + "/auth/login?redirect="
-                                + URLEncoder.encode(targetUri, StandardCharsets.UTF_8));
+                LoginRedirect.send(request, response);
                 return;
             }
         }
@@ -70,8 +63,11 @@ public class PublicPagesServlet extends HttpServlet {
                     default -> null;
                 };
         if (redirect != null) {
-            resp.sendRedirect(req.getContextPath() + redirect);
+            response.sendRedirect(request.getContextPath() + redirect);
             return;
+        }
+        if (path.equals("/checkout") || path.equals("/profile")) {
+            response.setHeader("Cache-Control", "no-store");
         }
         String view =
                 switch (path) {
@@ -81,6 +77,6 @@ public class PublicPagesServlet extends HttpServlet {
                             "/WEB-INF/views/public/organizer-request.jsp";
                     default -> "/WEB-INF/views/public/index.jsp";
                 };
-        req.getRequestDispatcher(view).forward(req, resp);
+        request.getRequestDispatcher(view).forward(request, response);
     }
 }

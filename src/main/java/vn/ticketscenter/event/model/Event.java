@@ -1,5 +1,6 @@
 package vn.ticketscenter.event.model;
 
+import java.time.Duration;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -123,9 +124,9 @@ public class Event {
         this.startTime = startTime;
         this.endTime = endTime;
         this.saleStart =
-                (startTime != null) ? startTime.minus(java.time.Duration.ofDays(7)) : Instant.now();
+                (startTime != null) ? startTime.minus(Duration.ofDays(7)) : Instant.now();
         this.saleEnd =
-                (startTime != null) ? startTime : Instant.now().plus(java.time.Duration.ofDays(1));
+                (startTime != null) ? startTime : Instant.now().plus(Duration.ofDays(1));
     }
 
     public UUID getId() {
@@ -138,14 +139,6 @@ public class Event {
 
     public UUID getCategoryId() {
         return categoryId;
-    }
-
-    public void setCategoryId(UUID categoryId) {
-        this.categoryId = categoryId;
-    }
-
-    public void setCommissionRule(CommissionRule rule) {
-        this.commissionRule = rule;
     }
 
     public Instant getCreatedAt() {

@@ -1,5 +1,9 @@
 package vn.ticketscenter.settlement.controller;
 
+import java.util.Map;
+import vn.ticketscenter.identity.security.UserPrincipal;
+import vn.ticketscenter.settlement.service.FinanceException;
+import vn.ticketscenter.settlement.service.FinanceRuntime;
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
@@ -7,8 +11,8 @@ import java.io.IOException;
 import vn.ticketscenter.config.AppConfig;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.identity.security.SecurityContext;
-import vn.ticketscenter.settlement.infrastructure.*;
 import vn.ticketscenter.settlement.dao.FinanceRepository;
+import vn.ticketscenter.settlement.dto.ReadySettlementEventDto;
 
 @WebServlet(
         name = "FinancePageServlet",
@@ -17,19 +21,22 @@ public final class FinancePageServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        var actor = SecurityContext.getCurrentUser(request).orElse(null);
+        UserPrincipal actor = SecurityContext.getCurrentUser(request).orElse(null);
         if (actor == null) {
             response.sendRedirect(request.getContextPath() + "/auth/login");
             return;
         }
         try {
             var repository = new FinanceRepository(FinanceRuntime.database(getServletContext()));
-            var options =
+            Map<String, Object> options =
                     repository.options(actor, request.getServletPath().endsWith("settlements"));
             request.setAttribute("organizations", options.get("organizations"));
             request.setAttribute("events", options.get("events"));
-            if (request.getServletPath().endsWith("settlements"))
-                request.setAttribute("readyEvents", repository.readySettlementEvents(actor));
+            if (request.getServletPath().endsWith("settlements")) {
+                request.setAttribute(
+                        "readyEvents",
+                        ReadySettlementEventDto.fromRows(repository.readySettlementEvents(actor)));
+            }
             request.setAttribute("csrf", SecurityContext.getOrCreateCsrfToken(request));
             request.setAttribute("payoutMode", AppConfig.get("payout.adapter", "unavailable"));
             response.setHeader("Cache-Control", "no-store");

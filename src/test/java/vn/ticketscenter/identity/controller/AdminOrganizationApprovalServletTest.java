@@ -1,5 +1,6 @@
 package vn.ticketscenter.identity.controller;
 
+import vn.ticketscenter.config.web.TestServlets;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -17,6 +18,7 @@ import vn.ticketscenter.identity.dao.UserRepository;
 import vn.ticketscenter.identity.security.SecurityContext;
 import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.identity.service.OrganizationApprovalService;
+import vn.ticketscenter.identity.service.OrganizationApprovalServiceImpl;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -49,7 +51,7 @@ public class AdminOrganizationApprovalServletTest {
     }
 
     private OrganizationApprovalService createDummyService() {
-        return new OrganizationApprovalService(
+        return new OrganizationApprovalServiceImpl(
                 new TransactionManager(Map.of()),
                 new OrganizationRepository(),
                 new UserRepository()
@@ -135,7 +137,7 @@ public class AdminOrganizationApprovalServletTest {
     @Test
     @DisplayName("GET /api/admin/organization-requests returns 401 when unauthenticated")
     void testGetRequestsUnauthenticated() throws IOException {
-        AdminOrganizationApprovalServlet servlet = new AdminOrganizationApprovalServlet(createDummyService());
+        AdminOrganizationApprovalServlet servlet = TestServlets.init(new AdminOrganizationApprovalServlet(), createDummyService());
         HttpServletRequest req = createMockRequest("GET", "/api/admin/organization-requests", false, null);
         HttpServletResponse resp = createMockResponse();
 
@@ -151,7 +153,7 @@ public class AdminOrganizationApprovalServletTest {
         UUID customerId = UUID.randomUUID();
         sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, new UserPrincipal(customerId, PlatformRole.CUSTOMER, 1));
 
-        AdminOrganizationApprovalServlet servlet = new AdminOrganizationApprovalServlet(createDummyService());
+        AdminOrganizationApprovalServlet servlet = TestServlets.init(new AdminOrganizationApprovalServlet(), createDummyService());
         HttpServletRequest req = createMockRequest("GET", "/api/admin/organization-requests", true, null);
         HttpServletResponse resp = createMockResponse();
 
@@ -172,7 +174,7 @@ public class AdminOrganizationApprovalServletTest {
                 orgId, "Test Org", "contact@test.vn", OrganizationStatus.PENDING_APPROVAL, Instant.now(), null, "contact@test.vn"
         );
 
-        OrganizationApprovalService mockService = new OrganizationApprovalService(
+        OrganizationApprovalService mockService = new OrganizationApprovalServiceImpl(
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
             @Override
             public List<OrganizationRequestSummaryDto> listRequests(UUID aid, OrganizationStatus status, int page, int pageSize) {
@@ -189,7 +191,7 @@ public class AdminOrganizationApprovalServletTest {
             }
         };
 
-        AdminOrganizationApprovalServlet servlet = new AdminOrganizationApprovalServlet(mockService);
+        AdminOrganizationApprovalServlet servlet = TestServlets.init(new AdminOrganizationApprovalServlet(), mockService);
         HttpServletRequest req = createMockRequest("GET", "/api/admin/organization-requests", true, null);
         HttpServletResponse resp = createMockResponse();
 
@@ -211,7 +213,7 @@ public class AdminOrganizationApprovalServletTest {
         UUID orgId = UUID.randomUUID();
         sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, new UserPrincipal(customerId, PlatformRole.CUSTOMER, 1));
 
-        AdminOrganizationApprovalServlet servlet = new AdminOrganizationApprovalServlet(createDummyService());
+        AdminOrganizationApprovalServlet servlet = TestServlets.init(new AdminOrganizationApprovalServlet(), createDummyService());
         HttpServletRequest req = createMockRequest("POST", "/api/admin/organization-requests/" + orgId + "/approve", true, "{}");
         HttpServletResponse resp = createMockResponse();
 
@@ -233,7 +235,7 @@ public class AdminOrganizationApprovalServletTest {
                 OrganizationStatus.APPROVED, adminId, Instant.now(), null
         );
 
-        OrganizationApprovalService mockService = new OrganizationApprovalService(
+        OrganizationApprovalService mockService = new OrganizationApprovalServiceImpl(
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
             @Override
             public OrganizationRequestDetailDto approve(UUID aid, UUID oid, Optional<CommissionPolicy> policy) {
@@ -245,7 +247,7 @@ public class AdminOrganizationApprovalServletTest {
             }
         };
 
-        AdminOrganizationApprovalServlet servlet = new AdminOrganizationApprovalServlet(mockService);
+        AdminOrganizationApprovalServlet servlet = TestServlets.init(new AdminOrganizationApprovalServlet(), mockService);
         String body = "{\"ratePercent\":\"5.0\",\"fixedFee\":\"10000\",\"effectiveDate\":\"2026-11-01\"}";
         HttpServletRequest req = createMockRequest("POST", "/api/admin/organization-requests/" + orgId + "/approve", true, body);
         HttpServletResponse resp = createMockResponse();
@@ -265,7 +267,7 @@ public class AdminOrganizationApprovalServletTest {
         UUID orgId = UUID.randomUUID();
         sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, new UserPrincipal(adminId, PlatformRole.ADMIN, 1));
 
-        AdminOrganizationApprovalServlet servlet = new AdminOrganizationApprovalServlet(createDummyService());
+        AdminOrganizationApprovalServlet servlet = TestServlets.init(new AdminOrganizationApprovalServlet(), createDummyService());
         String body = "{\"ratePercent\":\"-5.0\",\"fixedFee\":\"10000\"}";
         HttpServletRequest req = createMockRequest("POST", "/api/admin/organization-requests/" + orgId + "/approve", true, body);
         HttpServletResponse resp = createMockResponse();
@@ -283,7 +285,7 @@ public class AdminOrganizationApprovalServletTest {
         UUID orgId = UUID.randomUUID();
         sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, new UserPrincipal(adminId, PlatformRole.ADMIN, 1));
 
-        OrganizationApprovalService mockService = new OrganizationApprovalService(
+        OrganizationApprovalService mockService = new OrganizationApprovalServiceImpl(
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
             @Override
             public OrganizationRequestDetailDto approve(UUID aid, UUID oid, Optional<CommissionPolicy> policy) {
@@ -291,7 +293,7 @@ public class AdminOrganizationApprovalServletTest {
             }
         };
 
-        AdminOrganizationApprovalServlet servlet = new AdminOrganizationApprovalServlet(mockService);
+        AdminOrganizationApprovalServlet servlet = TestServlets.init(new AdminOrganizationApprovalServlet(), mockService);
         String body = "{\"ratePercent\":\"5.0\",\"fixedFee\":\"10000\"}";
         HttpServletRequest req = createMockRequest("POST", "/api/admin/organization-requests/" + orgId + "/approve", true, body);
         HttpServletResponse resp = createMockResponse();
@@ -314,7 +316,7 @@ public class AdminOrganizationApprovalServletTest {
                 OrganizationStatus.REJECTED, adminId, Instant.now(), "Hồ sơ không đáp ứng điều kiện quy định"
         );
 
-        OrganizationApprovalService mockService = new OrganizationApprovalService(
+        OrganizationApprovalService mockService = new OrganizationApprovalServiceImpl(
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
             @Override
             public OrganizationRequestDetailDto reject(UUID aid, UUID oid, String reason) {
@@ -325,7 +327,7 @@ public class AdminOrganizationApprovalServletTest {
             }
         };
 
-        AdminOrganizationApprovalServlet servlet = new AdminOrganizationApprovalServlet(mockService);
+        AdminOrganizationApprovalServlet servlet = TestServlets.init(new AdminOrganizationApprovalServlet(), mockService);
         String body = "{\"reason\":\"Hồ sơ không đáp ứng điều kiện quy định\"}";
         HttpServletRequest req = createMockRequest("POST", "/api/admin/organization-requests/" + orgId + "/reject", true, body);
         HttpServletResponse resp = createMockResponse();
@@ -345,7 +347,7 @@ public class AdminOrganizationApprovalServletTest {
         UUID orgId = UUID.randomUUID();
         sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, new UserPrincipal(adminId, PlatformRole.ADMIN, 1));
 
-        AdminOrganizationApprovalServlet servlet = new AdminOrganizationApprovalServlet(createDummyService());
+        AdminOrganizationApprovalServlet servlet = TestServlets.init(new AdminOrganizationApprovalServlet(), createDummyService());
         String body = "{\"reason\":\"Quá ngắn\"}";
         HttpServletRequest req = createMockRequest("POST", "/api/admin/organization-requests/" + orgId + "/reject", true, body);
         HttpServletResponse resp = createMockResponse();
@@ -363,7 +365,7 @@ public class AdminOrganizationApprovalServletTest {
         UUID orgId = UUID.randomUUID();
         sessionAttributes.put(SecurityContext.SESSION_USER_ATTRIBUTE, new UserPrincipal(adminId, PlatformRole.ADMIN, 1));
 
-        OrganizationApprovalService mockService = new OrganizationApprovalService(
+        OrganizationApprovalService mockService = new OrganizationApprovalServiceImpl(
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
             @Override
             public OrganizationRequestDetailDto reject(UUID aid, UUID oid, String reason) {
@@ -371,7 +373,7 @@ public class AdminOrganizationApprovalServletTest {
             }
         };
 
-        AdminOrganizationApprovalServlet servlet = new AdminOrganizationApprovalServlet(mockService);
+        AdminOrganizationApprovalServlet servlet = TestServlets.init(new AdminOrganizationApprovalServlet(), mockService);
         String body = "{\"reason\":\"Lý do từ chối hợp lệ nhưng hồ sơ đã xử lý\"}";
         HttpServletRequest req = createMockRequest("POST", "/api/admin/organization-requests/" + orgId + "/reject", true, body);
         HttpServletResponse resp = createMockResponse();
@@ -394,7 +396,7 @@ public class AdminOrganizationApprovalServletTest {
                 OrganizationStatus.PENDING_APPROVAL, adminId, Instant.now(), null
         );
 
-        OrganizationApprovalService mockService = new OrganizationApprovalService(
+        OrganizationApprovalService mockService = new OrganizationApprovalServiceImpl(
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
             @Override
             public OrganizationRequestDetailDto getRequestDetail(UUID aid, UUID oid) {
@@ -404,7 +406,7 @@ public class AdminOrganizationApprovalServletTest {
             }
         };
 
-        AdminOrganizationApprovalServlet servlet = new AdminOrganizationApprovalServlet(mockService);
+        AdminOrganizationApprovalServlet servlet = TestServlets.init(new AdminOrganizationApprovalServlet(), mockService);
         HttpServletRequest req = createMockRequest("GET", "/api/admin/organization-requests/" + orgId, true, null);
         HttpServletResponse resp = createMockResponse();
 
@@ -429,7 +431,7 @@ public class AdminOrganizationApprovalServletTest {
                 OrganizationStatus.APPROVED, adminId, Instant.now(), null, ruleId
         );
 
-        OrganizationApprovalService mockService = new OrganizationApprovalService(
+        OrganizationApprovalService mockService = new OrganizationApprovalServiceImpl(
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
             @Override
             public OrganizationRequestDetailDto approve(UUID aid, UUID oid, Optional<CommissionPolicy> policy) {
@@ -444,7 +446,7 @@ public class AdminOrganizationApprovalServletTest {
             }
         };
 
-        AdminOrganizationApprovalServlet servlet = new AdminOrganizationApprovalServlet(mockService);
+        AdminOrganizationApprovalServlet servlet = TestServlets.init(new AdminOrganizationApprovalServlet(), mockService);
         String body = "{\"initialPolicy\":{\"ratePercent\":\"7.5\",\"fixedFee\":\"15000\",\"effectiveFrom\":\"2026-11-01\",\"effectiveTo\":\"2027-11-01\"}}";
         HttpServletRequest req = createMockRequest("POST", "/api/admin/organization-requests/" + orgId + "/approve", true, body);
         HttpServletResponse resp = createMockResponse();
@@ -468,7 +470,7 @@ public class AdminOrganizationApprovalServletTest {
     @Test
     @DisplayName("POST approve returns 401 when unauthenticated")
     void testPostApproveUnauthenticated() throws IOException {
-        AdminOrganizationApprovalServlet servlet = new AdminOrganizationApprovalServlet(createDummyService());
+        AdminOrganizationApprovalServlet servlet = TestServlets.init(new AdminOrganizationApprovalServlet(), createDummyService());
         HttpServletRequest req = createMockRequest(
                 "POST", "/api/admin/organization-requests/" + UUID.randomUUID() + "/approve", false, null);
         HttpServletResponse resp = createMockResponse();
@@ -483,7 +485,7 @@ public class AdminOrganizationApprovalServletTest {
     @DisplayName("POST approve returns 400 VALIDATION_ERROR for an invalid organization id")
     void testPostApproveInvalidUuid() throws IOException {
         signInAs(PlatformRole.ADMIN);
-        AdminOrganizationApprovalServlet servlet = new AdminOrganizationApprovalServlet(createDummyService());
+        AdminOrganizationApprovalServlet servlet = TestServlets.init(new AdminOrganizationApprovalServlet(), createDummyService());
         HttpServletRequest req = createMockRequest(
                 "POST", "/api/admin/organization-requests/invalid-uuid/approve", true, null);
         HttpServletResponse resp = createMockResponse();
@@ -498,14 +500,14 @@ public class AdminOrganizationApprovalServletTest {
     @DisplayName("POST approve returns 404 ORGANIZATION_NOT_FOUND when the request does not exist")
     void testPostApproveNotFound() throws IOException {
         signInAs(PlatformRole.ADMIN);
-        OrganizationApprovalService missing = new OrganizationApprovalService(
+        OrganizationApprovalService missing = new OrganizationApprovalServiceImpl(
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
             @Override
             public OrganizationRequestDetailDto approve(UUID aid, UUID oid, Optional<CommissionPolicy> policy) {
                 throw new NoSuchElementException("ORGANIZATION_NOT_FOUND: Không tìm thấy hồ sơ yêu cầu");
             }
         };
-        AdminOrganizationApprovalServlet servlet = new AdminOrganizationApprovalServlet(missing);
+        AdminOrganizationApprovalServlet servlet = TestServlets.init(new AdminOrganizationApprovalServlet(), missing);
         HttpServletRequest req = createMockRequest(
                 "POST", "/api/admin/organization-requests/" + UUID.randomUUID() + "/approve", true, null);
         HttpServletResponse resp = createMockResponse();
@@ -523,7 +525,7 @@ public class AdminOrganizationApprovalServletTest {
         UUID orgId = UUID.randomUUID();
         OrganizationRequestDetailDto detail = new OrganizationRequestDetailDto(
                 orgId, "Org", "org@test.vn", null, null, OrganizationStatus.APPROVED, adminId, Instant.now(), null);
-        OrganizationApprovalService service = new OrganizationApprovalService(
+        OrganizationApprovalService service = new OrganizationApprovalServiceImpl(
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
             @Override
             public OrganizationRequestDetailDto approve(UUID aid, UUID oid, Optional<CommissionPolicy> policy) {
@@ -535,7 +537,7 @@ public class AdminOrganizationApprovalServletTest {
                 return detail;
             }
         };
-        AdminOrganizationApprovalServlet servlet = new AdminOrganizationApprovalServlet(service);
+        AdminOrganizationApprovalServlet servlet = TestServlets.init(new AdminOrganizationApprovalServlet(), service);
         HttpServletRequest req = createMockRequest(
                 "POST", "/api/admin/organization-requests/" + orgId + "/approve", true, null);
         HttpServletResponse resp = createMockResponse();
@@ -550,7 +552,7 @@ public class AdminOrganizationApprovalServletTest {
     @DisplayName("GET /pending lists only PENDING_APPROVAL requests")
     void testGetPendingFiltersByPendingStatus() throws IOException {
         signInAs(PlatformRole.ADMIN);
-        OrganizationApprovalService service = new OrganizationApprovalService(
+        OrganizationApprovalService service = new OrganizationApprovalServiceImpl(
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
             @Override
             public List<OrganizationRequestSummaryDto> listRequests(UUID aid, OrganizationStatus status,
@@ -565,7 +567,7 @@ public class AdminOrganizationApprovalServletTest {
                 return 0L;
             }
         };
-        AdminOrganizationApprovalServlet servlet = new AdminOrganizationApprovalServlet(service);
+        AdminOrganizationApprovalServlet servlet = TestServlets.init(new AdminOrganizationApprovalServlet(), service);
         HttpServletRequest req = createMockRequest("GET", "/api/admin/organization-requests/pending", true, null);
         HttpServletResponse resp = createMockResponse();
 
@@ -579,14 +581,14 @@ public class AdminOrganizationApprovalServletTest {
     @DisplayName("GET detail returns 404 for a missing request and 400 for a malformed id")
     void testGetDetailNotFoundAndInvalidId() throws IOException {
         signInAs(PlatformRole.ADMIN);
-        OrganizationApprovalService service = new OrganizationApprovalService(
+        OrganizationApprovalService service = new OrganizationApprovalServiceImpl(
                 new TransactionManager(Map.of()), new OrganizationRepository(), new UserRepository()) {
             @Override
             public OrganizationRequestDetailDto getRequestDetail(UUID aid, UUID oid) {
                 throw new NoSuchElementException("ORGANIZATION_NOT_FOUND: Không tìm thấy hồ sơ yêu cầu");
             }
         };
-        AdminOrganizationApprovalServlet servlet = new AdminOrganizationApprovalServlet(service);
+        AdminOrganizationApprovalServlet servlet = TestServlets.init(new AdminOrganizationApprovalServlet(), service);
 
         servlet.doGet(createMockRequest("GET", "/api/admin/organization-requests/" + UUID.randomUUID(), true, null),
                 createMockResponse());
@@ -601,7 +603,7 @@ public class AdminOrganizationApprovalServletTest {
     @DisplayName("Unknown admin paths return 404 NOT_FOUND")
     void testUnknownPathIsNotFound() throws IOException {
         signInAs(PlatformRole.ADMIN);
-        AdminOrganizationApprovalServlet servlet = new AdminOrganizationApprovalServlet(createDummyService());
+        AdminOrganizationApprovalServlet servlet = TestServlets.init(new AdminOrganizationApprovalServlet(), createDummyService());
 
         servlet.doGet(createMockRequest("GET", "/api/admin/organization-requests/x/y/z", true, null),
                 createMockResponse());

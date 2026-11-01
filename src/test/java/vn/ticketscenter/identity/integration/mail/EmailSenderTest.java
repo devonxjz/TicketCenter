@@ -50,13 +50,13 @@ public class EmailSenderTest {
     }
 
     @Test
-    @DisplayName("SmtpEmailSender dựng multipart/alternative base64 khi có cả text và html")
+    @DisplayName("EmailSenderImpl dựng multipart/alternative base64 khi có cả text và html")
     void smtpEmailSenderShouldBuildMultipartAlternative() {
         String html = OtpEmailTemplate.render("Xác minh địa chỉ email", "<b>Thái</b>", "xác minh email", "123456", 5);
         assertTrue(html.contains("123456"));
         assertTrue(html.contains("&lt;b&gt;Thái&lt;/b&gt;"), "Tên người dùng phải được escape HTML");
 
-        String mime = SmtpEmailSender.buildMimeMessage("sender@fixture.invalid",
+        String mime = EmailSenderImpl.buildMimeMessage("sender@fixture.invalid",
                 new EmailMessage("user@test.com", "Tiêu đề", "Mã: 123456\n.\nHết", html));
 
         assertTrue(mime.contains("Content-Type: multipart/alternative; boundary="));
@@ -68,16 +68,16 @@ public class EmailSenderTest {
             assertFalse(line.contains("\n"), "Không được có LF trần");
         }
 
-        String plainOnly = SmtpEmailSender.buildMimeMessage("sender@fixture.invalid",
+        String plainOnly = EmailSenderImpl.buildMimeMessage("sender@fixture.invalid",
                 new EmailMessage("user@test.com", "Tiêu đề", "Mã: 123456", null));
         assertFalse(plainOnly.contains("multipart/alternative"));
         assertTrue(plainOnly.contains("Content-Type: text/plain; charset=UTF-8"));
     }
 
     @Test
-    @DisplayName("SmtpEmailSender gửi email thật qua Gmail SMTP")
+    @DisplayName("EmailSenderImpl gửi email thật qua Gmail SMTP")
     void smtpEmailSenderShouldSendRealEmail() {
-        SmtpEmailSender sender = new SmtpEmailSender();
+        EmailSenderImpl sender = new EmailSenderImpl();
         EmailMessage message = new EmailMessage(
                 "recipient@fixture.invalid",
                 "[TicketsCenter] Kiểm tra mã OTP thực tế",

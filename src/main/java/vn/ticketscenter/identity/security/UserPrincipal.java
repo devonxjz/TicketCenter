@@ -8,10 +8,10 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Hợp đồng người dùng hiện tại (Current User Contract).
- * Được lưu trong phiên (HttpSession) và gắn vào HttpServletRequest attribute
- * để các feature khác (Order, Event, Refund, Ticketing, v.v.) kiểm tra quyền
- * mà không tự đọc session theo nhiều cách khác nhau.
+ * The current user.
+ * Kept in the HttpSession and set as an HttpServletRequest attribute
+ * so other features (order, event, refund, ticketing, ...) check access
+ * without each reading the session its own way.
  */
 public record UserPrincipal(
         UUID actorId,

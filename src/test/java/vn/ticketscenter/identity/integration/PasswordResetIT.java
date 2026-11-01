@@ -7,7 +7,7 @@ import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.PersistenceRegistry;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.identity.dto.OtpSendRequestDto;
-import vn.ticketscenter.identity.integration.mail.SmtpEmailSender;
+import vn.ticketscenter.identity.integration.mail.EmailSenderImpl;
 import vn.ticketscenter.identity.model.Otp;
 import vn.ticketscenter.identity.model.OtpPurpose;
 import vn.ticketscenter.identity.model.User;
@@ -15,6 +15,7 @@ import vn.ticketscenter.identity.dao.OtpRepository;
 import vn.ticketscenter.identity.dao.UserRepository;
 import vn.ticketscenter.identity.service.OtpHasher;
 import vn.ticketscenter.identity.service.OtpService;
+import vn.ticketscenter.identity.service.OtpServiceImpl;
 import vn.ticketscenter.identity.service.PasswordHasher;
 import vn.ticketscenter.identity.service.ResetTokenCodec;
 
@@ -38,18 +39,17 @@ public class PasswordResetIT {
             OtpRepository otpRepository = new OtpRepository();
             OtpHasher otpHasher = new OtpHasher();
             ResetTokenCodec resetTokens = new ResetTokenCodec();
-            SmtpEmailSender smtpEmailSender = new SmtpEmailSender();
+            EmailSenderImpl smtpEmailSender = new EmailSenderImpl();
 
-            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpHasher, resetTokens, smtpEmailSender);
+            OtpService otpService = new OtpServiceImpl(tm, otpRepository, userRepository, otpHasher, resetTokens, smtpEmailSender);
 
             String targetEmail = "recipient@fixture.invalid";
 
             // Đảm bảo user tồn tại trong hệ thống
             tm.execute(DatabasePrincipal.AUTH, em -> {
                 if (userRepository.findByNormalizedEmail(em, targetEmail).isEmpty()) {
-                    User user = new User(targetEmail, "devonxjz", "Trần Lê Thái",
-                            new PasswordHasher().hash("SecureTestPass123!"));
-                    userRepository.save(em, user);
+                    User user = userRepository.findById(em, userRepository.register(em, targetEmail, "devonxjz", "Trần Lê Thái",
+                            new PasswordHasher().hash("SecureTestPass123!"))).orElseThrow();
                 }
                 // Xóa các OTP cũ của email test để reset cooldown và làm sạch trạng thái
                 em.createQuery("DELETE FROM Otp o WHERE LOWER(o.emailNormalized) = :email")

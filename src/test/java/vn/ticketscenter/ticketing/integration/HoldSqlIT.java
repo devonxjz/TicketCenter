@@ -135,7 +135,7 @@ class HoldSqlIT {
         assertTrue(replay.replayed());
         assertEquals(2, f.count("SELECT held_quantity FROM dbo.tc_zones WHERE id=?", f.inventory.standing()));
         assertEquals(1, f.count("SELECT COUNT(*) FROM dbo.tc_request_idempotency WHERE actor_id=?", f.actor.id()));
-        HoldService withoutRedis = new HoldService(f.repository,
+        HoldService withoutRedis = new HoldServiceImpl(f.repository,
                 new RedisActiveHoldCache(() -> { throw new IllegalStateException("offline"); }, Clock.systemUTC()),
                 new RedisHoldIdempotency(() -> { throw new IllegalStateException("offline"); }));
         assertEquals(first.body(), withoutRedis.mutate(f.actor, command).body());

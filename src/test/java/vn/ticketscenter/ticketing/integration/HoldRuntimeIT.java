@@ -1,5 +1,6 @@
 package vn.ticketscenter.ticketing.integration;
 
+import vn.ticketscenter.config.persistence.FeatureContext;
 import com.zaxxer.hikari.HikariDataSource;
 import jakarta.servlet.*;
 import org.junit.jupiter.api.Test;
@@ -46,7 +47,7 @@ class HoldRuntimeIT {
                         && System.nanoTime() < deadline) Thread.sleep(50);
                 assertEquals(1, fixture.count("SELECT COUNT(*) FROM dbo.tc_ticket_holds WHERE id=? AND status='RELEASED'", hold));
                 assertInstanceOf(HoldService.class, context.getAttribute(HoldRuntime.SERVICE_ATTRIBUTE));
-                pools = (List<?>) context.getAttribute(HoldRuntime.class.getName() + ".pools");
+                pools = FeatureContext.resources(context, HoldRuntime.SERVICE_ATTRIBUTE);
                 assertEquals(2, pools.size());
             } finally {
                 runtime.contextDestroyed(event);

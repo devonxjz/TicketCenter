@@ -1,12 +1,12 @@
 package vn.ticketscenter.config;
 
 /**
- * Cấu hình môi trường và máy chủ Web (Base URL, Môi trường, Secret Key).
+ * Web server and environment settings (base URL, environment, secret key).
  */
 public final class ServerConfig {
 
     private ServerConfig() {
-        // Utility class không cho phép khởi tạo instance
+        // utility class
     }
 
     public static String getBaseUrl() {
@@ -17,20 +17,8 @@ public final class ServerConfig {
         return AppConfig.get("app.env", "development");
     }
 
-    public static String getSecretKey() {
-        return AppConfig.get("app.secret.key", "");
-    }
-
-    public static boolean isDevelopment() {
-        return "development".equalsIgnoreCase(getEnv());
-    }
-
     public static boolean isProduction() {
         return "production".equalsIgnoreCase(getEnv());
-    }
-
-    public static boolean isTest() {
-        return "test".equalsIgnoreCase(getEnv());
     }
 
     public static boolean isDemoData() {

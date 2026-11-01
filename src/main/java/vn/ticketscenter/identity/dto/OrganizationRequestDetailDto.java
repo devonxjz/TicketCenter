@@ -1,11 +1,15 @@
 package vn.ticketscenter.identity.dto;
 
-import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.identity.model.Organization;
 import vn.ticketscenter.identity.model.OrganizationStatus;
 
 import java.time.Instant;
 import java.util.UUID;
+
+import static vn.ticketscenter.config.web.Json.field;
+import static vn.ticketscenter.config.web.Json.nullableText;
+import static vn.ticketscenter.config.web.Json.object;
+import static vn.ticketscenter.config.web.Json.optional;
 
 public record OrganizationRequestDetailDto(
         UUID organizationId,
@@ -81,9 +85,13 @@ public record OrganizationRequestDetailDto(
     }
 
     public String cleanDescription() {
-        if (description == null) return null;
+        if (description == null) {
+            return null;
+        }
         int idx = description.indexOf("[Event:");
-        if (idx == -1) idx = description.indexOf("[Lịch trình dự kiến]");
+        if (idx == -1) {
+            idx = description.indexOf("[Lịch trình dự kiến]");
+        }
         if (idx != -1) {
             String clean = description.substring(0, idx).trim();
             return clean.isEmpty() ? null : clean;
@@ -92,7 +100,9 @@ public record OrganizationRequestDetailDto(
     }
 
     static String parseTag(String description, String key) {
-        if (description == null) return null;
+        if (description == null) {
+            return null;
+        }
         int start = description.indexOf("[Event: ");
         if (start != -1) {
             int end = description.indexOf("]", start);
@@ -104,7 +114,9 @@ public record OrganizationRequestDetailDto(
             for (String part : parts) {
                 String p = part.trim();
                 if (key.equalsIgnoreCase("Event")) {
-                    if (!p.contains(":")) return p.isEmpty() ? null : p;
+                    if (!p.contains(":")) {
+                        return p.isEmpty() ? null : p;
+                    }
                 } else if (p.toLowerCase().startsWith(key.toLowerCase() + ":")) {
                     return p.substring(key.length() + 1).trim();
                 }
@@ -116,56 +128,37 @@ public record OrganizationRequestDetailDto(
             String[] parts = content.split("\\|");
             for (String part : parts) {
                 String p = part.trim();
-                if (key.equalsIgnoreCase("Event") && p.startsWith("Sự kiện "))
+                if (key.equalsIgnoreCase("Event") && p.startsWith("Sự kiện ")) {
                     return p.substring(8).trim();
-                if (key.equalsIgnoreCase("Date") && p.startsWith("Ngày "))
+                }
+                if (key.equalsIgnoreCase("Date") && p.startsWith("Ngày ")) {
                     return p.substring(5).trim();
-                if (key.equalsIgnoreCase("Venue") && p.startsWith("Địa điểm "))
+                }
+                if (key.equalsIgnoreCase("Venue") && p.startsWith("Địa điểm ")) {
                     return p.substring(9).trim();
+                }
             }
         }
         return null;
     }
 
     public String toJson() {
-        StringBuilder sb = new StringBuilder("{");
-        sb.append("\"organizationId\":")
-                .append(json(organizationId))
-                .append(",\"name\":")
-                .append(json(name))
-                .append(",\"contactEmail\":")
-                .append(json(contactEmail))
-                .append(",\"contactPhone\":")
-                .append(json(contactPhone))
-                .append(",\"description\":")
-                .append(json(description))
-                .append(",\"status\":")
-                .append(json(status))
-                .append(",\"requesterId\":")
-                .append(json(requesterId))
-                .append(",\"submittedAt\":")
-                .append(json(submittedAt))
-                .append(",\"rejectionReason\":")
-                .append(json(rejectionReason));
-        if (commissionRuleId != null) {
-            sb.append(",\"commissionRuleId\":").append(json(commissionRuleId));
-        }
-        appendIfPresent(sb, "eventTitle", eventTitle());
-        appendIfPresent(sb, "eventDate", eventDate());
-        appendIfPresent(sb, "eventStartTime", eventStartTime());
-        appendIfPresent(sb, "eventEndTime", eventEndTime());
-        appendIfPresent(sb, "eventVenue", eventVenue());
-        appendIfPresent(sb, "cleanDescription", cleanDescription());
-        return sb.append("}").toString();
-    }
-
-    private static void appendIfPresent(StringBuilder sb, String field, String value) {
-        if (value != null) {
-            sb.append(",\"").append(field).append("\":").append(HttpResponses.jsonString(value));
-        }
-    }
-
-    private static String json(Object value) {
-        return HttpResponses.jsonString(value == null ? null : value.toString());
+        return object(
+                field("organizationId", nullableText(organizationId)),
+                field("name", nullableText(name)),
+                field("contactEmail", nullableText(contactEmail)),
+                field("contactPhone", nullableText(contactPhone)),
+                field("description", nullableText(description)),
+                field("status", nullableText(status)),
+                field("requesterId", nullableText(requesterId)),
+                field("submittedAt", nullableText(submittedAt)),
+                field("rejectionReason", nullableText(rejectionReason)),
+                optional("commissionRuleId", commissionRuleId),
+                optional("eventTitle", eventTitle()),
+                optional("eventDate", eventDate()),
+                optional("eventStartTime", eventStartTime()),
+                optional("eventEndTime", eventEndTime()),
+                optional("eventVenue", eventVenue()),
+                optional("cleanDescription", cleanDescription()));
     }
 }

@@ -9,10 +9,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Quản lý nạp cấu hình tập trung từ 1 file duy nhất (application.properties / application.properties.example)
- * và tổng hợp toàn bộ các khóa cấu hình (keys) của toàn hệ thống trong một file duy nhất.
+ * Loads the configuration from a single file (application.properties / application.properties.example)
+ * and lists every configuration key of the system in one place.
  *
- * Thứ tự ưu tiên giải quyết giá trị:
+ * A value is resolved in this order:
  * 1. System Properties (-Dkey=value)
  * 2. Environment Variables (VD: TC_SQL_HOST, DB_HOST)
  * 3. File application.properties trong classpath
@@ -26,10 +26,10 @@ public final class AppConfig {
     private static final Properties PROPERTIES = new Properties();
 
     /**
-     * Tập trung toàn bộ key cấu hình của hệ thống vào 1 nơi duy nhất để tiện quản lý và tra cứu.
+     * Every configuration key of the system, kept in one place so it is easy to find.
      */
     public static final class Keys {
-        // 1. Cơ sở dữ liệu Microsoft SQL Server
+        // 1. Microsoft SQL Server database
         public static final String DB_HOST = "db.host";
         public static final String DB_PORT = "db.port";
         public static final String DB_NAME = "db.name";
@@ -38,35 +38,27 @@ public final class AppConfig {
         public static final String DB_ENCRYPT = "db.encrypt";
         public static final String DB_TRUST_CERT = "db.trustServerCertificate";
         public static final String DB_TIMEOUT = "db.loginTimeout";
-        public static final String DB_URL = "db.url";
 
         // Aliases TC_SQL_*
         public static final String TC_SQL_HOST = "TC_SQL_HOST";
         public static final String TC_SQL_PORT = "TC_SQL_PORT";
-        public static final String TC_SQL_DEV_DB = "TC_SQL_DEV_DB";
         public static final String TC_SQL_TEST_DB = "TC_SQL_TEST_DB";
-        public static final String TC_SQL_BENCH_DB = "TC_SQL_BENCH_DB";
         public static final String TC_SQL_LOGIN = "TC_SQL_LOGIN";
         public static final String TC_SQL_PASSWORD = "TC_SQL_PASSWORD";
         public static final String TC_SQL_ENCRYPT = "TC_SQL_ENCRYPT";
         public static final String TC_SQL_TRUST_SERVER_CERT = "TC_SQL_TRUST_SERVER_CERT";
         public static final String TC_SQL_CONNECT_TIMEOUT_SEC = "TC_SQL_CONNECT_TIMEOUT_SEC";
 
-        // 2. Cấu hình Ứng dụng Web
+        // 2. Web application
         public static final String APP_BASE_URL = "app.base.url";
-        public static final String APP_ENV = "app.env";
         public static final String APP_SECRET_KEY = "app.secret.key";
         public static final String EVENT_IMAGE_DIRECTORY = "event.image.directory";
         public static final String REFUND_STATE_DIRECTORY = "refund.simulated.state.directory";
         public static final String REFUND_SIMULATED_OUTCOME = "refund.simulated.outcome";
         public static final String REFUND_TIMEOUT_AFTER_SIDE_EFFECT =
                 "refund.simulated.timeoutAfterSideEffect";
-        public static final String PAYOUT_STATE_DIRECTORY = "payout.simulated.state.directory";
-        public static final String PAYOUT_SIMULATED_OUTCOME = "payout.simulated.outcome";
-        public static final String PAYOUT_TIMEOUT_AFTER_SIDE_EFFECT =
-                "payout.simulated.timeoutAfterSideEffect";
 
-        // 3. Cổng Thanh Toán payOS (biến môi trường tương ứng: PAYOS_CLIENT_ID, PAYOS_API_KEY, ...)
+        // 3. payOS payment gateway (environment variables PAYOS_CLIENT_ID, PAYOS_API_KEY, ...)
         public static final String PAYOS_CLIENT_ID = "payos.client.id";
         public static final String PAYOS_API_KEY = "payos.api.key";
         public static final String PAYOS_CHECKSUM_KEY = "payos.checksum.key";
@@ -74,13 +66,7 @@ public final class AppConfig {
         public static final String PAYOS_CANCEL_URL = "payos.cancel.url";
         public static final String PAYOS_LOG_LEVEL = "payos.log.level";
 
-        // 4. Dịch vụ Gửi Email (SMTP)
-        public static final String MAIL_HOST = "mail.smtp.host";
-        public static final String MAIL_PORT = "mail.smtp.port";
-        public static final String MAIL_USER = "mail.smtp.user";
-        public static final String MAIL_PASSWORD = "mail.smtp.password";
-
-        // 5. Cấu hình Redis (Idempotency & Caching)
+        // 5. Redis (idempotency and caching)
         public static final String REDIS_HOST = "redis.host";
         public static final String REDIS_PORT = "redis.port";
         public static final String REDIS_PASSWORD = "redis.password";
@@ -88,7 +74,7 @@ public final class AppConfig {
         public static final String REDIS_URL = "redis.url";
         public static final String REDIS_CACHE_CATALOG_ENABLED = "redis.cache.catalog.enabled";
 
-        // Identity (OTP, đặt lại mật khẩu, chống dò mật khẩu, cache phiên)
+        // Identity (OTP, password reset, login throttling, session cache)
         public static final String ADMIN_EMAIL = "admin.email";
         public static final String IDENTITY_OTP_EXPIRY_MINUTES = "identity.otp.expiry.minutes";
         public static final String IDENTITY_OTP_COOLDOWN_SECONDS = "identity.otp.cooldown.seconds";
@@ -102,16 +88,8 @@ public final class AppConfig {
         public static final String IDENTITY_SESSION_CACHE_TTL_SECONDS =
                 "identity.session.cache.ttl.seconds";
 
-        // 6. Cấu hình Connection Pool (HikariCP)
-        public static final String HIKARI_MAX_POOL_SIZE = "hikari.maximum-pool-size";
-        public static final String HIKARI_MIN_IDLE = "hikari.minimum-idle";
-        public static final String HIKARI_IDLE_TIMEOUT = "hikari.idle-timeout";
-        public static final String HIKARI_CONNECTION_TIMEOUT = "hikari.connection-timeout";
-        public static final String HIKARI_MAX_LIFETIME = "hikari.max-lifetime";
-        public static final String HIKARI_POOL_BUDGET = "hikari.pool-budget";
-
         private Keys() {
-            // Không cho phép khởi tạo hằng số keys
+            // constants only
         }
     }
 
@@ -120,7 +98,7 @@ public final class AppConfig {
     }
 
     private AppConfig() {
-        // Utility class không cho phép khởi tạo instance
+        // utility class
     }
 
     private static void loadProperties() {
@@ -128,7 +106,9 @@ public final class AppConfig {
 
         // Private configuration is explicitly selected, outside Git and outside the WAR.
         String external = System.getProperty("tc.config.file");
-        if (external == null || external.isBlank()) external = System.getenv("TC_CONFIG_FILE");
+        if (external == null || external.isBlank()) {
+            external = System.getenv("TC_CONFIG_FILE");
+        }
         if (external != null && !external.isBlank()) {
             try (InputStream input = Files.newInputStream(Path.of(external))) {
                 PROPERTIES.load(input);
@@ -139,7 +119,7 @@ public final class AppConfig {
             }
         }
 
-        // 1. Thử nạp từ file cấu hình chính application.properties
+        // 1. try the main configuration file, application.properties
         try (InputStream is = classLoader.getResourceAsStream(PROPERTIES_FILE)) {
             if (is != null) {
                 PROPERTIES.load(is);
@@ -149,8 +129,8 @@ public final class AppConfig {
             LOGGER.log(Level.SEVERE, "Lỗi khi đọc file " + PROPERTIES_FILE, e);
         }
 
-        // 2. Fallback nạp từ application.properties.example nếu chưa có file cấu hình cục bộ (dành
-        // cho CI và Test runner)
+        // 2. fall back to application.properties.example when there is no local file (CI and
+        // test runs)
         try (InputStream is = classLoader.getResourceAsStream(PROPERTIES_EXAMPLE_FILE)) {
             if (is != null) {
                 PROPERTIES.load(is);
@@ -166,62 +146,35 @@ public final class AppConfig {
     }
 
     /**
-     * Lấy giá trị cấu hình theo key.
+     * The configured value for a key.
      *
-     * @param key Khóa cấu hình (ví dụ: "db.host" hoặc "TC_SQL_HOST")
-     * @return Giá trị cấu hình hoặc null nếu không tồn tại
+     * @param key configuration key (for example "db.host" or "TC_SQL_HOST")
+     * @return the value, or null when it is not set
      */
     public static String get(String key) {
         if (key == null || key.isBlank()) {
             return null;
         }
 
-        // 1. Kiểm tra System Property
-        String sysProp = System.getProperty(key);
-        if (sysProp != null && !sysProp.isBlank()) {
-            return sysProp.trim();
-        }
-
-        // 2. Kiểm tra System Environment
-        String envValue = System.getenv(key);
-        if (envValue != null && !envValue.isBlank()) {
-            return envValue.trim();
-        }
-
-        String normalizedEnvKey = key.replace('.', '_').toUpperCase();
-        String normalizedEnvVal = System.getenv(normalizedEnvKey);
-        if (normalizedEnvVal != null && !normalizedEnvVal.isBlank()) {
-            return normalizedEnvVal.trim();
-        }
-
-        // 3. Fallback cho Railway: các biến môi trường không có dấu gạch dưới (REDISHOST,
-        // REDISPORT, REDISPASSWORD, REDISURL)
-        String compactEnvKey = key.replace(".", "").toUpperCase();
-        String compactEnvVal = System.getenv(compactEnvKey);
-        if (compactEnvVal != null && !compactEnvVal.isBlank()) {
-            return compactEnvVal.trim();
-        }
-
-        // 4. Kiểm tra Properties file
-        String propValue = PROPERTIES.getProperty(key);
-        if (propValue != null && !propValue.isBlank()) {
-            return propValue.trim();
-        }
-
-        // 4. Fallback lookup giữa dạng dot notation và TC_SQL_* notation
         String mappedKey = resolveMappedKey(key);
-        if (mappedKey != null) {
-            String mappedValue = PROPERTIES.getProperty(mappedKey);
-            if (mappedValue != null && !mappedValue.isBlank()) {
-                return mappedValue.trim();
+        String[] candidates = {
+            System.getProperty(key),
+            System.getenv(key),
+            System.getenv(key.replace('.', '_').toUpperCase()),
+            System.getenv(key.replace(".", "").toUpperCase()),
+            PROPERTIES.getProperty(key),
+            mappedKey == null ? null : PROPERTIES.getProperty(mappedKey)
+        };
+        for (String candidate : candidates) {
+            if (candidate != null && !candidate.isBlank()) {
+                return candidate.trim();
             }
         }
-
         return null;
     }
 
     /**
-     * Lấy giá trị cấu hình với giá trị mặc định.
+     * The configured value, or the default when it is not set.
      */
     public static String get(String key, String defaultValue) {
         String value = get(key);
@@ -229,7 +182,7 @@ public final class AppConfig {
     }
 
     /**
-     * Lấy giá trị cấu hình kiểu int.
+     * The configured value as an int.
      */
     public static int getInt(String key, int defaultValue) {
         String val = get(key);
@@ -244,7 +197,7 @@ public final class AppConfig {
     }
 
     /**
-     * Lấy giá trị cấu hình kiểu boolean.
+     * The configured value as a boolean.
      */
     public static boolean getBoolean(String key, boolean defaultValue) {
         String val = get(key);

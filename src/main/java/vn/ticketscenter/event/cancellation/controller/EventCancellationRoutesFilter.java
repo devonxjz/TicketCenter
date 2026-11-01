@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Set;
+import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.identity.security.DatabaseActorFilter;
 
@@ -21,9 +22,9 @@ public final class EventCancellationRoutesFilter implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
-        var req = (HttpServletRequest) request;
-        var res = (HttpServletResponse) response;
-        String path = req.getRequestURI().substring(req.getContextPath().length());
+        HttpServletRequest httpRequest = (HttpServletRequest) request;
+        HttpServletResponse httpResponse = (HttpServletResponse) response;
+        String path = ApiRequest.path(httpRequest);
         String[] pieces = path.split("/", -1);
         boolean review =
                 (pieces.length == 5
@@ -35,16 +36,16 @@ public final class EventCancellationRoutesFilter implements Filter {
                                 && REVIEW_ENDPOINTS.contains(pieces[5]));
         if (review) {
             boolean requestEndpoint = pieces[pieces.length - 1].equals("cancellation-request");
-            boolean read = requestEndpoint && req.getMethod().equals("GET");
-            if (!read && !req.getMethod().equals("POST")) {
-                methodNotAllowed(res, requestEndpoint ? "GET, POST" : "POST");
+            boolean read = requestEndpoint && httpRequest.getMethod().equals("GET");
+            if (!read && !httpRequest.getMethod().equals("POST")) {
+                methodNotAllowed(httpResponse, requestEndpoint ? "GET, POST" : "POST");
                 return;
             }
             DatabaseActorFilter.withActor(
                     request,
                     response,
                     (r, s) ->
-                            req.getServletContext()
+                            httpRequest.getServletContext()
                                     .getNamedDispatcher("CancellationReviewServlet")
                                     .forward(r, s));
             return;
@@ -53,15 +54,15 @@ public final class EventCancellationRoutesFilter implements Filter {
                 && (pieces[5].equals("cancel") || pieces[5].equals("cancellation-progress"))) {
             boolean cancel = pieces[5].equals("cancel");
             String method = cancel ? "POST" : "GET";
-            if (!req.getMethod().equals(method)) {
-                methodNotAllowed(res, method);
+            if (!httpRequest.getMethod().equals(method)) {
+                methodNotAllowed(httpResponse, method);
                 return;
             }
             DatabaseActorFilter.withActor(
                     request,
                     response,
                     (r, s) ->
-                            req.getServletContext()
+                            httpRequest.getServletContext()
                                     .getNamedDispatcher(
                                             cancel
                                                     ? "AdminEventCancelServlet"

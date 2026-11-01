@@ -1,5 +1,6 @@
 package vn.ticketscenter.order.controller;
 
+import vn.ticketscenter.config.web.TestServlets;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -12,6 +13,7 @@ import vn.ticketscenter.order.dto.OrderDetailDto;
 import vn.ticketscenter.order.dto.OrderHistoryItemDto;
 import vn.ticketscenter.order.dao.OrderRepository;
 import vn.ticketscenter.order.service.OrderService;
+import vn.ticketscenter.order.service.OrderServiceImpl;
 
 import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
@@ -33,8 +35,8 @@ class OrderPageServletTest {
     @BeforeEach
     void setUp() {
         fakeRepo = new FakeOrderRepo();
-        orderService = new OrderService(fakeRepo, new vn.ticketscenter.order.cache.RedisOrderCache(() -> null, java.time.Clock.systemUTC()));
-        servlet = new OrderPageServlet(orderService);
+        orderService = new OrderServiceImpl(fakeRepo, new vn.ticketscenter.order.cache.RedisOrderCache(() -> null, java.time.Clock.systemUTC()));
+        servlet = TestServlets.init(new OrderPageServlet(), orderService);
         buyerPrincipal = new UserPrincipal(BUYER_ID, PlatformRole.CUSTOMER, 1);
     }
 

@@ -27,21 +27,24 @@ public record EventFields(
         endTime = time(endTime);
         if (!saleStart.isBefore(saleEnd)
                 || saleEnd.isAfter(startTime)
-                || !startTime.isBefore(endTime))
+                || !startTime.isBefore(endTime)) {
             throw new IllegalArgumentException("Invalid Event schedule");
+        }
     }
 
     private static String text(String value, int max, String name) {
-        if (value == null || value.isBlank() || value.length() > max || value.indexOf('\0') >= 0)
+        if (value == null || value.isBlank() || value.length() > max || value.indexOf('\0') >= 0) {
             throw new IllegalArgumentException("Invalid " + name);
+        }
         return value.strip();
     }
 
     private static Instant time(Instant value) {
         Instant result = Objects.requireNonNull(value, "Event time").truncatedTo(ChronoUnit.MILLIS);
         if (result.isBefore(Instant.parse("1900-01-01T00:00:00Z"))
-                || result.isAfter(Instant.parse("9999-12-31T23:59:59Z")))
+                || result.isAfter(Instant.parse("9999-12-31T23:59:59Z"))) {
             throw new IllegalArgumentException("Event time outside supported range");
+        }
         return result;
     }
 }

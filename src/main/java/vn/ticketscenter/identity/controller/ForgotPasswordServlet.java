@@ -7,7 +7,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import vn.ticketscenter.config.web.HttpResponses;
-import vn.ticketscenter.identity.config.IdentityServices;
+import vn.ticketscenter.config.identity.IdentityServices;
 import vn.ticketscenter.identity.controller.support.IdentityErrorWriter;
 import vn.ticketscenter.identity.controller.support.JsonObjectBuilder;
 import vn.ticketscenter.identity.controller.support.RequestFields;
@@ -28,46 +28,35 @@ import java.io.IOException;
         })
 public class ForgotPasswordServlet extends HttpServlet {
 
-    private PasswordResetService passwordResetService;
-
-    public ForgotPasswordServlet() {}
-
-    public ForgotPasswordServlet(PasswordResetService passwordResetService) {
-        this.passwordResetService = passwordResetService;
-    }
-
     private PasswordResetService passwordResetService(ServletContext context) {
-        if (passwordResetService != null) {
-            return passwordResetService;
-        }
         IdentityServices services = IdentityServices.from(context);
         return services == null ? null : services.passwordResetService();
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        req.setAttribute("csrfToken", SecurityContext.getOrCreateCsrfToken(req));
-        req.getRequestDispatcher("/WEB-INF/views/auth/forgot-password.jsp").forward(req, resp);
+        request.setAttribute("csrfToken", SecurityContext.getOrCreateCsrfToken(request));
+        request.getRequestDispatcher("/WEB-INF/views/auth/forgot-password.jsp").forward(request, response);
     }
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        PasswordResetService service = passwordResetService(req.getServletContext());
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        PasswordResetService service = passwordResetService(getServletContext());
         if (service == null) {
-            IdentityErrorWriter.databaseUnavailable(resp);
+            IdentityErrorWriter.databaseUnavailable(response);
             return;
         }
         try {
-            String email = RequestFields.read(req).get("email");
+            String email = RequestFields.read(request).get("email");
             if (email == null || email.isBlank()) {
                 throw new IdentityException(
                         IdentityError.VALIDATION_FAILED, "Email không được để trống");
             }
             String message = service.forgotPassword(new ForgotPasswordRequestDto(email));
-            HttpResponses.data(resp, JsonObjectBuilder.object().put("message", message).build());
+            HttpResponses.data(response, JsonObjectBuilder.object().put("message", message).build());
         } catch (RuntimeException failure) {
-            IdentityErrorWriter.write(resp, failure, "Đã xảy ra lỗi khi xử lý quên mật khẩu");
+            IdentityErrorWriter.write(response, failure, "Đã xảy ra lỗi khi xử lý quên mật khẩu");
         }
     }
 }

@@ -8,7 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import vn.ticketscenter.config.ServerConfig;
 import vn.ticketscenter.config.web.HttpResponses;
-import vn.ticketscenter.identity.config.IdentityServices;
+import vn.ticketscenter.config.identity.IdentityServices;
 import vn.ticketscenter.identity.controller.support.IdentityErrorWriter;
 import vn.ticketscenter.identity.controller.support.JsonObjectBuilder;
 import vn.ticketscenter.identity.controller.support.RequestFields;
@@ -29,37 +29,24 @@ import java.net.URI;
         urlPatterns = {"/api/auth/login", "/auth/login"})
 public class LoginServlet extends HttpServlet {
 
-    private final LoginThrottle throttle = new LoginThrottle();
-
-    private LoginService loginService;
-
-    public LoginServlet() {}
-
-    public LoginServlet(LoginService loginService) {
-        this.loginService = loginService;
-    }
-
     private LoginService loginService(ServletContext context) {
-        if (loginService != null) {
-            return loginService;
-        }
         IdentityServices services = IdentityServices.from(context);
         return services == null ? null : services.loginService();
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        req.setAttribute("showDemoAccounts", ServerConfig.isDemoData());
-        req.setAttribute("csrfToken", SecurityContext.getOrCreateCsrfToken(req));
-        req.getRequestDispatcher("/WEB-INF/views/auth/login.jsp").forward(req, resp);
+        request.setAttribute("showDemoAccounts", ServerConfig.isDemoData());
+        request.setAttribute("csrfToken", SecurityContext.getOrCreateCsrfToken(request));
+        request.getRequestDispatcher("/WEB-INF/views/auth/login.jsp").forward(request, response);
     }
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        LoginService service = loginService(req.getServletContext());
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        LoginService service = loginService(getServletContext());
         if (service == null) {
-            IdentityErrorWriter.databaseUnavailable(resp);
+            IdentityErrorWriter.databaseUnavailable(response);
             return;
         }
 
@@ -67,20 +54,21 @@ public class LoginServlet extends HttpServlet {
         String password;
 
         try {
-            RequestFields fields = RequestFields.read(req);
+            RequestFields fields = RequestFields.read(request);
             identifier = fields.first("identifier", "email", "userName", "username");
             password = fields.get("password");
         } catch (IdentityException invalidJson) {
-            IdentityErrorWriter.write(resp, invalidJson, null);
+            IdentityErrorWriter.write(response, invalidJson, null);
             return;
         }
 
-        String client = req.getRemoteAddr();
+        LoginThrottle throttle = LoginThrottle.from(getServletContext());
+        String client = request.getRemoteAddr();
         long retryAfter = throttle.retryAfterSeconds(identifier, client);
         if (retryAfter > 0) {
-            resp.setHeader("Retry-After", Long.toString(retryAfter));
+            response.setHeader("Retry-After", Long.toString(retryAfter));
             HttpResponses.error(
-                    resp,
+                    response,
                     429,
                     "LOGIN_THROTTLED",
                     "Bạn đã đăng nhập sai quá nhiều lần. Vui lòng thử lại sau.");
@@ -91,32 +79,32 @@ public class LoginServlet extends HttpServlet {
             UserPrincipal principal = service.login(new LoginRequestDto(identifier, password));
             throttle.recordSuccess(identifier, client);
 
-            // Chống Session Fixation: Cấp mới session ID, lưu UserPrincipal và rotate CSRF token
-            SecurityContext.setSessionUser(req, principal);
+            // against session fixation: new session id, store the principal and rotate the CSRF token
+            SecurityContext.setSessionUser(request, principal);
 
-            // Cấp mới CSRF token gắn session và trả về qua response header
-            resp.setHeader("X-CSRF-Token", SecurityContext.getOrCreateCsrfToken(req));
+            // send the new session-bound CSRF token in a response header
+            response.setHeader("X-CSRF-Token", SecurityContext.getOrCreateCsrfToken(request));
 
-            String targetRedirect = redirectTarget(req, principal);
+            String targetRedirect = redirectTarget(request, principal);
             boolean isApiRequest =
-                    req.getRequestURI().contains("/api/") || RequestFields.isJson(req);
+                    request.getRequestURI().contains("/api/") || RequestFields.isJson(request);
             if (isApiRequest) {
                 HttpResponses.data(
-                        resp,
+                        response,
                         JsonObjectBuilder.object()
                                 .put("authenticated", true)
                                 .put("role", roleName(principal))
                                 .put("redirect", targetRedirect)
                                 .build());
             } else {
-                resp.sendRedirect(targetRedirect);
+                response.sendRedirect(targetRedirect);
             }
         } catch (IdentityException rejected) {
             throttle.recordFailure(identifier, client);
-            IdentityErrorWriter.write(resp, rejected, null);
+            IdentityErrorWriter.write(response, rejected, null);
         } catch (RuntimeException failure) {
             IdentityErrorWriter.serverError(
-                    resp, failure, "Đã xảy ra lỗi trong quá trình xử lý đăng nhập");
+                    response, failure, "Đã xảy ra lỗi trong quá trình xử lý đăng nhập");
         }
     }
 
@@ -124,19 +112,20 @@ public class LoginServlet extends HttpServlet {
         if (principal.isAdmin()) {
             return "ADMIN";
         }
-        if (principal.organizationRole() == OrganizationRole.MANAGER) {
+        OrganizationRole role = principal.organizationRole();
+        if (role == OrganizationRole.MANAGER) {
             return "MANAGER";
         }
-        if (principal.organizationRole() == OrganizationRole.CHECK_IN_STAFF) {
+        if (role == OrganizationRole.CHECK_IN_STAFF) {
             return "STAFF";
         }
         return "CUSTOMER";
     }
 
     /** The requested {@code redirect} when it is local and the role may open it, else the home page. */
-    private static String redirectTarget(HttpServletRequest req, UserPrincipal principal) {
-        String contextPath = req.getContextPath();
-        String requested = req.getParameter("redirect");
+    private static String redirectTarget(HttpServletRequest request, UserPrincipal principal) {
+        String contextPath = request.getContextPath();
+        String requested = request.getParameter("redirect");
         if (isLocalRedirect(requested, contextPath)
                 && isRoleRedirectAllowed(principal, requested, contextPath)) {
             return requested;
@@ -162,10 +151,16 @@ public class LoginServlet extends HttpServlet {
 
     /** Only same-application paths are accepted; scheme-relative and backslash forms leave the site. */
     static boolean isLocalRedirect(String target, String contextPath) {
-        if (target == null || target.isBlank() || !target.startsWith("/")) return false;
-        if (target.startsWith("//") || target.indexOf('\\') >= 0) return false;
+        if (target == null || target.isBlank() || !target.startsWith("/")) {
+            return false;
+        }
+        if (target.startsWith("//") || target.indexOf('\\') >= 0) {
+            return false;
+        }
         for (int index = 0; index < target.length(); index++) {
-            if (Character.isISOControl(target.charAt(index))) return false;
+            if (Character.isISOControl(target.charAt(index))) {
+                return false;
+            }
         }
         String base = contextPath == null ? "" : contextPath;
         return base.isEmpty()

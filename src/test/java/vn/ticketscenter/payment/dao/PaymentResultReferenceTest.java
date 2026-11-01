@@ -19,8 +19,12 @@ class PaymentResultReferenceTest {
             var payload = new AtomicReference<String>();
             var statement = (CallableStatement) Proxy.newProxyInstance(getClass().getClassLoader(),
                     new Class<?>[]{CallableStatement.class}, (proxy, method, args) -> {
-                        if (method.getName().equals("setString") && (Integer) args[0] == 4) payload.set((String) args[1]);
-                        return method.getName().equals("execute") ? false : null;
+                        if (method.getName().matches("setString|setObject") && (Integer) args[0] == 4) payload.set((String) args[1]);
+                        return switch (method.getName()) {
+                            case "execute", "getMoreResults" -> false;
+                            case "getUpdateCount" -> -1;
+                            default -> null;
+                        };
                     });
             var connection = (Connection) Proxy.newProxyInstance(getClass().getClassLoader(),
                     new Class<?>[]{Connection.class}, (proxy, method, args) ->

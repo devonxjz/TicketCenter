@@ -1,10 +1,13 @@
 package vn.ticketscenter.fulfillment.ticket.controller;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.fulfillment.ticket.dto.TicketDetailDto;
 import vn.ticketscenter.fulfillment.ticket.dto.TicketSummaryDto;
 import vn.ticketscenter.fulfillment.ticket.service.TicketException;
@@ -19,27 +22,18 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Controller API quản lý vé và mã QR (LIEM-05).
- * - GET /api/me/tickets: Danh sách vé của user hiện tại.
- * - GET /api/tickets/{ticketId}: Chi tiết một vé.
- * - GET /api/tickets/{ticketId}/qr: Trả về ảnh PNG mã QR ký số.
+ * Ticket and QR code API (LIEM-05).
+ * - GET /api/me/tickets: the current user's tickets.
+ * - GET /api/tickets/{ticketId}: one ticket.
+ * - GET /api/tickets/{ticketId}/qr: the signed QR code as a PNG image.
  */
 @WebServlet(urlPatterns = {"/api/me/tickets", "/api/tickets/*"})
 public class TicketApiServlet extends HttpServlet {
-    private final TicketService suppliedService;
-
-    public TicketApiServlet() {
-        this.suppliedService = null;
-    }
-
-    public TicketApiServlet(TicketService suppliedService) {
-        this.suppliedService = suppliedService;
-    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        String path = request.getRequestURI().substring(request.getContextPath().length());
+        String path = ApiRequest.path(request);
 
         try {
             UserPrincipal principal =
@@ -61,14 +55,14 @@ public class TicketApiServlet extends HttpServlet {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
             }
         } catch (TicketException e) {
-            response.setStatus(e.httpStatus());
+            response.setStatus(e.status());
             response.setContentType("application/json;charset=UTF-8");
             response.getWriter().write(e.toJson());
         } catch (Exception e) {
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             response.setContentType("application/json;charset=UTF-8");
-            java.util.logging.Logger.getLogger(TicketApiServlet.class.getName())
-                    .log(java.util.logging.Level.SEVERE, "Ticket request failed", e);
+            Logger.getLogger(TicketApiServlet.class.getName())
+                    .log(Level.SEVERE, "Ticket request failed", e);
             response.getWriter()
                     .write(
                             "{\"error\":\"INTERNAL_ERROR\",\"message\":\"Đã xảy ra lỗi hệ thống.\"}");
@@ -113,9 +107,7 @@ public class TicketApiServlet extends HttpServlet {
     }
 
     private TicketService service() {
-        return suppliedService != null
-                ? suppliedService
-                : TicketRuntime.resolve(getServletContext());
+        return TicketRuntime.resolve(getServletContext());
     }
 
     private static UUID parseTicketId(String raw) {
@@ -127,7 +119,9 @@ public class TicketApiServlet extends HttpServlet {
     }
 
     private static int parseSize(String raw) {
-        if (raw == null || raw.isBlank()) return 300;
+        if (raw == null || raw.isBlank()) {
+            return 300;
+        }
         try {
             int val = Integer.parseInt(raw);
             return (val >= 100 && val <= 1000) ? val : 300;

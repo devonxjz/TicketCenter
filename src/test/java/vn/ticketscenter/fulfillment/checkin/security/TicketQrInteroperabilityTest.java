@@ -38,7 +38,7 @@ class TicketQrInteroperabilityTest {
     @Test void weakExplicitKeyFailsClosedInsteadOfFallingBackToAnotherKey() throws Exception {
         withProperties("weak", "legacy-ticket-secret-at-least-32-bytes", "application-secret-at-least-32-bytes", () -> {
             assertThrows(IllegalStateException.class,SignedTicketQrSigner::configured);
-            assertEquals(503,assertThrows(CheckInException.class,SignedQrDecoder::configured).httpStatus());
+            assertEquals(503,assertThrows(CheckInException.class,SignedQrDecoder::configured).status());
         });
     }
 

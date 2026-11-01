@@ -44,7 +44,7 @@ class EventCatalogServiceTest {
                 new BigDecimal("300000"), "Âm nhạc", "Ban tổ chức", new BigDecimal("500000"), false);
     }
     @Test void cacheHitAvoidsSecondRepositoryReadAndFiltersUseDistinctKeys() {
-        var repository = new Repository(); var cache = new Cache(); var service = new EventCatalogService(repository, cache);
+        var repository = new Repository(); var cache = new Cache(); var service = new EventCatalogServiceImpl(repository, cache);
         var filter = EventFilter.parse(Map.of());
         String first = service.events(filter);
         assertEquals(first, service.events(filter)); assertEquals(1, repository.calls);
@@ -54,13 +54,13 @@ class EventCatalogServiceTest {
     }
     @Test void redisFailureUsesDatabaseAndDatabaseFailureIsNeverCached() {
         var repository = new Repository(); var cache = new Cache(); cache.broken = true;
-        var service = new EventCatalogService(repository, cache);
+        var service = new EventCatalogServiceImpl(repository, cache);
         assertTrue(service.event(id).contains(id.toString()));
         cache.broken = false; repository.broken = true;
         assertThrows(IllegalStateException.class, () -> service.event(id)); assertTrue(cache.values.isEmpty());
     }
     @Test void realModeRejectsPreviouslyCachedSyntheticProjectionAndRechecksEveryRead() {
-        var repository = new Repository(); var cache = new Cache(); var service = new EventCatalogService(repository, cache);
+        var repository = new Repository(); var cache = new Cache(); var service = new EventCatalogServiceImpl(repository, cache);
         service.event(id); // A fixture projection is already cached.
         System.setProperty("app.data.mode", "real");
         repository.hidden = true;
@@ -69,7 +69,7 @@ class EventCatalogServiceTest {
         assertEquals(3, repository.calls);
     }
     @Test void missingOrHiddenParentsAre404AndEmptyCollectionsAreSuccess() {
-        var repository = new Repository(); var cache = new Cache(); var service = new EventCatalogService(repository, cache);
+        var repository = new Repository(); var cache = new Cache(); var service = new EventCatalogServiceImpl(repository, cache);
         repository.hidden = true;
         assertThrows(EventCatalogService.NotFound.class, () -> service.event(id));
         assertThrows(EventCatalogService.NotFound.class, () -> service.zones(id));
@@ -85,7 +85,7 @@ class EventCatalogServiceTest {
         assertFalse(json.contains("organizationId"));
     }
     @Test void allProjectionRoutesHaveVersionedKeysAndCategoriesUseFiveMinuteTtl() {
-        var repository = new Repository(); var cache = new Cache(); var service = new EventCatalogService(repository, cache);
+        var repository = new Repository(); var cache = new Cache(); var service = new EventCatalogServiceImpl(repository, cache);
         service.event(id); service.event(id); service.zones(id); service.zones(id); service.seats(id); service.seats(id);
         service.categories(); service.categories(); assertEquals(4, repository.calls);
         assertEquals(Set.of("tc:event:detail:v1:" + id, "tc:event:zones:v1:" + id,
@@ -102,7 +102,7 @@ class EventCatalogServiceTest {
         assertTrue(seat.contains("\"seatLabel\":\"A1\""));
     }
     @Test void warmPopulatesCatalogKeysWhenCacheActive() {
-        var repository = new Repository(); var cache = new Cache(); var service = new EventCatalogService(repository, cache);
+        var repository = new Repository(); var cache = new Cache(); var service = new EventCatalogServiceImpl(repository, cache);
         int warmed = service.warm();
         assertTrue(warmed > 0);
         assertTrue(cache.values.containsKey("tc:event:categories:v1"));

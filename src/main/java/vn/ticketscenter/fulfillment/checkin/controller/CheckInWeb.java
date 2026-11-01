@@ -1,10 +1,13 @@
 package vn.ticketscenter.fulfillment.checkin.controller;
 
+import vn.ticketscenter.identity.security.UserPrincipal;
+import vn.ticketscenter.identity.service.SessionValidator;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import vn.ticketscenter.config.web.ApiRequest;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.fulfillment.checkin.CheckInException;
-import vn.ticketscenter.identity.config.IdentityServices;
+import vn.ticketscenter.config.identity.IdentityServices;
 import vn.ticketscenter.identity.security.SecurityContext;
 import java.io.IOException;
 import java.util.UUID;
@@ -13,7 +16,7 @@ final class CheckInWeb {
     private CheckInWeb() {}
 
     static UUID actor(HttpServletRequest request) {
-        var principal =
+        UserPrincipal principal =
                 SecurityContext.getCurrentUser(request)
                         .orElseThrow(
                                 () ->
@@ -23,9 +26,10 @@ final class CheckInWeb {
                                                 "Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn."));
         // Named forwarding may precede the shared REQUEST filter; HTML pages also need session
         // validation.
-        var auth = IdentityServices.sessionValidator(request.getServletContext());
-        if (auth == null)
+        SessionValidator auth = IdentityServices.sessionValidator(request.getServletContext());
+        if (auth == null) {
             throw new CheckInException(503, "AUTH_UNAVAILABLE", "Hệ thống xác thực chưa sẵn sàng.");
+        }
         if (!auth.isSessionValid(principal.actorId(), principal.authVersion())) {
             SecurityContext.clearSession(request);
             throw new CheckInException(
@@ -35,22 +39,19 @@ final class CheckInWeb {
     }
 
     static UUID id(String value) {
-        if (value == null
-                || !value.matches(
-                        "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")) {
-            throw new CheckInException(400, "INVALID_ID", "Mã định danh không hợp lệ.");
-        }
-        return UUID.fromString(value);
+        return ApiRequest.uuid(value)
+                .orElseThrow(() -> new CheckInException(400, "INVALID_ID", "Mã định danh không hợp lệ."));
     }
 
     static void error(HttpServletResponse response, RuntimeException exception) throws IOException {
-        if (exception instanceof CheckInException e)
-            HttpResponses.error(response, e.httpStatus(), e.code(), e.getMessage());
-        else
+        if (exception instanceof CheckInException e) {
+            HttpResponses.error(response, e);
+        } else {
             HttpResponses.error(
                     response,
                     503,
                     "DATABASE_UNAVAILABLE",
                     "Hệ thống soát vé tạm thời không khả dụng.");
+        }
     }
 }

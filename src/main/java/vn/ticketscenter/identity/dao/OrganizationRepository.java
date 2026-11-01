@@ -1,5 +1,6 @@
 package vn.ticketscenter.identity.dao;
 
+import jakarta.persistence.TypedQuery;
 import jakarta.persistence.EntityManager;
 import vn.ticketscenter.identity.model.Organization;
 import vn.ticketscenter.identity.model.OrganizationStatus;
@@ -57,7 +58,7 @@ public class OrganizationRepository {
                 status != null
                         ? "SELECT o FROM Organization o WHERE o.status = :status ORDER BY o.submittedAt DESC, o.createdAt DESC"
                         : "SELECT o FROM Organization o ORDER BY o.submittedAt DESC, o.createdAt DESC";
-        var query = em.createQuery(q, Organization.class);
+        TypedQuery<Organization> query = em.createQuery(q, Organization.class);
         if (status != null) {
             query.setParameter("status", status);
         }
@@ -76,7 +77,7 @@ public class OrganizationRepository {
                 status != null
                         ? "SELECT COUNT(o) FROM Organization o WHERE o.status = :status"
                         : "SELECT COUNT(o) FROM Organization o";
-        var query = em.createQuery(q, Long.class);
+        TypedQuery<Long> query = em.createQuery(q, Long.class);
         if (status != null) {
             query.setParameter("status", status);
         }

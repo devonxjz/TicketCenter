@@ -5,20 +5,12 @@ import vn.ticketscenter.config.error.AppException;
 import java.util.Objects;
 
 /**
- * Ngoại lệ nghiệp vụ cho miền vé (LIEM-05).
+ * Business error of the ticket feature (LIEM-05).
  */
 public final class TicketException extends AppException {
 
     public TicketException(int httpStatus, String errorCode, String message) {
         super(httpStatus, Objects.requireNonNull(errorCode, "errorCode is required"), message);
-    }
-
-    public int httpStatus() {
-        return status();
-    }
-
-    public String errorCode() {
-        return code();
     }
 
     public static TicketException unauthenticated() {

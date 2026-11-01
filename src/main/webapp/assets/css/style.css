@@ -1,8 +1,8 @@
 /* ==========================================================================
    TicketsCenter — Modern Flat Editorial Design System
-   Chủ đạo 3 màu: TRẮNG (#ffffff) — ĐỎ (#e50914) — ĐEN (#111111)
-   Font chữ thẳng, sắc nét, không bo góc (Inter / System Sans-serif)
-   Khoảng trắng hài hòa, tiện dụng, thanh tìm kiếm mở rộng tối đa
+   Three main colours: WHITE (#ffffff), RED (#e50914), BLACK (#111111)
+   Straight, sharp type and square corners (Inter / system sans-serif)
+   Even spacing and a search bar as wide as possible
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap');
@@ -19,7 +19,7 @@
     --gray-text: #666666;
     --gray-light: #999999;
 
-    /* Font chữ dễ nhìn, thẳng nét, thân thiện, không bo góc */
+    /* Readable straight type, square corners */
     --font-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
 }
@@ -48,7 +48,7 @@ a:hover {
 }
 
 /* ==========================================================================
-   1. NAVBAR & THANH TÌM KIẾM DÀI (Mở rộng thoải mái, cân đối hoàn hảo)
+   1. NAVBAR AND WIDE SEARCH BAR
    ========================================================================== */
 .navbar-custom {
     background-color: var(--white);
@@ -69,7 +69,7 @@ a:hover {
     flex-shrink: 0;
 }
 
-/* Khung tìm kiếm phẳng, chuẩn tỉ lệ ban đầu, không làm rớt dòng nút tài khoản */
+/* Flat search box at its original ratio; the account buttons stay on one line */
 .search-wrapper {
     display: flex;
     align-items: center;
@@ -152,7 +152,7 @@ a:hover {
 }
 
 /* ==========================================================================
-   2. BUTTONS (Chuẩn 3 màu: Trắng, Đỏ, Đen — phẳng, sắc nét)
+   2. BUTTONS (white, red, black; flat and sharp)
    ========================================================================== */
 .btn-primary-custom {
     background: var(--primary);
@@ -222,7 +222,7 @@ a:hover {
 }
 
 /* ==========================================================================
-   3. CATEGORY TABS & FILTER BAR (Gọn gàng, loại bỏ khoảng trắng thừa)
+   3. CATEGORY TABS AND FILTER BAR (compact)
    ========================================================================== */
 .section-title {
     font-size: 1.45rem;
@@ -277,7 +277,7 @@ a:hover {
     border-bottom-color: var(--primary);
 }
 
-/* Hero Banner Slider: Chuẩn chiều cao sắc nét như ban đầu (360px), không bị phóng đại */
+/* Hero banner slider at its original 360px height */
 .hero-banner {
     margin-top: 16px;
     margin-bottom: 32px;
@@ -290,7 +290,7 @@ a:hover {
 }
 
 /* ==========================================================================
-   3. CATEGORY TABS & FILTER BAR (4 cột đều nhau, khoảng cách cân đối, không icon thừa)
+   3. CATEGORY TABS AND FILTER BAR (four equal columns, no extra icons)
    ========================================================================== */
 .section-title {
     font-size: 1.45rem;
@@ -345,7 +345,7 @@ a:hover {
     border-bottom-color: var(--primary);
 }
 
-/* Bộ lọc 4 cột ĐỀU NHAU (1fr x 4) — Căn chỉnh đối xứng, khoảng cách đều đặn */
+/* Four equal filter columns (1fr x 4), evenly spaced */
 .modern-filter-bar {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -383,7 +383,7 @@ a:hover {
     margin-bottom: 6px;
 }
 
-/* Ô nhập tối giản không chứa icon thừa */
+/* Plain inputs without icons */
 .modern-input {
     width: 100%;
     border: none;
@@ -414,7 +414,7 @@ select.modern-input {
     background-size: 11px;
 }
 
-/* Phân trang chuẩn gốc từ bản mẫu: ô vuông phẳng, không bo góc, sắc nét */
+/* Pagination from the original mock-up: flat square cells */
 .pagination-container {
     margin-top: 48px;
     border-top: 1px solid var(--gray-border);
@@ -474,7 +474,7 @@ select.modern-input {
 }
 
 /* ==========================================================================
-   4. EVENT CARDS (Sắc nét, phẳng, ảnh 16:9)
+   4. EVENT CARDS (flat, 16:9 images)
    ========================================================================== */
 .event-card {
     display: flex;
@@ -565,7 +565,7 @@ select.modern-input {
 }
 
 /* ==========================================================================
-   5. BẢNG BIỂU & PANEL
+   5. TABLES AND PANELS
    ========================================================================== */
 .panel-box {
     border: 1px solid var(--gray-border);
@@ -682,7 +682,7 @@ select.modern-input {
 }
 
 /* ==========================================================================
-   6. SAAS & ADMIN DASHBOARD (Bố trí gọn gàng, căn chỉnh chuẩn xác)
+   6. SAAS AND ADMIN DASHBOARD
    ========================================================================== */
 .admin-navbar {
     background-color: var(--white);

@@ -1,5 +1,6 @@
 package vn.ticketscenter.config.persistence;
 
+import jakarta.persistence.EntityManager;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import jakarta.persistence.EntityManagerFactory;
@@ -8,6 +9,8 @@ import vn.ticketscenter.config.DatabaseConfig;
 
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.Objects;
+import javax.sql.DataSource;
 
 public final class PersistenceRegistry implements AutoCloseable {
 
@@ -20,7 +23,9 @@ public final class PersistenceRegistry implements AutoCloseable {
         for (DatabasePrincipal principal : DatabasePrincipal.values()) {
             String user = DatabaseConfig.getPrincipalUser(principal);
             String password = DatabaseConfig.getPrincipalPassword(principal);
-            if (user == null || password == null) continue;
+            if (user == null || password == null) {
+                continue;
+            }
 
             HikariConfig pool = new HikariConfig();
             pool.setPoolName("ticketscenter-" + principal.name().toLowerCase());
@@ -56,15 +61,25 @@ public final class PersistenceRegistry implements AutoCloseable {
         return new TransactionManager(factories);
     }
 
+    public DataSource dataSource(DatabasePrincipal principal) {
+        HikariDataSource pool = pools.get(Objects.requireNonNull(principal, "principal must not be null"));
+        if (pool == null) {
+            throw new IllegalArgumentException("Database principal is not configured: " + principal);
+        }
+        return ConnectionBudgets.wrap(pool);
+    }
+
     public boolean hasPrincipal(DatabasePrincipal principal) {
         return factories.containsKey(principal);
     }
 
     public boolean isReady() {
-        if (factories.isEmpty()) return false;
+        if (factories.isEmpty()) {
+            return false;
+        }
         try {
             for (EntityManagerFactory factory : factories.values()) {
-                var entityManager = factory.createEntityManager();
+                EntityManager entityManager = factory.createEntityManager();
                 try {
                     entityManager.createNativeQuery("SELECT 1", Integer.class).getSingleResult();
                 } finally {

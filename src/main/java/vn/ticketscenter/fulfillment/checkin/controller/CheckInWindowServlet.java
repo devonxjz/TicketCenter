@@ -1,5 +1,6 @@
 package vn.ticketscenter.fulfillment.checkin.controller;
 
+import vn.ticketscenter.fulfillment.checkin.service.CheckInRuntime;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import vn.ticketscenter.config.web.HttpResponses;
@@ -14,15 +15,6 @@ import java.util.UUID;
 public class CheckInWindowServlet extends HttpServlet {
     public static final String EVENT_ID_ATTRIBUTE =
             CheckInWindowServlet.class.getName() + ".eventId";
-    private final CheckInEventService injected;
-
-    public CheckInWindowServlet() {
-        this.injected = null;
-    }
-
-    public CheckInWindowServlet(CheckInEventService service) {
-        this.injected = service;
-    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -31,9 +23,7 @@ public class CheckInWindowServlet extends HttpServlet {
             UUID actorId = CheckInWeb.actor(request);
             UUID eventId = CheckInWeb.id((String) request.getAttribute(EVENT_ID_ATTRIBUTE));
             CheckInEventService service =
-                    injected == null
-                            ? CheckInRuntime.resolve(request.getServletContext())
-                            : injected;
+                    CheckInRuntime.resolve(getServletContext());
             HttpResponses.data(response, service.window(actorId, eventId).toJson());
         } catch (RuntimeException exception) {
             CheckInWeb.error(response, exception);

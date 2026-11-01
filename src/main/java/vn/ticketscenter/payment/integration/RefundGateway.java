@@ -1,8 +1,8 @@
 package vn.ticketscenter.payment.integration;
 
 import vn.ticketscenter.config.error.UpstreamException;
-import vn.ticketscenter.fulfillment.refund.worker.RefundTransferRequest;
-import vn.ticketscenter.fulfillment.refund.worker.RefundTransferResult;
+import vn.ticketscenter.fulfillment.refund.dto.RefundTransferRequest;
+import vn.ticketscenter.fulfillment.refund.dto.RefundTransferResult;
 
 import java.math.BigDecimal;
 import java.util.UUID;

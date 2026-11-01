@@ -1,5 +1,6 @@
 package vn.ticketscenter.order.dto;
 
+import java.util.Objects;
 import java.util.UUID;
 
 public sealed interface OrderCommand {
@@ -14,7 +15,7 @@ public sealed interface OrderCommand {
     record Create(UUID key, CreateOrderRequest request) implements OrderCommand {
         public Create {
             OrderRequests.requireId(key);
-            java.util.Objects.requireNonNull(request);
+            Objects.requireNonNull(request);
         }
 
         public UUID targetId() {
@@ -33,7 +34,7 @@ public sealed interface OrderCommand {
     record ChangeCoupon(UUID key, CouponMutation mutation) implements OrderCommand {
         public ChangeCoupon {
             OrderRequests.requireId(key);
-            java.util.Objects.requireNonNull(mutation);
+            Objects.requireNonNull(mutation);
         }
 
         public UUID targetId() {

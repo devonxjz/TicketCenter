@@ -6,29 +6,47 @@ import vn.ticketscenter.identity.model.Otp;
 import vn.ticketscenter.identity.model.OtpPurpose;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
+/** Reads OTPs through JPA; every write is one procedure call (migration 072). */
 public class OtpRepository {
 
     private static final String USABLE =
             "AND o.consumedAt IS NULL AND o.invalidatedAt IS NULL AND o.expiresAt > :now AND o.failedAttempts < 5 ";
 
-    public void save(EntityManager em, Otp otp) {
-        Objects.requireNonNull(em, "EntityManager must not be null");
-        Objects.requireNonNull(otp, "Otp must not be null");
-        if (otp.getId() == null) {
-            em.persist(otp);
-        } else {
-            em.merge(otp);
-        }
+    /** Closes the open OTPs of the email and purpose, then stores a new one; returns its id. */
+    public UUID issue(
+            EntityManager em,
+            UUID userId,
+            String emailNormalized,
+            OtpPurpose purpose,
+            byte[] secretHash,
+            Instant expiresAt,
+            Instant now) {
+        return IdentityProcedures.query(
+                em,
+                "{call dbo.usp_IssueOtp(?,?,?,?,?,?)}",
+                call -> {
+                    call.setString(1, userId.toString());
+                    call.setString(2, emailNormalized);
+                    call.setString(3, purpose.name());
+                    call.setBytes(4, secretHash);
+                    call.setObject(5, utc(expiresAt));
+                    call.setObject(6, utc(now));
+                },
+                row -> UUID.fromString(row.getString("otp_id")));
     }
 
     public Optional<Otp> findById(EntityManager em, UUID id) {
         Objects.requireNonNull(em, "EntityManager must not be null");
-        if (id == null) return Optional.empty();
+        if (id == null) {
+            return Optional.empty();
+        }
         return Optional.ofNullable(em.find(Otp.class, id));
     }
 
@@ -105,54 +123,50 @@ public class OtpRepository {
         }
     }
 
-    public int invalidateExistingOtpsByEmail(
-            EntityManager em, String emailNormalized, OtpPurpose purpose, Instant now) {
-        Objects.requireNonNull(em, "EntityManager must not be null");
-        Objects.requireNonNull(now, "Instant now must not be null");
-        if (emailNormalized == null || emailNormalized.isBlank() || purpose == null) return 0;
-        return em.createQuery(
-                        "UPDATE Otp o SET o.invalidatedAt = :now "
-                                + "WHERE LOWER(o.emailNormalized) = :email AND o.purpose = :purpose "
-                                + "AND o.consumedAt IS NULL AND o.invalidatedAt IS NULL")
-                .setParameter("now", now)
-                .setParameter("email", emailNormalized.trim().toLowerCase(Locale.ROOT))
-                .setParameter("purpose", purpose)
-                .executeUpdate();
+    /** Closes the open OTPs of the email and purpose. */
+    public void invalidateOpen(EntityManager em, String emailNormalized, OtpPurpose purpose, Instant now) {
+        if (emailNormalized == null || emailNormalized.isBlank() || purpose == null) {
+            return;
+        }
+        IdentityProcedures.execute(
+                em,
+                "{call dbo.usp_InvalidateOtps(?,?,?)}",
+                call -> {
+                    call.setString(1, emailNormalized.trim().toLowerCase(Locale.ROOT));
+                    call.setString(2, purpose.name());
+                    call.setObject(3, utc(now));
+                });
     }
 
-    /**
-     * Tiêu thụ OTP một cách nguyên tử (atomic conditional update).
-     * Trả về true nếu và chỉ nếu cập nhật thành công
-     * (chống race condition 2 request verify đồng thời).
-     */
-    public boolean consumeOtpAtomically(EntityManager em, UUID otpId, Instant now) {
-        Objects.requireNonNull(em, "EntityManager must not be null");
-        Objects.requireNonNull(otpId, "otpId must not be null");
-        Objects.requireNonNull(now, "Instant now must not be null");
-        int updated =
-                em.createQuery(
-                                "UPDATE Otp o SET o.consumedAt = :now "
-                                        + "WHERE o.id = :otpId AND o.consumedAt IS NULL AND o.invalidatedAt IS NULL "
-                                        + "AND o.expiresAt > :now AND o.failedAttempts < 5")
-                        .setParameter("now", now)
-                        .setParameter("otpId", otpId)
-                        .executeUpdate();
-        return updated == 1;
+    /** Uses the OTP once; false when it was already used, closed, expired or locked (two verifies cannot both win). */
+    public boolean consume(EntityManager em, UUID otpId, Instant now) {
+        Boolean consumed =
+                IdentityProcedures.query(
+                        em,
+                        "{call dbo.usp_ConsumeOtp(?,?)}",
+                        call -> {
+                            call.setString(1, otpId.toString());
+                            call.setObject(2, utc(now));
+                        },
+                        row -> row.getBoolean("consumed"));
+        return Boolean.TRUE.equals(consumed);
     }
 
-    /**
-     * Tăng số lần thử sai. Tự động vô hiệu hóa (gán invalidatedAt) nếu chạm ngưỡng 5 lần.
-     */
-    public int incrementFailedAttempts(EntityManager em, UUID otpId, Instant now) {
-        Objects.requireNonNull(em, "EntityManager must not be null");
-        Objects.requireNonNull(otpId, "otpId must not be null");
-        Objects.requireNonNull(now, "Instant now must not be null");
-        return em.createQuery(
-                        "UPDATE Otp o SET o.failedAttempts = o.failedAttempts + 1, "
-                                + "o.invalidatedAt = CASE WHEN (o.failedAttempts + 1) >= 5 THEN :now ELSE o.invalidatedAt END "
-                                + "WHERE o.id = :otpId AND o.consumedAt IS NULL AND o.invalidatedAt IS NULL")
-                .setParameter("now", now)
-                .setParameter("otpId", otpId)
-                .executeUpdate();
+    /** Counts a wrong code (the fifth closes the OTP) and returns the failed attempts so far. */
+    public int recordFailure(EntityManager em, UUID otpId, Instant now) {
+        Integer attempts =
+                IdentityProcedures.query(
+                        em,
+                        "{call dbo.usp_RecordOtpFailure(?,?)}",
+                        call -> {
+                            call.setString(1, otpId.toString());
+                            call.setObject(2, utc(now));
+                        },
+                        row -> row.getInt("failed_attempts"));
+        return attempts == null ? 0 : attempts;
+    }
+
+    private static LocalDateTime utc(Instant instant) {
+        return LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
     }
 }

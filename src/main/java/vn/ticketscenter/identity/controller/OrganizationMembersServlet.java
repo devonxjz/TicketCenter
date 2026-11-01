@@ -5,9 +5,11 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import vn.ticketscenter.config.error.AppException;
 import vn.ticketscenter.config.web.HttpResponses;
 import vn.ticketscenter.config.web.JsonObjectParser;
-import vn.ticketscenter.identity.config.IdentityServices;
+import vn.ticketscenter.config.identity.IdentityServices;
+import vn.ticketscenter.identity.controller.support.IdentityErrorWriter;
 import vn.ticketscenter.identity.controller.support.PathIds;
 import vn.ticketscenter.identity.dto.AddMemberRequestDto;
 import vn.ticketscenter.identity.dto.ChangeMemberRoleRequestDto;
@@ -22,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -31,239 +35,199 @@ import java.util.stream.Collectors;
         urlPatterns = "/api/organizations-members-internal/*")
 public class OrganizationMembersServlet extends HttpServlet {
 
+    private static final Logger LOGGER = Logger.getLogger(OrganizationMembersServlet.class.getName());
+
     private static final Pattern MEMBERS_PATTERN =
             Pattern.compile(
                     "^/api/organizations/([^/]+)/members(?:/([^/]+)/(role|deactivate|activate))?/?$");
 
-    private OrganizationMembershipService membershipService;
-
-    public OrganizationMembersServlet() {}
-
-    public OrganizationMembersServlet(OrganizationMembershipService membershipService) {
-        this.membershipService = membershipService;
-    }
-
-    private OrganizationMembershipService getService(ServletContext context) {
-        if (this.membershipService != null) {
-            return this.membershipService;
-        }
-        IdentityServices services = IdentityServices.from(context);
-        return services == null ? null : services.organizationMembershipService();
-    }
-
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        Optional<UserPrincipal> principalOpt = SecurityContext.getCurrentUser(req);
-        if (principalOpt.isEmpty()) {
-            HttpResponses.error(
-                    resp,
-                    HttpServletResponse.SC_UNAUTHORIZED,
-                    "UNAUTHENTICATED",
-                    "Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn");
-            return;
-        }
-
-        String path = PathIds.path(req);
-        Matcher matcher = MEMBERS_PATTERN.matcher(path);
-        if (!matcher.matches() || matcher.group(3) != null) {
-            HttpResponses.error(
-                    resp,
-                    HttpServletResponse.SC_BAD_REQUEST,
-                    "INVALID_PATH",
-                    "Đường dẫn không hợp lệ");
-            return;
-        }
-
-        UUID orgId = PathIds.uuidOrNull(matcher.group(1));
-        if (orgId == null) {
-            HttpResponses.error(
-                    resp,
-                    HttpServletResponse.SC_BAD_REQUEST,
-                    "INVALID_PATH",
-                    "Mã tổ chức không hợp lệ");
-            return;
-        }
-
-        OrganizationMembershipService service = getService(req.getServletContext());
-        if (service == null) {
-            HttpResponses.error(
-                    resp,
-                    HttpServletResponse.SC_SERVICE_UNAVAILABLE,
-                    "DATABASE_UNAVAILABLE",
-                    "Hệ thống cơ sở dữ liệu chưa sẵn sàng");
-            return;
-        }
-
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
+            UserPrincipal actor = requireUser(request);
+            Matcher matcher = MEMBERS_PATTERN.matcher(PathIds.path(request));
+            if (!matcher.matches() || matcher.group(3) != null) {
+                throw invalidPath();
+            }
+            UUID orgId = organizationId(matcher.group(1));
+            OrganizationMembershipService service = service(getServletContext());
+
+            // read the members and write the JSON reply
             List<OrganizationMemberDto> members =
-                    service.getOrganizationMembers(principalOpt.get().actorId(), orgId);
+                    service.getOrganizationMembers(actor.actorId(), orgId);
             String json =
                     members.stream()
                             .map(OrganizationMemberDto::toJson)
                             .collect(Collectors.joining(",", "[", "]"));
-            HttpResponses.data(resp, json);
-        } catch (SecurityException ex) {
-            HttpResponses.error(
-                    resp, HttpServletResponse.SC_FORBIDDEN, "FORBIDDEN", ex.getMessage());
-        } catch (IllegalArgumentException ex) {
-            HttpResponses.error(
-                    resp, HttpServletResponse.SC_BAD_REQUEST, "BAD_REQUEST", ex.getMessage());
+            HttpResponses.data(response, json);
+        } catch (AppException rejected) {
+            HttpResponses.error(response, rejected);
         } catch (Exception ex) {
-            java.util.logging.Logger.getLogger(OrganizationMembersServlet.class.getName())
-                    .log(java.util.logging.Level.SEVERE, "Membership request failed", ex);
-            HttpResponses.error(
-                    resp,
-                    HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    "SERVER_ERROR",
-                    "Đã xảy ra lỗi hệ thống.");
+            handleException(response, ex);
         }
     }
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        Optional<UserPrincipal> principalOpt = SecurityContext.getCurrentUser(req);
-        if (principalOpt.isEmpty()) {
-            HttpResponses.error(
-                    resp,
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        try {
+            UserPrincipal actor = requireUser(request);
+            if (!SecurityContext.validateCsrfToken(request)) {
+                throw new AppException(
+                        HttpServletResponse.SC_FORBIDDEN,
+                        "CSRF_TOKEN_INVALID",
+                        "Yêu cầu CSRF token hợp lệ");
+            }
+            Matcher matcher = MEMBERS_PATTERN.matcher(PathIds.path(request));
+            if (!matcher.matches()) {
+                throw invalidPath();
+            }
+            UUID orgId = organizationId(matcher.group(1));
+            OrganizationMembershipService service = service(getServletContext());
+
+            // perform action and write the JSON reply
+            String action = matcher.group(3);
+            if (action == null) {
+                OrganizationMemberDto member = addMember(request, service, actor, orgId);
+                HttpResponses.created(response, member.toJson());
+            } else {
+                UUID targetUserId = targetUserId(matcher.group(2));
+                OrganizationMemberDto updated =
+                        updateMember(request, service, actor, orgId, targetUserId, action);
+                HttpResponses.data(response, updated.toJson());
+            }
+        } catch (AppException rejected) {
+            HttpResponses.error(response, rejected);
+        } catch (IllegalStateException ex) {
+            membershipConflict(response, ex);
+        } catch (Exception ex) {
+            handleException(response, ex);
+        }
+    }
+
+    private static OrganizationMemberDto addMember(
+            HttpServletRequest request,
+            OrganizationMembershipService service,
+            UserPrincipal actor,
+            UUID orgId)
+            throws IOException {
+        Map<String, String> body = JsonObjectParser.parse(request.getReader());
+        OrganizationRole role = parseRole(body.get("role"));
+        AddMemberRequestDto dto = new AddMemberRequestDto(body.get("userName"), role);
+        return service.addMember(actor.actorId(), orgId, dto);
+    }
+
+    private static OrganizationMemberDto updateMember(
+            HttpServletRequest request,
+            OrganizationMembershipService service,
+            UserPrincipal actor,
+            UUID orgId,
+            UUID targetUserId,
+            String action)
+            throws IOException {
+        UUID actorId = actor.actorId();
+        if (action.equals("role")) {
+            Map<String, String> body = JsonObjectParser.parse(request.getReader());
+            OrganizationRole role = parseRole(body.get("role"));
+            return service.changeRole(
+                    actorId, orgId, targetUserId, new ChangeMemberRoleRequestDto(role));
+        } else if (action.equals("deactivate")) {
+            return service.deactivateMember(actorId, orgId, targetUserId);
+        } else if (action.equals("activate")) {
+            return service.activateMember(actorId, orgId, targetUserId);
+        }
+        throw new AppException(
+                HttpServletResponse.SC_BAD_REQUEST, "INVALID_ACTION", "Hành động không hợp lệ");
+    }
+
+    private OrganizationMembershipService service(ServletContext context) {
+        IdentityServices services = IdentityServices.from(context);
+        if (services == null) {
+            throw IdentityErrorWriter.unavailable();
+        }
+        return services.organizationMembershipService();
+    }
+
+    private static UserPrincipal requireUser(HttpServletRequest request) {
+        Optional<UserPrincipal> principal = SecurityContext.getCurrentUser(request);
+        if (principal.isEmpty()) {
+            throw new AppException(
                     HttpServletResponse.SC_UNAUTHORIZED,
                     "UNAUTHENTICATED",
                     "Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn");
-            return;
         }
+        return principal.get();
+    }
 
-        if (!SecurityContext.validateCsrfToken(req)) {
-            HttpResponses.error(
-                    resp,
-                    HttpServletResponse.SC_FORBIDDEN,
-                    "CSRF_TOKEN_INVALID",
-                    "Yêu cầu CSRF token hợp lệ");
-            return;
-        }
-
-        String path = PathIds.path(req);
-        Matcher matcher = MEMBERS_PATTERN.matcher(path);
-        if (!matcher.matches()) {
-            HttpResponses.error(
-                    resp,
-                    HttpServletResponse.SC_BAD_REQUEST,
-                    "INVALID_PATH",
-                    "Đường dẫn không hợp lệ");
-            return;
-        }
-
-        UUID orgId = PathIds.uuidOrNull(matcher.group(1));
+    private static UUID organizationId(String idText) {
+        UUID orgId = PathIds.uuidOrNull(idText);
         if (orgId == null) {
-            HttpResponses.error(
-                    resp,
+            throw new AppException(
+                    HttpServletResponse.SC_BAD_REQUEST, "INVALID_PATH", "Mã tổ chức không hợp lệ");
+        }
+        return orgId;
+    }
+
+    private static UUID targetUserId(String idText) {
+        UUID userId = PathIds.uuidOrNull(idText);
+        if (userId == null) {
+            throw new AppException(
                     HttpServletResponse.SC_BAD_REQUEST,
-                    "INVALID_PATH",
-                    "Mã tổ chức không hợp lệ");
-            return;
+                    "INVALID_UUID",
+                    "Mã người dùng không hợp lệ");
         }
+        return userId;
+    }
 
-        OrganizationMembershipService service = getService(req.getServletContext());
-        if (service == null) {
-            HttpResponses.error(
-                    resp,
-                    HttpServletResponse.SC_SERVICE_UNAVAILABLE,
-                    "DATABASE_UNAVAILABLE",
-                    "Hệ thống cơ sở dữ liệu chưa sẵn sàng");
-            return;
-        }
+    private static AppException invalidPath() {
+        return new AppException(
+                HttpServletResponse.SC_BAD_REQUEST, "INVALID_PATH", "Đường dẫn không hợp lệ");
+    }
 
-        UUID actorId = principalOpt.get().actorId();
-        String action = matcher.group(3);
-
-        try {
-            if (action == null) {
-                Map<String, String> body = JsonObjectParser.parse(req.getReader());
-                String userName = body.get("userName");
-                OrganizationRole role = parseRole(body.get("role"));
-                AddMemberRequestDto dto = new AddMemberRequestDto(userName, role);
-                OrganizationMemberDto member = service.addMember(actorId, orgId, dto);
-                HttpResponses.created(resp, member.toJson());
-            } else {
-                UUID targetUserId = PathIds.uuidOrNull(matcher.group(2));
-                if (targetUserId == null) {
-                    HttpResponses.error(
-                            resp,
-                            HttpServletResponse.SC_BAD_REQUEST,
-                            "INVALID_UUID",
-                            "Mã người dùng không hợp lệ");
-                    return;
-                }
-                switch (action) {
-                    case "role" -> {
-                        Map<String, String> body = JsonObjectParser.parse(req.getReader());
-                        OrganizationRole role = parseRole(body.get("role"));
-                        ChangeMemberRoleRequestDto dto = new ChangeMemberRoleRequestDto(role);
-                        OrganizationMemberDto updated =
-                                service.changeRole(actorId, orgId, targetUserId, dto);
-                        HttpResponses.data(resp, updated.toJson());
-                    }
-                    case "deactivate" -> {
-                        OrganizationMemberDto updated =
-                                service.deactivateMember(actorId, orgId, targetUserId);
-                        HttpResponses.data(resp, updated.toJson());
-                    }
-                    case "activate" -> {
-                        OrganizationMemberDto updated =
-                                service.activateMember(actorId, orgId, targetUserId);
-                        HttpResponses.data(resp, updated.toJson());
-                    }
-                    default ->
-                            HttpResponses.error(
-                                    resp,
-                                    HttpServletResponse.SC_BAD_REQUEST,
-                                    "INVALID_ACTION",
-                                    "Hành động không hợp lệ");
-                }
-            }
-        } catch (SecurityException ex) {
+    private static void handleException(HttpServletResponse response, Exception ex) throws IOException {
+        if (ex instanceof SecurityException) {
             HttpResponses.error(
-                    resp, HttpServletResponse.SC_FORBIDDEN, "FORBIDDEN", ex.getMessage());
-        } catch (IllegalStateException ex) {
-            if (ex.getMessage() != null && ex.getMessage().startsWith("MEMBER_ALREADY_EXISTS")) {
-                HttpResponses.error(
-                        resp,
-                        HttpServletResponse.SC_CONFLICT,
-                        "MEMBER_ALREADY_EXISTS",
-                        ex.getMessage());
-            } else if (ex.getMessage() != null
-                    && ex.getMessage().contains("CANNOT_DEACTIVATE_LAST_MANAGER")) {
-                HttpResponses.error(
-                        resp,
-                        HttpServletResponse.SC_BAD_REQUEST,
-                        "CANNOT_DEACTIVATE_LAST_MANAGER",
-                        ex.getMessage());
-            } else {
-                HttpResponses.error(
-                        resp, HttpServletResponse.SC_BAD_REQUEST, "BAD_REQUEST", ex.getMessage());
-            }
-        } catch (IllegalArgumentException ex) {
+                    response, HttpServletResponse.SC_FORBIDDEN, "FORBIDDEN", ex.getMessage());
+        } else if (ex instanceof IllegalArgumentException) {
             HttpResponses.error(
-                    resp, HttpServletResponse.SC_BAD_REQUEST, "BAD_REQUEST", ex.getMessage());
-        } catch (Exception ex) {
-            java.util.logging.Logger.getLogger(OrganizationMembersServlet.class.getName())
-                    .log(java.util.logging.Level.SEVERE, "Membership request failed", ex);
+                    response, HttpServletResponse.SC_BAD_REQUEST, "BAD_REQUEST", ex.getMessage());
+        } else {
+            LOGGER.log(Level.SEVERE, "Membership request failed", ex);
             HttpResponses.error(
-                    resp,
+                    response,
                     HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
                     "SERVER_ERROR",
                     "Đã xảy ra lỗi hệ thống.");
         }
     }
 
+    private static void membershipConflict(HttpServletResponse response, IllegalStateException ex)
+            throws IOException {
+        String msg = ex.getMessage();
+        if (msg != null && msg.startsWith("MEMBER_ALREADY_EXISTS")) {
+            HttpResponses.error(
+                    response,
+                    HttpServletResponse.SC_CONFLICT,
+                    "MEMBER_ALREADY_EXISTS",
+                    msg);
+        } else if (msg != null && msg.contains("CANNOT_DEACTIVATE_LAST_MANAGER")) {
+            HttpResponses.error(
+                    response,
+                    HttpServletResponse.SC_BAD_REQUEST,
+                    "CANNOT_DEACTIVATE_LAST_MANAGER",
+                    msg);
+        } else {
+            HttpResponses.error(
+                    response, HttpServletResponse.SC_BAD_REQUEST, "BAD_REQUEST", msg);
+        }
+    }
+
     private static OrganizationRole parseRole(String roleStr) {
-        if (roleStr == null) {
-            throw new IllegalArgumentException(
-                    "Vai trò không hợp lệ: chỉ chấp nhận MANAGER hoặc CHECK_IN_STAFF");
-        }
         try {
-            return OrganizationRole.valueOf(roleStr);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException(
-                    "Vai trò không hợp lệ: chỉ chấp nhận MANAGER hoặc CHECK_IN_STAFF");
-        }
+            if (roleStr != null) {
+                return OrganizationRole.valueOf(roleStr);
+            }
+        } catch (IllegalArgumentException ignored) {}
+        throw new IllegalArgumentException(
+                "Vai trò không hợp lệ: chỉ chấp nhận MANAGER hoặc CHECK_IN_STAFF");
     }
 }

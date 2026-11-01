@@ -48,7 +48,7 @@
         </section>
         <footer class="scanner-footer">TicketsCenter · Soát vé sự kiện · Thời gian theo Việt Nam</footer>
     </main>
-    <script src="../assets/checkin/vendor/html5-qrcode.min.js?v=2.3.8"></script>
-    <script src="../assets/checkin/scanner.js?v=20261013"></script>
+    <script src="../assets/js/checkin/vendor/html5-qrcode.min.js?v=2.3.8"></script>
+    <script src="../assets/js/checkin/scanner.js?v=20261013"></script>
 </body>
 </html>

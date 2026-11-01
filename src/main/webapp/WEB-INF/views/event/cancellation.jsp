@@ -67,7 +67,7 @@
                     </div>
                     <label for="cancellation-event-id" class="filter-label">Chọn sự kiện</label>
                     <div class="tc-cancel-actions">
-                        <select id="cancellation-event-id" class="form-select" style="max-width:520px" required>
+                        <select id="cancellation-event-id" class="form-select tc-select-wide" required>
                             <option value="">Đang tải danh sách…</option>
                         </select>
                         <button class="btn btn-dark">Xem yêu cầu</button>
@@ -116,6 +116,6 @@
         </main>
     </div>
     <jsp:include page="/WEB-INF/views/layout/footer.jsp" />
-    <script defer src="${pageContext.request.contextPath}/assets/js/event-cancellation-review.js"></script>
+    <script defer src="${pageContext.request.contextPath}/assets/js/event/cancellation-review.js"></script>
 </body>
 </html>

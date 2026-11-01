@@ -14,8 +14,8 @@ import java.io.IOException;
 public class HomeServlet extends HttpServlet {
 
     @Override
-    public void doGet(HttpServletRequest req, HttpServletResponse resp)
+    public void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        req.getRequestDispatcher("/WEB-INF/views/public/index.jsp").forward(req, resp);
+        request.getRequestDispatcher("/WEB-INF/views/public/index.jsp").forward(request, response);
     }
 }

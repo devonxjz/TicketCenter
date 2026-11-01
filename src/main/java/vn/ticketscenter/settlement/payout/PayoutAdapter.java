@@ -1,7 +1,8 @@
 package vn.ticketscenter.settlement.payout;
 
+import java.util.Set;
 import java.util.UUID;
-import vn.ticketscenter.settlement.infrastructure.FinanceException;
+import vn.ticketscenter.settlement.service.FinanceException;
 
 @FunctionalInterface
 public interface PayoutAdapter {
@@ -15,10 +16,12 @@ public interface PayoutAdapter {
 
     record Result(String status, String reference) {
         public Result {
-            if (!java.util.Set.of("SUCCEEDED", "FAILED", "UNKNOWN").contains(status))
+            if (!Set.of("SUCCEEDED", "FAILED", "UNKNOWN").contains(status)) {
                 throw new IllegalArgumentException("Invalid verified transfer result");
-            if (reference != null && (!reference.matches("[A-Za-z0-9_-]{1,100}")))
+            }
+            if (reference != null && (!reference.matches("[A-Za-z0-9_-]{1,100}"))) {
                 throw new IllegalArgumentException("Invalid provider reference");
+            }
         }
     }
 

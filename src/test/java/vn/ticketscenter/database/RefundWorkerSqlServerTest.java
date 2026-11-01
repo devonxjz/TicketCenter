@@ -1,5 +1,7 @@
 package vn.ticketscenter.database;
 
+import vn.ticketscenter.fulfillment.refund.dao.RefundWorkerStore;
+import vn.ticketscenter.fulfillment.refund.dao.RefundWorkerRepository;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.io.TempDir;
@@ -11,6 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.math.BigDecimal;
 import javax.sql.DataSource;
 import vn.ticketscenter.fulfillment.checkin.integration.ScanFixture;
+import vn.ticketscenter.fulfillment.refund.cache.RefundLeaseImpl;
 import vn.ticketscenter.fulfillment.refund.worker.*;
 import vn.ticketscenter.payment.integration.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -55,7 +58,7 @@ public class RefundWorkerSqlServerTest {
   public void record(Claim c,RefundGateway.Result r,String e){repo.record(c,r,e);}
  };}
  RefundProcessingWorker worker(Fixture f,RefundGateway gateway){return new RefundProcessingWorker(scoped(f,repository()),gateway,id->Optional.of(()->{}),50);}
- SimulatedRefundGateway gateway(RefundGateway.Status status,boolean timeout){return new SimulatedRefundGateway(directory,status,timeout);}
+ RefundGatewayImpl gateway(RefundGateway.Status status,boolean timeout){return new RefundGatewayImpl(directory,status,timeout);}
  void due(Fixture f)throws Exception{sql("UPDATE dbo.tc_refund_dispatches SET lease_until=DATEADD(second,-1,SYSUTCDATETIME()),next_query_at=DATEADD(second,-1,SYSUTCDATETIME()) WHERE attempt_id=?",f.attempt());}
  String status(Fixture f)throws Exception{return value("SELECT status FROM dbo.tc_refund_obligations WHERE id=?",f.refund());}
  @Test void WRK01StandingSuccessReturnsInventoryExactlyOnce()throws Exception{
@@ -158,7 +161,7 @@ public class RefundWorkerSqlServerTest {
    public void record(Claim c,RefundGateway.Result r,String e){filtered.record(c,r,e);}
   };
   var g=new RefundGateway(){public Result submit(UUID id,BigDecimal amount){calls.incrementAndGet();return new Result(Status.SUCCEEDED,"SIM-"+id);}public Result query(String ref){throw new AssertionError();}};
-  var lease=new RedisRefundLease(()->{throw new IllegalStateException("Fixture Redis outage");});var pool=Executors.newFixedThreadPool(2);
+  var lease=new RefundLeaseImpl(()->{throw new IllegalStateException("Fixture Redis outage");});var pool=Executors.newFixedThreadPool(2);
   try{var a=pool.submit(()->new RefundProcessingWorker(racing,g,lease,50).runOnce());var b=pool.submit(()->new RefundProcessingWorker(racing,g,lease,50).runOnce());assertEquals(1,a.get(25,TimeUnit.SECONDS)+b.get(25,TimeUnit.SECONDS));assertEquals(1,calls.get());assertEquals("COMPLETED",status(f));}finally{pool.shutdownNow();}
  }
  @Test void injectedFailureAfterInventoryMutationRollsBackAndRestartQueriesReceipt()throws Exception{

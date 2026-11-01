@@ -4,10 +4,13 @@ import vn.ticketscenter.fulfillment.refund.service.RefundException;
 
 public record EventCancelRequestDto(String reason) {
     public EventCancelRequestDto {
-        if (reason == null) throw invalid();
-        reason = reason.strip();
-        if (reason.length() < 10 || reason.length() > 500 || reason.indexOf('\0') >= 0)
+        if (reason == null) {
             throw invalid();
+        }
+        reason = reason.strip();
+        if (reason.length() < 10 || reason.length() > 500 || reason.indexOf('\0') >= 0) {
+            throw invalid();
+        }
     }
 
     private static RefundException invalid() {

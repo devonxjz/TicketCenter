@@ -17,7 +17,9 @@ final class EventJdbc {
         try (PreparedStatement query = query(connection, sql, args);
                 ResultSet rows = query.executeQuery()) {
             List<EventDto> result = new ArrayList<>();
-            while (rows.next()) result.add(event(rows));
+            while (rows.next()) {
+                result.add(event(rows));
+            }
             return List.copyOf(result);
         }
     }
@@ -46,8 +48,9 @@ final class EventJdbc {
     }
 
     static Instant instant(ResultSet rows, int column) throws SQLException {
-        if (rows.getMetaData().getColumnType(column) == -155)
+        if (rows.getMetaData().getColumnType(column) == -155) {
             return rows.getObject(column, OffsetDateTime.class).toInstant();
+        }
         return rows.getObject(column, LocalDateTime.class).toInstant(ZoneOffset.UTC);
     }
 
@@ -57,10 +60,13 @@ final class EventJdbc {
         query.setQueryTimeout(15);
         for (int index = 0; index < args.length; index++) {
             Object value = args[index];
-            if (value instanceof UUID id) query.setString(index + 1, id.toString());
-            else if (value instanceof Instant instant)
+            if (value instanceof UUID id) {
+                query.setString(index + 1, id.toString());
+            } else if (value instanceof Instant instant) {
                 query.setObject(index + 1, LocalDateTime.ofInstant(instant, ZoneOffset.UTC));
-            else query.setObject(index + 1, value);
+            } else {
+                query.setObject(index + 1, value);
+            }
         }
         return query;
     }
@@ -85,8 +91,9 @@ final class EventJdbc {
                             int columns = rows.getMetaData().getColumnCount();
                             while (rows.next()) {
                                 Object[] row = new Object[columns];
-                                for (int index = 0; index < columns; index++)
+                                for (int index = 0; index < columns; index++) {
                                     row[index] = rows.getObject(index + 1);
+                                }
                                 result.add(row);
                             }
                         }
@@ -100,7 +107,9 @@ final class EventJdbc {
 
     static Object[] row(Connection connection, String sql, Object... args) throws SQLException {
         List<Object[]> rows = rows(connection, sql, args);
-        if (rows.size() != 1) throw new SQLException("Procedure returned " + rows.size() + " rows");
+        if (rows.size() != 1) {
+            throw new SQLException("Procedure returned " + rows.size() + " rows");
+        }
         return rows.getFirst();
     }
 
@@ -182,15 +191,20 @@ final class EventJdbc {
             }
         } catch (SQLException exception) {
             EventException mapped = procedureFailure(exception.getErrorCode());
-            if (mapped != null) throw mapped;
-            if (exception.getErrorCode() == 51810)
+            if (mapped != null) {
+                throw mapped;
+            }
+            if (exception.getErrorCode() == 51810) {
                 throw failure(
                         403, "MANAGER_REQUIRED", "Active manager of this organization required");
-            if (exception.getErrorCode() == 51813)
+            }
+            if (exception.getErrorCode() == 51813) {
                 throw failure(
                         409, "EVENT_VERSION_CONFLICT", "Event has changed; reload before saving");
-            if (exception.getErrorCode() == 51812)
+            }
+            if (exception.getErrorCode() == 51812) {
                 throw failure(409, "EVENT_NOT_EDITABLE", "Only editable drafts may be changed");
+            }
             throw failure(
                     503,
                     "EVENT_DATABASE_UNAVAILABLE",

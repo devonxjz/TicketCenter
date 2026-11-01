@@ -7,7 +7,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import vn.ticketscenter.config.web.HttpResponses;
-import vn.ticketscenter.identity.config.IdentityServices;
+import vn.ticketscenter.config.identity.IdentityServices;
 import vn.ticketscenter.identity.controller.support.IdentityErrorWriter;
 import vn.ticketscenter.identity.controller.support.JsonObjectBuilder;
 import vn.ticketscenter.identity.controller.support.RequestFields;
@@ -29,39 +29,54 @@ public class RegisterServlet extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(RegisterServlet.class.getName());
 
-    private RegistrationService registrationService;
-    private OtpService otpService;
-
-    public RegisterServlet() {}
-
-    public RegisterServlet(RegistrationService registrationService) {
-        this.registrationService = registrationService;
-    }
-
-    public RegisterServlet(RegistrationService registrationService, OtpService otpService) {
-        this.registrationService = registrationService;
-        this.otpService = otpService;
-    }
-
     private RegistrationService registrationService(ServletContext context) {
-        if (registrationService != null) {
-            return registrationService;
-        }
         IdentityServices services = IdentityServices.from(context);
         return services == null ? null : services.registrationService();
     }
 
     private OtpService otpService(ServletContext context) {
-        if (otpService != null) {
-            return otpService;
-        }
         IdentityServices services = IdentityServices.from(context);
         return services == null ? null : services.otpService();
     }
 
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        request.setAttribute("csrfToken", SecurityContext.getOrCreateCsrfToken(request));
+        request.getRequestDispatcher("/WEB-INF/views/auth/register.jsp").forward(request, response);
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        RegistrationService service = registrationService(getServletContext());
+        if (service == null) {
+            IdentityErrorWriter.databaseUnavailable(response);
+            return;
+        }
+        try {
+            RequestFields fields = RequestFields.read(request);
+            String email = fields.get("email");
+            service.register(
+                    new RegisterRequestDto(
+                            fields.get("userName"),
+                            fields.get("fullName"),
+                            email,
+                            fields.get("password")));
+            boolean otpSent = sendVerificationOtp(request.getServletContext(), email);
+            HttpResponses.data(
+                    response,
+                    JsonObjectBuilder.object()
+                            .put("registered", true)
+                            .put("otpSent", otpSent)
+                            .build());
+        } catch (RuntimeException failure) {
+            IdentityErrorWriter.write(response, failure, "Đã xảy ra lỗi trong quá trình xử lý đăng ký");
+        }
+    }
+
     /**
-     * Gửi mã OTP kích hoạt ngay sau khi đăng ký. Tài khoản đã được tạo nên lỗi gửi mail
-     * không làm hỏng phản hồi đăng ký; client dùng cờ otpSent để mời người dùng gửi lại.
+     * Sends the activation OTP right after registration. The account already exists, so a mail failure
+     * does not fail the reply; the client uses the otpSent flag to offer a resend.
      */
     private boolean sendVerificationOtp(ServletContext context, String email) {
         try {
@@ -73,41 +88,6 @@ public class RegisterServlet extends HttpServlet {
                     Level.WARNING,
                     "Không thể gửi OTP kích hoạt sau khi đăng ký: " + ex.getMessage());
             return false;
-        }
-    }
-
-    @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
-        req.setAttribute("csrfToken", SecurityContext.getOrCreateCsrfToken(req));
-        req.getRequestDispatcher("/WEB-INF/views/auth/register.jsp").forward(req, resp);
-    }
-
-    @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        RegistrationService service = registrationService(req.getServletContext());
-        if (service == null) {
-            IdentityErrorWriter.databaseUnavailable(resp);
-            return;
-        }
-        try {
-            RequestFields fields = RequestFields.read(req);
-            String email = fields.get("email");
-            service.register(
-                    new RegisterRequestDto(
-                            fields.get("userName"),
-                            fields.get("fullName"),
-                            email,
-                            fields.get("password")));
-            boolean otpSent = sendVerificationOtp(req.getServletContext(), email);
-            HttpResponses.data(
-                    resp,
-                    JsonObjectBuilder.object()
-                            .put("registered", true)
-                            .put("otpSent", otpSent)
-                            .build());
-        } catch (RuntimeException failure) {
-            IdentityErrorWriter.write(resp, failure, "Đã xảy ra lỗi trong quá trình xử lý đăng ký");
         }
     }
 }

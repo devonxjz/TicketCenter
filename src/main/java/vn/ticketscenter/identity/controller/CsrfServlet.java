@@ -14,9 +14,9 @@ import java.io.IOException;
 public class CsrfServlet extends HttpServlet {
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        HttpSession session = req.getSession(true);
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        HttpSession session = request.getSession(true);
         String token = SecurityContext.getOrCreateCsrfToken(session);
-        HttpResponses.data(resp, "{\"token\":\"" + token + "\"}");
+        HttpResponses.data(response, "{\"token\":\"" + token + "\"}");
     }
 }

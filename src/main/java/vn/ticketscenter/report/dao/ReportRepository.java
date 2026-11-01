@@ -1,9 +1,11 @@
 package vn.ticketscenter.report.dao;
 
+import java.math.BigDecimal;
 import java.sql.*;
 import java.util.*;
+import vn.ticketscenter.identity.security.UserPrincipal;
 import vn.ticketscenter.report.dto.ReportFilter;
-import vn.ticketscenter.settlement.infrastructure.FinanceException;
+import vn.ticketscenter.settlement.service.FinanceException;
 
 public final class ReportRepository {
     private static final Set<String> MONEY =
@@ -22,79 +24,86 @@ public final class ReportRepository {
                     "pending_amount",
                     "available_to_pay");
 
+    public List<Map<String, Object>> organizationOptions(
+            Connection db, UserPrincipal actor, boolean admin) throws SQLException {
+        String sql =
+                "SELECT o.id,o.name FROM dbo.vw_FinanceOrganizations o"
+                        + (admin
+                                ? ""
+                                : " WHERE EXISTS (SELECT 1 FROM dbo.vw_ActiveManagerMemberships m WHERE m.organization_id=o.id AND m.user_id=?)")
+                        + " ORDER BY o.name,o.id";
+        List<Object> member = admin ? List.of() : List.of(actor.actorId());
+        return ReadProjection.list(db, sql, member, r -> ReadProjection.row(r, List.of("id", "name")));
+    }
+
+    public List<Map<String, Object>> eventOptions(Connection db, UUID organizationId)
+            throws SQLException {
+        return ReadProjection.list(
+                db,
+                "SELECT id,title FROM dbo.vw_FinanceEvents WHERE organization_id=? ORDER BY title,id",
+                List.of(organizationId),
+                r -> ReadProjection.row(r, List.of("id", "title")));
+    }
+
     public void requireEventScope(Connection db, ReportFilter filter) throws SQLException {
-        if (filter.eventId() == null) return;
+        if (filter.eventId() == null) {
+            return;
+        }
         String sql =
                 "SELECT id FROM dbo.vw_FinanceEvents WHERE id=?"
                         + (filter.organizationId() == null ? "" : " AND organization_id=?");
-        try (var query = db.prepareStatement(sql)) {
+        try (PreparedStatement query = db.prepareStatement(sql)) {
             query.setString(1, filter.eventId().toString());
-            if (filter.organizationId() != null)
+            if (filter.organizationId() != null) {
                 query.setString(2, filter.organizationId().toString());
-            try (var row = query.executeQuery()) {
-                if (!row.next()) throw new FinanceException("NOT_FOUND", 404);
+            }
+            try (ResultSet row = query.executeQuery()) {
+                if (!row.next()) {
+                    throw new FinanceException("NOT_FOUND", 404);
+                }
             }
         }
     }
 
     public Map<String, Object> page(Connection db, ReportFilter filter) throws SQLException {
         Query q = query(filter);
-        long total;
-        try (var count =
-                db.prepareStatement("SELECT COUNT_BIG(*) FROM (" + q.sql + ") report_rows")) {
-            ReadProjection.bind(count, q.parameters);
-            try (var row = count.executeQuery()) {
-                row.next();
-                total = row.getLong(1);
-            }
-        }
-        var rows = new ArrayList<Map<String, Object>>();
-        try (var statement =
-                db.prepareStatement(
-                        q.sql + " ORDER BY " + q.order + " OFFSET ? ROWS FETCH NEXT ? ROWS ONLY")) {
-            var params = new ArrayList<>(q.parameters);
-            params.add(filter.offset());
-            params.add(filter.pageSize());
-            ReadProjection.bind(statement, params);
-            try (var data = statement.executeQuery()) {
-                while (data.next()) rows.add(ReadProjection.row(data, q.columns));
-            }
-        }
+        long total =
+                ReadProjection.first(
+                        db,
+                        "SELECT COUNT_BIG(*) FROM (" + q.sql + ") report_rows",
+                        q.parameters,
+                        row -> row.getLong(1));
+        ArrayList<Object> params = new ArrayList<>(q.parameters);
+        params.add(filter.offset());
+        params.add(filter.pageSize());
+        List<Map<String, Object>> rows =
+                ReadProjection.list(
+                        db,
+                        q.sql + " ORDER BY " + q.order + " OFFSET ? ROWS FETCH NEXT ? ROWS ONLY",
+                        params,
+                        row -> ReadProjection.row(row, q.columns));
         var summary = new LinkedHashMap<String, Object>();
         summary.put("totalEvents", total);
-        var totals =
+        List<String> totals =
                 q.columns.stream().filter(c -> c.endsWith("_count") || MONEY.contains(c)).toList();
-        if (!totals.isEmpty())
-            try (var statement =
-                    db.prepareStatement(
-                            "SELECT "
-                                    + String.join(
-                                            ",",
-                                            totals.stream()
-                                                    .map(c -> "COALESCE(SUM(" + c + "),0) " + c)
-                                                    .toList())
-                                    + " FROM ("
-                                    + q.sql
-                                    + ") report_rows")) {
-                ReadProjection.bind(statement, q.parameters);
-                try (var result = statement.executeQuery()) {
-                    result.next();
-                    summary.putAll(ReadProjection.row(result, totals));
-                }
-            }
-        var top = new ArrayList<Map<String, Object>>();
-        if (q.columns.contains("gross_revenue"))
-            try (var statement =
-                    db.prepareStatement(
-                            "SELECT TOP(5) * FROM ("
-                                    + q.sql
-                                    + ") report_rows ORDER BY gross_revenue DESC,"
-                                    + q.order)) {
-                ReadProjection.bind(statement, q.parameters);
-                try (var result = statement.executeQuery()) {
-                    while (result.next()) top.add(ReadProjection.row(result, q.columns));
-                }
-            }
+        if (!totals.isEmpty()) {
+            String sums =
+                    String.join(",", totals.stream().map(c -> "COALESCE(SUM(" + c + "),0) " + c).toList());
+            summary.putAll(
+                    ReadProjection.first(
+                            db,
+                            "SELECT " + sums + " FROM (" + q.sql + ") report_rows",
+                            q.parameters,
+                            row -> ReadProjection.row(row, totals)));
+        }
+        List<Map<String, Object>> top =
+                q.columns.contains("gross_revenue")
+                        ? ReadProjection.list(
+                                db,
+                                "SELECT TOP(5) * FROM (" + q.sql + ") report_rows ORDER BY gross_revenue DESC," + q.order,
+                                q.parameters,
+                                row -> ReadProjection.row(row, q.columns))
+                        : new ArrayList<>();
         var data = new LinkedHashMap<String, Object>();
         data.put("metric", filter.metric().name());
         data.put("timeBasis", timeBasis(filter));
@@ -114,7 +123,7 @@ public final class ReportRepository {
 
     public Cursor cursor(Connection db, ReportFilter filter) throws SQLException {
         Query q = query(filter);
-        var statement =
+        PreparedStatement statement =
                 db.prepareStatement(
                         q.sql + " ORDER BY " + q.order,
                         ResultSet.TYPE_FORWARD_ONLY,
@@ -237,7 +246,7 @@ public final class ReportRepository {
                     "SELECT report.*,e.title event_title FROM ("
                             + sql
                             + ") report LEFT JOIN dbo.vw_FinanceEvents e ON e.id=report.event_id";
-            var namedColumns = new ArrayList<>(columns);
+            ArrayList<String> namedColumns = new ArrayList<>(columns);
             namedColumns.add("event_title");
             columns = namedColumns;
         }
@@ -264,7 +273,9 @@ public final class ReportRepository {
 
         @Override
         public Iterator<List<String>> iterator() {
-            if (iterated) throw new IllegalStateException("Cursor can be consumed once");
+            if (iterated) {
+                throw new IllegalStateException("Cursor can be consumed once");
+            }
             iterated = true;
             return new Iterator<>() {
                 boolean ready, has;
@@ -282,18 +293,21 @@ public final class ReportRepository {
                 }
 
                 public List<String> next() {
-                    if (!hasNext()) throw new NoSuchElementException();
+                    if (!hasNext()) {
+                        throw new NoSuchElementException();
+                    }
                     ready = false;
                     try {
-                        var row = ReadProjection.row(rows, columns);
+                        Map<String, Object> row = ReadProjection.row(rows, columns);
                         var result = new ArrayList<String>();
-                        for (Object value : row.values())
+                        for (Object value : row.values()) {
                             result.add(
                                     value == null
                                             ? ""
-                                            : value instanceof java.math.BigDecimal money
+                                            : value instanceof BigDecimal money
                                                     ? money.toPlainString()
                                                     : value.toString());
+                        }
                         return result;
                     } catch (SQLException e) {
                         throw new FinanceException("REPORT_UNAVAILABLE", 503);

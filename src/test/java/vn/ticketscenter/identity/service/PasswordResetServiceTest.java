@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import vn.ticketscenter.config.persistence.DatabasePrincipal;
 import vn.ticketscenter.config.persistence.PersistenceRegistry;
 import vn.ticketscenter.config.persistence.TransactionManager;
+import vn.ticketscenter.identity.cache.UserSessionCache;
 import vn.ticketscenter.identity.error.IdentityError;
 import vn.ticketscenter.identity.error.IdentityException;
 import vn.ticketscenter.identity.dto.ForgotPasswordRequestDto;
@@ -64,16 +65,15 @@ public class PasswordResetServiceTest {
                 Assumptions.assumeTrue(false, "Database is not ready");
             }
             TransactionManager tm = registry.transactionManager();
-            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpHasher, resetTokens, emailSender);
-            PasswordResetService resetService = new PasswordResetService(tm, userRepository, otpService, resetTokens, passwordHasher, UserSessionCache.disabled());
+            OtpService otpService = new OtpServiceImpl(tm, otpRepository, userRepository, otpHasher, resetTokens, emailSender);
+            PasswordResetService resetService = new PasswordResetServiceImpl(tm, userRepository, otpService, resetTokens, passwordHasher, UserSessionCache.disabled());
 
             String suffix = UUID.randomUUID().toString().substring(0, 8);
             String existingEmail = "existing." + suffix + "@ticketscenter.vn";
             String nonExistingEmail = "unknown." + suffix + "@ticketscenter.vn";
 
             tm.execute(DatabasePrincipal.AUTH, em -> {
-                User user = new User(existingEmail, "user" + suffix, "Test User", passwordHasher.hash("OldPassword123!"));
-                userRepository.save(em, user);
+                User user = userRepository.findById(em, userRepository.register(em, existingEmail, "user" + suffix, "Test User", passwordHasher.hash("OldPassword123!"))).orElseThrow();
                 return null;
             });
 
@@ -104,8 +104,8 @@ public class PasswordResetServiceTest {
                 Assumptions.assumeTrue(false, "Database is not ready");
             }
             TransactionManager tm = registry.transactionManager();
-            OtpService otpService = new OtpService(tm, otpRepository, userRepository, otpHasher, resetTokens, emailSender);
-            PasswordResetService resetService = new PasswordResetService(tm, userRepository, otpService, resetTokens, passwordHasher, UserSessionCache.disabled());
+            OtpService otpService = new OtpServiceImpl(tm, otpRepository, userRepository, otpHasher, resetTokens, emailSender);
+            PasswordResetService resetService = new PasswordResetServiceImpl(tm, userRepository, otpService, resetTokens, passwordHasher, UserSessionCache.disabled());
 
             String suffix = UUID.randomUUID().toString().substring(0, 8);
             String email = "resetpwd." + suffix + "@ticketscenter.vn";
@@ -113,8 +113,7 @@ public class PasswordResetServiceTest {
             String newPassword = "BrandNewPassword2026!";
 
             User user = tm.execute(DatabasePrincipal.AUTH, em -> {
-                User u = new User(email, "user" + suffix, "Test User", passwordHasher.hash(oldPassword));
-                userRepository.save(em, u);
+                User u = userRepository.findById(em, userRepository.register(em, email, "user" + suffix, "Test User", passwordHasher.hash(oldPassword))).orElseThrow();
                 return u;
             });
 

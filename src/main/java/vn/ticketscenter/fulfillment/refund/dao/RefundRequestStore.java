@@ -1,6 +1,5 @@
 package vn.ticketscenter.fulfillment.refund.dao;
 
-import java.time.Instant;
 import java.util.*;
 import vn.ticketscenter.fulfillment.refund.dto.*;
 import vn.ticketscenter.identity.security.UserPrincipal;
@@ -10,7 +9,7 @@ public interface RefundRequestStore {
 
     boolean active(UserPrincipal actor);
 
-    List<RefundTicketOptionDto> tickets(UserPrincipal actor, UUID orderId, Instant now);
+    List<RefundTicketOptionDto> tickets(UserPrincipal actor, UUID orderId);
 
     List<OrderOption> orders(UserPrincipal actor);
 

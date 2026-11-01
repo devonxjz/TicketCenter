@@ -1,9 +1,10 @@
 package vn.ticketscenter.fulfillment.checkin.controller;
 
+import vn.ticketscenter.config.web.TestServlets;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import org.junit.jupiter.api.Test;
-import vn.ticketscenter.identity.config.IdentityServices;
+import vn.ticketscenter.config.identity.IdentityServices;
 import vn.ticketscenter.config.persistence.TransactionManager;
 import vn.ticketscenter.fulfillment.checkin.CheckInException;
 import vn.ticketscenter.fulfillment.checkin.cache.CheckInEventCache;
@@ -11,6 +12,7 @@ import vn.ticketscenter.fulfillment.checkin.dto.*;
 import vn.ticketscenter.fulfillment.checkin.dao.CheckInEventRepository;
 import vn.ticketscenter.fulfillment.checkin.dao.CheckInEventRepository.EventInfo;
 import vn.ticketscenter.fulfillment.checkin.service.CheckInEventService;
+import vn.ticketscenter.fulfillment.checkin.service.CheckInEventServiceImpl;
 import vn.ticketscenter.identity.model.PlatformRole;
 import vn.ticketscenter.identity.dao.UserRepository;
 import vn.ticketscenter.identity.security.*;
@@ -35,7 +37,7 @@ class CheckInServletsTest {
         case "getNamedDispatcher" -> dispatcher("named:"+a[0]);
         default -> null;
     });
-    private final CheckInEventService service=new CheckInEventService(new CheckInEventRepository(null),new EmptyCache(),Clock.systemUTC()) {
+    private final CheckInEventService service=new CheckInEventServiceImpl(new CheckInEventRepository(null),new EmptyCache(),Clock.systemUTC()) {
         @Override public List<CheckInEventSummaryDto> events(UUID actor,UUID org){
             serviceCalls++;if(failure!=null)throw failure;assertEquals(ACTOR,actor);
             return List.of(new CheckInEventSummaryDto(EVENT,"<script>\"Nhạc\"</script>","Nhà hát",Instant.EPOCH,Instant.EPOCH.plusSeconds(7200),Instant.EPOCH.minusSeconds(3600),true,5,2,"OPEN"));
@@ -75,44 +77,44 @@ class CheckInServletsTest {
     private RequestDispatcher dispatcher(String target){return proxy(RequestDispatcher.class,(m,a)->{if(m.equals("forward"))forwarded=target;return null;});}
 
     @Test void unauthenticatedListReturns401WithoutServiceAccess() throws Exception {
-        new CheckInEventsServlet(service).doGet(request(),response());assertEquals(401,status);assertEquals(0,serviceCalls);
+        TestServlets.init(new CheckInEventsServlet(), service).doGet(request(),response());assertEquals(401,status);assertEquals(0,serviceCalls);
     }
     @Test void jsonListUsesEnvelopeAndEscapesDynamicText() throws Exception {
-        login();parameters.put("organizationId",ORG.toString());new CheckInEventsServlet(service).doGet(request(),response());
+        login();parameters.put("organizationId",ORG.toString());TestServlets.init(new CheckInEventsServlet(), service).doGet(request(),response());
         assertEquals(200,status);assertTrue(output.toString().startsWith("{\"data\":["));
         assertTrue(output.toString().contains("\\\"Nhạc\\\""));assertFalse(output.toString().contains("paidAmount"));
         assertEquals("no-store",responseHeaders.get("Cache-Control"));
     }
     @Test void malformedOrganizationIdIsRejectedBeforeService() throws Exception {
-        login();parameters.put("organizationId","1 OR 1=1");new CheckInEventsServlet(service).doGet(request(),response());
+        login();parameters.put("organizationId","1 OR 1=1");TestServlets.init(new CheckInEventsServlet(), service).doGet(request(),response());
         assertEquals(400,status);assertEquals(0,serviceCalls);
     }
     @Test void staleSessionIsRejectedForHtmlAsWellAsApi() throws Exception {
-        login();sessionValid=false;path="/check-ins";new CheckInEventsServlet(service).doGet(request(),response());
+        login();sessionValid=false;path="/check-ins";TestServlets.init(new CheckInEventsServlet(), service).doGet(request(),response());
         assertEquals(401,status);assertEquals(0,serviceCalls);assertFalse(attributes.containsKey(SecurityContext.REQUEST_USER_ATTRIBUTE));
     }
     @Test void htmlPageForwardsToOwnedJsp() throws Exception {
-        login();path="/check-ins";new CheckInEventsServlet(service).doGet(request(),response());
+        login();path="/check-ins";TestServlets.init(new CheckInEventsServlet(), service).doGet(request(),response());
         assertEquals("/WEB-INF/views/checkin/select-event.jsp",forwarded);assertNotNull(attributes.get("checkInEvents"));
     }
     @Test void explicitJsonAcceptOnHtmlRouteReturnsSameData() throws Exception {
-        login();path="/check-ins";headers.put("Accept","application/json");new CheckInEventsServlet(service).doGet(request(),response());
+        login();path="/check-ins";headers.put("Accept","application/json");TestServlets.init(new CheckInEventsServlet(), service).doGet(request(),response());
         assertNull(forwarded);assertTrue(output.toString().contains("totalCheckedIn"));
     }
     @Test void unavailableAuthenticationFailsClosed() throws Exception {
-        login();contextAttributes.clear();new CheckInEventsServlet(service).doGet(request(),response());
+        login();contextAttributes.clear();TestServlets.init(new CheckInEventsServlet(), service).doGet(request(),response());
         assertEquals(503,status);assertEquals(0,serviceCalls);
     }
     @Test void databaseDetailsNeverLeakToClient() throws Exception {
-        login();failure=new IllegalStateException("SQL password=secret dbo.tc_users");new CheckInEventsServlet(service).doGet(request(),response());
+        login();failure=new IllegalStateException("SQL password=secret dbo.tc_users");TestServlets.init(new CheckInEventsServlet(), service).doGet(request(),response());
         assertEquals(503,status);assertFalse(output.toString().contains("secret"));assertFalse(output.toString().contains("tc_users"));
     }
     @Test void cancelledWindowReturnsRequired400() throws Exception {
         login();attributes.put(CheckInWindowServlet.EVENT_ID_ATTRIBUTE,EVENT.toString());failure=new CheckInException(400,"EVENT_CANCELLED","Sự kiện đã bị hủy bỏ.");
-        new CheckInWindowServlet(service).doGet(request(),response());assertEquals(400,status);assertTrue(output.toString().contains("EVENT_CANCELLED"));
+        TestServlets.init(new CheckInWindowServlet(), service).doGet(request(),response());assertEquals(400,status);assertTrue(output.toString().contains("EVENT_CANCELLED"));
     }
     @Test void windowReturnsServerTimeAndOpenStatus() throws Exception {
-        login();attributes.put(CheckInWindowServlet.EVENT_ID_ATTRIBUTE,EVENT.toString());new CheckInWindowServlet(service).doGet(request(),response());
+        login();attributes.put(CheckInWindowServlet.EVENT_ID_ATTRIBUTE,EVENT.toString());TestServlets.init(new CheckInWindowServlet(), service).doGet(request(),response());
         assertEquals(200,status);assertTrue(output.toString().contains("\"isOpen\":true"));assertTrue(output.toString().contains("currentServerTime"));
     }
     @Test void nestedRouteDispatchesOnlyCheckInWindow() throws Exception {

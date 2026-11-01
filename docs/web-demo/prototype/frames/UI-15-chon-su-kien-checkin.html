@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chọn Sự Kiện Soát Vé — TicketsCenter Staff</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="bg-light min-h-screen">
+    <div class="small text-center py-2 bg-light text-muted" role="note">Prototype tĩnh • Dữ liệu và thao tác mô phỏng • Chưa kết nối backend, email hoặc cổng thanh toán.</div>
+
+    <!-- Top Navbar -->
+    <nav class="admin-navbar sticky-top">
+        <div class="container-fluid d-flex align-items-center justify-content-between p-0">
+            <div class="d-flex align-items-center gap-3">
+                <a class="navbar-brand-custom" href="UI-01-danh-sach-su-kien.html">TicketsCenter</a>
+                <span class="status-pill status-neutral">Cổng Soát Vé</span>
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+                <span class="small text-muted d-none d-sm-inline">Nhân viên soát vé: <strong>Lê Văn Hùng</strong></span>
+                <a href="UI-01-danh-sach-su-kien.html" class="btn btn-sm btn-outline-dark rounded-0 px-3">
+                    Đăng xuất
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Layout -->
+    <div class="dashboard-layout">
+        <aside class="dashboard-sidebar">
+            <div class="sidebar-title">Soát vé tại cửa</div>
+            <ul class="sidebar-menu">
+                <li><a href="UI-15-chon-su-kien-checkin.html" class="active">• Chọn sự kiện</a></li>
+                <li><a href="UI-16-quet-ma-ve.html">• Máy quét mã vé</a></li>
+                <li><span class="small text-muted">Nhân viên chỉ truy cập chức năng check-in</span></li>
+            </ul>
+
+            <div class="sidebar-title">Điều hướng</div>
+            <ul class="sidebar-menu">
+                <li><a href="UI-01-danh-sach-su-kien.html">• Cổng người mua</a></li>
+            </ul>
+        </aside>
+
+        <main class="dashboard-content">
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center pb-4 mb-4 border-bottom">
+                <div>
+                    <h1 class="h4 fw-bold mb-1 text-dark">Chọn Chương Trình Kiểm Soát Vé Vào Cửa</h1>
+                    <p class="small text-muted mb-0">Hệ thống mở cổng quét vé tự động trước giờ diễn 60 phút để đón khán giả.</p>
+                </div>
+            </div>
+
+            <!-- Check-in Window Notice -->
+            <div class="p-3 bg-white border border-secondary-subtle small text-muted mb-4">
+                <strong>Quy định giờ mở cổng:</strong> Chỉ những sự kiện đang trong khung giờ đón khách (bắt đầu trước 60 phút và chưa kết thúc) mới có thể kích hoạt máy quét camera vào cửa.
+            </div>
+
+            <div class="row g-4">
+                
+                <!-- Event 1: ACTIVE (Within Check-in window) -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="panel-box h-100 d-flex flex-column justify-content-between bg-white">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="status-pill status-success">Đang mở cửa đón khách (fixture)</span>
+                                <span class="small text-muted">Ngày giả lập: 01/11/2026</span>
+                            </div>
+                            <h5 class="fw-bold mb-3 text-dark">Vé Tham Quan Bảo Tàng Phụ Nữ Việt Nam</h5>
+                            
+                            <div class="small d-flex flex-column gap-2 mb-4 pb-2 border-bottom">
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Thời gian đón khách:</span>
+                                    <span class="text-dark fw-medium">08:30 – 17:30</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Địa điểm:</span>
+                                    <span class="text-dark fw-medium text-end">36 Lý Thường Kiệt, Hoàn Kiếm</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Tiến độ vào cửa:</span>
+                                    <span class="text-dark fw-bold">412 / 820 khách (50.2%)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="progress rounded-0 mb-3" style="height: 6px;">
+                                <div class="progress-bar bg-dark" style="width: 50.2%;"></div>
+                            </div>
+                            <a href="UI-16-quet-ma-ve.html" class="btn-primary-custom w-100 text-center py-2 fw-semibold">
+                                Mở máy quét mã vé
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Event 2: LOCKED (Too early) -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="panel-box h-100 d-flex flex-column justify-content-between bg-white opacity-75">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="status-pill status-amber">Chưa tới giờ mở</span>
+                                <span class="small text-muted">15/11/2026</span>
+                            </div>
+                            <h5 class="fw-bold mb-3 text-dark">Chuyên Đề: Phụ Nữ Việt Nam Trong Di Sản</h5>
+                            
+                            <div class="small d-flex flex-column gap-2 mb-4 pb-2 border-bottom">
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Thời gian bắt đầu:</span>
+                                    <span class="text-dark fw-medium">15/11/2026 09:00</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Địa điểm:</span>
+                                    <span class="text-dark fw-medium text-end">Hội trường VWM, Hà Nội</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Cổng quét mở lúc:</span>
+                                    <span class="text-dark fw-semibold">15/11 08:00 (T-60m)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <button class="btn btn-outline-secondary w-100 rounded-0 py-2 small" disabled>
+                                Chưa đến giờ mở cổng soát vé
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Event 3: CLOSED (Past) -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="panel-box h-100 d-flex flex-column justify-content-between bg-white opacity-60">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="status-pill status-neutral">Đã kết thúc</span>
+                                <span class="small text-muted">Đã đóng</span>
+                            </div>
+                            <h5 class="fw-bold mb-3 text-dark">Triển Lãm Tranh Dân Gian Mùa Hè 2026</h5>
+                            
+                            <div class="small d-flex flex-column gap-2 mb-4 pb-2 border-bottom">
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Thời gian:</span>
+                                    <span class="text-dark fw-medium">Kết thúc 20/08/2026</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Tổng số lượt vào cửa:</span>
+                                    <span class="text-dark fw-bold">980 / 1.000 khách (98%)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <a href="UI-15-chon-su-kien-checkin.html" class="btn btn-outline-dark w-100 rounded-0 py-2 small">
+                                Đã đóng check-in
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+</body>
+</html>

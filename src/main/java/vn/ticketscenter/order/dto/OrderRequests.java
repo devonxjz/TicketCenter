@@ -97,7 +97,9 @@ public final class OrderRequests {
         }
         for (int i = 0; i < value.length(); i++) {
             char c = value.charAt(i);
-            if (Character.isISOControl(c)) throw invalid("Control character in text");
+            if (Character.isISOControl(c)) {
+                throw invalid("Control character in text");
+            }
             if (Character.isHighSurrogate(c)) {
                 if (++i >= value.length() || !Character.isLowSurrogate(value.charAt(i))) {
                     throw invalid("Unpaired surrogate");
@@ -109,9 +111,13 @@ public final class OrderRequests {
     }
 
     private static String member(InputStream body, String name) throws IOException {
-        if (body == null) throw invalid("Missing body");
+        if (body == null) {
+            throw invalid("Missing body");
+        }
         byte[] bytes = body.readNBytes(MAX_BODY_BYTES + 1);
-        if (bytes.length > MAX_BODY_BYTES) throw new BodyTooLargeException();
+        if (bytes.length > MAX_BODY_BYTES) {
+            throw new BodyTooLargeException();
+        }
         String json;
         try {
             json =
@@ -125,7 +131,9 @@ public final class OrderRequests {
             throw invalid("Malformed UTF-8");
         }
         Map<String, String> fields = new Parser(json).object();
-        if (fields.size() != 1 || !fields.containsKey(name)) throw invalid("Expected only " + name);
+        if (fields.size() != 1 || !fields.containsKey(name)) {
+            throw invalid("Expected only " + name);
+        }
         return fields.get(name);
     }
 
@@ -147,7 +155,9 @@ public final class OrderRequests {
             if (!take('}')) {
                 do {
                     String name = string();
-                    if (fields.containsKey(name)) throw invalid("Duplicate member");
+                    if (fields.containsKey(name)) {
+                        throw invalid("Duplicate member");
+                    }
                     expect(':');
                     whitespace();
                     String value;
@@ -162,7 +172,9 @@ public final class OrderRequests {
                 expect('}');
             }
             whitespace();
-            if (position != json.length()) throw invalid("Trailing JSON content");
+            if (position != json.length()) {
+                throw invalid("Trailing JSON content");
+            }
             return fields;
         }
 
@@ -176,9 +188,13 @@ public final class OrderRequests {
                     validateUnicode(result);
                     return result;
                 }
-                if (c < 0x20) throw invalid("Unescaped control character");
+                if (c < 0x20) {
+                    throw invalid("Unescaped control character");
+                }
                 if (c == '\\') {
-                    if (position == json.length()) throw invalid("Incomplete escape");
+                    if (position == json.length()) {
+                        throw invalid("Incomplete escape");
+                    }
                     char escaped = json.charAt(position++);
                     c =
                             switch (escaped) {
@@ -198,7 +214,9 @@ public final class OrderRequests {
         }
 
         private char unicodeEscape() {
-            if (position + 4 > json.length()) throw invalid("Incomplete Unicode escape");
+            if (position + 4 > json.length()) {
+                throw invalid("Incomplete Unicode escape");
+            }
             int value = 0;
             for (int i = 0; i < 4; i++) {
                 char c = json.charAt(position++);
@@ -208,7 +226,9 @@ public final class OrderRequests {
                                 : c >= 'a' && c <= 'f'
                                         ? c - 'a' + 10
                                         : c >= 'A' && c <= 'F' ? c - 'A' + 10 : -1;
-                if (digit < 0) throw invalid("Invalid Unicode escape");
+                if (digit < 0) {
+                    throw invalid("Invalid Unicode escape");
+                }
                 value = value * 16 + digit;
             }
             return (char) value;
@@ -237,13 +257,17 @@ public final class OrderRequests {
         }
 
         private void expect(char c) {
-            if (!take(c)) throw invalid("Invalid JSON object");
+            if (!take(c)) {
+                throw invalid("Invalid JSON object");
+            }
         }
 
         private void whitespace() {
             while (position < json.length()) {
                 char c = json.charAt(position);
-                if (c != ' ' && c != '\t' && c != '\r' && c != '\n') break;
+                if (c != ' ' && c != '\t' && c != '\r' && c != '\n') {
+                    break;
+                }
                 position++;
             }
         }

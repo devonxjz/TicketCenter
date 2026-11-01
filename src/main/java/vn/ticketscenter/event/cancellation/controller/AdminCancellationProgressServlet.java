@@ -1,5 +1,7 @@
 package vn.ticketscenter.event.cancellation.controller;
 
+import java.util.UUID;
+import vn.ticketscenter.identity.security.UserPrincipal;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,8 +17,8 @@ public final class AdminCancellationProgressServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         try {
-            var id = EventCancellationWeb.target(request, "cancellation-progress");
-            var actor = EventCancellationWeb.actor(request);
+            UUID id = EventCancellationWeb.target(request, "cancellation-progress");
+            UserPrincipal actor = EventCancellationWeb.actor(request);
             HttpResponses.data(response, EventCancellationWeb.service(request).progress(actor, id));
         } catch (RuntimeException failure) {
             EventCancellationWeb.error(response, failure);

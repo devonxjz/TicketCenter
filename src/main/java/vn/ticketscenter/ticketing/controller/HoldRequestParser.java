@@ -51,7 +51,9 @@ public final class HoldRequestParser {
             if (!cursor.consume('}')) {
                 do {
                     String key = cursor.string();
-                    if (!keys.add(key)) throw invalid();
+                    if (!keys.add(key)) {
+                        throw invalid();
+                    }
                     cursor.expect(':');
                     switch (key) {
                         case "eventId" -> event = cursor.uuid();
@@ -76,10 +78,14 @@ public final class HoldRequestParser {
     }
 
     private static Cursor read(InputStream input) {
-        if (input == null) throw invalid();
+        if (input == null) {
+            throw invalid();
+        }
         try {
             byte[] body = input.readNBytes(MAX_BODY_BYTES + 1);
-            if (body.length > MAX_BODY_BYTES) throw new ParseException(Failure.BODY_TOO_LARGE);
+            if (body.length > MAX_BODY_BYTES) {
+                throw new ParseException(Failure.BODY_TOO_LARGE);
+            }
             String text =
                     StandardCharsets.UTF_8
                             .newDecoder()
@@ -108,8 +114,9 @@ public final class HoldRequestParser {
         }
 
         private void whitespace() {
-            while (position < text.length() && " \t\r\n".indexOf(text.charAt(position)) >= 0)
+            while (position < text.length() && " \t\r\n".indexOf(text.charAt(position)) >= 0) {
                 position++;
+            }
         }
 
         private boolean consume(char token) {
@@ -122,12 +129,16 @@ public final class HoldRequestParser {
         }
 
         private void expect(char token) {
-            if (!consume(token)) throw invalid();
+            if (!consume(token)) {
+                throw invalid();
+            }
         }
 
         private void end() {
             whitespace();
-            if (position != text.length()) throw invalid();
+            if (position != text.length()) {
+                throw invalid();
+            }
         }
 
         private String string() {
@@ -140,9 +151,13 @@ public final class HoldRequestParser {
                     closed = true;
                     break;
                 }
-                if (character < 32) throw invalid();
+                if (character < 32) {
+                    throw invalid();
+                }
                 if (character == '\\') {
-                    if (position == text.length()) throw invalid();
+                    if (position == text.length()) {
+                        throw invalid();
+                    }
                     char escaped = text.charAt(position++);
                     character =
                             switch (escaped) {
@@ -158,19 +173,26 @@ public final class HoldRequestParser {
                 }
                 value.append(character);
             }
-            if (!closed) throw invalid();
+            if (!closed) {
+                throw invalid();
+            }
             for (int index = 0; index < value.length(); index++) {
                 char character = value.charAt(index);
                 if (Character.isHighSurrogate(character)) {
-                    if (++index == value.length() || !Character.isLowSurrogate(value.charAt(index)))
+                    if (++index == value.length() || !Character.isLowSurrogate(value.charAt(index))) {
                         throw invalid();
-                } else if (Character.isLowSurrogate(character)) throw invalid();
+                    }
+                } else if (Character.isLowSurrogate(character)) {
+                    throw invalid();
+                }
             }
             return value.toString();
         }
 
         private char unicode() {
-            if (text.length() - position < 4) throw invalid();
+            if (text.length() - position < 4) {
+                throw invalid();
+            }
             int value = 0;
             for (int index = 0; index < 4; index++) {
                 char digit = text.charAt(position++);
@@ -180,7 +202,9 @@ public final class HoldRequestParser {
                                 : digit >= 'a' && digit <= 'f'
                                         ? digit - 'a' + 10
                                         : digit >= 'A' && digit <= 'F' ? digit - 'A' + 10 : -1;
-                if (hex < 0) throw invalid();
+                if (hex < 0) {
+                    throw invalid();
+                }
                 value = value * 16 + hex;
             }
             return (char) value;
@@ -189,8 +213,9 @@ public final class HoldRequestParser {
         private UUID uuid() {
             String value = string();
             if (!value.matches(
-                    "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"))
+                    "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")) {
                 throw invalid();
+            }
             return UUID.fromString(value);
         }
 
@@ -198,7 +223,9 @@ public final class HoldRequestParser {
             whitespace();
             if (position == text.length()
                     || text.charAt(position) < '1'
-                    || text.charAt(position) > '8') throw invalid();
+                    || text.charAt(position) > '8') {
+                throw invalid();
+            }
             return text.charAt(position++) - '0';
         }
 
@@ -207,7 +234,9 @@ public final class HoldRequestParser {
             var selections = new ArrayList<HoldSelection>();
             if (!consume(']')) {
                 do {
-                    if (selections.size() == 8) throw invalid();
+                    if (selections.size() == 8) {
+                        throw invalid();
+                    }
                     expect('{');
                     UUID zone = null;
                     UUID seat = null;
@@ -216,14 +245,19 @@ public final class HoldRequestParser {
                     if (!consume('}')) {
                         do {
                             String key = string();
-                            if (!keys.add(key)) throw invalid();
+                            if (!keys.add(key)) {
+                                throw invalid();
+                            }
                             expect(':');
                             switch (key) {
                                 case "zoneId" -> zone = uuid();
                                 case "seatId" -> {
                                     whitespace();
-                                    if (text.startsWith("null", position)) position += 4;
-                                    else seat = uuid();
+                                    if (text.startsWith("null", position)) {
+                                        position += 4;
+                                    } else {
+                                        seat = uuid();
+                                    }
                                 }
                                 case "quantity" -> quantity = quantity();
                                 default -> throw invalid();

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng Ký Trở Thành Nhà Tổ Chức — TicketsCenter</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-light min-h-screen d-flex flex-column justify-content-between">
+    <div class="small text-center py-2 bg-light text-muted" role="note">Prototype tĩnh • Dữ liệu và thao tác mô phỏng • Chưa kết nối backend, email hoặc cổng thanh toán.</div>
+
+    <!-- Header & Navbar -->
+    <nav class="navbar navbar-custom sticky-top">
+        <div class="container d-flex align-items-center justify-content-between">
+            <a class="navbar-brand-custom" href="index.html">
+                TicketsCenter
+            </a>
+            <a href="index.html" class="small fw-semibold text-muted text-decoration-none">
+                 Quay lại trang chủ
+            </a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container my-5">
+        
+        <div class="panel-box mx-auto bg-white" style="max-width: 800px;">
+            <div class="panel-header">
+                <div>
+                    <h1 class="h4 fw-bold mb-1 text-dark">Đăng Ký Đối Tác Ban Tổ Chức</h1>
+                    <span class="small text-muted">Trở thành đối tác chính thức phát hành vé sự kiện trên nền tảng TicketsCenter</span>
+                </div>
+                <span class="status-pill status-dark">Chờ quản trị duyệt</span>
+            </div>
+
+            <div class="p-3 bg-light border small text-muted mb-4">
+                 Sau khi hồ sơ được phê duyệt, tài khoản đăng ký sẽ trở thành Quản lý chính của tổ chức và có thể bắt đầu tạo chương trình sự kiện, cấu hình sơ đồ ghế và thêm tài khoản đã tồn tại bằng userName.
+            </div>
+
+            <!-- Form -->
+            <form onsubmit="event.preventDefault(); submitOrg();">
+                <h6 class="fw-bold mb-3 border-bottom pb-2 text-dark">1. Hồ sơ Organization</h6>
+                
+                <div class="row g-4 mb-4">
+                    <div class="col-md-8">
+                        <label class="filter-label">Tên tổ chức *</label>
+                        <input type="text" class="form-control rounded-0 border-secondary-subtle py-2" required placeholder="VD: Công ty TNHH Sự Kiện & Giải Trí Việt Nam">
+                    </div>
+                    <div class="col-12">
+                        <label class="filter-label">Mô tả tổ chức *</label>
+                        <textarea class="form-control rounded-0 border-secondary-subtle py-2" required placeholder="Giới thiệu tổ chức và hoạt động dự kiến"></textarea>
+                    </div>
+                </div>
+
+                <h6 class="fw-bold mb-3 border-bottom pb-2 text-dark">2. Người gửi hồ sơ & Liên hệ</h6>
+                
+                <div class="row g-4 mb-4">
+                    <div class="col-md-6">
+                        <label class="filter-label">Người gửi (tài khoản đăng nhập)</label>
+                        <input type="text" class="form-control rounded-0 border-secondary-subtle py-2" readonly value="minhthao — Trần Minh Thảo">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="filter-label">Trạng thái hồ sơ</label>
+                        <input type="text" class="form-control rounded-0 border-secondary-subtle py-2" readonly value="DRAFT → PENDING_APPROVAL">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="filter-label">Email liên hệ công việc *</label>
+                        <input type="email" class="form-control rounded-0 border-secondary-subtle py-2" required placeholder="manager@vwm.vn">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="filter-label">Số điện thoại liên hệ *</label>
+                        <input type="tel" class="form-control rounded-0 border-secondary-subtle py-2" required placeholder="0903 123 456">
+                    </div>
+                </div>
+                <p class="small text-muted">Duyệt cập nhật cùng Organization sang APPROVED, tạo CommissionRule ban đầu và cấp MANAGER cho requester trong cùng giao dịch; từ chối giữ hồ sơ REJECTED và lý do.</p>
+                <!-- Submit Button -->
+                <div class="d-flex gap-3 pt-3">
+                    <button type="submit" class="btn-primary-custom flex-1 py-3 text-center fw-bold fs-6">
+                        Gửi hồ sơ đăng ký đối tác 
+                    </button>
+                    <a href="index.html" class="btn-outline-custom flex-1 text-center py-3">
+                        Quay lại trang chủ
+                    </a>
+                </div>
+            </form>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-auto py-4 bg-white border-top">
+        <div class="container text-center small text-muted">
+            &copy; 2026 TicketsCenter. Đồng hành cùng nhà tổ chức sự kiện chuyên nghiệp.
+        </div>
+    </footer>
+
+    <script>
+        function submitOrg() {
+            alert('Mô phỏng: Hồ sơ tổ chức của bạn đã được tiếp nhận thành công! Organization giữ trạng thái PENDING_APPROVAL; chưa được vào khu vực quản lý trước khi duyệt.');
+            // Giữ màn hình theo dõi hồ sơ; không cấp quyền quản lý trong mock.
+        }
+    </script>
+</body>
+</html>

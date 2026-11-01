@@ -1,0 +1,1244 @@
+{
+  "fn_CalculateCommission": {
+    "name": "fn_CalculateCommission",
+    "type": "FUNCTION",
+    "last_file": "027_vuong_finance.sql",
+    "code_len": 586
+  },
+  "fn_CalculateCouponDiscount": {
+    "name": "fn_CalculateCouponDiscount",
+    "type": "FUNCTION",
+    "last_file": "004_create_functions.sql",
+    "code_len": 707
+  },
+  "fn_event_is_check_in_open": {
+    "name": "fn_event_is_check_in_open",
+    "type": "FUNCTION",
+    "last_file": "030_khanh02_signed_checkin.sql",
+    "code_len": 442
+  },
+  "fn_GetEventCheckInWindow": {
+    "name": "fn_GetEventCheckInWindow",
+    "type": "FUNCTION",
+    "last_file": "039_sql_report_contract_consistency.sql",
+    "code_len": 487
+  },
+  "fn_GetZoneAvailability": {
+    "name": "fn_GetZoneAvailability",
+    "type": "FUNCTION",
+    "last_file": "004_create_functions.sql",
+    "code_len": 204
+  },
+  "fn_GetCouponEligibility": {
+    "name": "fn_GetCouponEligibility",
+    "type": "FUNCTION",
+    "last_file": "004_create_functions.sql",
+    "code_len": 1140
+  },
+  "fn_GetRefundableTickets": {
+    "name": "fn_GetRefundableTickets",
+    "type": "FUNCTION",
+    "last_file": "050_consolidate_canonical_tables.sql",
+    "code_len": 575
+  },
+  "fn_AllocateTicketPaidAmounts": {
+    "name": "fn_AllocateTicketPaidAmounts",
+    "type": "FUNCTION",
+    "last_file": "004_create_functions.sql",
+    "code_len": 1537
+  },
+  "fn_GetOrganizationRevenue": {
+    "name": "fn_GetOrganizationRevenue",
+    "type": "FUNCTION",
+    "last_file": "027_vuong_finance.sql",
+    "code_len": 1587
+  },
+  "fn_GetOrganizationCashFlow": {
+    "name": "fn_GetOrganizationCashFlow",
+    "type": "FUNCTION",
+    "last_file": "035_sql_report_runtime.sql",
+    "code_len": 1588
+  },
+  "fn_GetSettlementBlockers": {
+    "name": "fn_GetSettlementBlockers",
+    "type": "FUNCTION",
+    "last_file": "027_vuong_finance.sql",
+    "code_len": 2321
+  },
+  "vw_CheckInHistory": {
+    "name": "vw_CheckInHistory",
+    "type": "VIEW",
+    "last_file": "050_consolidate_canonical_tables.sql",
+    "code_len": 398
+  },
+  "vw_CouponUsage": {
+    "name": "vw_CouponUsage",
+    "type": "VIEW",
+    "last_file": "005_create_views.sql",
+    "code_len": 902
+  },
+  "vw_EventCancellationExceptions": {
+    "name": "vw_EventCancellationExceptions",
+    "type": "VIEW",
+    "last_file": "050_consolidate_canonical_tables.sql",
+    "code_len": 838
+  },
+  "vw_EventCancellationProgress": {
+    "name": "vw_EventCancellationProgress",
+    "type": "VIEW",
+    "last_file": "050_consolidate_canonical_tables.sql",
+    "code_len": 2626
+  },
+  "vw_EventCancellationWork": {
+    "name": "vw_EventCancellationWork",
+    "type": "VIEW",
+    "last_file": "050_consolidate_canonical_tables.sql",
+    "code_len": 1372
+  },
+  "vw_EventSalesReport": {
+    "name": "vw_EventSalesReport",
+    "type": "VIEW",
+    "last_file": "027_vuong_finance.sql",
+    "code_len": 1734
+  },
+  "vw_FailedCompensationAttempts": {
+    "name": "vw_FailedCompensationAttempts",
+    "type": "VIEW",
+    "last_file": "050_consolidate_canonical_tables.sql",
+    "code_len": 454
+  },
+  "vw_OrderFinancialSummary": {
+    "name": "vw_OrderFinancialSummary",
+    "type": "VIEW",
+    "last_file": "027_vuong_finance.sql",
+    "code_len": 2935
+  },
+  "vw_OrganizationMembers": {
+    "name": "vw_OrganizationMembers",
+    "type": "VIEW",
+    "last_file": "005_create_views.sql",
+    "code_len": 303
+  },
+  "vw_PublicEvents": {
+    "name": "vw_PublicEvents",
+    "type": "VIEW",
+    "last_file": "064_event_publication_archive.sql",
+    "code_len": 536
+  },
+  "vw_RefundOverview": {
+    "name": "vw_RefundOverview",
+    "type": "VIEW",
+    "last_file": "005_create_views.sql",
+    "code_len": 1340
+  },
+  "vw_RefundRequestOverview": {
+    "name": "vw_RefundRequestOverview",
+    "type": "VIEW",
+    "last_file": "050_consolidate_canonical_tables.sql",
+    "code_len": 1451
+  },
+  "vw_RefundWork": {
+    "name": "vw_RefundWork",
+    "type": "VIEW",
+    "last_file": "050_consolidate_canonical_tables.sql",
+    "code_len": 194
+  },
+  "vw_SettlementPayoutBalance": {
+    "name": "vw_SettlementPayoutBalance",
+    "type": "VIEW",
+    "last_file": "027_vuong_finance.sql",
+    "code_len": 382
+  },
+  "vw_TicketDetails": {
+    "name": "vw_TicketDetails",
+    "type": "VIEW",
+    "last_file": "005_create_views.sql",
+    "code_len": 500
+  },
+  "vw_ZoneInventory": {
+    "name": "vw_ZoneInventory",
+    "type": "VIEW",
+    "last_file": "005_create_views.sql",
+    "code_len": 1006
+  },
+  "usp_ApplyOrderCoupon": {
+    "name": "usp_ApplyOrderCoupon",
+    "type": "PROCEDURE",
+    "last_file": "035_sql_report_runtime.sql",
+    "code_len": 4552
+  },
+  "usp_ApplyPaymentResult": {
+    "name": "usp_ApplyPaymentResult",
+    "type": "PROCEDURE",
+    "last_file": "050_consolidate_canonical_tables.sql",
+    "code_len": 10460
+  },
+  "usp_ApplyRefundResult": {
+    "name": "usp_ApplyRefundResult",
+    "type": "PROCEDURE",
+    "last_file": "050_consolidate_canonical_tables.sql",
+    "code_len": 10045
+  },
+  "usp_ApproveOrganization": {
+    "name": "usp_ApproveOrganization",
+    "type": "PROCEDURE",
+    "last_file": "006_create_procedures.sql",
+    "code_len": 3273
+  },
+  "usp_ApproveOrganizationRequest": {
+    "name": "usp_ApproveOrganizationRequest",
+    "type": "PROCEDURE",
+    "last_file": "006_create_procedures.sql",
+    "code_len": 3389
+  },
+  "usp_BeginOrderPayment": {
+    "name": "usp_BeginOrderPayment",
+    "type": "PROCEDURE",
+    "last_file": "031_sql_report_financial_safety.sql",
+    "code_len": 2471
+  },
+  "usp_CancelEvent": {
+    "name": "usp_CancelEvent",
+    "type": "PROCEDURE",
+    "last_file": "058_khanh06_event_cancellation.sql",
+    "code_len": 307
+  },
+  "usp_ConfirmSettlement": {
+    "name": "usp_ConfirmSettlement",
+    "type": "PROCEDURE",
+    "last_file": "027_vuong_finance.sql",
+    "code_len": 1857
+  },
+  "usp_CreateOrderFromHold": {
+    "name": "usp_CreateOrderFromHold",
+    "type": "PROCEDURE",
+    "last_file": "006_create_procedures.sql",
+    "code_len": 2530
+  },
+  "usp_CreateRefundRequest": {
+    "name": "usp_CreateRefundRequest",
+    "type": "PROCEDURE",
+    "last_file": "050_consolidate_canonical_tables.sql",
+    "code_len": 3392
+  },
+  "usp_CreateTicketHold": {
+    "name": "usp_CreateTicketHold",
+    "type": "PROCEDURE",
+    "last_file": "041_hold_refund_runtime_compatibility.sql",
+    "code_len": 5620
+  },
+  "usp_DecideRefund": {
+    "name": "usp_DecideRefund",
+    "type": "PROCEDURE",
+    "last_file": "050_consolidate_canonical_tables.sql",
+    "code_len": 734
+  },
+  "usp_DecideRefundRequest": {
+    "name": "usp_DecideRefundRequest",
+    "type": "PROCEDURE",
+    "last_file": "006_create_procedures.sql",
+    "code_len": 405
+  },
+  "usp_ProcessCancelledOrder": {
+    "name": "usp_ProcessCancelledOrder",
+    "type": "PROCEDURE",
+    "last_file": "050_consolidate_canonical_tables.sql",
+    "code_len": 5344
+  },
+  "usp_PublishEvent": {
+    "name": "usp_PublishEvent",
+    "type": "PROCEDURE",
+    "last_file": "051_event_single_image_url.sql",
+    "code_len": 3066
+  },
+  "usp_RecalculateSettlement": {
+    "name": "usp_RecalculateSettlement",
+    "type": "PROCEDURE",
+    "last_file": "027_vuong_finance.sql",
+    "code_len": 3773
+  },
+  "usp_RecordPayout": {
+    "name": "usp_RecordPayout",
+    "type": "PROCEDURE",
+    "last_file": "027_vuong_finance.sql",
+    "code_len": 4631
+  },
+  "usp_ReleaseTicketHold": {
+    "name": "usp_ReleaseTicketHold",
+    "type": "PROCEDURE",
+    "last_file": "035_sql_report_runtime.sql",
+    "code_len": 4062
+  },
+  "usp_RequestTicketRefund": {
+    "name": "usp_RequestTicketRefund",
+    "type": "PROCEDURE",
+    "last_file": "006_create_procedures.sql",
+    "code_len": 540
+  },
+  "usp_ReviewRefundRequest": {
+    "name": "usp_ReviewRefundRequest",
+    "type": "PROCEDURE",
+    "last_file": "050_consolidate_canonical_tables.sql",
+    "code_len": 8476
+  },
+  "trg_AuditLog_AppendOnly": {
+    "name": "trg_AuditLog_AppendOnly",
+    "type": "TRIGGER",
+    "last_file": "007_create_triggers.sql",
+    "code_len": 248
+  },
+  "trg_CommissionRule_ProtectAppliedTerms": {
+    "name": "trg_CommissionRule_ProtectAppliedTerms",
+    "type": "TRIGGER",
+    "last_file": "007_create_triggers.sql",
+    "code_len": 589
+  },
+  "trg_Coupon_ProtectUsageLimit": {
+    "name": "trg_Coupon_ProtectUsageLimit",
+    "type": "TRIGGER",
+    "last_file": "007_create_triggers.sql",
+    "code_len": 479
+  },
+  "trg_Event_AuditStatusChange": {
+    "name": "trg_Event_AuditStatusChange",
+    "type": "TRIGGER",
+    "last_file": "007_create_triggers.sql",
+    "code_len": 508
+  },
+  "trg_Membership_ProtectLastManager": {
+    "name": "trg_Membership_ProtectLastManager",
+    "type": "TRIGGER",
+    "last_file": "007_create_triggers.sql",
+    "code_len": 697
+  },
+  "trg_Seat_ProtectPublishedLayout": {
+    "name": "trg_Seat_ProtectPublishedLayout",
+    "type": "TRIGGER",
+    "last_file": "007_create_triggers.sql",
+    "code_len": 906
+  },
+  "trg_SettlementOrderSnapshot_ProtectConfirmedAmounts": {
+    "name": "trg_SettlementOrderSnapshot_ProtectConfirmedAmounts",
+    "type": "TRIGGER",
+    "last_file": "007_create_triggers.sql",
+    "code_len": 640
+  },
+  "trg_Settlement_ProtectConfirmedSnapshot": {
+    "name": "trg_Settlement_ProtectConfirmedSnapshot",
+    "type": "TRIGGER",
+    "last_file": "007_create_triggers.sql",
+    "code_len": 889
+  },
+  "trg_Ticket_ProtectIssuedSnapshot": {
+    "name": "trg_Ticket_ProtectIssuedSnapshot",
+    "type": "TRIGGER",
+    "last_file": "007_create_triggers.sql",
+    "code_len": 522
+  },
+  "trg_Zone_ProtectPublishedLayout": {
+    "name": "trg_Zone_ProtectPublishedLayout",
+    "type": "TRIGGER",
+    "last_file": "007_create_triggers.sql",
+    "code_len": 848
+  },
+  "trg_tc_users_normalize": {
+    "name": "trg_tc_users_normalize",
+    "type": "TRIGGER",
+    "last_file": "007_create_triggers.sql",
+    "code_len": 390
+  },
+  "vw_VuongOrders": {
+    "name": "vw_VuongOrders",
+    "type": "VIEW",
+    "last_file": "027_team_schema_adapter.sql",
+    "code_len": 3945
+  },
+  "vw_VuongPayments": {
+    "name": "vw_VuongPayments",
+    "type": "VIEW",
+    "last_file": "027_team_schema_adapter.sql",
+    "code_len": 3945
+  },
+  "vw_VuongRefunds": {
+    "name": "vw_VuongRefunds",
+    "type": "VIEW",
+    "last_file": "050_consolidate_canonical_tables.sql",
+    "code_len": 932
+  },
+  "vw_VuongAuditLogs": {
+    "name": "vw_VuongAuditLogs",
+    "type": "VIEW",
+    "last_file": "027_team_schema_adapter.sql",
+    "code_len": 3945
+  },
+  "trg_VuongLegacyAuditInsert": {
+    "name": "trg_VuongLegacyAuditInsert",
+    "type": "TRIGGER",
+    "last_file": "027_team_schema_adapter.sql",
+    "code_len": 3945
+  },
+  "usp_VuongRequireAdmin": {
+    "name": "usp_VuongRequireAdmin",
+    "type": "PROCEDURE",
+    "last_file": "027_vuong_finance.sql",
+    "code_len": 346
+  },
+  "usp_CreateCommissionRule": {
+    "name": "usp_CreateCommissionRule",
+    "type": "PROCEDURE",
+    "last_file": "027_vuong_finance.sql",
+    "code_len": 3407
+  },
+  "usp_UpdateCommissionRule": {
+    "name": "usp_UpdateCommissionRule",
+    "type": "PROCEDURE",
+    "last_file": "027_vuong_finance.sql",
+    "code_len": 3529
+  },
+  "usp_VuongUpdateSettlementTotals": {
+    "name": "usp_VuongUpdateSettlementTotals",
+    "type": "PROCEDURE",
+    "last_file": "027_vuong_finance.sql",
+    "code_len": 854
+  },
+  "trg_VuongCommissionFreeze": {
+    "name": "trg_VuongCommissionFreeze",
+    "type": "TRIGGER",
+    "last_file": "027_vuong_finance.sql",
+    "code_len": 528
+  },
+  "trg_VuongSnapshotFreeze": {
+    "name": "trg_VuongSnapshotFreeze",
+    "type": "TRIGGER",
+    "last_file": "027_vuong_finance.sql",
+    "code_len": 667
+  },
+  "trg_VuongSettlementValidate": {
+    "name": "trg_VuongSettlementValidate",
+    "type": "TRIGGER",
+    "last_file": "027_vuong_finance.sql",
+    "code_len": 1913
+  },
+  "trg_VuongTransferLedger": {
+    "name": "trg_VuongTransferLedger",
+    "type": "TRIGGER",
+    "last_file": "027_vuong_finance.sql",
+    "code_len": 2145
+  },
+  "trg_VuongAuditAppendOnly": {
+    "name": "trg_VuongAuditAppendOnly",
+    "type": "TRIGGER",
+    "last_file": "027_vuong_finance.sql",
+    "code_len": 191
+  },
+  "trg_VuongMutationAppendOnly": {
+    "name": "trg_VuongMutationAppendOnly",
+    "type": "TRIGGER",
+    "last_file": "027_vuong_finance.sql",
+    "code_len": 210
+  },
+  "trg_VuongSimulatedTransferAppendOnly": {
+    "name": "trg_VuongSimulatedTransferAppendOnly",
+    "type": "TRIGGER",
+    "last_file": "027_vuong_finance.sql",
+    "code_len": 237
+  },
+  "trg_VuongOrderFinancialFreeze": {
+    "name": "trg_VuongOrderFinancialFreeze",
+    "type": "TRIGGER",
+    "last_file": "027_vuong_finance.sql",
+    "code_len": 1164
+  },
+  "trg_VuongRefundFinancialFreeze": {
+    "name": "trg_VuongRefundFinancialFreeze",
+    "type": "TRIGGER",
+    "last_file": "027_vuong_finance.sql",
+    "code_len": 1030
+  },
+  "trg_VuongRefundEvidenceFreeze": {
+    "name": "trg_VuongRefundEvidenceFreeze",
+    "type": "TRIGGER",
+    "last_file": "027_vuong_finance.sql",
+    "code_len": 613
+  },
+  "trg_VuongPaymentFinancialFreeze": {
+    "name": "trg_VuongPaymentFinancialFreeze",
+    "type": "TRIGGER",
+    "last_file": "027_vuong_finance.sql",
+    "code_len": 952
+  },
+  "vw_VuongEventCheckinCounts": {
+    "name": "vw_VuongEventCheckinCounts",
+    "type": "VIEW",
+    "last_file": "028_vuong_report_checkins.sql",
+    "code_len": 1253
+  },
+  "sp_organization_approve": {
+    "name": "sp_organization_approve",
+    "type": "PROCEDURE",
+    "last_file": "054_organization_decision_procedures.sql",
+    "code_len": 4788
+  },
+  "sp_organization_reject": {
+    "name": "sp_organization_reject",
+    "type": "PROCEDURE",
+    "last_file": "054_organization_decision_procedures.sql",
+    "code_len": 2087
+  },
+  "usp_HoldAuthorize": {
+    "name": "usp_HoldAuthorize",
+    "type": "PROCEDURE",
+    "last_file": "029_hold_runtime.sql",
+    "code_len": 447
+  },
+  "usp_HoldLockSelection": {
+    "name": "usp_HoldLockSelection",
+    "type": "PROCEDURE",
+    "last_file": "029_hold_runtime.sql",
+    "code_len": 3792
+  },
+  "usp_HoldSnapshot": {
+    "name": "usp_HoldSnapshot",
+    "type": "PROCEDURE",
+    "last_file": "029_hold_runtime.sql",
+    "code_len": 992
+  },
+  "usp_HoldMutation": {
+    "name": "usp_HoldMutation",
+    "type": "PROCEDURE",
+    "last_file": "041_hold_refund_runtime_compatibility.sql",
+    "code_len": 4531
+  },
+  "usp_CreateHoldRequest": {
+    "name": "usp_CreateHoldRequest",
+    "type": "PROCEDURE",
+    "last_file": "029_hold_runtime.sql",
+    "code_len": 359
+  },
+  "usp_CancelHoldRequest": {
+    "name": "usp_CancelHoldRequest",
+    "type": "PROCEDURE",
+    "last_file": "029_hold_runtime.sql",
+    "code_len": 323
+  },
+  "usp_ReadActiveHold": {
+    "name": "usp_ReadActiveHold",
+    "type": "PROCEDURE",
+    "last_file": "029_hold_runtime.sql",
+    "code_len": 1396
+  },
+  "usp_ExpireHolds": {
+    "name": "usp_ExpireHolds",
+    "type": "PROCEDURE",
+    "last_file": "036_sql_report_worker_reads.sql",
+    "code_len": 1568
+  },
+  "usp_ReadHoldOptions": {
+    "name": "usp_ReadHoldOptions",
+    "type": "PROCEDURE",
+    "last_file": "029_hold_runtime.sql",
+    "code_len": 2005
+  },
+  "v_refunds": {
+    "name": "v_refunds",
+    "type": "VIEW",
+    "last_file": "029_khanh03_refund_request.sql",
+    "code_len": 452
+  },
+  "v_refund_tickets": {
+    "name": "v_refund_tickets",
+    "type": "VIEW",
+    "last_file": "029_khanh03_refund_request.sql",
+    "code_len": 291
+  },
+  "v_refundable_orders": {
+    "name": "v_refundable_orders",
+    "type": "VIEW",
+    "last_file": "029_khanh03_refund_request.sql",
+    "code_len": 246
+  },
+  "v_refundable_ticket_options": {
+    "name": "v_refundable_ticket_options",
+    "type": "VIEW",
+    "last_file": "029_khanh03_refund_request.sql",
+    "code_len": 473
+  },
+  "v_refund_attempts": {
+    "name": "v_refund_attempts",
+    "type": "VIEW",
+    "last_file": "029_khanh03_refund_request.sql",
+    "code_len": 152
+  },
+  "sp_refund_request_for_tickets": {
+    "name": "sp_refund_request_for_tickets",
+    "type": "PROCEDURE",
+    "last_file": "050_consolidate_canonical_tables.sql",
+    "code_len": 7532
+  },
+  "sp_ticket_check_in": {
+    "name": "sp_ticket_check_in",
+    "type": "PROCEDURE",
+    "last_file": "042_checkin_event_user_lock_order.sql",
+    "code_len": 5744
+  },
+  "sp_checkin_recent_logs": {
+    "name": "sp_checkin_recent_logs",
+    "type": "PROCEDURE",
+    "last_file": "030_khanh02_signed_checkin.sql",
+    "code_len": 1190
+  },
+  "usp_OrderSnapshot": {
+    "name": "usp_OrderSnapshot",
+    "type": "PROCEDURE",
+    "last_file": "030_order_runtime.sql",
+    "code_len": 2260
+  },
+  "usp_OrderLockCoupons": {
+    "name": "usp_OrderLockCoupons",
+    "type": "PROCEDURE",
+    "last_file": "030_order_runtime.sql",
+    "code_len": 656
+  },
+  "usp_CreateOrderRequest": {
+    "name": "usp_CreateOrderRequest",
+    "type": "PROCEDURE",
+    "last_file": "030_order_runtime.sql",
+    "code_len": 4552
+  },
+  "usp_OrderCouponDecision": {
+    "name": "usp_OrderCouponDecision",
+    "type": "PROCEDURE",
+    "last_file": "030_order_runtime.sql",
+    "code_len": 1976
+  },
+  "usp_ApplyOrderCouponRequest": {
+    "name": "usp_ApplyOrderCouponRequest",
+    "type": "PROCEDURE",
+    "last_file": "030_order_runtime.sql",
+    "code_len": 5950
+  },
+  "usp_ReadCheckout": {
+    "name": "usp_ReadCheckout",
+    "type": "PROCEDURE",
+    "last_file": "030_order_runtime.sql",
+    "code_len": 1733
+  },
+  "usp_ReadOrderCouponEligibility": {
+    "name": "usp_ReadOrderCouponEligibility",
+    "type": "PROCEDURE",
+    "last_file": "030_order_runtime.sql",
+    "code_len": 3372
+  },
+  "usp_CompleteFreeOrder": {
+    "name": "usp_CompleteFreeOrder",
+    "type": "PROCEDURE",
+    "last_file": "031_sql_report_financial_safety.sql",
+    "code_len": 324
+  },
+  "usp_RequireOrganizationManager": {
+    "name": "usp_RequireOrganizationManager",
+    "type": "PROCEDURE",
+    "last_file": "032_sql_report_permissions.sql",
+    "code_len": 440
+  },
+  "usp_RequireActiveMember": {
+    "name": "usp_RequireActiveMember",
+    "type": "PROCEDURE",
+    "last_file": "032_sql_report_permissions.sql",
+    "code_len": 400
+  },
+  "usp_SaveEventDraft": {
+    "name": "usp_SaveEventDraft",
+    "type": "PROCEDURE",
+    "last_file": "051_event_single_image_url.sql",
+    "code_len": 2838
+  },
+  "usp_AddMember": {
+    "name": "usp_AddMember",
+    "type": "PROCEDURE",
+    "last_file": "032_sql_report_permissions.sql",
+    "code_len": 954
+  },
+  "usp_ChangeMemberRole": {
+    "name": "usp_ChangeMemberRole",
+    "type": "PROCEDURE",
+    "last_file": "032_sql_report_permissions.sql",
+    "code_len": 1020
+  },
+  "trg_User_AuthRoleGuard": {
+    "name": "trg_User_AuthRoleGuard",
+    "type": "TRIGGER",
+    "last_file": "032_sql_report_permissions.sql",
+    "code_len": 560
+  },
+  "trg_OrderItem_ValidateEventSeat": {
+    "name": "trg_OrderItem_ValidateEventSeat",
+    "type": "TRIGGER",
+    "last_file": "038_sql_report_composite_foreign_keys.sql",
+    "code_len": 647
+  },
+  "trg_Ticket_AssignSeat": {
+    "name": "trg_Ticket_AssignSeat",
+    "type": "TRIGGER",
+    "last_file": "033_sql_report_indexes.sql",
+    "code_len": 522
+  },
+  "fn_ReportOrderVisibility": {
+    "name": "fn_ReportOrderVisibility",
+    "type": "FUNCTION",
+    "last_file": "034_sql_report_read_scope.sql",
+    "code_len": 803
+  },
+  "fn_ReportUserVisibility": {
+    "name": "fn_ReportUserVisibility",
+    "type": "FUNCTION",
+    "last_file": "034_sql_report_read_scope.sql",
+    "code_len": 844
+  },
+  "fn_ReportOrganizationRequestVisibility": {
+    "name": "fn_ReportOrganizationRequestVisibility",
+    "type": "FUNCTION",
+    "last_file": "034_sql_report_read_scope.sql",
+    "code_len": 393
+  },
+  "fn_ReportCouponVisibility": {
+    "name": "fn_ReportCouponVisibility",
+    "type": "FUNCTION",
+    "last_file": "034_sql_report_read_scope.sql",
+    "code_len": 822
+  },
+  "fn_CalculateCouponDiscountCapped": {
+    "name": "fn_CalculateCouponDiscountCapped",
+    "type": "FUNCTION",
+    "last_file": "035_sql_report_runtime.sql",
+    "code_len": 457
+  },
+  "vw_ExpiredHolds": {
+    "name": "vw_ExpiredHolds",
+    "type": "VIEW",
+    "last_file": "036_sql_report_worker_reads.sql",
+    "code_len": 163
+  },
+  "vw_PaymentsToReconcile": {
+    "name": "vw_PaymentsToReconcile",
+    "type": "VIEW",
+    "last_file": "036_sql_report_worker_reads.sql",
+    "code_len": 393
+  },
+  "vw_GatewayRefundReconciliation": {
+    "name": "vw_GatewayRefundReconciliation",
+    "type": "VIEW",
+    "last_file": "036_sql_report_worker_reads.sql",
+    "code_len": 222
+  },
+  "vw_PaymentOrderContext": {
+    "name": "vw_PaymentOrderContext",
+    "type": "VIEW",
+    "last_file": "040_payment_ticket_runtime_reads.sql",
+    "code_len": 306
+  },
+  "vw_PaymentRuntimeDetails": {
+    "name": "vw_PaymentRuntimeDetails",
+    "type": "VIEW",
+    "last_file": "040_payment_ticket_runtime_reads.sql",
+    "code_len": 381
+  },
+  "vw_OrderTicketQuantity": {
+    "name": "vw_OrderTicketQuantity",
+    "type": "VIEW",
+    "last_file": "040_payment_ticket_runtime_reads.sql",
+    "code_len": 194
+  },
+  "vw_TicketRuntimeDetails": {
+    "name": "vw_TicketRuntimeDetails",
+    "type": "VIEW",
+    "last_file": "040_payment_ticket_runtime_reads.sql",
+    "code_len": 478
+  },
+  "usp_CouponAdminAuthorize": {
+    "name": "usp_CouponAdminAuthorize",
+    "type": "PROCEDURE",
+    "last_file": "043_coupon_admin.sql",
+    "code_len": 1040
+  },
+  "usp_CanManageCouponOrganization": {
+    "name": "usp_CanManageCouponOrganization",
+    "type": "PROCEDURE",
+    "last_file": "043_coupon_admin.sql",
+    "code_len": 1013
+  },
+  "usp_ListManagedCoupons": {
+    "name": "usp_ListManagedCoupons",
+    "type": "PROCEDURE",
+    "last_file": "043_coupon_admin.sql",
+    "code_len": 1029
+  },
+  "usp_ReadManagedCoupon": {
+    "name": "usp_ReadManagedCoupon",
+    "type": "PROCEDURE",
+    "last_file": "043_coupon_admin.sql",
+    "code_len": 866
+  },
+  "usp_CreateManagedCoupon": {
+    "name": "usp_CreateManagedCoupon",
+    "type": "PROCEDURE",
+    "last_file": "043_coupon_admin.sql",
+    "code_len": 894
+  },
+  "usp_UpdateManagedCoupon": {
+    "name": "usp_UpdateManagedCoupon",
+    "type": "PROCEDURE",
+    "last_file": "043_coupon_admin.sql",
+    "code_len": 874
+  },
+  "usp_SetManagedCouponActive": {
+    "name": "usp_SetManagedCouponActive",
+    "type": "PROCEDURE",
+    "last_file": "043_coupon_admin.sql",
+    "code_len": 640
+  },
+  "usp_DeleteManagedCoupon": {
+    "name": "usp_DeleteManagedCoupon",
+    "type": "PROCEDURE",
+    "last_file": "043_coupon_admin.sql",
+    "code_len": 997
+  },
+  "usp_AssertOrderAccess": {
+    "name": "usp_AssertOrderAccess",
+    "type": "PROCEDURE",
+    "last_file": "045_order_ticket_access_assertions.sql",
+    "code_len": 626
+  },
+  "usp_AssertTicketAccess": {
+    "name": "usp_AssertTicketAccess",
+    "type": "PROCEDURE",
+    "last_file": "045_order_ticket_access_assertions.sql",
+    "code_len": 739
+  },
+  "vw_BuyerOrderDetails": {
+    "name": "vw_BuyerOrderDetails",
+    "type": "VIEW",
+    "last_file": "044_buyer_order_history_views.sql",
+    "code_len": 750
+  },
+  "vw_BuyerOrderItems": {
+    "name": "vw_BuyerOrderItems",
+    "type": "VIEW",
+    "last_file": "044_buyer_order_history_views.sql",
+    "code_len": 268
+  },
+  "vw_PublicEventSeats": {
+    "name": "vw_PublicEventSeats",
+    "type": "VIEW",
+    "last_file": "045_event_commands_and_public_seats.sql",
+    "code_len": 240
+  },
+  "usp_EventAuthorize": {
+    "name": "usp_EventAuthorize",
+    "type": "PROCEDURE",
+    "last_file": "047_event_authority_lock_order.sql",
+    "code_len": 2204
+  },
+  "usp_EventRead": {
+    "name": "usp_EventRead",
+    "type": "PROCEDURE",
+    "last_file": "051_event_single_image_url.sql",
+    "code_len": 5040
+  },
+  "usp_EventReceipt": {
+    "name": "usp_EventReceipt",
+    "type": "PROCEDURE",
+    "last_file": "045_event_commands_and_public_seats.sql",
+    "code_len": 998
+  },
+  "usp_EventCommand": {
+    "name": "usp_EventCommand",
+    "type": "PROCEDURE",
+    "last_file": "051_event_single_image_url.sql",
+    "code_len": 13958
+  },
+  "v_admin_refund_actor": {
+    "name": "v_admin_refund_actor",
+    "type": "VIEW",
+    "last_file": "043_khanh04_admin_refund.sql",
+    "code_len": 248
+  },
+  "sp_admin_refund_decide": {
+    "name": "sp_admin_refund_decide",
+    "type": "PROCEDURE",
+    "last_file": "050_consolidate_canonical_tables.sql",
+    "code_len": 7061
+  },
+  "v_admin_refund_requests": {
+    "name": "v_admin_refund_requests",
+    "type": "VIEW",
+    "last_file": "050_consolidate_canonical_tables.sql",
+    "code_len": 1114
+  },
+  "v_admin_refund_attempts": {
+    "name": "v_admin_refund_attempts",
+    "type": "VIEW",
+    "last_file": "043_khanh04_admin_refund.sql",
+    "code_len": 177
+  },
+  "sp_refund_approve": {
+    "name": "sp_refund_approve",
+    "type": "PROCEDURE",
+    "last_file": "043_khanh04_admin_refund.sql",
+    "code_len": 358
+  },
+  "sp_refund_reject": {
+    "name": "sp_refund_reject",
+    "type": "PROCEDURE",
+    "last_file": "043_khanh04_admin_refund.sql",
+    "code_len": 358
+  },
+  "sp_refund_retry": {
+    "name": "sp_refund_retry",
+    "type": "PROCEDURE",
+    "last_file": "043_khanh04_admin_refund.sql",
+    "code_len": 316
+  },
+  "tc_refund_attempts": {
+    "name": "tc_refund_attempts",
+    "type": "VIEW",
+    "last_file": "048_khanh05_refund_worker.sql",
+    "code_len": 341
+  },
+  "vw_RefundWorkerCandidates": {
+    "name": "vw_RefundWorkerCandidates",
+    "type": "VIEW",
+    "last_file": "050_consolidate_canonical_tables.sql",
+    "code_len": 629
+  },
+  "sp_refund_begin_attempt": {
+    "name": "sp_refund_begin_attempt",
+    "type": "PROCEDURE",
+    "last_file": "050_consolidate_canonical_tables.sql",
+    "code_len": 3640
+  },
+  "sp_refund_record_attempt_result": {
+    "name": "sp_refund_record_attempt_result",
+    "type": "PROCEDURE",
+    "last_file": "050_consolidate_canonical_tables.sql",
+    "code_len": 2785
+  },
+  "sp_refund_complete_without_transfer": {
+    "name": "sp_refund_complete_without_transfer",
+    "type": "PROCEDURE",
+    "last_file": "048_khanh05_refund_worker.sql",
+    "code_len": 634
+  },
+  "vw_OutboxEmailContext": {
+    "name": "vw_OutboxEmailContext",
+    "type": "VIEW",
+    "last_file": "049_outbox_email_runtime.sql",
+    "code_len": 821
+  },
+  "vw_RefundAttemptLedger": {
+    "name": "vw_RefundAttemptLedger",
+    "type": "VIEW",
+    "last_file": "050_consolidate_canonical_tables.sql",
+    "code_len": 563
+  },
+  "usp_OutboxLease": {
+    "name": "usp_OutboxLease",
+    "type": "PROCEDURE",
+    "last_file": "053_outbox_worker_procedures.sql",
+    "code_len": 1079
+  },
+  "usp_OutboxComplete": {
+    "name": "usp_OutboxComplete",
+    "type": "PROCEDURE",
+    "last_file": "053_outbox_worker_procedures.sql",
+    "code_len": 639
+  },
+  "usp_EventImageAuthorize": {
+    "name": "usp_EventImageAuthorize",
+    "type": "PROCEDURE",
+    "last_file": "055_event_image_procedures.sql",
+    "code_len": 1011
+  },
+  "usp_EventImageCheckTarget": {
+    "name": "usp_EventImageCheckTarget",
+    "type": "PROCEDURE",
+    "last_file": "055_event_image_procedures.sql",
+    "code_len": 940
+  },
+  "usp_EventImageClaim": {
+    "name": "usp_EventImageClaim",
+    "type": "PROCEDURE",
+    "last_file": "055_event_image_procedures.sql",
+    "code_len": 3630
+  },
+  "usp_EventImageSave": {
+    "name": "usp_EventImageSave",
+    "type": "PROCEDURE",
+    "last_file": "055_event_image_procedures.sql",
+    "code_len": 4895
+  },
+  "usp_EventImageCommit": {
+    "name": "usp_EventImageCommit",
+    "type": "PROCEDURE",
+    "last_file": "055_event_image_procedures.sql",
+    "code_len": 909
+  },
+  "usp_EventImageRelease": {
+    "name": "usp_EventImageRelease",
+    "type": "PROCEDURE",
+    "last_file": "055_event_image_procedures.sql",
+    "code_len": 459
+  },
+  "usp_EventImageClaimCleanup": {
+    "name": "usp_EventImageClaimCleanup",
+    "type": "PROCEDURE",
+    "last_file": "055_event_image_procedures.sql",
+    "code_len": 1875
+  },
+  "usp_EventImageCleanupFinished": {
+    "name": "usp_EventImageCleanupFinished",
+    "type": "PROCEDURE",
+    "last_file": "055_event_image_procedures.sql",
+    "code_len": 497
+  },
+  "usp_OrganizationSubmit": {
+    "name": "usp_OrganizationSubmit",
+    "type": "PROCEDURE",
+    "last_file": "056_organization_submit_and_grant_cleanup.sql",
+    "code_len": 2188
+  },
+  "vw_ActorAuthority": {
+    "name": "vw_ActorAuthority",
+    "type": "VIEW",
+    "last_file": "057_application_read_models.sql",
+    "code_len": 135
+  },
+  "vw_ActiveManagerMemberships": {
+    "name": "vw_ActiveManagerMemberships",
+    "type": "VIEW",
+    "last_file": "057_application_read_models.sql",
+    "code_len": 159
+  },
+  "vw_ManagerOrganizations": {
+    "name": "vw_ManagerOrganizations",
+    "type": "VIEW",
+    "last_file": "057_application_read_models.sql",
+    "code_len": 329
+  },
+  "usp_EventRequireSession": {
+    "name": "usp_EventRequireSession",
+    "type": "PROCEDURE",
+    "last_file": "057_application_read_models.sql",
+    "code_len": 339
+  },
+  "vw_FinanceOrganizations": {
+    "name": "vw_FinanceOrganizations",
+    "type": "VIEW",
+    "last_file": "057_application_read_models.sql",
+    "code_len": 118
+  },
+  "vw_FinanceEvents": {
+    "name": "vw_FinanceEvents",
+    "type": "VIEW",
+    "last_file": "057_application_read_models.sql",
+    "code_len": 226
+  },
+  "vw_FinanceSettlements": {
+    "name": "vw_FinanceSettlements",
+    "type": "VIEW",
+    "last_file": "057_application_read_models.sql",
+    "code_len": 159
+  },
+  "vw_CommissionRuleUsage": {
+    "name": "vw_CommissionRuleUsage",
+    "type": "VIEW",
+    "last_file": "057_application_read_models.sql",
+    "code_len": 289
+  },
+  "vw_SettlementSummary": {
+    "name": "vw_SettlementSummary",
+    "type": "VIEW",
+    "last_file": "057_application_read_models.sql",
+    "code_len": 339
+  },
+  "vw_SettlementPayouts": {
+    "name": "vw_SettlementPayouts",
+    "type": "VIEW",
+    "last_file": "057_application_read_models.sql",
+    "code_len": 463
+  },
+  "vw_DashboardPlatformCounts": {
+    "name": "vw_DashboardPlatformCounts",
+    "type": "VIEW",
+    "last_file": "057_application_read_models.sql",
+    "code_len": 642
+  },
+  "fn_DashboardOrganizationCounts": {
+    "name": "fn_DashboardOrganizationCounts",
+    "type": "FUNCTION",
+    "last_file": "057_application_read_models.sql",
+    "code_len": 532
+  },
+  "vw_CheckInStaffOrganizations": {
+    "name": "vw_CheckInStaffOrganizations",
+    "type": "VIEW",
+    "last_file": "057_application_read_models.sql",
+    "code_len": 301
+  },
+  "vw_CheckInEvents": {
+    "name": "vw_CheckInEvents",
+    "type": "VIEW",
+    "last_file": "066_checkin_event_archive_visibility.sql",
+    "code_len": 178
+  },
+  "fn_CheckInEventTicketCounts": {
+    "name": "fn_CheckInEventTicketCounts",
+    "type": "FUNCTION",
+    "last_file": "057_application_read_models.sql",
+    "code_len": 534
+  },
+  "fn_AuditEventMatch": {
+    "name": "fn_AuditEventMatch",
+    "type": "FUNCTION",
+    "last_file": "057_application_read_models.sql",
+    "code_len": 1079
+  },
+  "fn_AuditOrganizationMatch": {
+    "name": "fn_AuditOrganizationMatch",
+    "type": "FUNCTION",
+    "last_file": "057_application_read_models.sql",
+    "code_len": 853
+  },
+  "vw_EventCategories": {
+    "name": "vw_EventCategories",
+    "type": "VIEW",
+    "last_file": "057_application_read_models.sql",
+    "code_len": 128
+  },
+  "vw_PublicEventCatalog": {
+    "name": "vw_PublicEventCatalog",
+    "type": "VIEW",
+    "last_file": "057_application_read_models.sql",
+    "code_len": 705
+  },
+  "vw_ManagedEvents": {
+    "name": "vw_ManagedEvents",
+    "type": "VIEW",
+    "last_file": "065_managed_event_archive_visibility.sql",
+    "code_len": 413
+  },
+  "vw_AdminRefundApprovalNotes": {
+    "name": "vw_AdminRefundApprovalNotes",
+    "type": "VIEW",
+    "last_file": "057_application_read_models.sql",
+    "code_len": 239
+  },
+  "v_admin_cancellation_progress": {
+    "name": "v_admin_cancellation_progress",
+    "type": "VIEW",
+    "last_file": "058_khanh06_event_cancellation.sql",
+    "code_len": 1435
+  },
+  "v_worker_cancellation_orders": {
+    "name": "v_worker_cancellation_orders",
+    "type": "VIEW",
+    "last_file": "058_khanh06_event_cancellation.sql",
+    "code_len": 223
+  },
+  "sp_event_cancel": {
+    "name": "sp_event_cancel",
+    "type": "PROCEDURE",
+    "last_file": "058_khanh06_event_cancellation.sql",
+    "code_len": 5079
+  },
+  "sp_refund_adopt_event_cancellation": {
+    "name": "sp_refund_adopt_event_cancellation",
+    "type": "PROCEDURE",
+    "last_file": "058_khanh06_event_cancellation.sql",
+    "code_len": 1983
+  },
+  "sp_event_cancellation_finish": {
+    "name": "sp_event_cancellation_finish",
+    "type": "PROCEDURE",
+    "last_file": "058_khanh06_event_cancellation.sql",
+    "code_len": 530
+  },
+  "usp_UpdateMyProfile": {
+    "name": "usp_UpdateMyProfile",
+    "type": "PROCEDURE",
+    "last_file": "059_profile_update.sql",
+    "code_len": 766
+  },
+  "usp_RetryPaymentCompensation": {
+    "name": "usp_RetryPaymentCompensation",
+    "type": "PROCEDURE",
+    "last_file": "060_compensation_retry_and_neutral_views.sql",
+    "code_len": 1899
+  },
+  "vw_AuditLogs": {
+    "name": "vw_AuditLogs",
+    "type": "VIEW",
+    "last_file": "060_compensation_retry_and_neutral_views.sql",
+    "code_len": 276
+  },
+  "vw_EventCheckinCounts": {
+    "name": "vw_EventCheckinCounts",
+    "type": "VIEW",
+    "last_file": "060_compensation_retry_and_neutral_views.sql",
+    "code_len": 365
+  },
+  "sp_event_cancellation_review": {
+    "name": "sp_event_cancellation_review",
+    "type": "PROCEDURE",
+    "last_file": "061_event_cancellation_review.sql",
+    "code_len": 6097
+  },
+  "sp_event_cancellation_queue": {
+    "name": "sp_event_cancellation_queue",
+    "type": "PROCEDURE",
+    "last_file": "061_event_cancellation_review.sql",
+    "code_len": 1270
+  },
+  "fn_IsLocalEventImageUrl": {
+    "name": "fn_IsLocalEventImageUrl",
+    "type": "FUNCTION",
+    "last_file": "061_persistent_local_event_images.sql",
+    "code_len": 858
+  },
+  "vw_AuditDisplayNames": {
+    "name": "vw_AuditDisplayNames",
+    "type": "VIEW",
+    "last_file": "062_audit_display_names.sql",
+    "code_len": 2254
+  },
+  "usp_RegisterVnpayPaymentProvenance": {
+    "name": "usp_RegisterVnpayPaymentProvenance",
+    "type": "PROCEDURE",
+    "last_file": "063_vnpay_sandbox_refund_provenance.sql",
+    "code_len": 1245
+  },
+  "vw_VnpayRefundContext": {
+    "name": "vw_VnpayRefundContext",
+    "type": "VIEW",
+    "last_file": "063_vnpay_sandbox_refund_provenance.sql",
+    "code_len": 432
+  },
+  "vw_VnpayBuyerPaymentProvenance": {
+    "name": "vw_VnpayBuyerPaymentProvenance",
+    "type": "VIEW",
+    "last_file": "063_vnpay_sandbox_refund_provenance.sql",
+    "code_len": 316
+  },
+  "vw_VnpaySandboxRefundCandidates": {
+    "name": "vw_VnpaySandboxRefundCandidates",
+    "type": "VIEW",
+    "last_file": "063_vnpay_sandbox_refund_provenance.sql",
+    "code_len": 1230
+  },
+  "usp_ListCheckoutCoupons": {
+    "name": "usp_ListCheckoutCoupons",
+    "type": "PROCEDURE",
+    "last_file": "068_checkout_eligible_coupons.sql",
+    "code_len": 3637
+  }
+}

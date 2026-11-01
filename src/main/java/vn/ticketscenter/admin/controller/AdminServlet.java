@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
+import vn.ticketscenter.config.web.ApiRequest;
 
 @WebServlet(
         name = "AdminServlet",
@@ -27,9 +28,9 @@ import java.io.IOException;
 public class AdminServlet extends HttpServlet {
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        String path = req.getRequestURI().substring(req.getContextPath().length());
+        String path = ApiRequest.path(request);
 
         // Exact routing: pages that moved to another module redirect there instead of rendering a
         // local view.
@@ -43,7 +44,7 @@ public class AdminServlet extends HttpServlet {
                     default -> null;
                 };
         if (redirect != null) {
-            resp.sendRedirect(req.getContextPath() + redirect);
+            response.sendRedirect(request.getContextPath() + redirect);
             return;
         }
         String view;
@@ -55,7 +56,7 @@ public class AdminServlet extends HttpServlet {
             view = "/WEB-INF/views/admin/organizations/list.jsp";
             activeTab = "org-approval";
         }
-        req.setAttribute("activeTab", activeTab);
-        req.getRequestDispatcher(view).forward(req, resp);
+        request.setAttribute("activeTab", activeTab);
+        request.getRequestDispatcher(view).forward(request, response);
     }
 }

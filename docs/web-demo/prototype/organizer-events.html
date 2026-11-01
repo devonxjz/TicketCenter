@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Danh Sách Sự Kiện — TicketsCenter Partner</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-light min-h-screen">
+    <div class="small text-center py-2 bg-light text-muted" role="note">Prototype tĩnh • Dữ liệu và thao tác mô phỏng • Chưa kết nối backend, email hoặc cổng thanh toán.</div>
+
+    <!-- Top Navbar -->
+    <nav class="navbar navbar-custom sticky-top">
+        <div class="container-fluid px-4 d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-3">
+                <a class="navbar-brand-custom" href="index.html">TicketsCenter</a>
+                <span class="status-pill status-dark">Cổng Đối Tác</span>
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+                <select class="form-select form-select-sm rounded-0 border-secondary-subtle fw-bold" style="width: auto;">
+                    <option selected>Bảo tàng Phụ nữ Việt Nam (Quản lý)</option>
+                </select>
+                <div class="vr mx-2"></div>
+                <span class="small fw-bold">Trần Minh Thảo</span>
+                <a href="index.html" class="btn btn-sm btn-outline-dark rounded-0 px-3">Đăng xuất</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Layout -->
+    <div class="dashboard-layout">
+        <aside class="dashboard-sidebar">
+            <div class="sidebar-title">Quản lý tổ chức</div>
+            <ul class="sidebar-menu">
+                <li><a href="organizer-dashboard.html">• Tổng quan</a></li>
+                <li><a href="organizer-events.html" class="active">• Danh sách sự kiện</a></li>
+                <li><a href="organizer-event-editor.html">• Tạo mới sự kiện</a></li>
+                <li><a href="organizer-coupons.html">• Mã khuyến mãi</a></li>
+                <li><a href="organizer-members.html">• Nhân sự & Phân quyền</a></li>
+                <li><a href="checkin-select.html">• Soát vé tại cửa</a></li>
+                <li><a href="organizer-reports.html">• Báo cáo & Quyết toán</a></li>
+            </ul>
+        </aside>
+
+        <main class="dashboard-content">
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-5">
+                <div>
+                    <h1 class="h3 fw-bold mb-1 text-dark">Danh Sách Sự Kiện Đã Tạo</h1>
+                    <p class="small text-muted mb-0">Quản lý các chương trình đang mở bán, bản nháp hoặc chờ ban quản trị duyệt.</p>
+                </div>
+                <div class="mt-3 mt-sm-0">
+                    <a href="organizer-event-editor.html" class="btn-primary-custom">
+                         Tạo sự kiện mới
+                    </a>
+                </div>
+            </div>
+
+            <!-- Rejection Notice Banner -->
+            <div class="p-3 border border-danger-subtle bg-white text-danger d-flex align-items-center justify-content-between mb-4">
+                <div>
+                    <strong class="d-block"> Sự kiện cần chỉnh sửa: "Đêm Nhạc Dân Tộc Đương Đại"</strong>
+                    <span class="small text-dark">Lý do từ ban kiểm duyệt: <em>"Hồ sơ giấy phép biểu diễn chưa công chứng và sơ đồ thoát hiểm chưa được phê duyệt PCCC."</em></span>
+                </div>
+                <a href="organizer-event-editor.html" class="btn btn-sm btn-dark rounded-0 px-3 fw-bold text-nowrap ms-3">
+                    Chỉnh sửa & Gửi lại
+                </a>
+            </div>
+
+            <!-- Events Table -->
+            <div class="panel-box">
+                <div class="panel-header">
+                    <span class="panel-title">Tất cả chương trình (4 sự kiện)</span>
+                    <div class="d-flex gap-2">
+                        <input type="text" class="form-control form-control-sm rounded-0 border-secondary-subtle" placeholder="Tìm kiếm sự kiện..." style="width: 220px;">
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table-custom">
+                        <thead>
+                            <tr>
+                                <th>Tên sự kiện</th>
+                                <th>Thời gian diễn ra</th>
+                                <th>Địa điểm</th>
+                                <th>Trạng thái phát hành</th>
+                                <th>Số vé đã bán</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Published -->
+                            <tr>
+                                <td>
+                                    <strong class="d-block text-dark">Vé Tham Quan Bảo Tàng Phụ Nữ Việt Nam</strong>
+                                    <span class="small text-muted font-monospace">Mã: EVT-001</span>
+                                </td>
+                                <td>01/11/2026 • 08:30 – 17:30</td>
+                                <td>36 Lý Thường Kiệt, Hoàn Kiếm</td>
+                                <td><span class="status-pill status-success">Đang mở bán</span></td>
+                                <td>820 / 1.000 vé</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="event-detail.html" target="_blank" class="btn btn-outline-dark rounded-0 px-2 py-1">Xem</a>
+                                        <a href="organizer-event-editor.html" class="btn btn-dark rounded-0 px-2 py-1">Sửa</a>
+                                        <a href="organizer-reports.html" class="btn btn-outline-dark rounded-0 px-2 py-1">Báo cáo</a>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <!-- Pending Approval -->
+                            <tr>
+                                <td>
+                                    <strong class="d-block text-dark">Chuyên Đề: Phụ Nữ Việt Nam Trong Di Sản</strong>
+                                    <span class="small text-muted font-monospace">Mã: EVT-002</span>
+                                </td>
+                                <td>15/11/2026 • 09:00</td>
+                                <td>Hội trường VWM</td>
+                                <td><span class="status-pill status-amber">Chờ duyệt</span></td>
+                                <td>0 / 200 vé</td>
+                                <td>
+                                    <span class="small text-muted">Đang thẩm định</span>
+                                </td>
+                            </tr>
+
+                            <!-- Draft -->
+                            <tr>
+                                <td>
+                                    <strong class="d-block text-dark">Gặp Mặt Nghệ Nhân Dân Gian 2026</strong>
+                                    <span class="small text-muted font-monospace">Mã: EVT-003</span>
+                                </td>
+                                <td>Chưa lên lịch</td>
+                                <td>Phòng triển lãm 2</td>
+                                <td><span class="status-pill status-subtle">Bản nháp</span></td>
+                                <td>0 / 150 vé</td>
+                                <td>
+                                    <a href="organizer-event-editor.html" class="btn btn-sm btn-outline-dark rounded-0 px-2 py-1">
+                                        Tiếp tục sửa
+                                    </a>
+                                </td>
+                            </tr>
+
+                            <!-- Rejected -->
+                            <tr>
+                                <td>
+                                    <strong class="d-block text-danger">Đêm Nhạc Dân Tộc Đương Đại</strong>
+                                    <span class="small text-muted font-monospace">Mã: EVT-004</span>
+                                </td>
+                                <td>20/12/2026 • 19:30</td>
+                                <td>Sân khấu ngoài trời</td>
+                                <td><span class="status-pill status-red">Bị từ chối</span></td>
+                                <td>0 / 500 vé</td>
+                                <td>
+                                    <a href="organizer-event-editor.html" class="btn btn-sm btn-outline-danger rounded-0 px-2 py-1">
+                                        Khắc phục lý do
+                                    </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+</body>
+</html>

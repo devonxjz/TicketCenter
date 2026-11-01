@@ -10,32 +10,18 @@ import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import vn.ticketscenter.config.web.HttpResponses;
-import vn.ticketscenter.identity.config.IdentityServices;
+import vn.ticketscenter.config.identity.IdentityServices;
 import vn.ticketscenter.identity.service.SessionValidator;
 
 import java.io.IOException;
 import java.util.Optional;
 
 /**
- * Bộ lọc kiểm tra tính hợp lệ của phiên đăng nhập trên mỗi request:
- * Đối chiếu User còn ACTIVE và authVersion chưa thay đổi (chống sử dụng phiên sau khi reset password).
+ * Checks the signed-in session on every request:
+ * the user is still ACTIVE and authVersion is unchanged (no session survives a password reset).
  */
 @WebFilter(urlPatterns = "/api/*")
 public final class SessionValidationFilter implements Filter {
-
-    private SessionValidator sessionValidator;
-
-    public SessionValidationFilter() {}
-
-    public SessionValidationFilter(SessionValidator sessionValidator) {
-        this.sessionValidator = sessionValidator;
-    }
-
-    private SessionValidator sessionValidator(ServletContext context) {
-        return sessionValidator != null
-                ? sessionValidator
-                : IdentityServices.sessionValidator(context);
-    }
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
@@ -47,7 +33,7 @@ public final class SessionValidationFilter implements Filter {
 
         if (principalOpt.isPresent()) {
             UserPrincipal principal = principalOpt.get();
-            SessionValidator validator = sessionValidator(request.getServletContext());
+            SessionValidator validator = IdentityServices.sessionValidator(request.getServletContext());
 
             if (validator != null
                     && !validator.isSessionValid(principal.actorId(), principal.authVersion())) {

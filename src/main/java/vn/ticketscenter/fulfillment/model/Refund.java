@@ -1,5 +1,6 @@
 package vn.ticketscenter.fulfillment.model;
 
+import vn.ticketscenter.identity.model.User;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -55,11 +56,11 @@ public class Refund extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "requester_id")
-    private vn.ticketscenter.identity.model.User requester;
+    private User requester;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reviewer_id")
-    private vn.ticketscenter.identity.model.User reviewer;
+    private User reviewer;
 
     @Column(name = "decided_at")
     private Instant decidedAt;
@@ -96,11 +97,11 @@ public class Refund extends BaseEntity {
         this.reason = reason;
     }
 
-    public vn.ticketscenter.identity.model.User getRequester() {
+    public User getRequester() {
         return requester;
     }
 
-    public vn.ticketscenter.identity.model.User getReviewer() {
+    public User getReviewer() {
         return reviewer;
     }
 
